@@ -4,3 +4,4 @@
 
 # Large asset bundles (source files, not tracked in git)
 *.zip
+assets/minifantasy/

@@ -32,7 +32,11 @@
       "Bash(find E:/Projects/extraction-survivors -type d ! -path */addons/* ! -path */.godot/*)",
       "Bash(python3 -:*)",
       "Bash(git init:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git rm:*)",
+      "Bash(git commit:*)",
+      "Bash(gh auth:*)",
+      "Bash(gh --version)"
     ]
   }
 }
