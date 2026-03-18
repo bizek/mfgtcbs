@@ -1,0 +1,102 @@
+[gd_scene format=3 uid="uid://bpq2bly0knunl"]
+
+[ext_resource type="Script" uid="uid://b3f6cyt680pss" path="res://scripts/main_arena.gd" id="1_2tmn8"]
+[ext_resource type="PackedScene" uid="uid://byxmspxd1b7ug" path="res://scenes/player.tscn" id="2_ht0qy"]
+[ext_resource type="PackedScene" uid="uid://dhud00001" path="res://scenes/ui/hud.tscn" id="4_5ok1l"]
+[ext_resource type="PackedScene" uid="uid://dlevelup001" path="res://scenes/ui/level_up_screen.tscn" id="6_vs4b3"]
+[ext_resource type="PackedScene" uid="uid://dgameover01" path="res://scenes/ui/game_over_screen.tscn" id="8_riejm"]
+[ext_resource type="PackedScene" uid="uid://dextract001" path="res://scenes/ui/extraction_success_screen.tscn" id="10_cxa4h"]
+
+[sub_resource type="RectangleShape2D" id="RS_walltop"]
+size = Vector2(1632, 16)
+
+[sub_resource type="RectangleShape2D" id="RS_wallbot"]
+size = Vector2(1632, 16)
+
+[sub_resource type="RectangleShape2D" id="RS_walllft"]
+size = Vector2(16, 1232)
+
+[sub_resource type="RectangleShape2D" id="RS_wallrgt"]
+size = Vector2(16, 1232)
+
+[node name="MainArena" type="Node2D" unique_id=1116053932]
+script = ExtResource("1_2tmn8")
+
+[node name="ArenaFloor" type="TextureRect" parent="." unique_id=1974973810]
+offset_left = -800.0
+offset_top = -600.0
+offset_right = 800.0
+offset_bottom = 600.0
+
+[node name="ArenaBorderTop" type="ColorRect" parent="." unique_id=1600893384]
+offset_left = -800.0
+offset_top = -616.0
+offset_right = 800.0
+offset_bottom = -600.0
+color = Color(0.047, 0.035, 0.027, 1)
+
+[node name="ArenaBorderBottom" type="ColorRect" parent="." unique_id=830806687]
+offset_left = -800.0
+offset_top = 600.0
+offset_right = 800.0
+offset_bottom = 616.0
+color = Color(0.047, 0.035, 0.027, 1)
+
+[node name="ArenaBorderLeft" type="ColorRect" parent="." unique_id=2002114038]
+offset_left = -816.0
+offset_top = -616.0
+offset_right = -800.0
+offset_bottom = 616.0
+color = Color(0.047, 0.035, 0.027, 1)
+
+[node name="ArenaBorderRight" type="ColorRect" parent="." unique_id=1170092400]
+offset_left = 800.0
+offset_top = -616.0
+offset_right = 816.0
+offset_bottom = 616.0
+color = Color(0.047, 0.035, 0.027, 1)
+
+[node name="WallTop" type="StaticBody2D" parent="."]
+position = Vector2(0, -608)
+collision_layer = 3
+collision_mask = 0
+
+[node name="CollisionShape" type="CollisionShape2D" parent="WallTop"]
+shape = SubResource("RS_walltop")
+
+[node name="WallBottom" type="StaticBody2D" parent="."]
+position = Vector2(0, 608)
+collision_layer = 3
+collision_mask = 0
+
+[node name="CollisionShape" type="CollisionShape2D" parent="WallBottom"]
+shape = SubResource("RS_wallbot")
+
+[node name="WallLeft" type="StaticBody2D" parent="."]
+position = Vector2(-808, 0)
+collision_layer = 3
+collision_mask = 0
+
+[node name="CollisionShape" type="CollisionShape2D" parent="WallLeft"]
+shape = SubResource("RS_walllft")
+
+[node name="WallRight" type="StaticBody2D" parent="."]
+position = Vector2(808, 0)
+collision_layer = 3
+collision_mask = 0
+
+[node name="CollisionShape" type="CollisionShape2D" parent="WallRight"]
+shape = SubResource("RS_wallrgt")
+
+[node name="Player" parent="." unique_id=24050192 instance=ExtResource("2_ht0qy")]
+
+[node name="HUD" parent="." unique_id=1865778737 instance=ExtResource("4_5ok1l")]
+
+[node name="LevelUpScreen" parent="." unique_id=1026823840 instance=ExtResource("6_vs4b3")]
+visible = false
+
+[node name="GameOverScreen" parent="." unique_id=1625049462 instance=ExtResource("8_riejm")]
+visible = false
+
+[node name="ExtractionSuccessScreen" parent="." unique_id=2075698405 instance=ExtResource("10_cxa4h")]
+visible = false

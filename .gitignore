@@ -1,0 +1,6 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+
+# Large asset bundles (source files, not tracked in git)
+*.zip

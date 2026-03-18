@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__godot-mcp-pro__set_project_setting",
+      "mcp__godot-mcp-pro__set_input_action",
+      "mcp__godot-mcp-pro__create_script",
+      "mcp__godot-mcp-pro__add_autoload",
+      "mcp__godot-mcp-pro__create_scene",
+      "mcp__godot-mcp-pro__setup_collision",
+      "mcp__godot-mcp-pro__update_property",
+      "mcp__godot-mcp-pro__save_scene",
+      "mcp__godot-mcp-pro__open_scene",
+      "mcp__godot-mcp-pro__attach_script",
+      "mcp__godot-mcp-pro__add_node",
+      "mcp__godot-mcp-pro__get_filesystem_tree",
+      "mcp__godot-mcp-pro__get_project_info",
+      "mcp__godot-mcp-pro__read_script",
+      "mcp__godot-mcp-pro__get_scene_file_content",
+      "mcp__godot-mcp-pro__add_scene_instance",
+      "mcp__godot-mcp-pro__play_scene",
+      "mcp__godot-mcp-pro__get_editor_errors",
+      "mcp__godot-mcp-pro__get_game_screenshot",
+      "mcp__godot-mcp-pro__get_output_log",
+      "mcp__godot-mcp-pro__stop_scene",
+      "mcp__godot-mcp-pro__edit_script",
+      "mcp__godot-mcp-pro__execute_game_script",
+      "Read(//c/Users/bblda/.claude/projects/E--Projects-extraction-survivors/**)",
+      "Bash(ls -lah *.jsonl)",
+      "mcp__godot-mcp-pro__get_scene_tree",
+      "mcp__godot-mcp-pro__batch_set_property",
+      "mcp__godot-mcp-pro__list_scripts",
+      "Bash(find E:/Projects/extraction-survivors -type d ! -path */addons/* ! -path */.godot/*)",
+      "Bash(python3 -:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}
