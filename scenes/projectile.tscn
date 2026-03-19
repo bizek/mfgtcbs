@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://chjw2ogurss24"]
 
 [ext_resource type="Script" uid="uid://dgag3yy1beqm0" path="res://scripts/entities/projectile.gd" id="1_c8fcr"]
+[ext_resource type="Texture2D" path="res://assets/minifantasy/Minifantasy_Enchanted_Companions_v1.0/Minifantasy_Enchanted_Companions_Assets/Companions/Sword/Sword_Fly_Idle.png" id="2_sword"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_q3m7n"]
 size = Vector2(8, 4)
@@ -10,12 +11,12 @@ collision_layer = 4
 collision_mask = 2
 script = ExtResource("1_c8fcr")
 
-[node name="Sprite" type="ColorRect" parent="." unique_id=1596915790]
-offset_left = -4.0
-offset_top = -2.0
-offset_right = 4.0
-offset_bottom = 2.0
-color = Color(1, 1, 0.3, 1)
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1596915790]
+texture_filter = 1
+texture = ExtResource("2_sword")
+region_enabled = true
+region_rect = Rect2(0, 0, 32, 32)
+rotation = 1.5708
 
 [node name="CollisionShape" type="CollisionShape2D" parent="." unique_id=214629234]
 shape = SubResource("RectangleShape2D_q3m7n")

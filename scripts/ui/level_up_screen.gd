@@ -30,12 +30,18 @@ func _show_choices() -> void:
 	for child in choices_container.get_children():
 		child.queue_free()
 
+	## Load pixel font for buttons (same font used by the HUD)
+	var pixel_font: FontFile = load("res://assets/fonts/m5x7.ttf")
+
 	## Create a button for each choice
 	for i in range(_choices.size()):
 		var upgrade: Dictionary = _choices[i]
 		var btn := Button.new()
 		btn.text = "%s\n%s" % [upgrade.name, upgrade.description]
-		btn.custom_minimum_size = Vector2(300, 60)
+		btn.custom_minimum_size = Vector2(210, 38)
+		if pixel_font:
+			btn.add_theme_font_override("font", pixel_font)
+		btn.add_theme_font_size_override("font_size", 16)
 		btn.pressed.connect(_on_choice_pressed.bind(i))
 		choices_container.add_child(btn)
 

@@ -8,8 +8,8 @@ signal enemy_spawned(enemy: Node)
 @export var swarmer_scene: PackedScene
 
 var spawn_timer: float = 0.0
-var base_spawn_interval: float = 0.8 ## Seconds between spawn waves (was 1.5)
-var enemies_per_spawn: int = 5 ## Base enemies per wave (was 3)
+var base_spawn_interval: float = 2.5 ## Seconds between spawn waves at difficulty 1.0
+var enemies_per_spawn: int = 3 ## Base enemies per wave at difficulty 1.0
 var max_enemies: int = 150
 var active_enemies: int = 0
 var arena_bounds: Rect2 = Rect2(-320, -240, 640, 480) ## Default, set by arena
@@ -25,15 +25,16 @@ func _process(delta: float) -> void:
 	spawn_timer -= delta
 	if spawn_timer <= 0.0:
 		_spawn_wave()
-		## Spawn interval decreases with difficulty
+		## Spawn interval decreases with difficulty; halves while player is channeling extraction
 		var difficulty: float = GameManager.difficulty_multiplier
-		spawn_timer = base_spawn_interval / difficulty
+		var channel_pressure: float = 2.0 if ExtractionManager.is_channeling else 1.0
+		spawn_timer = base_spawn_interval / (difficulty * channel_pressure)
 
 func start_spawning(player: Node2D, bounds: Rect2) -> void:
 	player_ref = player
 	arena_bounds = bounds
 	spawn_enabled = true
-	spawn_timer = 1.0 ## First wave after 1 second
+	spawn_timer = 3.0 ## Grace period before first wave
 	active_enemies = 0
 
 func stop_spawning() -> void:
@@ -62,6 +63,9 @@ func _spawn_single_enemy() -> void:
 	var swarmer_chance: float = clampf(0.1 + (GameManager.difficulty_multiplier - 1.0) * 0.15, 0.1, 0.5)
 	var spawn_pos: Vector2 = _get_spawn_position()
 
+	## Combined difficulty: time-based scaling × instability tier multiplier
+	var effective_difficulty: float = GameManager.difficulty_multiplier * GameManager.get_instability_multiplier()
+
 	if randf() < swarmer_chance and swarmer_scene != null:
 		## Spawn a pack of 3-5 swarmers in a tight cluster
 		var pack_size: int = randi_range(3, 5)
@@ -72,7 +76,7 @@ func _spawn_single_enemy() -> void:
 			var offset := Vector2(randf_range(-22.0, 22.0), randf_range(-22.0, 22.0))
 			enemy.global_position = spawn_pos + offset
 			if enemy.has_method("apply_difficulty_scaling"):
-				enemy.apply_difficulty_scaling(GameManager.difficulty_multiplier)
+				enemy.apply_difficulty_scaling(effective_difficulty)
 			get_tree().current_scene.add_child(enemy)
 			active_enemies += 1
 			enemy_spawned.emit(enemy)
@@ -80,25 +84,30 @@ func _spawn_single_enemy() -> void:
 		var enemy: Node2D = fodder_scene.instantiate()
 		enemy.global_position = spawn_pos
 		if enemy.has_method("apply_difficulty_scaling"):
-			enemy.apply_difficulty_scaling(GameManager.difficulty_multiplier)
+			enemy.apply_difficulty_scaling(effective_difficulty)
 		get_tree().current_scene.add_child(enemy)
 		active_enemies += 1
 		enemy_spawned.emit(enemy)
 
 func _get_spawn_position() -> Vector2:
-	var margin: float = 32.0
+	## Spawn just outside the visible viewport around the player,
+	## then clamp inside the arena walls so enemies never get stuck outside.
+	## Viewport-relative spawn radius keeps enemies always close to the screen edge.
+	const SPAWN_RADIUS: float = 340.0 ## ~half viewport diagonal at zoom 1, 1152x648
+	const INNER_MARGIN: float = 20.0  ## Keep this far from arena wall edges
 
-	## Pick a random edge
-	var side: int = randi_range(0, 3)
-	var pos: Vector2
-	match side:
-		0: ## Top
-			pos = Vector2(randf_range(arena_bounds.position.x, arena_bounds.end.x), arena_bounds.position.y - margin)
-		1: ## Bottom
-			pos = Vector2(randf_range(arena_bounds.position.x, arena_bounds.end.x), arena_bounds.end.y + margin)
-		2: ## Left
-			pos = Vector2(arena_bounds.position.x - margin, randf_range(arena_bounds.position.y, arena_bounds.end.y))
-		3: ## Right
-			pos = Vector2(arena_bounds.end.x + margin, randf_range(arena_bounds.position.y, arena_bounds.end.y))
+	var center: Vector2 = player_ref.global_position if player_ref else Vector2.ZERO
+
+	## Pick a random angle and place on a circle just outside view
+	var angle: float = randf() * TAU
+	var pos: Vector2 = center + Vector2(cos(angle), sin(angle)) * SPAWN_RADIUS
+
+	## Clamp inside arena walls with a small inward margin
+	var safe_bounds := Rect2(
+		arena_bounds.position + Vector2(INNER_MARGIN, INNER_MARGIN),
+		arena_bounds.size - Vector2(INNER_MARGIN * 2.0, INNER_MARGIN * 2.0)
+	)
+	pos.x = clampf(pos.x, safe_bounds.position.x, safe_bounds.end.x)
+	pos.y = clampf(pos.y, safe_bounds.position.y, safe_bounds.end.y)
 
 	return pos

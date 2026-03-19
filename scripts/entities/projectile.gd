@@ -16,8 +16,6 @@ var source: Node = null
 var _hits: int = 0
 var _life_timer: float = 0.0
 
-@onready var sprite: ColorRect = $Sprite
-
 func _ready() -> void:
 	## Apply scale
 	if scale_factor != 1.0:

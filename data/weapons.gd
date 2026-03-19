@@ -1,0 +1,128 @@
+## WeaponData — Static database of all weapons in the game.
+## Read by the player to configure behavior, and by the weapon pickup system.
+## Each weapon overrides the player's base stats and drives a specific behavior pattern.
+##
+## Behavior types (from mechanical_vocabulary.md):
+##   projectile — straight-firing bolt, basic auto-attack
+##   spread     — cone of projectiles in one burst
+##   beam       — instant-hit raycast with Line2D visual, rapid ticks
+##   orbit      — persistent orbs circling the player
+##   artillery  — delayed AoE at a ground target near nearest enemy
+##   melee      — arc swing hitbox around the player
+class_name WeaponData
+
+const ALL: Dictionary = {
+
+	## ─── Standard Sidearm ────────────────────────────────────────────────────
+	## The default starter weapon. Reliable mid-range auto-fire.
+	"Standard Sidearm": {
+		"id":              "Standard Sidearm",
+		"display_name":    "Standard Sidearm",
+		"description":     "Steady auto-fire. Jack of all trades.",
+		"behavior":        "projectile",
+		"damage_type":     "physical",
+		"damage":          18.0,
+		"attack_speed":    1.0,     ## shots per second
+		"projectile_speed": 400.0,
+		"lifetime":        3.0,     ## seconds before projectile expires
+		"projectile_count": 1,
+		"spread_angle":    10.0,    ## total cone width in degrees (±5°)
+		"tint":            Color.WHITE,
+		"drop_weight":     0,       ## 0 = never drops; always available as default
+	},
+
+	## ─── Frost Scattergun ─────────────────────────────────────────────────────
+	## Five projectiles in a wide cone. Shreds at close range; falls off fast.
+	"Frost Scattergun": {
+		"id":              "Frost Scattergun",
+		"display_name":    "Frost Scattergun",
+		"description":     "5-shot cryo cone. Lethal up close.",
+		"behavior":        "spread",
+		"damage_type":     "cryo",
+		"damage":          14.0,    ## per projectile (×5 = 70 total potential)
+		"attack_speed":    0.85,
+		"projectile_speed": 340.0,
+		"lifetime":        0.68,    ## ~230px range at this speed
+		"projectile_count": 5,
+		"spread_angle":    52.0,    ## total cone width
+		"tint":            Color(0.55, 0.88, 1.0),   ## icy blue-white
+		"drop_weight":     10,
+	},
+
+	## ─── Ember Beam ───────────────────────────────────────────────────────────
+	## Continuous rapid-tick damage to nearest enemy in range. Low per-hit,
+	## but constant pressure. Orange laser visual.
+	"Ember Beam": {
+		"id":              "Ember Beam",
+		"display_name":    "Ember Beam",
+		"description":     "Constant fire stream. Lower damage, never stops.",
+		"behavior":        "beam",
+		"damage_type":     "fire",
+		"damage":          6.0,     ## per tick (×12/sec = 72 DPS base)
+		"attack_speed":    12.0,    ## ticks per second
+		"range":           285.0,
+		"tint":            Color(1.0, 0.42, 0.08),   ## deep orange-red
+		"drop_weight":     10,
+	},
+
+	## ─── Lightning Orb ────────────────────────────────────────────────────────
+	## Three electric orbs orbit the player permanently. They shock any enemy
+	## they contact. Passive — no aiming required.
+	"Lightning Orb": {
+		"id":              "Lightning Orb",
+		"display_name":    "Lightning Orb",
+		"description":     "3 orbs orbit you. Touch enemies to shock them.",
+		"behavior":        "orbit",
+		"damage_type":     "shock",
+		"damage":          28.0,    ## per orb contact (0.45s cooldown per enemy)
+		"attack_speed":    1.0,     ## unused for orbit; kept for stat display
+		"orbit_count":     3,
+		"orbit_radius":    64.0,
+		"orbit_speed":     1.8,     ## full rotations per second
+		"tint":            Color(0.78, 0.95, 1.0),   ## electric white-blue
+		"drop_weight":     10,
+	},
+
+	## ─── Void Mortar ──────────────────────────────────────────────────────────
+	## Lobs a shell at a spot near the nearest enemy. After a 1-second fuse,
+	## it detonates in a large AoE. Slow fire rate, massive burst.
+	"Void Mortar": {
+		"id":              "Void Mortar",
+		"display_name":    "Void Mortar",
+		"description":     "Delayed AoE blast. Watch the ground.",
+		"behavior":        "artillery",
+		"damage_type":     "void",
+		"damage":          52.0,    ## AoE on explosion
+		"attack_speed":    0.55,    ## shots per second
+		"range":           380.0,   ## max target range
+		"aoe_radius":      64.0,
+		"fuse_time":        1.0,    ## seconds before detonation
+		"tint":            Color(0.38, 0.08, 0.62),  ## dark purple-void
+		"drop_weight":     10,
+	},
+
+	## ─── Plasma Blade ─────────────────────────────────────────────────────────
+	## Fast arc swings through enemies in a wide semicircle. Extremely high
+	## damage but you have to be in their face. Very fast attack speed.
+	"Plasma Blade": {
+		"id":              "Plasma Blade",
+		"display_name":    "Plasma Blade",
+		"description":     "High-damage arc swing. Get close or die.",
+		"behavior":        "melee",
+		"damage_type":     "physical",
+		"damage":          42.0,
+		"attack_speed":    2.5,     ## swings per second
+		"range":           55.0,    ## melee reach in pixels
+		"arc_degrees":     200.0,   ## swing arc width
+		"tint":            Color(0.48, 0.80, 1.0),   ## plasma cyan-blue
+		"drop_weight":     10,
+	},
+}
+
+## Returns the IDs of all weapons eligible to drop during runs (drop_weight > 0).
+static func get_droppable_ids() -> Array:
+	var result: Array = []
+	for id in ALL:
+		if ALL[id].get("drop_weight", 0) > 0:
+			result.append(id)
+	return result

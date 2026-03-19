@@ -1,6 +1,14 @@
-[gd_scene load_steps=2 format=3 uid="uid://dlevelup001"]
+[gd_scene load_steps=4 format=3 uid="uid://dlevelup001"]
 
 [ext_resource type="Script" path="res://scripts/ui/level_up_screen.gd" id="1_script"]
+[ext_resource type="FontFile" path="res://assets/fonts/m5x7.ttf" id="2_font"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_title"]
+font = ExtResource("2_font")
+font_size = 16
+font_color = Color(1, 1, 1, 1)
+outline_size = 1
+outline_color = Color(0, 0, 0, 0.9)
 
 [node name="LevelUpScreen" type="CanvasLayer"]
 layer = 10
@@ -19,24 +27,25 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -180.0
-offset_top = -150.0
-offset_right = 180.0
-offset_bottom = 150.0
+offset_left = -120.0
+offset_top = -90.0
+offset_right = 120.0
+offset_bottom = 90.0
 grow_horizontal = 2
 grow_vertical = 2
 
 [node name="VBox" type="VBoxContainer" parent="Panel"]
 layout_mode = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 8
 
 [node name="TitleLabel" type="Label" parent="Panel/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "LEVEL UP!"
 horizontal_alignment = 1
+label_settings = SubResource("LabelSettings_title")
 
 [node name="ChoicesContainer" type="VBoxContainer" parent="Panel/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 5

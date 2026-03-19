@@ -1,0 +1,113 @@
+extends Area2D
+
+## OrbitOrb — Persistent orb that circles the player and shocks enemies on contact.
+## Created by the player when Lightning Orb is equipped. Lives until the player is gone.
+##
+## Damage uses the player's live get_stat("damage") so upgrades apply correctly.
+
+class_name OrbitOrb
+
+## Set by player before add_child
+var player_ref: Node2D = null
+var orbit_radius: float = 64.0
+var orbit_speed: float = 1.8     ## full rotations per second
+var orbit_offset: float = 0.0   ## starting angle in radians (spread orbs evenly)
+var tint: Color = Color(0.78, 0.95, 1.0)
+
+## Per-enemy hit cooldown — prevents frame-spam damage on the same enemy
+const HIT_COOLDOWN: float = 0.45
+var _hit_cooldowns: Dictionary = {}  ## enemy instance_id → seconds remaining
+
+var _angle: float = 0.0
+
+func _ready() -> void:
+	collision_layer = 4   ## player_projectiles (bit 2)
+	collision_mask  = 2   ## enemies (bit 1)
+	monitoring      = true
+	monitorable     = false
+
+	_angle = orbit_offset
+
+	## Collision shape — small circle
+	var shape := CollisionShape2D.new()
+	var circle := CircleShape2D.new()
+	circle.radius = 7.0
+	shape.shape = circle
+	add_child(shape)
+
+	_build_visual()
+
+	body_entered.connect(_on_body_entered)
+
+func _build_visual() -> void:
+	## Soft outer glow
+	var glow := ColorRect.new()
+	glow.color = Color(tint.r, tint.g, tint.b, 0.28)
+	glow.size = Vector2(20.0, 20.0)
+	glow.position = Vector2(-10.0, -10.0)
+	add_child(glow)
+
+	## Core orb
+	var core := ColorRect.new()
+	core.color = tint
+	core.size = Vector2(9.0, 9.0)
+	core.position = Vector2(-4.5, -4.5)
+	add_child(core)
+
+	## Bright white center spark
+	var spark := ColorRect.new()
+	spark.color = Color(1.0, 1.0, 1.0, 0.90)
+	spark.size = Vector2(3.0, 3.0)
+	spark.position = Vector2(-1.5, -1.5)
+	add_child(spark)
+
+	## Pulse animation — orb breathes in and out gently
+	var tween := create_tween().set_loops()
+	tween.tween_property(glow, "modulate:a", 0.35, 0.55)
+	tween.tween_property(glow, "modulate:a", 1.0,  0.55)
+
+func _process(delta: float) -> void:
+	## Self-destruct if player is gone (scene change or death cleanup)
+	if not is_instance_valid(player_ref):
+		queue_free()
+		return
+
+	## Tick down per-enemy hit cooldowns
+	for key in _hit_cooldowns.keys():
+		_hit_cooldowns[key] -= delta
+		if _hit_cooldowns[key] <= 0.0:
+			_hit_cooldowns.erase(key)
+
+	## Orbit the player
+	_angle += orbit_speed * TAU * delta
+	global_position = player_ref.global_position + Vector2(cos(_angle), sin(_angle)) * orbit_radius
+
+func _on_body_entered(body: Node2D) -> void:
+	if not body.is_in_group("enemies"):
+		return
+	if not body.has_method("take_damage"):
+		return
+
+	var enemy_id: int = body.get_instance_id()
+	if _hit_cooldowns.has(enemy_id):
+		return
+	_hit_cooldowns[enemy_id] = HIT_COOLDOWN
+
+	## Read player's live damage stat so upgrades apply
+	var dmg: float = 28.0
+	var crit_ch: float = 0.05
+	var crit_m: float = 1.5
+	if is_instance_valid(player_ref):
+		dmg    = player_ref.get_stat("damage")
+		crit_ch = player_ref.get_stat("crit_chance")
+		crit_m  = player_ref.get_stat("crit_multiplier")
+
+	CombatManager.resolve_hit(
+		player_ref if is_instance_valid(player_ref) else self,
+		body, dmg, crit_ch, crit_m
+	)
+
+	## Small electric flash on the orb
+	modulate = Color(2.2, 2.2, 2.8, 1.0)
+	var flash := create_tween()
+	flash.tween_property(self, "modulate", Color.WHITE, 0.08)

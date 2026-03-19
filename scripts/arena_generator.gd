@@ -12,10 +12,22 @@ const ARENA_HALF_H: float = 600.0
 ## Visual wall border is 3 tiles × 16 px = 48 px. Collision sits just inside it.
 const WALL_THICKNESS: float = 48.0
 
-## Obstacles
+## Obstacles — fixed 16px sprites scaled 3× = 48 game-unit rocks
 const OBSTACLE_COUNT: int = 18
-const OBS_MIN_SIZE: float = 24.0
-const OBS_MAX_SIZE: float = 64.0
+const ROCK_SCALE: float = 3.0
+const ROCK_SIZE: float = 16.0 * ROCK_SCALE   ## 48 — visual footprint
+const ROCK_COLL: float = 36.0                ## slightly smaller collision for fair play
+
+const PROPS_PATH: String = "res://assets/minifantasy/Minifantasy_ForgottenPlains_v3.5_Commercial_Version/Minifantasy_ForgottenPlains_Assets/props/Minifantasy_ForgottenPlainsProps.png"
+
+## Rock tile origins in the props sheet (each is 16×16). Confirmed opaque stone tiles.
+const ROCK_TILES: Array[Vector2i] = [
+	Vector2i(0,  0),  ## light grey stone
+	Vector2i(16, 0),  ## lighter grey stone
+	Vector2i(32, 0),  ## medium grey stone
+	Vector2i(0,  16), ## dark grey boulder
+	Vector2i(16, 16), ## dark grey boulder variant
+]
 
 ## Extraction point is fixed: bottom-centre, comfortably inside the play area.
 const EXTRACTION_POSITION := Vector2(0.0, 460.0)
@@ -61,6 +73,9 @@ func _build_wall_collision() -> void:
 	for seg in segments:
 		var body := StaticBody2D.new()
 		body.position = seg[0]
+		## Layer 1+2 (binary 11=3): player (mask=2) and enemies (mask=1) both collide with walls
+		body.collision_layer = 3
+		body.collision_mask = 0
 
 		var col := CollisionShape2D.new()
 		var rect := RectangleShape2D.new()
@@ -75,70 +90,71 @@ func _build_wall_collision() -> void:
 # ---------------------------------------------------------------------------
 
 func _scatter_obstacles() -> void:
-	## Usable interior — inset by wall thickness plus half max obstacle size.
-	var x_limit: float = ARENA_HALF_W - WALL_THICKNESS - OBS_MAX_SIZE * 0.5 - 8.0
-	var y_limit: float = ARENA_HALF_H - WALL_THICKNESS - OBS_MAX_SIZE * 0.5 - 8.0
+	## Load props sheet once and share it across all rock sprites
+	var props_img := Image.load_from_file(PROPS_PATH)
+	if props_img == null:
+		push_warning("ArenaGenerator: props sheet not found — skipping obstacles.")
+		return
 
-	var placed: Array[Rect2] = []
+	var half: float = ROCK_SIZE * 0.5
+	var x_limit: float = ARENA_HALF_W - WALL_THICKNESS - half - 8.0
+	var y_limit: float = ARENA_HALF_H - WALL_THICKNESS - half - 8.0
+
+	var placed: Array[Vector2] = []
 	var placed_count: int = 0
-	var attempts: int = 400  ## Cap to avoid infinite loop
+	var attempts: int = 400
 
 	while placed_count < OBSTACLE_COUNT and attempts > 0:
 		attempts -= 1
 
 		var x: float = rng.randf_range(-x_limit, x_limit)
 		var y: float = rng.randf_range(-y_limit, y_limit)
-		var w: float = rng.randf_range(OBS_MIN_SIZE, OBS_MAX_SIZE)
-		var h: float = rng.randf_range(OBS_MIN_SIZE, OBS_MAX_SIZE)
-		var candidate := Rect2(x - w * 0.5, y - h * 0.5, w, h)
+		var pos := Vector2(x, y)
 
-		## Clear zone around player spawn (arena centre)
-		if Vector2(x, y).length() < SPAWN_CLEAR_RADIUS:
+		## Clear zones
+		if pos.length() < SPAWN_CLEAR_RADIUS:
+			continue
+		if pos.distance_to(EXTRACTION_POSITION) < EXTRACTION_CLEAR_RADIUS:
 			continue
 
-		## Clear zone around fixed extraction point
-		if Vector2(x, y).distance_to(EXTRACTION_POSITION) < EXTRACTION_CLEAR_RADIUS:
-			continue
-
-		## Reject overlaps with already-placed obstacles (plus small padding gap)
+		## No overlaps (minimum gap between rock centres)
 		var blocked: bool = false
-		for existing in placed:
-			if candidate.intersects(existing.grow(6.0)):
+		for p in placed:
+			if pos.distance_to(p) < ROCK_SIZE + 8.0:
 				blocked = true
 				break
 		if blocked:
 			continue
 
-		placed.append(candidate)
-		_spawn_obstacle(Vector2(x, y), Vector2(w, h))
+		placed.append(pos)
+		var tile_origin: Vector2i = ROCK_TILES[rng.randi() % ROCK_TILES.size()]
+		_spawn_obstacle(pos, props_img, tile_origin)
 		placed_count += 1
 
-func _spawn_obstacle(pos: Vector2, size: Vector2) -> void:
+func _spawn_obstacle(pos: Vector2, props_img: Image, tile_origin: Vector2i) -> void:
 	var body := StaticBody2D.new()
 	body.position = pos
+	## Layer 1+2 (binary 11=3): player (mask=2) and enemies (mask=1) both collide
+	body.collision_layer = 3
+	body.collision_mask = 0
 
-	## Collision shape
+	## Collision — square, slightly inset from visual edges
 	var col := CollisionShape2D.new()
-	var rect := RectangleShape2D.new()
-	rect.size = size
-	col.shape = rect
+	var shape := RectangleShape2D.new()
+	shape.size = Vector2(ROCK_COLL, ROCK_COLL)
+	col.shape = shape
 	body.add_child(col)
 
-	## Visual — stone-rubble colour, slightly varied hue per obstacle
-	var hue_shift: float = rng.randf_range(-0.02, 0.02)
-	var base := Color(0.28, 0.24, 0.19, 1.0)
-	var visual := ColorRect.new()
-	visual.color = Color(base.r + hue_shift, base.g + hue_shift, base.b, 1.0)
-	visual.size = size
-	visual.position = -size * 0.5  ## centre the rect on the body
-	body.add_child(visual)
+	## Crop the 16×16 rock tile and build a texture from it
+	var tile_img := props_img.get_region(Rect2i(tile_origin.x, tile_origin.y, 16, 16))
+	var tex := ImageTexture.create_from_image(tile_img)
 
-	## Thin top edge highlight so obstacles read as 3D blocks at a glance
-	var highlight := ColorRect.new()
-	highlight.color = Color(0.45, 0.40, 0.33, 0.7)
-	highlight.size = Vector2(size.x, 3.0)
-	highlight.position = Vector2(-size.x * 0.5, -size.y * 0.5)
-	body.add_child(highlight)
+	## Sprite2D — centred, scaled up, nearest-neighbour for crisp pixels
+	var sprite := Sprite2D.new()
+	sprite.texture = tex
+	sprite.scale = Vector2(ROCK_SCALE, ROCK_SCALE)
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	body.add_child(sprite)
 
 	add_child(body)
 
@@ -181,15 +197,15 @@ func _place_extraction_marker() -> void:
 	marker.name = "ExtractionMarker"
 	marker.position = EXTRACTION_POSITION
 
-	## Outer pulse ring (will be animated via _process if needed — static for now)
+	## Dim fill — shows the destination before the window opens
 	var ring := ColorRect.new()
-	ring.color = Color(0.0, 0.6, 0.25, 0.15)
+	ring.color = Color(0.0, 0.65, 0.28, 0.22)
 	ring.size = Vector2(96.0, 96.0)
 	ring.position = Vector2(-48.0, -48.0)
 	marker.add_child(ring)
 
-	## Dashed border effect — 4 thin rects forming a square outline
-	var border_color := Color(0.0, 0.7, 0.3, 0.3)
+	## Border outline — 4 thin rects forming a square
+	var border_color := Color(0.0, 0.75, 0.35, 0.45)
 	var bw: float = 96.0
 	var bt: float = 2.0
 	for side in 4:
@@ -202,12 +218,12 @@ func _place_extraction_marker() -> void:
 			3: b.size = Vector2(bt, bw); b.position = Vector2( bw * 0.5 - bt, -bw * 0.5)
 		marker.add_child(b)
 
-	## Small "EXTRACT" hint label — subtle, not glowing yet
+	## "EXTRACT" label — visible enough to orient the player, but clearly inactive
 	var lbl := Label.new()
 	lbl.text = "EXTRACT"
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.position = Vector2(-32.0, -68.0)
-	lbl.modulate = Color(0.0, 0.8, 0.35, 0.35)
+	lbl.modulate = Color(0.0, 0.85, 0.38, 0.5)
 	lbl.add_theme_font_size_override("font_size", 9)
 	marker.add_child(lbl)
 

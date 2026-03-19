@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://dlootdrop01"]
+
+[ext_resource type="Script" path="res://scripts/pickups/loot_drop.gd" id="1_script"]
+
+[node name="LootDrop" type="Area2D"]
+script = ExtResource("1_script")

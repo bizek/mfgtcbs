@@ -6,7 +6,7 @@ signal died(enemy: Node2D)
 
 ## Stats (overridden per enemy type via @export)
 @export var max_hp: float = 30.0
-@export var move_speed: float = 60.0
+@export var move_speed: float = 42.0
 @export var contact_damage: float = 10.0
 @export var armor: float = 0.0
 @export var xp_value: float = 1.0
