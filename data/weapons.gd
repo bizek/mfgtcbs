@@ -29,6 +29,7 @@ const ALL: Dictionary = {
 		"spread_angle":    10.0,    ## total cone width in degrees (±5°)
 		"tint":            Color.WHITE,
 		"drop_weight":     0,       ## 0 = never drops; always available as default
+		"mod_slots":       2,       ## mod slots available for this weapon
 	},
 
 	## ─── Frost Scattergun ─────────────────────────────────────────────────────
@@ -47,6 +48,7 @@ const ALL: Dictionary = {
 		"spread_angle":    52.0,    ## total cone width
 		"tint":            Color(0.55, 0.88, 1.0),   ## icy blue-white
 		"drop_weight":     10,
+		"mod_slots":       2,
 	},
 
 	## ─── Ember Beam ───────────────────────────────────────────────────────────
@@ -63,6 +65,7 @@ const ALL: Dictionary = {
 		"range":           285.0,
 		"tint":            Color(1.0, 0.42, 0.08),   ## deep orange-red
 		"drop_weight":     10,
+		"mod_slots":       1,
 	},
 
 	## ─── Lightning Orb ────────────────────────────────────────────────────────
@@ -81,6 +84,7 @@ const ALL: Dictionary = {
 		"orbit_speed":     1.8,     ## full rotations per second
 		"tint":            Color(0.78, 0.95, 1.0),   ## electric white-blue
 		"drop_weight":     10,
+		"mod_slots":       1,
 	},
 
 	## ─── Void Mortar ──────────────────────────────────────────────────────────
@@ -99,6 +103,7 @@ const ALL: Dictionary = {
 		"fuse_time":        1.0,    ## seconds before detonation
 		"tint":            Color(0.38, 0.08, 0.62),  ## dark purple-void
 		"drop_weight":     10,
+		"mod_slots":       2,
 	},
 
 	## ─── Plasma Blade ─────────────────────────────────────────────────────────
@@ -116,6 +121,66 @@ const ALL: Dictionary = {
 		"arc_degrees":     200.0,   ## swing arc width
 		"tint":            Color(0.48, 0.80, 1.0),   ## plasma cyan-blue
 		"drop_weight":     10,
+		"mod_slots":       2,
+	},
+
+	## ─── Character-exclusive starting weapons (drop_weight: 0 — never drop) ───
+
+	## ─── Warden's Repeater ─────────────────────────────────────────────────
+	## Slow, hard-hitting single bolt. Every shot is a commitment.
+	"Warden's Repeater": {
+		"id":              "Warden's Repeater",
+		"display_name":    "Warden's Repeater",
+		"description":     "Slow fire, heavy impact. Each shot counts.",
+		"behavior":        "projectile",
+		"damage_type":     "physical",
+		"damage":          28.0,
+		"attack_speed":    0.55,    ## slow fire rate
+		"projectile_speed": 380.0,
+		"lifetime":        3.5,
+		"projectile_count": 1,
+		"spread_angle":    6.0,
+		"tint":            Color(0.82, 0.64, 0.28),  ## iron bronze
+		"drop_weight":     0,
+		"mod_slots":       2,
+	},
+
+	## ─── Spark's Pistol ────────────────────────────────────────────────────
+	## Rapid-fire pistol. Low per-shot damage, absurd fire rate.
+	"Spark's Pistol": {
+		"id":              "Spark's Pistol",
+		"display_name":    "Spark's Pistol",
+		"description":     "Rapid-fire burst. Fragile but relentless.",
+		"behavior":        "projectile",
+		"damage_type":     "physical",
+		"damage":          14.0,
+		"attack_speed":    2.0,     ## fast fire rate
+		"projectile_speed": 440.0,
+		"lifetime":        3.0,
+		"projectile_count": 1,
+		"spread_angle":    8.0,
+		"tint":            Color(1.0, 0.95, 0.30),   ## electric yellow
+		"drop_weight":     0,
+		"mod_slots":       1,
+	},
+
+	## ─── Herald's Beacon ───────────────────────────────────────────────────
+	## Mediocre slow auto-fire. The Herald's power comes from abilities.
+	"Herald's Beacon": {
+		"id":              "Herald's Beacon",
+		"display_name":    "Herald's Beacon",
+		"description":     "Weak auto-fire. The signal calls power from elsewhere.",
+		"behavior":        "projectile",
+		"damage_type":     "physical",
+		"damage":          10.0,
+		"attack_speed":    0.80,
+		"projectile_speed": 360.0,
+		"lifetime":        3.0,
+		"projectile_count": 1,
+		"spread_angle":    14.0,
+		"tint":            Color(0.30, 0.86, 0.96),  ## signal teal
+		"drop_weight":     0,
+		"mod_slots":       1,
 	},
 }
 

@@ -26,6 +26,13 @@ extends CanvasLayer
 var player_ref: Node2D = null
 var _blink_timer: float = 0.0
 
+## ── Keystone indicator (top-right area, shown when player holds a keystone) ──
+var _keystone_indicator: Control = null
+## ── Guardian health bar (shown prominently when guardian is nearby) ──────────
+var _guardian_bar_root: Control = null
+var _guardian_hp_bar: ProgressBar = null
+var _guardian_hp_label: Label = null
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	extraction_container.visible = false
@@ -39,10 +46,16 @@ func _ready() -> void:
 	GameManager.instability_changed.connect(_on_instability_changed)
 	GameManager.extraction_window_opened.connect(_on_extraction_window_opened)
 	GameManager.extraction_window_closed.connect(_on_extraction_window_closed)
+	GameManager.player_died.connect(_on_player_died_hud)
 	ExtractionManager.extraction_channel_started.connect(_on_extraction_started)
 	ExtractionManager.extraction_channel_progress.connect(_on_extraction_progress)
 	ExtractionManager.extraction_interrupted.connect(_on_extraction_interrupted)
 	ExtractionManager.extraction_complete.connect(_on_extraction_complete)
+	GameManager.keystone_picked_up.connect(_on_keystone_picked_up)
+	GameManager.guardian_state_changed.connect(_on_guardian_state_changed)
+
+	_build_keystone_indicator()
+	_build_guardian_health_bar()
 
 func setup(player: Node2D) -> void:
 	player_ref = player
@@ -80,12 +93,9 @@ func _process(delta: float) -> void:
 		extraction_window_bg.visible = false
 		extraction_arrow_label.visible = false
 
-	## LOOT AT RISK warning (blinks at Unsettled tier and above)
-	if GameManager.instability >= 31.0 and GameManager.loot_carried > 0.0:
-		loot_at_risk_label.visible = true
-		loot_at_risk_label.modulate.a = 0.55 + 0.45 * sin(_blink_timer * 4.0)
-	else:
-		loot_at_risk_label.visible = false
+	## Keystone indicator visibility
+	if _keystone_indicator:
+		_keystone_indicator.visible = GameManager.player_has_keystone
 
 func _on_health_changed(current: float, maximum: float) -> void:
 	health_bar.max_value = maximum
@@ -102,34 +112,8 @@ func _on_leveled_up(new_level: int) -> void:
 func _on_loot_changed(new_value: float) -> void:
 	loot_label.text = "LOOT: %d" % int(new_value)
 
-func _on_instability_changed(new_value: float) -> void:
-	## Drive vignette intensity and color from instability tier.
-	## Stable(0-30): invisible. Unsettled(31-70): faint dark red.
-	## Volatile(71-120): deeper red. Critical(121+): intense pulsing red.
-	var alpha: float
-	var red: float
-
-	if new_value <= 30.0:
-		alpha = 0.0
-		red = 0.5
-	elif new_value <= 70.0:
-		var t: float = (new_value - 30.0) / 40.0
-		alpha = lerpf(0.0, 0.18, t)
-		red = 0.6
-	elif new_value <= 120.0:
-		var t: float = (new_value - 70.0) / 50.0
-		alpha = lerpf(0.18, 0.35, t)
-		red = 0.75
-	else:
-		var t: float = minf((new_value - 120.0) / 80.0, 1.0)
-		alpha = lerpf(0.35, 0.55, t)
-		red = 0.9
-
-	var vc := Color(red, 0.0, 0.0, alpha)
-	vig_top.color = vc
-	vig_bottom.color = vc
-	vig_left.color = vc
-	vig_right.color = vc
+func _on_instability_changed(_new_value: float) -> void:
+	pass  ## Vignette / LOOT AT RISK removed — instability is tracked silently via loot counter
 
 func _on_extraction_started() -> void:
 	extraction_container.visible = true
@@ -147,6 +131,10 @@ func _on_extraction_interrupted() -> void:
 func _on_extraction_complete() -> void:
 	extraction_container.visible = false
 
+func _on_player_died_hud() -> void:
+	## Clean up any in-progress extraction UI so it doesn't overlay the game over screen
+	extraction_container.visible = false
+
 func _on_extraction_window_opened() -> void:
 	extraction_flash.color.a = 0.0
 	extraction_flash.visible = true
@@ -158,6 +146,118 @@ func _on_extraction_window_opened() -> void:
 func _on_extraction_window_closed() -> void:
 	extraction_arrow_label.visible = false
 	extraction_window_bg.visible = false
+
+## ── Keystone indicator ────────────────────────────────────────────────────────
+
+func _build_keystone_indicator() -> void:
+	## Small golden panel, top-right, below the kills label
+	## Positioned at x=360, y=2 (just left of kills counter area)
+	var root := Control.new()
+	root.name = "KeystoneIndicator"
+	root.position = Vector2(360.0, 2.0)
+	root.visible = false
+	_keystone_indicator = root
+	add_child(root)
+
+	var bg := ColorRect.new()
+	bg.color = Color(0.12, 0.10, 0.03, 0.90)
+	bg.size = Vector2(78.0, 16.0)
+	root.add_child(bg)
+
+	var accent := ColorRect.new()
+	accent.color = Color(0.95, 0.80, 0.12)
+	accent.size = Vector2(78.0, 1.0)
+	root.add_child(accent)
+
+	var gem := ColorRect.new()
+	gem.color = Color(1.0, 0.88, 0.10)
+	gem.size = Vector2(8.0, 8.0)
+	gem.position = Vector2(3.0, 4.0)
+	root.add_child(gem)
+
+	var lbl := Label.new()
+	lbl.text = "KEYSTONE"
+	lbl.position = Vector2(14.0, 2.0)
+	lbl.add_theme_font_size_override("font_size", 9)
+	lbl.add_theme_color_override("font_color", Color(1.0, 0.90, 0.22))
+	if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
+		lbl.add_theme_font_override("font", load("res://assets/fonts/m5x7.ttf"))
+	root.add_child(lbl)
+
+	## Gem spin
+	var spin := root.create_tween().set_loops()
+	spin.tween_property(gem, "rotation", TAU, 2.0)
+
+func _on_keystone_picked_up() -> void:
+	if _keystone_indicator:
+		_keystone_indicator.visible = true
+		## Brief flash
+		var t := _keystone_indicator.create_tween()
+		t.tween_property(_keystone_indicator, "modulate:a", 0.2, 0.05)
+		t.tween_property(_keystone_indicator, "modulate:a", 1.0, 0.20)
+
+## ── Guardian health bar ───────────────────────────────────────────────────────
+
+func _build_guardian_health_bar() -> void:
+	## Prominent health bar shown below center-screen when guardian is nearby.
+	## Styled in dark red to match the guardian's ominous theme.
+	var root := Control.new()
+	root.name = "GuardianHealthBar"
+	root.position = Vector2(120.0, 40.0)   ## Below the main HUD rows
+	root.visible = false
+	_guardian_bar_root = root
+	add_child(root)
+
+	const BAR_W: float = 240.0
+	const BAR_H: float = 10.0
+
+	var bg := ColorRect.new()
+	bg.color = Color(0.08, 0.04, 0.04, 0.92)
+	bg.size = Vector2(BAR_W + 4.0, BAR_H + 18.0)
+	bg.position = Vector2(-2.0, -2.0)
+	root.add_child(bg)
+
+	var label := Label.new()
+	label.name = "GuardianLabel"
+	label.text = "GUARDIAN"
+	label.position = Vector2(0.0, 0.0)
+	label.add_theme_font_size_override("font_size", 9)
+	label.add_theme_color_override("font_color", Color(0.90, 0.28, 0.22))
+	if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
+		label.add_theme_font_override("font", load("res://assets/fonts/m5x7.ttf"))
+	root.add_child(label)
+	_guardian_hp_label = label
+
+	var bar := ProgressBar.new()
+	bar.name = "GuardianHPBar"
+	bar.size = Vector2(BAR_W, BAR_H)
+	bar.position = Vector2(0.0, 12.0)
+	bar.min_value = 0.0
+	bar.max_value = 100.0
+	bar.value = 100.0
+	bar.show_percentage = false
+
+	var bar_bg := StyleBoxFlat.new()
+	bar_bg.bg_color = Color(0.18, 0.06, 0.06)
+	bar.add_theme_stylebox_override("background", bar_bg)
+
+	var bar_fill := StyleBoxFlat.new()
+	bar_fill.bg_color = Color(0.80, 0.12, 0.12)
+	bar.add_theme_stylebox_override("fill", bar_fill)
+
+	root.add_child(bar)
+	_guardian_hp_bar = bar
+
+func _on_guardian_state_changed(hp: float, max_hp: float, show_bar: bool) -> void:
+	if _guardian_bar_root == null:
+		return
+	_guardian_bar_root.visible = show_bar
+	if show_bar and max_hp > 0.0:
+		_guardian_hp_bar.max_value = max_hp
+		_guardian_hp_bar.value = hp
+		var hp_pct: int = int(round(hp / max_hp * 100.0))
+		if _guardian_hp_label:
+			_guardian_hp_label.text = "GUARDIAN  %d / %d  (%d%%)" % [int(hp), int(max_hp), hp_pct]
 
 func _update_extraction_arrow() -> void:
 	if ExtractionManager.extraction_point == null or not is_instance_valid(ExtractionManager.extraction_point):

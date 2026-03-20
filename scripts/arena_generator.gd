@@ -31,6 +31,13 @@ const ROCK_TILES: Array[Vector2i] = [
 
 ## Extraction point is fixed: bottom-centre, comfortably inside the play area.
 const EXTRACTION_POSITION := Vector2(0.0, 460.0)
+## Guarded extraction — left-centre. Guardian stands here from run start.
+const GUARDED_POSITION := Vector2(-600.0, 0.0)
+## Locked extraction — right-centre. Sealed until player uses a Keystone.
+const LOCKED_POSITION := Vector2(600.0, 0.0)
+## Sacrifice extraction — top-centre. Always available; costs one carried item.
+const SACRIFICE_POSITION := Vector2(0.0, -460.0)
+
 ## Keep a clear radius around the extraction point so it's never buried in rubble.
 const EXTRACTION_CLEAR_RADIUS: float = 110.0
 ## Keep a clear radius around player spawn (centre of arena).
@@ -48,9 +55,21 @@ func generate(seed_val: int = 0) -> void:
 	_scatter_obstacles()
 	_mark_spawn_zone_hints()
 	_place_extraction_marker()
+	_place_guarded_marker()
+	_place_locked_marker()
+	_place_sacrifice_marker()
 
 func get_extraction_position() -> Vector2:
 	return global_position + EXTRACTION_POSITION
+
+func get_guarded_position() -> Vector2:
+	return global_position + GUARDED_POSITION
+
+func get_locked_position() -> Vector2:
+	return global_position + LOCKED_POSITION
+
+func get_sacrifice_position() -> Vector2:
+	return global_position + SACRIFICE_POSITION
 
 # ---------------------------------------------------------------------------
 # Wall collision
@@ -111,10 +130,16 @@ func _scatter_obstacles() -> void:
 		var y: float = rng.randf_range(-y_limit, y_limit)
 		var pos := Vector2(x, y)
 
-		## Clear zones
+		## Clear zones — player spawn and all extraction points
 		if pos.length() < SPAWN_CLEAR_RADIUS:
 			continue
 		if pos.distance_to(EXTRACTION_POSITION) < EXTRACTION_CLEAR_RADIUS:
+			continue
+		if pos.distance_to(GUARDED_POSITION) < EXTRACTION_CLEAR_RADIUS:
+			continue
+		if pos.distance_to(LOCKED_POSITION) < EXTRACTION_CLEAR_RADIUS:
+			continue
+		if pos.distance_to(SACRIFICE_POSITION) < EXTRACTION_CLEAR_RADIUS:
 			continue
 
 		## No overlaps (minimum gap between rock centres)
@@ -224,6 +249,143 @@ func _place_extraction_marker() -> void:
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.position = Vector2(-32.0, -68.0)
 	lbl.modulate = Color(0.0, 0.85, 0.38, 0.5)
+	lbl.add_theme_font_size_override("font_size", 9)
+	marker.add_child(lbl)
+
+	add_child(marker)
+
+# ---------------------------------------------------------------------------
+# Guarded extraction marker (dimly visible; guardian spawned at run start)
+# ---------------------------------------------------------------------------
+
+func _place_guarded_marker() -> void:
+	var marker := Node2D.new()
+	marker.name = "GuardedExtractionMarker"
+	marker.position = GUARDED_POSITION
+
+	## Dim crimson fill — subtly different from timed (green)
+	var ring := ColorRect.new()
+	ring.color = Color(0.65, 0.08, 0.08, 0.18)
+	ring.size = Vector2(96.0, 96.0)
+	ring.position = Vector2(-48.0, -48.0)
+	marker.add_child(ring)
+
+	## Border outline in dark red
+	var border_color := Color(0.80, 0.15, 0.10, 0.40)
+	var bw: float = 96.0
+	var bt: float = 2.0
+	for side in 4:
+		var b := ColorRect.new()
+		b.color = border_color
+		match side:
+			0: b.size = Vector2(bw, bt); b.position = Vector2(-bw * 0.5, -bw * 0.5)
+			1: b.size = Vector2(bw, bt); b.position = Vector2(-bw * 0.5,  bw * 0.5 - bt)
+			2: b.size = Vector2(bt, bw); b.position = Vector2(-bw * 0.5, -bw * 0.5)
+			3: b.size = Vector2(bt, bw); b.position = Vector2( bw * 0.5 - bt, -bw * 0.5)
+		marker.add_child(b)
+
+	var lbl := Label.new()
+	lbl.text = "GUARDED"
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.position = Vector2(-32.0, -68.0)
+	lbl.modulate = Color(0.80, 0.20, 0.15, 0.45)
+	lbl.add_theme_font_size_override("font_size", 9)
+	marker.add_child(lbl)
+
+	add_child(marker)
+
+# ---------------------------------------------------------------------------
+# Locked extraction marker (chains visual — inactive until Keystone used)
+# ---------------------------------------------------------------------------
+
+func _place_locked_marker() -> void:
+	var marker := Node2D.new()
+	marker.name = "LockedExtractionMarker"
+	marker.position = LOCKED_POSITION
+
+	## Dark purple fill with low alpha
+	var fill := ColorRect.new()
+	fill.color = Color(0.32, 0.05, 0.55, 0.22)
+	fill.size = Vector2(96.0, 96.0)
+	fill.position = Vector2(-48.0, -48.0)
+	marker.add_child(fill)
+
+	## Chain-style thick border (purple)
+	var border_color := Color(0.55, 0.15, 0.80, 0.55)
+	var bw: float = 96.0
+	var bt: float = 4.0
+	for side in 4:
+		var b := ColorRect.new()
+		b.color = border_color
+		match side:
+			0: b.size = Vector2(bw, bt); b.position = Vector2(-bw * 0.5, -bw * 0.5)
+			1: b.size = Vector2(bw, bt); b.position = Vector2(-bw * 0.5,  bw * 0.5 - bt)
+			2: b.size = Vector2(bt, bw); b.position = Vector2(-bw * 0.5, -bw * 0.5)
+			3: b.size = Vector2(bt, bw); b.position = Vector2( bw * 0.5 - bt, -bw * 0.5)
+		marker.add_child(b)
+
+	## Diagonal chain bars across centre
+	for i in range(3):
+		var bar := ColorRect.new()
+		bar.color = Color(0.45, 0.10, 0.65, 0.50)
+		bar.size = Vector2(80.0, 3.0)
+		bar.position = Vector2(-40.0, -18.0 + i * 18.0)
+		bar.rotation = deg_to_rad(25.0 + i * 5.0)
+		marker.add_child(bar)
+
+	var lbl := Label.new()
+	lbl.text = "LOCKED"
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.position = Vector2(-28.0, -68.0)
+	lbl.modulate = Color(0.70, 0.30, 0.95, 0.50)
+	lbl.add_theme_font_size_override("font_size", 9)
+	marker.add_child(lbl)
+
+	var key_lbl := Label.new()
+	key_lbl.text = "[KEY]"
+	key_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	key_lbl.position = Vector2(-20.0, -58.0)
+	key_lbl.modulate = Color(0.75, 0.60, 0.90, 0.40)
+	key_lbl.add_theme_font_size_override("font_size", 8)
+	marker.add_child(key_lbl)
+
+	add_child(marker)
+
+# ---------------------------------------------------------------------------
+# Sacrifice extraction marker (ominous dark — always available)
+# ---------------------------------------------------------------------------
+
+func _place_sacrifice_marker() -> void:
+	var marker := Node2D.new()
+	marker.name = "SacrificeExtractionMarker"
+	marker.position = SACRIFICE_POSITION
+
+	## Deep blood-red fill with low alpha
+	var fill := ColorRect.new()
+	fill.color = Color(0.50, 0.02, 0.05, 0.20)
+	fill.size = Vector2(96.0, 96.0)
+	fill.position = Vector2(-48.0, -48.0)
+	marker.add_child(fill)
+
+	## Inward-pointed jagged border (dark crimson)
+	var border_color := Color(0.75, 0.06, 0.08, 0.50)
+	var bw: float = 96.0
+	var bt: float = 3.0
+	for side in 4:
+		var b := ColorRect.new()
+		b.color = border_color
+		match side:
+			0: b.size = Vector2(bw, bt); b.position = Vector2(-bw * 0.5, -bw * 0.5)
+			1: b.size = Vector2(bw, bt); b.position = Vector2(-bw * 0.5,  bw * 0.5 - bt)
+			2: b.size = Vector2(bt, bw); b.position = Vector2(-bw * 0.5, -bw * 0.5)
+			3: b.size = Vector2(bt, bw); b.position = Vector2( bw * 0.5 - bt, -bw * 0.5)
+		marker.add_child(b)
+
+	var lbl := Label.new()
+	lbl.text = "SACRIFICE"
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.position = Vector2(-32.0, -68.0)
+	lbl.modulate = Color(0.85, 0.12, 0.12, 0.45)
 	lbl.add_theme_font_size_override("font_size", 9)
 	marker.add_child(lbl)
 

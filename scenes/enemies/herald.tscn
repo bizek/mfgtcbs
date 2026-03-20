@@ -1,0 +1,13 @@
+[gd_scene format=3 uid="uid://djde0b3rg5ino"]
+
+[ext_resource type="Script" path="res://scripts/entities/enemy_herald.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/swarmer.tscn" id="2_base"]
+
+[node name="Herald" instance=ExtResource("2_base")]
+script = ExtResource("1_script")
+max_hp = 25.0
+move_speed = 70.0
+contact_damage = 0.0
+armor = 0.0
+xp_value = 4.0
+health_drop_chance = 0.05

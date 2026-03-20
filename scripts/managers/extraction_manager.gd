@@ -51,4 +51,5 @@ func _complete_extraction() -> void:
 func reset() -> void:
 	is_channeling = false
 	channel_timer = 0.0
+	channel_duration = 4.0
 	extraction_point = null

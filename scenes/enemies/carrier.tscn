@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://carrier01defg"]
+
+[ext_resource type="Script" path="res://scripts/entities/enemy_carrier.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/swarmer.tscn" id="2_base"]
+
+[node name="Carrier" instance=ExtResource("2_base")]
+script = ExtResource("1_script")
+max_hp = 15.0
+move_speed = 180.0
+contact_damage = 0.0
+armor = 0.0
+xp_value = 2.0
+health_drop_chance = 0.0
+
+[node name="Sprite" parent="."]
+scale = Vector2(0.8, 0.8)
+modulate = Color(1.0, 0.84, 0.1, 1.0)

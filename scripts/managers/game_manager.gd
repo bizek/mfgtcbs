@@ -17,6 +17,8 @@ signal game_paused
 signal game_unpaused
 signal loot_changed(new_value: float)
 signal instability_changed(new_value: float)
+signal keystone_picked_up
+signal guardian_state_changed(hp: float, max_hp: float, show_bar: bool)
 
 enum GameState {
 	MENU,
@@ -49,6 +51,18 @@ var last_run_loot: float = 0.0  ## Preserved after extraction clears loot_carrie
 ## Weapons picked up during this run. Cleared on new run; unlocked in ProgressionManager
 ## on successful extraction. Lost on death (same risk as other loot).
 var collected_weapons: Array = []
+
+## Mods found during this run and bagged (no open weapon slot).
+## Unlocked in ProgressionManager on successful extraction. Lost on death.
+var collected_mods: Array = []
+
+## Keystone state — reset each run. One keystone held at a time.
+var player_has_keystone: bool = false
+var guardian_killed_this_phase: bool = false  ## Tracks first guardian kill per phase
+
+## Which extraction type completed — used for phase bonus calculations.
+## Values: "timed", "guarded", "locked", "sacrifice"
+var active_extraction_type: String = "timed"
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -86,8 +100,25 @@ func start_run() -> void:
 	loot_carried = 0.0
 	instability = 0.0
 	collected_weapons.clear()
+	collected_mods.clear()
+	player_has_keystone = false
+	guardian_killed_this_phase = false
+	active_extraction_type = "timed"
+
+	## Cursed passive: start every run in the Unsettled instability tier
+	var char_id: String = ProgressionManager.selected_character
+	if CharacterData.ALL.has(char_id):
+		if CharacterData.ALL[char_id].get("passive_id", "none") == "cursed_passive":
+			loot_carried = 31.0
+			instability  = 31.0
+
 	run_started.emit()
 	phase_started.emit(phase_number)
+
+	## Emit initial loot/instability so HUD reflects any starting values
+	if instability > 0.0:
+		loot_changed.emit(loot_carried)
+		instability_changed.emit(instability)
 
 func register_kill() -> void:
 	kills += 1
@@ -112,26 +143,52 @@ func exit_level_up() -> void:
 
 func on_player_died() -> void:
 	current_state = GameState.GAME_OVER
+	ExtractionManager.interrupt_channel()
 	player_died.emit()
 
 func on_extraction_complete() -> void:
 	current_state = GameState.EXTRACTION_SUCCESS
+	set_paused(true)
 	## Preserve loot value for results screen before clearing
 	last_run_loot = loot_carried
+	## Apply locked extraction loot bonus based on phase depth
+	if active_extraction_type == "locked":
+		var phase_bonuses: Array = [0.0, 0.0, 0.0, 0.25, 0.50, 1.00]
+		var bonus: float = phase_bonuses[clampi(phase_number, 0, 5)]
+		last_run_loot *= (1.0 + bonus)
 	loot_carried = 0.0
 	instability = 0.0
 	loot_changed.emit(loot_carried)
 	instability_changed.emit(instability)
-	## Unlock all weapons collected this run
+	## Unlock all weapons and mods collected this run
 	for weapon_id in collected_weapons:
 		ProgressionManager.add_weapon(weapon_id)
+	for mod_id in collected_mods:
+		ProgressionManager.add_mod(mod_id)
 	extraction_successful.emit()
+
+func pickup_keystone() -> void:
+	player_has_keystone = true
+	keystone_picked_up.emit()
 
 func add_loot(value: float) -> void:
 	loot_carried += value
 	instability = loot_carried  ## Simplified: instability tracks total loot value carried
 	loot_changed.emit(loot_carried)
 	instability_changed.emit(instability)
+
+## Adjusts instability by delta (can be negative — e.g. Instability Siphon on kill).
+## Clamps to zero minimum so the meter never goes below Stable.
+func modify_instability(delta: int) -> void:
+	instability = maxf(instability + float(delta), 0.0)
+	loot_changed.emit(loot_carried)
+	instability_changed.emit(instability)
+
+## Called when a bagged mod pickup is collected during a run.
+## Mod is at risk until extraction — lost on death, unlocked on success.
+func add_collected_mod(mod_id: String) -> void:
+	collected_mods.append(mod_id)
+	add_loot(15.0)  ## Mods contribute 15 instability weight
 
 ## Called when the player picks up a weapon drop during a run.
 ## Weapon is at risk until extraction — lost on death, unlocked on success.
@@ -169,3 +226,34 @@ func debug_open_extraction() -> void:
 		return
 	phase_timer = phase_duration  ## Snap phase timer so window stays open
 	_open_extraction_window()
+
+## Sacrifice a specific weapon from collected_weapons. Returns true if found and removed.
+func sacrifice_weapon(weapon_id: String) -> bool:
+	var idx: int = collected_weapons.find(weapon_id)
+	if idx < 0:
+		return false
+	collected_weapons.remove_at(idx)
+	loot_carried = maxf(loot_carried - 30.0, 0.0)
+	instability = maxf(instability - 30.0, 0.0)
+	loot_changed.emit(loot_carried)
+	instability_changed.emit(instability)
+	return true
+
+## Sacrifice a specific mod from collected_mods. Returns true if found and removed.
+func sacrifice_mod(mod_id: String) -> bool:
+	var idx: int = collected_mods.find(mod_id)
+	if idx < 0:
+		return false
+	collected_mods.remove_at(idx)
+	loot_carried = maxf(loot_carried - 15.0, 0.0)
+	instability = maxf(instability - 15.0, 0.0)
+	loot_changed.emit(loot_carried)
+	instability_changed.emit(instability)
+	return true
+
+## Sacrifice all generic loot (zeroes instability/loot value).
+func sacrifice_all_loot() -> void:
+	loot_carried = 0.0
+	instability = 0.0
+	loot_changed.emit(loot_carried)
+	instability_changed.emit(instability)

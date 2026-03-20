@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://caster001defg"]
+
+[ext_resource type="Script" path="res://scripts/entities/enemy_caster.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/swarmer.tscn" id="2_base"]
+
+[node name="Caster" instance=ExtResource("2_base")]
+script = ExtResource("1_script")
+max_hp = 20.0
+move_speed = 40.0
+contact_damage = 8.0
+armor = 0.0
+xp_value = 3.0
+health_drop_chance = 0.05
+
+[node name="Sprite" parent="."]
+scale = Vector2(1.1, 1.1)
+modulate = Color(0.42, 0.48, 1.0, 1.0)

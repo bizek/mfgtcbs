@@ -10,13 +10,13 @@ const ROOM_H := 270
 const WALL_T := 14
 
 ## Layout constants — all panels share these so numbers stay consistent.
-const PANEL_W    := 340       ## Panel width (px)
-const PANEL_H    := 220       ## Panel height (px)
-const PANEL_X    := 70        ## Panel left edge
-const PANEL_Y    := 25        ## Panel top edge
+const PANEL_W    := 300       ## Panel width (px)
+const PANEL_H    := 200       ## Panel height (px)
+const PANEL_X    := 90        ## Panel left edge  — (480-300)/2 = centred
+const PANEL_Y    := 35        ## Panel top edge   — (270-200)/2 = centred
 const TITLE_H    := 22        ## Title bar height
-const ROW_GAP    := 18        ## Vertical spacing between rows
-const LABEL_W    := 310       ## Label width inside panel
+const ROW_GAP    := 17        ## Vertical spacing between rows
+const LABEL_W    := 272       ## Label width inside panel  (PANEL_W - 28)
 const LABEL_H    := 20        ## Label height (clip box)
 const FONT_TITLE := 16        ## Panel title font size
 const FONT_BODY  := 14        ## Standard body text
@@ -38,14 +38,25 @@ const STATIONS: Array[Dictionary] = [
 
 var _player_body: CharacterBody2D
 var _station_nodes: Array[Node2D] = []
+var _station_bg_rects: Array[ColorRect] = []  ## parallel to _station_nodes, for proximity glow
 var _interact_prompt: Label
 var _resource_label: Label
 var _active_station_id: String = ""
 var _panel_layer: CanvasLayer
 var _active_panel: Control = null
 
+var _torch_flames: Array[ColorRect] = []  ## flame rects for flicker animation
+var _flicker_timer: float = 0.0
+
 ## Armory slot currently being configured (1 or 2).
 var _armory_slot: int = 1
+
+## Armory mod UI state: when true the panel shows the mod picker for a slot.
+var _armory_mod_picking: bool = false
+var _armory_mod_target_slot: int = 0   ## Which weapon mod slot (0-indexed) to assign
+
+## Roster: which character row is highlighted for the detail view.
+var _roster_detail_char: String = ""
 
 func _ready() -> void:
 	_build_room()
@@ -83,14 +94,23 @@ func _build_room() -> void:
 	_add_wall(Vector2(0, 0),                Vector2(WALL_T, ROOM_H))          ## left
 	_add_wall(Vector2(ROOM_W - WALL_T, 0),  Vector2(WALL_T, ROOM_H))          ## right
 
-	## Room title (dim, top-center)
+	## Room title (top-center)
 	var title := Label.new()
 	title.text = "BASE CAMP"
 	title.add_theme_font_override("font", PIXEL_FONT)
-	title.add_theme_font_size_override("font_size", 13)
-	title.add_theme_color_override("font_color", Color(0.38, 0.40, 0.48))
-	title.position = Vector2(ROOM_W * 0.5 - 34, 1)
+	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_color_override("font_color", Color(0.52, 0.56, 0.66))
+	title.position = Vector2(ROOM_W * 0.5 - 44, -1)
 	add_child(title)
+
+	## Thin accent beneath title
+	var t_accent := ColorRect.new()
+	t_accent.color = Color(0.30, 0.34, 0.50, 0.50)
+	t_accent.size = Vector2(88, 1)
+	t_accent.position = Vector2(ROOM_W * 0.5 - 44, 16)
+	add_child(t_accent)
+
+	_add_vignette()
 
 func _add_wall(pos: Vector2, sz: Vector2) -> void:
 	var body := StaticBody2D.new()
@@ -108,6 +128,21 @@ func _add_wall(pos: Vector2, sz: Vector2) -> void:
 	vis.size = sz
 	body.add_child(vis)
 	add_child(body)
+
+func _add_vignette() -> void:
+	## Dark corner overlays for atmospheric depth — drawn last so they sit on top
+	var corners: Array = [
+		[Vector2(0,           0           ), Vector2(100, 75)],
+		[Vector2(ROOM_W - 100, 0           ), Vector2(100, 75)],
+		[Vector2(0,           ROOM_H - 75 ), Vector2(100, 75)],
+		[Vector2(ROOM_W - 100, ROOM_H - 75 ), Vector2(100, 75)],
+	]
+	for c in corners:
+		var v := ColorRect.new()
+		v.color = Color(0.0, 0.0, 0.0, 0.28)
+		v.position = c[0]
+		v.size = c[1]
+		add_child(v)
 
 # ── Visual Tier ───────────────────────────────────────────────────────────────
 
@@ -147,6 +182,7 @@ func _add_torch(pos: Vector2) -> void:
 	flame.size = Vector2(4, 5)
 	flame.position = pos + Vector2(-2, -5)
 	add_child(flame)
+	_torch_flames.append(flame)
 	## Flame tip (brighter white-yellow)
 	var tip := ColorRect.new()
 	tip.color = Color(1.0, 0.96, 0.72)
@@ -178,6 +214,7 @@ func _build_stations() -> void:
 		bg.size = sz
 		bg.position = -sz * 0.5
 		root.add_child(bg)
+		_station_bg_rects.append(bg)
 
 		## Top accent bar
 		var bar_t := ColorRect.new()
@@ -235,16 +272,27 @@ func _build_player() -> void:
 	cs.shape = rs
 	_player_body.add_child(cs)
 
-	## Body (tan placeholder)
+	## Sprite colors driven by selected character
+	var char_id: String = ProgressionManager.selected_character
+	var char_data: Dictionary = CharacterData.ALL.get(char_id, CharacterData.ALL["The Drifter"])
+	var body_col: Color = char_data.get("color_body", Color(0.78, 0.72, 0.58))
+	var head_col: Color = char_data.get("color_head", Color(0.94, 0.86, 0.68))
+
+	## Ground shadow behind sprite
+	var shadow := ColorRect.new()
+	shadow.color = Color(0.0, 0.0, 0.0, 0.35)
+	shadow.size = Vector2(9, 13)
+	shadow.position = Vector2(-4.5, -4.5)
+	_player_body.add_child(shadow)
+
 	var body_vis := ColorRect.new()
-	body_vis.color = Color(0.78, 0.72, 0.58)
+	body_vis.color = body_col
 	body_vis.size = Vector2(7, 11)
 	body_vis.position = Vector2(-3.5, -5.5)
 	_player_body.add_child(body_vis)
 
-	## Head
 	var head := ColorRect.new()
-	head.color = Color(0.94, 0.86, 0.68)
+	head.color = head_col
 	head.size = Vector2(5, 3)
 	head.position = Vector2(-2.5, -8.0)
 	_player_body.add_child(head)
@@ -298,11 +346,20 @@ func _on_resources_changed(amount: int) -> void:
 # ── Main loop ─────────────────────────────────────────────────────────────────
 
 func _process(delta: float) -> void:
+	_flicker_timer += delta
+	if _flicker_timer >= 0.09:
+		_flicker_timer = 0.0
+		_flicker_torches()
 	if _active_panel != null:
 		return
 	_handle_movement(delta)
 	_update_proximity()
 	_handle_interact()
+
+func _flicker_torches() -> void:
+	for flame in _torch_flames:
+		var v := randf_range(0.80, 1.0)
+		flame.color = Color(1.0, 0.72 * v, 0.14 * v)
 
 func _handle_movement(delta: float) -> void:
 	var dir := Vector2.ZERO
@@ -328,6 +385,22 @@ func _update_proximity() -> void:
 	else:
 		_interact_prompt.visible = true
 		_interact_prompt.position = _player_body.position + Vector2(-65, -28)
+		## Show station name in prompt
+		for s in STATIONS:
+			if s["id"] == nearest_id:
+				_interact_prompt.text = "[ E ]  %s" % s["name"]
+				break
+
+	## Station proximity glow
+	for i in _station_nodes.size():
+		if i >= _station_bg_rects.size():
+			break
+		var s_id: String = _station_nodes[i].get_meta("station_id")
+		var col: Color = STATIONS[i]["color"]
+		if s_id == nearest_id:
+			_station_bg_rects[i].color = Color(col.r * 0.34, col.g * 0.34, col.b * 0.34)
+		else:
+			_station_bg_rects[i].color = Color(col.r * 0.20, col.g * 0.20, col.b * 0.20)
 
 func _handle_interact() -> void:
 	if Input.is_action_just_pressed("interact") and not _active_station_id.is_empty():
@@ -350,6 +423,7 @@ func _open_panel(station_id: String) -> void:
 		_interact_prompt.visible = false
 
 func _close_panel() -> void:
+	_armory_mod_picking = false
 	if _active_panel:
 		_active_panel.queue_free()
 		_active_panel = null
@@ -381,17 +455,36 @@ func _make_panel_base(title_text: String, accent: Color) -> Panel:
 	title_lbl.position = Vector2(10, 3)
 	panel.add_child(title_lbl)
 
-	## Close button (top-right corner)
+	## Close button (top-right corner) — custom styleboxes prevent glyph mangling
 	var close_btn := Button.new()
-	close_btn.text = "X"
-	close_btn.size = Vector2(22, TITLE_H)
-	close_btn.position = Vector2(PANEL_W - 22, 0)
+	close_btn.text = "×"     ## U+00D7: renders cleanly at small sizes
+	close_btn.size = Vector2(24, TITLE_H)
+	close_btn.position = Vector2(PANEL_W - 24, 0)
 	close_btn.add_theme_font_override("font", PIXEL_FONT)
-	close_btn.add_theme_font_size_override("font_size", FONT_BODY)
+	close_btn.add_theme_font_size_override("font_size", FONT_TITLE)
+	close_btn.add_theme_color_override("font_color", Color(0.72, 0.72, 0.78))
+	close_btn.add_theme_color_override("font_hover_color", Color(1.0, 0.40, 0.40))
+	## Strip default Godot button padding / chrome so the glyph isn't clipped
+	_style_btn(close_btn, Color(0.0, 0.0, 0.0, 0.0), Color(0.55, 0.12, 0.12, 0.75), 0)
 	close_btn.pressed.connect(_close_panel)
 	panel.add_child(close_btn)
 
 	return panel
+
+## Strips Godot's default button chrome and applies a clean flat style.
+## normal_col / hover_col are the background fills for each state.
+func _style_btn(btn: Button, normal_col: Color, hover_col: Color,
+		left_pad: int = 4) -> void:
+	var states := ["normal", "hover", "pressed", "focus", "disabled"]
+	for state in states:
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = hover_col if state in ["hover", "pressed"] else normal_col
+		sb.set_border_width_all(0)
+		sb.set_content_margin(SIDE_LEFT,   left_pad)
+		sb.set_content_margin(SIDE_RIGHT,  left_pad)
+		sb.set_content_margin(SIDE_TOP,    0)
+		sb.set_content_margin(SIDE_BOTTOM, 0)
+		btn.add_theme_stylebox_override(state, sb)
 
 ## Adds a text label row at (12, y) with configurable colour and font size.
 func _add_row(parent: Control, text: String, y: float,
@@ -413,20 +506,169 @@ func _add_weapon_btn(parent: Control, weapon_name: String, y: float,
 	btn.text = prefix + weapon_name
 	btn.size = Vector2(LABEL_W - 2, 18)
 	btn.position = Vector2(12, y)
+	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	btn.add_theme_font_override("font", PIXEL_FONT)
 	btn.add_theme_font_size_override("font_size", FONT_BODY)
 	var col := Color(0.95, 0.78, 0.22) if is_selected else Color(0.72, 0.72, 0.78)
 	btn.add_theme_color_override("font_color", col)
+	## Strip default Godot button chrome so left-alignment actually holds
+	var norm_bg := Color(0.22, 0.14, 0.06, 0.65) if is_selected else Color(0.0, 0.0, 0.0, 0.0)
+	_style_btn(btn, norm_bg, Color(0.25, 0.20, 0.10, 0.55), 2)
 	btn.pressed.connect(func():
 		if slot == 1:
 			ProgressionManager.selected_weapon = weapon_name
 		else:
 			ProgressionManager.selected_weapon_2 = weapon_name
 		ProgressionManager.save_data()
+		_armory_mod_picking = false
 		_open_panel("armory")  ## Refresh panel
 	)
 	parent.add_child(btn)
 	return btn
+
+## Adds mod slot buttons for a weapon below the weapon list. Returns height used.
+func _add_mod_slots(parent: Control, weapon_id: String, y: float) -> float:
+	if weapon_id.is_empty():
+		return y
+	var pm := ProgressionManager
+	var weapon_data: Dictionary = WeaponData.ALL.get(weapon_id, {})
+	var max_slots: int = weapon_data.get("mod_slots", 1)
+	var equipped: Array = pm.get_weapon_mods(weapon_id)
+
+	## Section header
+	_add_row(parent, "MODS  (%s)" % weapon_id, y, Color(0.70, 0.58, 0.25), FONT_DIM)
+	y += ROW_GAP - 2
+
+	for i in range(max_slots):
+		var mod_id: String = equipped[i] if i < equipped.size() else ""
+		var mod_name: String = ModData.ALL.get(mod_id, {}).get("name", "--- EMPTY ---") if not mod_id.is_empty() else "--- EMPTY ---"
+		var mod_col: Color   = ModData.ALL.get(mod_id, {}).get("color", Color(0.40, 0.40, 0.45)) if not mod_id.is_empty() else Color(0.32, 0.32, 0.38)
+
+		## Slot label
+		var slot_lbl := Label.new()
+		slot_lbl.text = "Slot %d:" % (i + 1)
+		slot_lbl.add_theme_font_override("font", PIXEL_FONT)
+		slot_lbl.add_theme_font_size_override("font_size", FONT_DIM)
+		slot_lbl.add_theme_color_override("font_color", Color(0.55, 0.55, 0.60))
+		slot_lbl.position = Vector2(12, y)
+		slot_lbl.size = Vector2(40, 16)
+		parent.add_child(slot_lbl)
+
+		## Mod name button — click to open mod picker
+		var mod_btn := Button.new()
+		mod_btn.text = mod_name
+		mod_btn.size = Vector2(210, 16)
+		mod_btn.position = Vector2(54, y)
+		mod_btn.add_theme_font_override("font", PIXEL_FONT)
+		mod_btn.add_theme_font_size_override("font_size", FONT_DIM)
+		mod_btn.add_theme_color_override("font_color", mod_col)
+		var capture_i := i
+		var capture_wid := weapon_id
+		mod_btn.pressed.connect(func():
+			_armory_mod_picking = true
+			_armory_mod_target_slot = capture_i
+			_open_panel("armory")
+		)
+		parent.add_child(mod_btn)
+
+		## Remove button (only shown when slot is filled)
+		if not mod_id.is_empty():
+			var rm_btn := Button.new()
+			rm_btn.text = "[x]"
+			rm_btn.size = Vector2(28, 16)
+			rm_btn.position = Vector2(PANEL_W - 40, y)
+			rm_btn.add_theme_font_override("font", PIXEL_FONT)
+			rm_btn.add_theme_font_size_override("font_size", FONT_DIM)
+			rm_btn.add_theme_color_override("font_color", Color(0.75, 0.28, 0.28))
+			rm_btn.pressed.connect(func():
+				pm.remove_weapon_mod(capture_wid, capture_i)
+				_armory_mod_picking = false
+				_open_panel("armory")
+			)
+			parent.add_child(rm_btn)
+
+		y += ROW_GAP - 1
+
+	return y
+
+## Mod picker sub-panel: lists owned mods so the player can equip one into a slot.
+func _make_armory_mod_picker(panel: Panel, weapon_id: String, mod_slot: int) -> void:
+	var pm := ProgressionManager
+	var accent: Color = Color(0.90, 0.60, 0.12)
+	var y := float(TITLE_H + 6)
+
+	_add_row(panel, "SELECT MOD  for slot %d  (%s)" % [mod_slot + 1, weapon_id],
+		y, accent, FONT_DIM)
+	y += ROW_GAP
+
+	_add_row(panel, "─────────────────────────────────────", y, Color(0.20, 0.23, 0.26))
+	y += ROW_GAP - 4
+
+	if pm.owned_mods.is_empty():
+		_add_row(panel, "No mods in inventory.", y, Color(0.40, 0.40, 0.46))
+		y += ROW_GAP
+		_add_row(panel, "Find mods during runs", y, Color(0.35, 0.35, 0.42), FONT_DIM)
+		y += ROW_GAP
+		_add_row(panel, "(drop from Elites and Carriers).", y, Color(0.35, 0.35, 0.42), FONT_DIM)
+	else:
+		## De-duplicate display: group by mod_id with count
+		var counts: Dictionary = {}
+		for mid in pm.owned_mods:
+			counts[mid] = counts.get(mid, 0) + 1
+
+		for mod_id in counts:
+			if y > PANEL_H - 52.0:
+				break
+			var mod_data: Dictionary = ModData.ALL.get(mod_id, {})
+			var mod_name: String = mod_data.get("name", mod_id)
+			var mod_col: Color   = mod_data.get("color", Color.WHITE)
+			var count: int       = counts[mod_id]
+
+			var row_btn := Button.new()
+			row_btn.text = ("%s  ×%d" % [mod_name, count]) if count > 1 else mod_name
+			row_btn.size = Vector2(LABEL_W - 2, 16)
+			row_btn.position = Vector2(12, y)
+			row_btn.add_theme_font_override("font", PIXEL_FONT)
+			row_btn.add_theme_font_size_override("font_size", FONT_DIM)
+			row_btn.add_theme_color_override("font_color", mod_col)
+			var cap_mid: String = str(mod_id)
+			var cap_wid: String = weapon_id
+			var cap_slot: int   = mod_slot
+			row_btn.pressed.connect(func():
+				pm.set_weapon_mod(cap_wid, cap_slot, cap_mid)
+				_armory_mod_picking = false
+				_open_panel("armory")
+			)
+			panel.add_child(row_btn)
+
+			## Desc on next line
+			var desc: String = mod_data.get("desc", "")
+			if not desc.is_empty():
+				var desc_lbl := Label.new()
+				desc_lbl.text = "  " + desc
+				desc_lbl.add_theme_font_override("font", PIXEL_FONT)
+				desc_lbl.add_theme_font_size_override("font_size", 10)
+				desc_lbl.add_theme_color_override("font_color", Color(0.46, 0.46, 0.52))
+				desc_lbl.position = Vector2(12, y + 14)
+				desc_lbl.size = Vector2(LABEL_W - 2, 14)
+				panel.add_child(desc_lbl)
+				y += 14
+
+			y += ROW_GAP - 2
+
+	## Cancel button at bottom
+	_add_row(panel, "─────────────────────────────────────", PANEL_H - 38.0, Color(0.20, 0.23, 0.26))
+	var cancel_btn := Button.new()
+	cancel_btn.text = "CANCEL"
+	cancel_btn.size = Vector2(80, 20)
+	cancel_btn.position = Vector2(12, PANEL_H - 26)
+	cancel_btn.add_theme_font_override("font", PIXEL_FONT)
+	cancel_btn.add_theme_font_size_override("font_size", FONT_DIM)
+	cancel_btn.pressed.connect(func():
+		_armory_mod_picking = false
+		_open_panel("armory")
+	)
+	panel.add_child(cancel_btn)
 
 # ── Panel implementations ──────────────────────────────────────────────────────
 
@@ -436,20 +678,34 @@ func _make_launch_panel() -> Panel:
 	var pm := ProgressionManager
 
 	## Content rows — ROW_GAP spacing, starting just below title bar
+	var char_id: String = pm.selected_character
+	var char_data: Dictionary = CharacterData.ALL.get(char_id, CharacterData.ALL["The Drifter"])
+	var char_col: Color = char_data.get("color", Color(0.92, 0.86, 0.60))
+
 	var y := float(TITLE_H + 8)
 	_add_row(panel, "Ready to descend.", y, Color(0.62, 0.70, 0.66))
 	y += ROW_GAP + 2
-	_add_row(panel, "Character:   The Drifter", y)
+	_add_row(panel, "Character:   %s" % char_data.get("display_name", char_id), y, char_col)
 	y += ROW_GAP
 
-	if pm.starting_weapon_slots() >= 2:
+	## Weapon display: Drifter uses armory selection; others use fixed starting weapon
+	var starting_weapon: String = char_data.get("starting_weapon", pm.selected_weapon)
+	if char_id == "The Drifter":
+		starting_weapon = pm.selected_weapon
+	if pm.starting_weapon_slots() >= 2 and char_id == "The Drifter":
 		_add_row(panel, "Slot 1:      %s" % pm.selected_weapon, y)
 		y += ROW_GAP
 		var w2 := pm.selected_weapon_2 if not pm.selected_weapon_2.is_empty() else "— none —"
 		_add_row(panel, "Slot 2:      %s" % w2, y)
 		y += ROW_GAP
 	else:
-		_add_row(panel, "Weapon:      %s" % pm.selected_weapon, y)
+		_add_row(panel, "Weapon:      %s" % starting_weapon, y)
+		y += ROW_GAP
+
+	## Show passive for non-Drifter characters
+	if char_id != "The Drifter":
+		var passive_short: String = char_data.get("passive_desc", "")
+		_add_row(panel, "Passive:     %s" % passive_short, y, Color(0.55, 0.62, 0.58), FONT_DIM)
 		y += ROW_GAP
 
 	_add_row(panel, "─────────────────────────────────────", y, Color(0.20, 0.23, 0.26))
@@ -460,10 +716,13 @@ func _make_launch_panel() -> Panel:
 
 	var btn := Button.new()
 	btn.text = "BEGIN DESCENT"
-	btn.size = Vector2(160, 24)
-	btn.position = Vector2((PANEL_W - 160) / 2, PANEL_H - 34)
+	btn.size = Vector2(160, 22)
+	btn.position = Vector2((PANEL_W - 160) / 2, PANEL_H - 32)
 	btn.add_theme_font_override("font", PIXEL_FONT)
 	btn.add_theme_font_size_override("font_size", FONT_BODY)
+	btn.add_theme_color_override("font_color",       Color(0.22, 0.96, 0.44))
+	btn.add_theme_color_override("font_hover_color", Color(0.80, 1.00, 0.86))
+	_style_btn(btn, Color(0.08, 0.28, 0.14, 0.80), Color(0.12, 0.40, 0.20, 0.90), 4)
 	btn.pressed.connect(_start_run)
 	panel.add_child(btn)
 
@@ -476,6 +735,19 @@ func _make_armory_panel() -> Panel:
 	var weapons: Array = pm.unlocked_weapons
 	var two_slots: bool = pm.starting_weapon_slots() >= 2
 
+	## Determine active weapon ID for this armory slot
+	var active_weapon_id: String
+	if two_slots:
+		active_weapon_id = pm.selected_weapon if _armory_slot == 1 else pm.selected_weapon_2
+	else:
+		active_weapon_id = pm.selected_weapon
+
+	## ── Mod picker sub-view ──────────────────────────────────────────────────
+	if _armory_mod_picking and not active_weapon_id.is_empty():
+		_make_armory_mod_picker(panel, active_weapon_id, _armory_mod_target_slot)
+		return panel
+
+	## ── No weapons yet ───────────────────────────────────────────────────────
 	if weapons.is_empty():
 		var y := float(TITLE_H + 8)
 		_add_row(panel, "No weapons collected yet.", y, Color(0.42, 0.42, 0.48))
@@ -489,8 +761,8 @@ func _make_armory_panel() -> Panel:
 		_add_row(panel, "Active: Standard Sidearm", y, col)
 		return panel
 
+	## ── Two-slot layout ──────────────────────────────────────────────────────
 	if two_slots:
-		## Slot selector tab buttons
 		var tab_y := float(TITLE_H + 4)
 		var slot1_btn := Button.new()
 		slot1_btn.text = "[ SLOT 1 ]" if _armory_slot == 1 else "  SLOT 1  "
@@ -502,6 +774,7 @@ func _make_armory_panel() -> Panel:
 			Color(0.95, 0.78, 0.22) if _armory_slot == 1 else Color(0.55, 0.55, 0.60))
 		slot1_btn.pressed.connect(func():
 			_armory_slot = 1
+			_armory_mod_picking = false
 			_open_panel("armory")
 		)
 		panel.add_child(slot1_btn)
@@ -516,6 +789,7 @@ func _make_armory_panel() -> Panel:
 			Color(0.95, 0.78, 0.22) if _armory_slot == 2 else Color(0.55, 0.55, 0.60))
 		slot2_btn.pressed.connect(func():
 			_armory_slot = 2
+			_armory_mod_picking = false
 			_open_panel("armory")
 		)
 		panel.add_child(slot2_btn)
@@ -524,34 +798,39 @@ func _make_armory_panel() -> Panel:
 		_add_row(panel, "─────────────────────────────────────", sep_y, Color(0.20, 0.23, 0.26))
 
 		var y := sep_y + ROW_GAP - 4
-		var current := pm.selected_weapon if _armory_slot == 1 else pm.selected_weapon_2
 		for w in weapons:
 			var w_id: String = str(w)
-			if y > PANEL_H - 48.0:
+			if y > PANEL_H - 90.0:
 				break
-			_add_weapon_btn(panel, w_id, y, w_id == current, _armory_slot)
+			_add_weapon_btn(panel, w_id, y, w_id == active_weapon_id, _armory_slot)
 			y += ROW_GAP
 
-		_add_row(panel, "─────────────────────────────────────", PANEL_H - 38.0, Color(0.20, 0.23, 0.26))
-		var sel_display := pm.selected_weapon_2 if _armory_slot == 2 else pm.selected_weapon
-		if sel_display.is_empty():
-			sel_display = "— none —"
-		_add_row(panel, "Slot %d: %s" % [_armory_slot, sel_display], PANEL_H - 22.0, col)
+		## Mod slots for selected weapon
+		_add_row(panel, "─────────────────────────────────────", PANEL_H - 76.0, Color(0.20, 0.23, 0.26))
+		_add_mod_slots(panel, active_weapon_id, PANEL_H - 64.0)
 
+		_add_row(panel, "─────────────────────────────────────", PANEL_H - 26.0, Color(0.20, 0.23, 0.26))
+		var sel_display := active_weapon_id if not active_weapon_id.is_empty() else "— none —"
+		_add_row(panel, "Slot %d: %s" % [_armory_slot, sel_display], PANEL_H - 14.0, col, FONT_DIM)
+
+	## ── Single-slot layout ───────────────────────────────────────────────────
 	else:
-		## Single slot
 		var y := float(TITLE_H + 8)
 		_add_row(panel, "Starting weapon:", y, Color(0.65, 0.70, 0.68))
 		y += ROW_GAP + 2
 		for w in weapons:
 			var w_id: String = str(w)
-			if y > PANEL_H - 48.0:
+			if y > PANEL_H - 90.0:
 				break
 			_add_weapon_btn(panel, w_id, y, w_id == pm.selected_weapon, 1)
 			y += ROW_GAP
 
-		_add_row(panel, "─────────────────────────────────────", PANEL_H - 38.0, Color(0.20, 0.23, 0.26))
-		_add_row(panel, "Selected: %s" % pm.selected_weapon, PANEL_H - 22.0, col)
+		## Mod slots below weapon list
+		_add_row(panel, "─────────────────────────────────────", PANEL_H - 76.0, Color(0.20, 0.23, 0.26))
+		_add_mod_slots(panel, pm.selected_weapon, PANEL_H - 64.0)
+
+		_add_row(panel, "─────────────────────────────────────", PANEL_H - 26.0, Color(0.20, 0.23, 0.26))
+		_add_row(panel, "Selected: %s" % pm.selected_weapon, PANEL_H - 14.0, col, FONT_DIM)
 
 	return panel
 
@@ -599,18 +878,25 @@ func _add_upgrade_row(parent: Control, upgrade_id: String,
 
 	## BUY / OWNED button, right-aligned with the name row
 	var btn := Button.new()
-	btn.size = Vector2(66, 22)
-	btn.position = Vector2(PANEL_W - 78, y - 2)
+	btn.size = Vector2(66, 20)
+	btn.position = Vector2(PANEL_W - 76, y - 1)
 	btn.add_theme_font_override("font", PIXEL_FONT)
 	btn.add_theme_font_size_override("font_size", FONT_DIM)
 	if owned:
 		btn.text = "OWNED"
 		btn.disabled = true
+		btn.add_theme_color_override("font_color", Color(0.40, 0.60, 0.44))
+		_style_btn(btn, Color(0.08, 0.18, 0.10, 0.60), Color(0.08, 0.18, 0.10, 0.60), 4)
 	elif not can_afford:
 		btn.text = "BUY"
 		btn.disabled = true
+		btn.add_theme_color_override("font_color", Color(0.38, 0.38, 0.42))
+		_style_btn(btn, Color(0.10, 0.10, 0.12, 0.50), Color(0.10, 0.10, 0.12, 0.50), 4)
 	else:
 		btn.text = "BUY"
+		btn.add_theme_color_override("font_color",       Color(0.98, 0.84, 0.28))
+		btn.add_theme_color_override("font_hover_color", Color(1.00, 0.96, 0.70))
+		_style_btn(btn, Color(0.28, 0.22, 0.04, 0.70), Color(0.40, 0.32, 0.06, 0.85), 4)
 		btn.pressed.connect(func():
 			if pm.purchase_upgrade(upgrade_id):
 				_open_panel("workshop")  ## Refresh
@@ -648,25 +934,188 @@ func _make_records_panel() -> Panel:
 	return panel
 
 func _make_roster_panel() -> Panel:
-	var col := Color(0.45, 0.52, 0.95)
-	var panel := _make_panel_base("ROSTER", col)
+	var accent_col := Color(0.45, 0.52, 0.95)
+	var panel := _make_panel_base("ROSTER", accent_col)
+	var pm := ProgressionManager
 
-	var y := float(TITLE_H + 8)
-	_add_row(panel, "THE DRIFTER", y, Color(0.92, 0.86, 0.60), FONT_TITLE)
-	y += ROW_GAP + 4
-	_add_row(panel, "[ Active ]", y, col)
-	y += ROW_GAP + 4
-	_add_row(panel, "Starting weapon:  Standard Sidearm", y, Color(0.58, 0.58, 0.64))
-	y += ROW_GAP
-	_add_row(panel, "Passive:          None — the baseline.", y, Color(0.58, 0.58, 0.64))
-	y += ROW_GAP
-	_add_row(panel, "Stats:            Balanced across the board.", y, Color(0.58, 0.58, 0.64))
-	y += ROW_GAP + 4
-	_add_row(panel, "─────────────────────────────────────", y, Color(0.20, 0.23, 0.26))
-	y += ROW_GAP - 4
-	_add_row(panel, "More characters unlock as you extract.", y, Color(0.40, 0.40, 0.46), FONT_DIM)
-	y += ROW_GAP
-	_add_row(panel, "Save resources and return here.", y, Color(0.40, 0.40, 0.46), FONT_DIM)
+	## If no detail char is set yet, default to selected character
+	if _roster_detail_char.is_empty():
+		_roster_detail_char = pm.selected_character
+
+	## ── Character list (left column: 170px wide) ──
+	var LIST_W   := 172
+	var BTN_W    := 156
+	var ROW_H    := 21
+	var list_y   := float(TITLE_H + 4)
+
+	for char_id in CharacterData.ORDER:
+		var cdata: Dictionary = CharacterData.ALL[char_id]
+		var is_unlocked: bool = pm.has_character(char_id)
+		var is_selected: bool = pm.selected_character == char_id
+		var is_detail:   bool = _roster_detail_char == char_id
+		var char_col: Color   = cdata.get("color", Color.WHITE)
+
+		## Row background highlight for detail selection
+		if is_detail:
+			var row_bg := ColorRect.new()
+			row_bg.color    = Color(char_col.r * 0.12, char_col.g * 0.12, char_col.b * 0.18, 0.90)
+			row_bg.size     = Vector2(LIST_W, ROW_H)
+			row_bg.position = Vector2(0, list_y)
+			panel.add_child(row_bg)
+
+		## Colored character icon dot
+		var dot := ColorRect.new()
+		dot.color    = char_col if is_unlocked else Color(char_col.r * 0.35, char_col.g * 0.35, char_col.b * 0.35)
+		dot.size     = Vector2(5, 9)
+		dot.position = Vector2(6, list_y + 6)
+		panel.add_child(dot)
+
+		## Character name button (click to view detail)
+		var name_btn := Button.new()
+		var display_name: String = cdata.get("display_name", char_id)
+		if is_selected:
+			name_btn.text = "▶ " + display_name
+		else:
+			name_btn.text = "  " + display_name
+		name_btn.size     = Vector2(BTN_W, ROW_H - 2)
+		name_btn.position = Vector2(13, list_y)
+		name_btn.add_theme_font_override("font", PIXEL_FONT)
+		name_btn.add_theme_font_size_override("font_size", FONT_DIM)
+		var name_col: Color
+		if is_selected:
+			name_col = char_col
+		elif is_unlocked:
+			name_col = Color(0.78, 0.78, 0.84)
+		else:
+			name_col = Color(0.36, 0.36, 0.40)
+		name_btn.add_theme_color_override("font_color", name_col)
+		var cid_capture: String = char_id   ## explicit type needed for closure capture
+		name_btn.pressed.connect(func():
+			_roster_detail_char = cid_capture
+			_open_panel("roster")
+		)
+		panel.add_child(name_btn)
+
+		list_y += ROW_H
+
+	## ── Divider ──
+	var div := ColorRect.new()
+	div.color    = Color(0.18, 0.20, 0.25)
+	div.size     = Vector2(LIST_W, 1)
+	div.position = Vector2(0, list_y + 2)
+	panel.add_child(div)
+
+	## ── Detail panel (right side, x = LIST_W + 4) ──
+	var DX: float = float(LIST_W + 6)
+	var DW: float = float(PANEL_W - LIST_W - 8)
+	var dy: float = float(TITLE_H + 4)
+
+	var ddata: Dictionary = CharacterData.ALL.get(_roster_detail_char, CharacterData.ALL["The Drifter"])
+	var d_col: Color      = ddata.get("color", Color.WHITE)
+	var d_unlocked: bool  = pm.has_character(_roster_detail_char)
+	var d_selected: bool  = pm.selected_character == _roster_detail_char
+	var d_cost: int       = ddata.get("unlock_cost", 0)
+
+	## Detail: name header
+	var d_name_lbl := Label.new()
+	d_name_lbl.text = ddata.get("display_name", _roster_detail_char)
+	d_name_lbl.add_theme_font_override("font", PIXEL_FONT)
+	d_name_lbl.add_theme_font_size_override("font_size", FONT_DIM)
+	d_name_lbl.add_theme_color_override("font_color", d_col if d_unlocked else Color(d_col.r * 0.45, d_col.g * 0.45, d_col.b * 0.45))
+	d_name_lbl.position = Vector2(DX, dy)
+	d_name_lbl.size     = Vector2(DW, 16)
+	panel.add_child(d_name_lbl)
+	dy += 16
+
+	## Detail: stats
+	var stat_col := Color(0.58, 0.58, 0.64) if d_unlocked else Color(0.32, 0.32, 0.36)
+	var d_hp:    float = ddata.get("base_hp",         100.0)
+	var d_armor: float = ddata.get("base_armor",       0.0)
+	var d_spd:   float = ddata.get("base_move_speed", 200.0)
+
+	for stat_line in [
+		"HP   %d" % int(d_hp),
+		"Arm  %d" % int(d_armor),
+		"Spd  %d" % int(d_spd),
+	]:
+		var sl := Label.new()
+		sl.text = stat_line
+		sl.add_theme_font_override("font", PIXEL_FONT)
+		sl.add_theme_font_size_override("font_size", FONT_DIM)
+		sl.add_theme_color_override("font_color", stat_col)
+		sl.position = Vector2(DX, dy)
+		sl.size     = Vector2(DW, 14)
+		panel.add_child(sl)
+		dy += 14
+
+	## Detail: weapon
+	var wep_lbl := Label.new()
+	wep_lbl.text = ddata.get("starting_weapon", "?")
+	wep_lbl.add_theme_font_override("font", PIXEL_FONT)
+	wep_lbl.add_theme_font_size_override("font_size", 11)
+	wep_lbl.add_theme_color_override("font_color", stat_col)
+	wep_lbl.position = Vector2(DX, dy)
+	wep_lbl.size     = Vector2(DW, 14)
+	panel.add_child(wep_lbl)
+	dy += 16
+
+	## Detail: passive (word-wrapped into up to 2 lines)
+	var passive_text: String = ddata.get("passive_desc", "None.")
+	var p_col: Color = d_col if d_unlocked else Color(0.32, 0.32, 0.36)
+	var p_lbl := Label.new()
+	p_lbl.text = passive_text
+	p_lbl.add_theme_font_override("font", PIXEL_FONT)
+	p_lbl.add_theme_font_size_override("font_size", 11)
+	p_lbl.add_theme_color_override("font_color", p_col)
+	p_lbl.position    = Vector2(DX, dy)
+	p_lbl.size        = Vector2(DW, 44)
+	p_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
+	panel.add_child(p_lbl)
+	dy += 46
+
+	## Detail: action button (SELECT or BUY)
+	var action_btn := Button.new()
+	action_btn.size     = Vector2(DW - 2, 20)
+	action_btn.position = Vector2(DX, PANEL_H - 28)
+	action_btn.add_theme_font_override("font", PIXEL_FONT)
+	action_btn.add_theme_font_size_override("font_size", FONT_DIM)
+
+	if d_selected:
+		action_btn.text     = "[ ACTIVE ]"
+		action_btn.disabled = true
+		action_btn.add_theme_color_override("font_color", d_col)
+		_style_btn(action_btn, Color(d_col.r * 0.12, d_col.g * 0.12, d_col.b * 0.18, 0.70),
+				Color(d_col.r * 0.12, d_col.g * 0.12, d_col.b * 0.18, 0.70), 4)
+	elif d_unlocked:
+		action_btn.text = "SELECT"
+		action_btn.add_theme_color_override("font_color",       Color(0.78, 0.96, 0.78))
+		action_btn.add_theme_color_override("font_hover_color", Color(1.00, 1.00, 1.00))
+		_style_btn(action_btn, Color(0.10, 0.24, 0.12, 0.70), Color(0.16, 0.38, 0.18, 0.85), 4)
+		var sel_id := _roster_detail_char
+		action_btn.pressed.connect(func():
+			pm.select_character(sel_id)
+			_open_panel("roster")
+		)
+	elif pm.resources >= d_cost:
+		action_btn.text = "BUY  %d res" % d_cost
+		action_btn.add_theme_color_override("font_color",       Color(0.98, 0.84, 0.28))
+		action_btn.add_theme_color_override("font_hover_color", Color(1.00, 0.96, 0.70))
+		_style_btn(action_btn, Color(0.28, 0.22, 0.04, 0.70), Color(0.40, 0.32, 0.06, 0.85), 4)
+		var buy_id := _roster_detail_char
+		action_btn.pressed.connect(func():
+			if pm.purchase_character(buy_id):
+				_open_panel("roster")
+		)
+	else:
+		action_btn.text     = "%d res" % d_cost
+		action_btn.disabled = true
+		action_btn.add_theme_color_override("font_color", Color(0.38, 0.38, 0.42))
+		_style_btn(action_btn, Color(0.10, 0.10, 0.12, 0.40), Color(0.10, 0.10, 0.12, 0.40), 4)
+
+	panel.add_child(action_btn)
+
+	## Resources reminder at bottom-left
+	_add_row(panel, "Resources: %d" % pm.resources, PANEL_H - 14, Color(0.55, 0.55, 0.60), FONT_DIM)
 
 	return panel
 

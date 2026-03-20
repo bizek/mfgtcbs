@@ -36,7 +36,17 @@
       "Bash(git rm:*)",
       "Bash(git commit:*)",
       "Bash(gh auth:*)",
-      "Bash(gh --version)"
+      "Bash(gh --version)",
+      "Bash(git remote:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(find E:Projectsextraction-survivorsassets -type f -iname *projectile*)",
+      "Bash(find E:Projectsextraction-survivorsassets -type f \\\\\\(-iname *bullet* -o -iname *shot* -o -iname *bolt* -o -iname *arrow* \\\\\\))",
+      "Bash(find E:Projectsextraction-survivorsassets -type f \\\\\\(-iname *orb* -o -iname *energy* -o -iname *beam* -o -iname *spell* \\\\\\))",
+      "Bash(find E:Projectsextraction-survivorsassets -type f \\\\\\(-iname *magic* -o -iname *fireball* -o -iname *laser* -o -iname *missile* \\\\\\))",
+      "Bash(find E:Projectsextraction-survivorsassets -type f \\\\\\(-iname *projectile* -o -iname *bullet* -o -iname *shot* -o -iname *bolt* -o -iname *arrow* -o -iname *orb* -o -iname *beam* -o -iname *spell* -o -iname *magic* \\\\\\) ! -iname *.import ! -iname *.aseprite)",
+      "mcp__godot-mcp-pro__reload_project",
+      "Bash(grep -E \"\\\\.\\(gd|tscn\\)$\")"
     ]
   }
 }

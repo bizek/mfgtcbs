@@ -18,12 +18,22 @@ var selected_weapon: String = "Standard Sidearm"
 var selected_weapon_2: String = ""          ## Only used when armory_expansion is owned
 var hub_upgrades: Array = []               ## IDs of purchased Workshop upgrades
 var total_resources_spent: int = 0         ## Drives hub visual tier
+
+## Mod inventory — all mod IDs the player has collected through successful extractions
+var owned_mods: Array = []
+## Equipped mods per weapon — { "weapon_id": ["mod_id_slot0", "mod_id_slot1"] }
+## Empty string "" means the slot is empty.
+var weapon_mods: Dictionary = {}
 var total_runs: int = 0
 var successful_extractions: int = 0
 var deaths: int = 0
 var deepest_phase: int = 0
 var total_kills: int = 0
 var most_loot_extracted: float = 0.0
+
+## Character roster
+var selected_character: String = "The Drifter"
+var unlocked_characters: Array = ["The Drifter"]
 
 func _ready() -> void:
 	load_data()
@@ -42,6 +52,10 @@ func save_data() -> void:
 		"deepest_phase":          deepest_phase,
 		"total_kills":            total_kills,
 		"most_loot_extracted":    most_loot_extracted,
+		"selected_character":     selected_character,
+		"unlocked_characters":    unlocked_characters,
+		"owned_mods":             owned_mods,
+		"weapon_mods":            weapon_mods,
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file:
@@ -71,6 +85,13 @@ func load_data() -> void:
 	deepest_phase         = int(result.get("deepest_phase", 0))
 	total_kills           = int(result.get("total_kills", 0))
 	most_loot_extracted   = float(result.get("most_loot_extracted", 0.0))
+	selected_character    = str(result.get("selected_character", "The Drifter"))
+	unlocked_characters   = result.get("unlocked_characters", ["The Drifter"])
+	## Always ensure The Drifter is unlocked (safety net for old save files)
+	if "The Drifter" not in unlocked_characters:
+		unlocked_characters.append("The Drifter")
+	owned_mods   = result.get("owned_mods",  [])
+	weapon_mods  = result.get("weapon_mods", {})
 
 ## Returns true if the player owns the upgrade.
 func has_upgrade(id: String) -> bool:
@@ -131,3 +152,69 @@ func add_weapon(weapon_id: String) -> void:
 	if weapon_id not in unlocked_weapons:
 		unlocked_weapons.append(weapon_id)
 		save_data()
+
+# ─── Mod management ────────────────────────────────────────────────────────────
+
+## Add a mod to the player's collection (called on successful extraction).
+func add_mod(mod_id: String) -> void:
+	owned_mods.append(mod_id)   ## Allow duplicates — each instance is a separate item
+	save_data()
+
+## Returns the equipped mod IDs for a weapon as an Array (may include "" for empty slots).
+func get_weapon_mods(weapon_id: String) -> Array:
+	return weapon_mods.get(weapon_id, [])
+
+## Equip a mod into a specific slot (0-indexed) on a weapon. Saves immediately.
+func set_weapon_mod(weapon_id: String, slot: int, mod_id: String) -> void:
+	if not weapon_mods.has(weapon_id):
+		weapon_mods[weapon_id] = []
+	## Grow the array to accommodate this slot
+	while weapon_mods[weapon_id].size() <= slot:
+		weapon_mods[weapon_id].append("")
+	weapon_mods[weapon_id][slot] = mod_id
+	## Remove one copy from owned_mods inventory (it's now slotted)
+	var idx: int = owned_mods.find(mod_id)
+	if idx >= 0:
+		owned_mods.remove_at(idx)
+	save_data()
+
+## Remove the mod from a weapon slot (0-indexed) and return it to owned_mods.
+func remove_weapon_mod(weapon_id: String, slot: int) -> void:
+	if not weapon_mods.has(weapon_id):
+		return
+	if slot >= weapon_mods[weapon_id].size():
+		return
+	var existing: String = weapon_mods[weapon_id][slot]
+	if not existing.is_empty():
+		owned_mods.append(existing)
+	weapon_mods[weapon_id][slot] = ""
+	save_data()
+
+## Returns true if the character is already unlocked.
+func has_character(char_id: String) -> bool:
+	return char_id in unlocked_characters
+
+## Attempt to purchase a character unlock. Returns true on success.
+func purchase_character(char_id: String) -> bool:
+	if has_character(char_id):
+		return false
+	if not CharacterData.ALL.has(char_id):
+		return false
+	var cost: int = CharacterData.ALL[char_id].get("unlock_cost", 0)
+	if resources < cost:
+		return false
+	resources -= cost
+	total_resources_spent += cost
+	unlocked_characters.append(char_id)
+	selected_character = char_id
+	save_data()
+	resources_changed.emit(resources)
+	return true
+
+## Select an already-unlocked character. Returns true on success.
+func select_character(char_id: String) -> bool:
+	if not has_character(char_id):
+		return false
+	selected_character = char_id
+	save_data()
+	return true
