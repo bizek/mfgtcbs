@@ -25,7 +25,6 @@ func _build_upgrade_pool() -> void:
 		{"id": "projectile_count_up", "name": "Multi Shot", "description": "+1 Projectile", "stat": "projectile_count", "type": "flat", "value": 1.0},
 		{"id": "pierce_up", "name": "Pierce", "description": "+1 Pierce", "stat": "pierce", "type": "flat", "value": 1.0},
 		{"id": "projectile_size_up", "name": "Bigger Shots", "description": "+25% Projectile Size", "stat": "projectile_size", "type": "percent", "value": 0.25},
-		{"id": "extraction_speed_up", "name": "Quick Extract", "description": "+20% Extraction Speed", "stat": "extraction_speed", "type": "percent", "value": 0.20},
 	]
 
 func generate_choices(count: int = 3) -> Array[Dictionary]:

@@ -1,0 +1,89 @@
+[gd_scene format=3 uid="uid://c0uvbpf8o2ifu"]
+
+[ext_resource type="Script" uid="uid://0oa3bn1owtw7" path="res://scripts/ui/hub_panel_base.gd" id="1_script"]
+[ext_resource type="FontFile" uid="uid://cm5x7font0001" path="res://assets/fonts/m5x7.ttf" id="2_font"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_jpl8r"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+bg_color = Color(0.065, 0.075, 0.1, 0.97)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.4, 0.4, 0.9, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_close_normal"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+bg_color = Color(0, 0, 0, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_close_hover"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+bg_color = Color(0.55, 0.12, 0.12, 0.75)
+
+[node name="HubPanelBase" type="Panel" unique_id=1746998067]
+offset_right = 371.0
+offset_bottom = 215.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_jpl8r")
+script = ExtResource("1_script")
+
+[node name="TitleBar" type="ColorRect" parent="." unique_id=95943510]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 22.0
+grow_horizontal = 2
+mouse_filter = 2
+color = Color(0.1, 0.1, 0.225, 1)
+
+[node name="TitleLabel" type="Label" parent="TitleBar" unique_id=1696109091]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 3.0
+offset_right = -24.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.4, 0.4, 0.9, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 16
+text = "PANEL"
+
+[node name="CloseButton" type="Button" parent="TitleBar" unique_id=18069267]
+layout_mode = 1
+anchors_preset = 11
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -24.0
+grow_horizontal = 0
+theme_override_colors/font_color = Color(0.72, 0.72, 0.78, 1)
+theme_override_colors/font_hover_color = Color(1, 0.4, 0.4, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_close_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_close_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_close_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_close_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_close_normal")
+text = "×"
+
+[node name="ContentContainer" type="Control" parent="." unique_id=1854706664]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 22.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1

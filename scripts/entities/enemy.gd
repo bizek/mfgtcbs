@@ -52,6 +52,9 @@ var _cryo_stacks: int = 0
 var _frozen: bool = false
 var _freeze_timer: float = 0.0
 
+## Void-Touched: explodes on death, damages nearby enemies and bleeds instability
+var _void_touched: bool = false
+
 ## Burning particle emitter (child node, managed by status system)
 var _burn_particles: CPUParticles2D = null
 
@@ -59,6 +62,7 @@ var _burn_particles: CPUParticles2D = null
 var _shock_tween: Tween = null
 
 func _ready() -> void:
+	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
 	hp = max_hp
 	add_to_group("enemies")
 	xp_pickup_scene = load("res://scenes/pickups/xp_gem.tscn") if ResourceLoader.exists("res://scenes/pickups/xp_gem.tscn") else null
@@ -207,10 +211,20 @@ func apply_status(effect: String, params: Dictionary) -> void:
 
 		"shock":
 			_statuses["shock"] = {
+				"timer":            params.get("duration", 5.0),
 				"chain_damage_pct": params.get("chain_damage_pct", 0.5),
 				"chain_range":      params.get("chain_range",      100.0),
 			}
 			_spawn_shock_particles()
+
+		"void_touched":
+			if not _void_touched:
+				_void_touched = true
+				## Dark purple base tint — persists until death
+				_base_modulate = Color(0.55, 0.15, 0.80, 1.0)
+				if sprite and not (_hit_tween and _hit_tween.is_valid()):
+					sprite.modulate = _base_modulate
+				_spawn_void_touched_particles()
 
 func _tick_statuses(delta: float) -> void:
 	var to_remove: Array = []
@@ -370,6 +384,10 @@ func _die() -> void:
 	GameManager.register_kill()
 	EnemySpawnManager.on_enemy_died()
 
+	## Void-Touched: explode before the death burst so damage fires from the right position
+	if _void_touched:
+		_void_explosion()
+
 	## Spawn burst effect before freeing
 	_spawn_death_effect()
 
@@ -379,6 +397,70 @@ func _die() -> void:
 
 	## Remove from scene
 	queue_free()
+
+## Void-Touched death explosion: damages nearby enemies and bleeds instability onto the player.
+## Radius 80 px, damage = 2× this enemy's contact_damage, instability bleed +2.
+func _void_explosion() -> void:
+	const VOID_RADIUS: float = 80.0
+	var dmg: float = contact_damage * 2.0
+
+	for other in get_tree().get_nodes_in_group("enemies"):
+		if not is_instance_valid(other) or other == self:
+			continue
+		if global_position.distance_to(other.global_position) <= VOID_RADIUS:
+			if other.has_method("take_damage"):
+				other.take_damage(dmg)
+
+	## Bleed instability onto the player — carrying void-touched enemies is a liability
+	GameManager.modify_instability(2)
+
+	## Visual: dark purple expanding ring + void particle burst
+	var ring := ColorRect.new()
+	ring.color = Color(0.40, 0.08, 0.65, 0.55)
+	ring.size = Vector2(VOID_RADIUS * 2.0, VOID_RADIUS * 2.0)
+	ring.position = global_position - Vector2(VOID_RADIUS, VOID_RADIUS)
+	get_tree().current_scene.add_child(ring)
+	var rt := ring.create_tween()
+	rt.tween_property(ring, "scale", Vector2(1.4, 1.4), 0.25).set_trans(Tween.TRANS_EXPO)
+	rt.parallel().tween_property(ring, "modulate:a", 0.0, 0.25)
+	rt.tween_callback(ring.queue_free)
+
+	var p := CPUParticles2D.new()
+	p.global_position = global_position
+	p.amount = 14
+	p.lifetime = 0.55
+	p.one_shot = true
+	p.explosiveness = 1.0
+	p.direction = Vector2.ZERO
+	p.spread = 180.0
+	p.initial_velocity_min = 60.0
+	p.initial_velocity_max = 160.0
+	p.gravity = Vector2.ZERO
+	p.scale_amount_min = 2.0
+	p.scale_amount_max = 5.0
+	p.color = Color(0.55, 0.10, 0.90, 0.90)
+	get_tree().current_scene.add_child(p)
+	p.emitting = true
+	get_tree().create_timer(1.0).timeout.connect(func(): if is_instance_valid(p): p.queue_free())
+
+## Persistent void aura particles — applied when void_touched status lands.
+func _spawn_void_touched_particles() -> void:
+	var p := CPUParticles2D.new()
+	p.amount = 5
+	p.lifetime = 0.7
+	p.one_shot = false
+	p.explosiveness = 0.0
+	p.direction = Vector2(0.0, -1.0)
+	p.spread = 80.0
+	p.initial_velocity_min = 10.0
+	p.initial_velocity_max = 22.0
+	p.gravity = Vector2(0.0, -8.0)
+	p.scale_amount_min = 1.5
+	p.scale_amount_max = 3.0
+	p.color = Color(0.50, 0.08, 0.85, 0.80)
+	add_child(p)
+	p.emitting = true
+	## Particles are a child — they queue_free with the enemy on death automatically
 
 func _spawn_death_effect() -> void:
 	var particles := CPUParticles2D.new()

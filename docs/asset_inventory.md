@@ -5,40 +5,46 @@
 
 ## Asset Strategy
 
-**Core decision: Fantasy assets as the visual base.** The free asset market for top-down fantasy pixel art is massive — dungeon tilesets, character sprites, enemy animations, VFX, UI elements, and audio are all abundantly available. Science-fantasy specific assets are nearly nonexistent for free.
+**Core decision: MiniFantasy by Krishna Palacio is our complete visual library.**
 
-**How we deliver the science-fantasy tone without sci-fi assets:**
-- Fantasy art provides the visual foundation (tilesets, characters, enemies)
-- Atmosphere carries the sci-fantasy feel: lighting, color grading, particle effects, post-processing
-- Lore, naming, and UI text carry the science element (terminals, not scrolls; extraction, not escape; the hub is a station, not a tavern)
-- Audio design bridges the gap: dark ambient, drones, electronic undertones mixed with fantasy sounds
+We own 74 MiniFantasy commercial packs, all located in `/assets/minifantasy/`. This collection covers every visual category the game needs — tilesets, characters, enemies, weapons, VFX, and UI — in a single cohesive pixel art style. No additional asset hunting is required.
+
+**Why MiniFantasy works perfectly for this game:**
+- Consistent art style across all 74 packs — everything looks like it belongs together
+- Multiple environment themes already match our 5-phase progression (dungeon → caves → swamp → hellscape → sci-fi vault)
+- Dedicated sci-fi packs (Reliquary Vault, Space Derelict) cover Phase 5 without needing palette tricks
+- Multiple creature and hero packs provide more enemy and character variety than the game needs
+- Commercial license covers Steam release
+
+**How we deliver the science-fantasy tone:**
+- Fantasy art provides the visual foundation for early phases
+- Sci-fi packs (Reliquary Vault, Space Derelict) carry Phase 5's alien aesthetic
+- Atmosphere carries the sci-fantasy feel: lighting, color grading, particle effects
+- Lore, naming, and UI text carry the science element (terminals, not scrolls; extraction, not escape)
 - The deeper phases get WEIRDER — color palette shifts, visual distortion effects, and void-themed particles turn familiar dungeon tiles into something alien
-
-**This is the Dark Souls trick:** medieval assets, cosmic horror atmosphere. The art says "dungeon." The vibe says "something unknowable."
 
 ---
 
-## Asset Sources (Free / CC0 / Open License)
+## License
 
-### Primary Sources
+**One license applies to all visual assets: MiniFantasy Commercial License (Krishna Palacio)**
 
-| Source | URL | What's There | License Notes |
-|--------|-----|-------------|---------------|
-| **itch.io** | itch.io/game-assets/free | Largest free game asset marketplace. Tilesets, characters, enemies, VFX, UI, audio. | Varies per asset — check each. Many are CC0 or "free for commercial use with credit." |
-| **OpenGameArt.org** | opengameart.org | Large library of CC0 and CC-BY game art, music, and sound effects. | Mostly CC0 or CC-BY (attribution required). Check each asset. |
-| **Kenney.nl** | kenney.nl/assets | High-quality CC0 asset packs. More stylized/modern but some useful elements. | CC0 — no attribution required. Gold standard for licensing. |
-| **CraftPix.net** | craftpix.net/freebies | Curated free asset packs including dungeon tilesets, characters, objects. | Free packs are royalty-free for commercial use. Check specific pack terms. |
-| **GameDev Market** | gamedevmarket.net | Some free packs available. Dark dungeon ambient music (41 tracks). | Pro License — commercial use allowed. |
-| **Pixabay** | pixabay.com/music | Royalty-free music and sound effects. Dungeon/dark ambient available. | Pixabay License — free commercial use, no attribution required. |
+| Requirement | Detail |
+|-------------|--------|
+| Commercial use | ✅ Allowed in videogames and audio-visual projects |
+| Modification | ✅ Assets can be edited and altered |
+| Redistribution | ❌ Cannot redistribute or resell the raw assets |
+| Attribution | Required — credit Krishna Palacio in game credits |
+| Notification | Required — send creator a link to the completed project |
 
-### Key Rule: ALWAYS Check Licenses
-Before using ANY asset, verify:
-1. Is commercial use allowed?
-2. Is attribution/credit required? (If so, add to credits list)
-3. Can the asset be redistributed as part of a game sold on Steam?
-4. Are there any restrictions on modification (recoloring, editing)?
+**Credits entry (copy this into the game credits screen):**
 
-Maintain a running **credits document** that tracks every asset used, its source, its license, and any attribution requirements.
+```
+Pixel Art Assets: MiniFantasy by Krishna Palacio
+https://krishna-palacio.itch.io/
+```
+
+No per-pack tracking needed — the single MiniFantasy credit covers all 74 packs.
 
 ---
 
@@ -48,62 +54,62 @@ Maintain a running **credits document** that tracks every asset used, its source
 
 **What we need:** 5 visually distinct tilesets for 5 phase themes, each creating a different atmospheric feel for top-down dungeon arenas.
 
-**What's available (confirmed free sources):**
+**Assigned MiniFantasy packs:**
 
-| Pack / Source | Description | Usability |
-|---------------|-------------|-----------|
-| Anokolisa — Free Pixel Art Topdown Tileset | 500+ sprites, dungeon environments, 16x16. Heroes, enemies, weapons included. | High — good base for Phase 1-2 |
-| Pixel_Poem — 2D Pixel Dungeon Asset Pack | Dark dungeon tiles, animated objects (water, traps, torches, chests). Free version available. Popular with Godot devs. | High — strong dark atmosphere, good for Phase 1-3 |
-| CraftPix — Free 2D Top-Down Pixel Dungeon | Dungeon tiles, animated traps, torches, chests, decorative objects. 16x16. | High — supplements above packs |
-| Free Game Assets — Top-Down Pixel Dungeon Level | Ground tiles, water, objects. PSD/PNG format. | Medium — supplement pack |
+| Phase | Theme | Primary Pack | Supplemental Pack |
+|-------|-------|-------------|-------------------|
+| Phase 1 — The Threshold | Classic dungeon, warm torchlight | `Minifantasy_Dungeon_v2.3_Commercial_Version` | `Minifantasy_DeepCaves_v2.0` |
+| Phase 2 — The Descent | Crypt, cold stone, undead | `Minifantasy_Crypt_Of_The_Forgotten_v1.0` | `Minifantasy_DeepCaves_v2.0` |
+| Phase 3 — The Deep | Dark swamp, bioluminescence | `Minifantasy_SilentSwamp_v1.0` | `Minifantasy_Gloom_Hollows_v1.0` |
+| Phase 4 — The Abyss | Hellscape, nightmare realm | `Minifantasy_Nightmare_Realm_v1.0` | `Minifantasy_Hellscape_v1.0` |
+| Phase 5 — The Core | Sci-fi vault, space derelict | `Minifantasy_Scifi_Reliquary_Vault_v1.0` | `Minifantasy_Scifi_SpaceDerelict_v1.0` |
 
-**Gap: Phase 4-5 "alien/void" aesthetics.** Standard dungeon tiles won't look alien enough for deep phases.
-
-**Solution:** Recolor/palette-shift existing dungeon tiles for deeper phases. A warm brown dungeon recolored to deep purple/black with bioluminescent blue accents instantly feels alien. Godot's shader system can handle this with color replacement shaders — no asset editing required. Phase 5 gets the most extreme color treatment plus particle overlay effects.
-
-**Verdict: COVERED.** Multiple free dungeon tilesets available. Deeper phases achieved through palette shifting and post-processing.
+**Verdict: COVERED.** Each phase has a dedicated MiniFantasy environment pack. Phase 4-5 require no palette manipulation — the Nightmare Realm and Sci-Fi packs already carry the right aesthetic.
 
 ---
 
 ### 2. Player Characters
 
-**What we need:** 7 playable characters with at minimum: idle, walk, and attack animations. Top-down perspective.
+**What we need:** 7 playable characters with idle, walk, and attack animations. Top-down perspective.
 
-**What's available:**
-- Anokolisa pack includes 3 hero sprites with animations
-- Multiple free character packs on itch.io (top-down RPG characters, 16x16 and 32x32)
-- Character base sprites that can be recolored/modified for variety
+**Assigned MiniFantasy packs:**
 
-**Gap:** We need 7 distinct characters. Free packs typically offer 3-6.
+| Character Archetype | Primary Pack | Notes |
+|--------------------|-------------|-------|
+| The Drifter (soldier) | `Minifantasy_TrueHeroes_v1.0` | Core warrior hero set |
+| The Spark (engineer) | `Minifantasy_True_Heroes_II_v1.0` | Second hero set, different silhouettes |
+| The Shade (rogue) | `Minifantasy_Dark_Brotherhood_v1.0` | Assassin/rogue aesthetic |
+| The Warden (nature) | `Minifantasy_Forest_Dwellers_v1.0` | Nature/ranger archetype |
+| The Cursed (void) | `Minifantasy_True_Heroes_III_v1.1` | Third hero set, palette to void black **(post-launch)** |
+| The Herald (support) | `Minifantasy_True_Heroes_IV_v1.1` | Fourth hero set **(post-launch)** |
+| Custom/modular | `Minifantasy_AMyriadOfNPCs_v.1.0` | Modular body parts for unique builds |
 
-**Solution:**
-- Use 2-3 base character packs and differentiate through palette swaps, accessory variations, and weapon visuals
-- Characters don't need to look radically different in a top-down pixel art game — distinct color schemes and weapon types are enough to read as "different character"
-- Prioritize visual clarity: each character should have a distinct silhouette color (The Drifter = neutral gray, The Spark = bright orange, The Shade = deep purple, The Cursed = void black with glow, etc.)
-
-**Verdict: COVERED with effort.** Mix of existing packs + palette swaps. May need 2-3 source packs combined.
+**Verdict: COVERED.** 4 True Heroes packs + Dark Brotherhood + Forest Dwellers = more character bases than needed. AMyriadOfNPCs provides modular customization if any archetype needs a distinct look.
 
 ---
 
 ### 3. Enemies
 
-**What we need:** Multiple enemy types per role (Fodder, Swarmer, Brute, Ranged, Elite, Miniboss) with at minimum idle and death animations. Visually distinct across phases.
+**What we need:** Multiple enemy types per role (Fodder, Swarmer, Brute, Ranged, Elite, Miniboss) with idle, walk, attack, and death animations. Visually distinct across phases.
 
-**What's available:**
-- Anokolisa pack includes 8 enemy types
-- Multiple free monster/creature packs on itch.io
-- Dungeon-themed enemy packs (skeletons, slimes, bats, demons, undead)
-- CraftPix dungeon object packs include some animated enemies
+**Assigned MiniFantasy packs by phase:**
 
-**Gap:** Phase-Warped enemies (Phase 5) need to look distinctly alien/wrong.
+| Phase Range | Enemy Type | Pack |
+|------------|-----------|------|
+| All phases (core) | Creatures, beasts | `Minifantasy_Creatures_v3.3_Commercial_Version` |
+| All phases (monsters) | Goblins, imps, slimes | `Minifantasy_Monster_Creatures_v1.0` |
+| Phase 1-2 | Undead (skeletons, zombies) | `Minifantasy_Undead_Creatures_v1.0` |
+| Phase 2-3 | Necropolis undead, liches | `Minifantasy_Necropolis_v1.0` |
+| Phase 1-3 | Orc warriors, berserkers | `Minifantasy_Dark_Orc_Army_v1.0` |
+| Phase 2-4 | Orc kingdom variants | `Minifantasy_Orc_Kingdom_v1.0` |
+| Phase 3-4 | Elite humanoid villains | `Minifantasy_True_Villains_I_v1.0` |
+| Phase 4-5 | Nightmare entities | `Minifantasy_Nightmare_Realm_v1.0` + shader work |
 
-**Solution:**
-- Phase 1-3 enemies: standard fantasy dungeon enemies (skeletons, slimes, bats, demons, etc.) — abundantly available
-- Phase 4 enemies: same base sprites with color distortion (void purple palette, glitch effects overlay)
-- Phase 5 Phase-Warped: heaviest palette manipulation + particle effects. A skeleton recolored to void-black with glowing eyes and a distortion shader looks nothing like a normal skeleton.
-- Elite modifiers (Shielded, Exploding, etc.) are visual OVERLAYS — a shield bubble sprite, an explosion animation on death. One set of overlay VFX works for all enemy types.
+**Phase-Warped enemies (Phase 5):** Take Creatures or Undead base sprites and apply void palette shader (deep purple/black, glowing accents). The Nightmare Realm pack provides additional alien variants.
 
-**Verdict: COVERED.** Fantasy enemy packs are abundant. Deeper phase variants through palette/shader work.
+**Elite modifiers** (Shielded, Exploding, etc.) are visual OVERLAYS — a shield bubble sprite or explosion animation on death from the Spell Effects packs. One set of overlay VFX works for all enemy types.
+
+**Verdict: COVERED.** 8 creature/enemy packs provide deep variety. Phase-scaled visual variety achieved through pack switching + minimal shader work for Phase 4-5 extremes.
 
 ---
 
@@ -111,41 +117,47 @@ Maintain a running **credits document** that tracks every asset used, its source
 
 **What we need:** Visual representations for weapon types (projectiles, beams, melee arcs, orbiting objects, AOE effects) matching our 10 behavior types and 5 damage types.
 
-**What's available:**
-- Anokolisa pack includes 50 weapon sprites
-- Dedicated projectile/VFX packs on itch.io
-- "Super Pixel Effects Gigapack" — updated near-weekly, covers explosions, projectiles, impacts, magic effects
+**Assigned MiniFantasy packs:**
 
-**Gap:** Void-themed weapons/projectiles are niche. Most free VFX are fire/ice/lightning (convenient since those match our damage types).
+| Need | Pack |
+|------|------|
+| Physical weapon sprites (swords, guns, axes) | `Minifantasy_Weapons_v3.0` |
+| Magic weapon sprites + trail effects | `Minifantasy_Magic_Weapons_And_Effects_v1.0` |
+| Projectile animations (fireballs, ice, lightning) | `Minifantasy_Spell_Effects_v1.0` |
+| Additional spell projectiles and AOE | `Minifantasy_Spell_Effects_II_v1.0` |
+| Sorcery effects, beams, orbs | `Minifantasy_MagicAndSorcery_v1.1` |
 
-**Solution:**
-- Fire/Cryo/Shock projectiles: directly available from magic VFX packs (fireballs, ice shards, lightning bolts)
-- Physical projectiles: standard bullet/arrow sprites — very common
-- Void projectiles: recolor existing magic effects to dark purple/black. A purple fireball with distortion particles = a void projectile.
-- Weapon sprites (swords, guns, staves): abundantly available. Weapon visuals are small and only need to read clearly on a 16x16 or 32x32 character.
+**Damage type coverage:**
+- Fire: fireballs, flame effects from Spell Effects
+- Cryo: ice shard, frost effects from Spell Effects II
+- Shock: lightning bolt, arc effects from Spell Effects
+- Physical: projectile impacts from Weapons + Spell Effects
+- Void: recolor existing magic effects to dark purple/black — Spell Effects provides the base animations
 
-**Verdict: COVERED.** VFX packs handle projectiles. Void effects via recoloring.
+**Verdict: COVERED.** Five dedicated packs handle every projectile type and weapon behavior.
 
 ---
 
 ### 5. VFX (Explosions, Impacts, Status Effects, Pickups)
 
-**What we need:** Hit effects, death effects, status effect indicators (burning, frozen, shocked, void-touched), explosion animations, pickup glow effects, extraction portal effects.
+**What we need:** Hit effects, death effects, status effect indicators, explosion animations, pickup glow effects, extraction portal effects.
 
-**What's available:**
-- Multiple free pixel art VFX packs on itch.io (explosions, impacts, particles)
-- unTied Games — Five Free Pixel Explosions (CC-BY, 60fps)
-- Dedicated spell/magic effect packs (fire, ice, lightning animations)
-- Particle effect texture packs for Godot's particle system
+**Assigned MiniFantasy packs:**
 
-**Gap:** Some effects (extraction portal, Instability visual overlay, void distortion) are game-specific and won't exist in any pack.
+| Need | Pack |
+|------|------|
+| Explosions, blast effects | `Minifantasy_Spell_Effects_v1.0` |
+| Elemental hit effects (fire, ice, lightning) | `Minifantasy_Spell_Effects_II_v1.0` |
+| Weapon impact flashes, trails | `Minifantasy_Magic_Weapons_And_Effects_v1.0` |
+| Sorcery AOE, summon effects | `Minifantasy_MagicAndSorcery_v1.1` |
 
-**Solution:**
-- Common effects (explosions, hit flashes, elemental VFX): covered by free packs
-- Game-specific effects (extraction portal, Instability overlay): built in Godot's particle system using basic particle textures. Godot's GPU particle system is powerful and can create portals, distortion fields, and atmospheric overlays from simple sprite textures.
-- Status effect indicators: simple colored overlays or icon bubbles above enemies. Can be created from basic shape sprites.
+**Game-specific effects (built in Godot):**
+- Extraction portal: GPU particle system, use basic glow textures from Spell Effects as base
+- Instability overlay: CanvasModulate + particle density increase, no additional sprites needed
+- Status effect indicators: small icon overlays above enemies, use Spell Effects frames as source textures
+- Void distortion: Godot shader (screen-space distortion, no additional art needed)
 
-**Verdict: MOSTLY COVERED.** Free packs handle 80% of needs. Game-specific effects built in Godot's particle system from basic textures.
+**Verdict: MOSTLY COVERED.** MiniFantasy handles 80%+ of VFX. Game-specific effects (extraction portal, Instability overlay) built in Godot's particle system from Spell Effects textures.
 
 ---
 
@@ -153,131 +165,173 @@ Maintain a running **credits document** that tracks every asset used, its source
 
 **What we need:** Health bar, shield bar, Instability meter, XP bar, level-up choice panels, extraction channeling bar, minimap frame, hub interface panels, damage numbers, pickup indicators.
 
-**What's available:**
-- BDragon1727 — Basic Pixel Health Bar and Scroll Bar (free)
-- Multiple free pixel UI packs on itch.io (buttons, panels, frames, bars)
-- CC0 health bars and hearts
-- Free fantasy/RPG GUI packs with inventory panels, buttons, frames
+**Assigned MiniFantasy packs:**
 
-**Gap:** Instability meter and extraction-specific UI elements are game-specific.
+| Need | Pack |
+|------|------|
+| All UI chrome (bars, panels, buttons, frames) | `Minifantasy_UI_Overhaul_v1.0` |
 
-**Solution:**
-- Standard UI (health bar, XP bar, panels, buttons): covered by free packs
-- Game-specific UI (Instability meter, extraction channel bar): custom-built from basic UI elements. A health bar reskinned with void colors = Instability meter. These are simple colored rectangles with borders — achievable with basic sprite editing or even Godot's built-in UI theming.
-- Damage numbers and pickup text: Godot's font rendering handles this. Use a free pixel art font.
+**Game-specific UI:**
+- Instability meter: reskin a health bar from UI Overhaul with void-purple color
+- Extraction channel bar: reskin a progress bar from UI Overhaul
+- Damage numbers and pickup text: Godot's font rendering — use a free pixel art font
+- Hub panels: UI Overhaul provides panel frames, content is laid out in Godot's UI system
 
-**Verdict: COVERED.** Free UI packs + minor customization for game-specific elements.
+**Verdict: COVERED.** UI Overhaul provides all required chrome elements.
 
 ---
 
 ### 7. Audio — Music
 
-**What we need:** Ambient/atmospheric tracks for 5 phase themes + hub music. Dark, moody, escalating tension. Loopable.
+**What we need:** Atmospheric tracks for 5 phase themes + hub music. Dark, moody, escalating tension. Loopable.
 
-**What's available:**
-- **juanjo_sound — Dark Dungeon Ambient Music** (41 free tracks on GameDev Market + itch.io, Elder Scrolls-inspired, original compositions, no AI)
-- **OpenGameArt.org CC0 Music collection** — includes dark ambient, dungeon ambience, loopable tracks
+MiniFantasy packs are visual only — no audio is included. Audio requires external sources.
+
+**Free audio sources (existing strategy unchanged):**
+- **juanjo_sound — Dark Dungeon Ambient Music** (41 tracks, itch.io/GameDev Market, Elder Scrolls-inspired)
+- **OpenGameArt.org CC0 Music** — dark ambient, dungeon ambience, loopable tracks
 - **Pixabay** — royalty-free dark/dungeon music
-- **Loopable Dungeon Ambience** on OpenGameArt (CC0)
-- **Free dungeon music loops** on itch.io (CC0)
-- **Retro Synth Horror Music** on itch.io (John Carpenter-inspired — could work for sci-fantasy tone)
 
-**This is actually one of our strongest categories.** 41 tracks from juanjo_sound alone covers the entire game several times over. Mix dark dungeon ambient for Phase 1-3, layer in electronic/synth horror elements for Phase 4-5 to push the sci-fantasy angle.
+Mix dark dungeon ambient for Phase 1-3, layer in electronic/synth horror elements for Phase 4-5. juanjo_sound's 41 tracks alone covers the entire game several times over.
 
-**Verdict: ABUNDANTLY COVERED.** More free dark ambient music exists than we can use.
+**Verdict: COVERED (external sources).** Audio is the only category not served by MiniFantasy.
 
 ---
 
 ### 8. Audio — Sound Effects
 
-**What we need:** Hit impacts, enemy death sounds, weapon fire sounds, pickup chimes, UI click sounds, extraction portal hum, ambient environment sounds, status effect audio cues.
+**What we need:** Hit impacts, death sounds, weapon fire sounds, pickup chimes, UI clicks, extraction portal hum, ambient sounds, status effect cues.
 
-**What's available:**
-- OpenGameArt.org has extensive CC0 SFX libraries
+MiniFantasy packs are visual only — no SFX included. SFX requires external sources.
+
+**Free SFX sources (existing strategy unchanged):**
+- OpenGameArt.org CC0 SFX libraries
 - itch.io free SFX packs (combat, UI, ambient)
 - Pixabay SFX library
 - Kenney.nl audio packs (CC0)
-- Sci-Fi SFX packs on itch.io (useful for extraction/void/tech sounds)
 
-**Gap:** Some game-specific sounds (extraction channel sound, Instability ambient shift, void-themed effects) may need to be assembled from layered free SFX.
+**Game-specific SFX:** Layer existing free sounds. Low drone + crystal chime = extraction portal. Distorted bass rumble = Instability rising. Reversed/pitch-shifted standard sounds = void effects.
 
-**Solution:**
-- Combat SFX (hits, explosions, weapon fire): abundantly available
-- UI SFX (clicks, level-up chime, pickup sounds): abundantly available
-- Game-specific SFX: layer existing free sounds. A low drone + crystal chime = extraction portal sound. Distorted bass rumble = Instability rising. Reversed/pitch-shifted standard sounds = void effects.
-
-**Verdict: COVERED.** Free SFX libraries are extensive. Game-specific sounds achievable through layering.
+**Verdict: COVERED (external sources).** Same strategy as before — free SFX libraries are extensive.
 
 ---
 
 ## Asset Pipeline Summary
 
-| Category | Status | Primary Sources | Gap-Filling Method |
-|----------|--------|----------------|-------------------|
-| Tilesets | ✅ Covered | Anokolisa, Pixel_Poem, CraftPix | Palette shifting for deeper phases |
-| Player Characters | ✅ Covered (with effort) | Multiple itch.io packs combined | Palette swaps for 7 distinct characters |
-| Enemies | ✅ Covered | Anokolisa + supplemental packs | Palette/shader work for deep phase variants |
-| Weapons & Projectiles | ✅ Covered | Weapon sprites + VFX packs | Void effects via recoloring |
-| VFX | ✅ Mostly Covered | Free VFX packs + Godot particles | Game-specific effects built in engine |
-| UI Elements | ✅ Covered | Free UI packs + customization | Instability meter = reskinned health bar |
-| Music | ✅ Abundantly Covered | juanjo_sound (41 tracks), OpenGameArt, Pixabay | Synth/horror layers for Phase 4-5 |
-| Sound Effects | ✅ Covered | OpenGameArt, itch.io, Kenney, Pixabay | Layering for game-specific sounds |
+| Category | Status | Primary Source | Notes |
+|----------|--------|----------------|-------|
+| Tilesets | ✅ Covered | MiniFantasy (5 dedicated packs) | One pack per phase, no palette work needed for Phase 1-4 |
+| Player Characters | ✅ Covered | MiniFantasy TrueHeroes I-IV + Dark Brotherhood + Forest Dwellers | More bases than needed |
+| Enemies | ✅ Covered | MiniFantasy Creatures, Monster Creatures, Undead, Orcs, Villains | Phase-scaled via pack switching |
+| Weapons & Projectiles | ✅ Covered | MiniFantasy Weapons + Spell Effects I & II + Magic Weapons | All 5 damage types covered |
+| VFX | ✅ Mostly Covered | MiniFantasy Spell Effects I & II + Magic Weapons | Game-specific effects in Godot particles |
+| UI Elements | ✅ Covered | MiniFantasy UI Overhaul | Game-specific meters = reskinned bars |
+| Music | ✅ Covered (external) | juanjo_sound, OpenGameArt, Pixabay | MiniFantasy has no audio |
+| Sound Effects | ✅ Covered (external) | OpenGameArt, itch.io, Kenney, Pixabay | MiniFantasy has no audio |
 
 ---
 
-## The Palette-Shift Strategy (Critical Technique)
+## Full Pack Inventory
 
-This is how we get 5 visually distinct phase themes from 1-2 base tilesets:
+All 74 MiniFantasy packs in `/assets/minifantasy/`:
 
-**Phase 1 — The Threshold:** Base dungeon tileset, warm torchlight colors. As-is from the free pack.
-**Phase 2 — The Descent:** Same tileset, cooled color palette. Remove warm tones, add blue-gray. Reduce light intensity.
-**Phase 3 — The Deep:** Dramatic palette shift. Dark blacks with bioluminescent accents (blue, green, purple). Fog/particle overlay.
-**Phase 4 — The Abyss:** Near-monochrome. Deep void colors with harsh accent lights. Heavy fog. Distortion shader at screen edges.
-**Phase 5 — The Core:** Maximum contrast. Void black + intense core light source. Particle density maxed. The dungeon tiles are barely recognizable under the atmospheric effects.
+| Pack | Game Role |
+|------|-----------|
+| `Minifantasy_AMyriadOfNPCs_v.1.0` | Modular character body parts for custom builds |
+| `Minifantasy_Ancient_Forests` | Environment supplement (unused unless forest arena added) |
+| `Minifantasy_Aquatic_Adventures_v1.0` | Environment supplement (reserve) |
+| `Minifantasy_Builders_v1.0` | Hub environment / prop supplement |
+| `Minifantasy_CastlesAndStrongholds_v.2.0` | Environment supplement (reserve) |
+| `Minifantasy_CraftingAndProfessions_v1.0` | Hub visual / NPC supplement |
+| `Minifantasy_CraftingAndProfessions2_v1.0` | Hub visual / NPC supplement |
+| `Minifantasy_Creatures_v3.3_Commercial_Version` | **Primary enemy sprites (all phases)** |
+| `Minifantasy_Crypt_Of_The_Forgotten_v1.0` | **Phase 2 tileset** |
+| `Minifantasy_Dark_Brotherhood_v1.0` | **Player character — The Shade archetype** |
+| `Minifantasy_Dark_Orc_Army_v1.0` | **Phase 1-3 enemy set** |
+| `Minifantasy_DeepCaves_v2.0` | **Phase 1-2 tileset supplement** |
+| `Minifantasy_DesolateDesert_v2.0` | Environment supplement (reserve) |
+| `Minifantasy_Dungeon_v2.3_Commercial_Version` | **Phase 1 tileset (primary)** |
+| `Minifantasy_DwarvenKingdom_v1.0` | Environment supplement (reserve) |
+| `Minifantasy_Dwarven_Workshop_v1.0` | Hub environment supplement |
+| `Minifantasy_ElvenKingdom_v.1.0` | Environment supplement (reserve) |
+| `Minifantasy_Enchanted_Companions_v1.0` | Familiar/companion visuals (future feature) |
+| `Minifantasy_Fae_Depths_v1.0` | Phase 3 environment supplement |
+| `Minifantasy_Farm_v3.0` | Hub environment supplement |
+| `Minifantasy_Forest_Dwellers_v1.0` | **Player character — The Warden archetype** |
+| `Minifantasy_ForgottenPlains_v3.5_Commercial_Version` | Environment supplement (reserve) |
+| `Minifantasy_Gloom_Hollows_v1.0` | **Phase 3 tileset supplement** |
+| `Minifantasy_Hellscape_v1.0` | **Phase 4 tileset supplement** |
+| `Minifantasy_IcyWilderness_v1.0` | Environment supplement (reserve) |
+| `Minifantasy_Lost_Civilization_v.1.0` | Phase 5 supplement / lost tech aesthetic |
+| `Minifantasy_Lost_Jungle_v1.0` | Environment supplement (reserve) |
+| `Minifantasy_MagicAndSorcery_v1.1` | **Sorcery VFX, beams, orbs** |
+| `Minifantasy_Magic_Weapons_And_Effects_v1.0` | **Weapon sprites + hit effects + trails** |
+| `Minifantasy_Maps_v2.1` | Minimap / overworld visuals |
+| `Minifantasy_Medieval_Carnival_v1.0` | Hub supplement (reserve) |
+| `Minifantasy_Medieval_City_v1.1` | Hub environment |
+| `Minifantasy_Modern_Apocalypse_v1.0` | Phase 5 supplement |
+| `Minifantasy_Modern_Town_v1.0` | Hub environment |
+| `Minifantasy_Monster_Creatures_v1.0` | **Secondary enemy sprites (all phases)** |
+| `Minifantasy_Mountain_Stronghold_v1.0` | Environment supplement (reserve) |
+| `Minifantasy_Mounts_v1.0` | Unused unless mount mechanic added |
+| `Minifantasy_Necropolis_v1.0` | **Phase 2-3 undead enemy set** |
+| `Minifantasy_Nightmare_Realm_v1.0` | **Phase 4 tileset (primary) + Phase 4-5 enemy supplement** |
+| `Minifantasy_Orc_Kingdom_v1.0` | **Phase 2-4 orc enemy set** |
+| `Minifantasy_Persian_Palace_v1.0` | Environment supplement (reserve) |
+| `Minifantasy_Pharaoh_Tomb_v1.0` | Environment supplement (reserve) |
+| `Minifantasy_Plants_&_Foliage_v1.0` | Environment decoration supplement |
+| `Minifantasy_Portrait_Generator_Graphical_Assets_v1.0` | Character portraits for hub UI |
+| `Minifantasy_RTS_Humans_v1.0` | Human soldier supplement (reserve) |
+| `Minifantasy_RTS_Orcs_v1.0` | Orc supplement (reserve) |
+| `Minifantasy_Raided_Village_v1.0` | Environment supplement (reserve) |
+| `Minifantasy_Scifi_Reliquary_Vault_v1.0` | **Phase 5 tileset (primary)** |
+| `Minifantasy_Scifi_SpaceDerelict_v1.0` | **Phase 5 tileset supplement** |
+| `Minifantasy_Sewers_v1.0` | Phase 2-3 environment supplement |
+| `Minifantasy_Ships And Docks v1.1` | Unused (reserve) |
+| `Minifantasy_SilentSwamp_v1.0` | **Phase 3 tileset (primary)** |
+| `Minifantasy_Spell Effects_v1.0` | **Projectile animations, explosions, impacts** |
+| `Minifantasy_Spell_Effects_II_v1.0` | **Elemental projectile animations** |
+| `Minifantasy_Temple_Of_The_Snake_God_v1.0_Commercial_Version` | Environment supplement (reserve) |
+| `Minifantasy_Temples_And_Shrines_v1.0` | Phase 1-2 supplement / extraction point visuals |
+| `Minifantasy_TinyOverworld_v1.0` | Overworld / map screen (future) |
+| `Minifantasy_Tiny_Overworld_II_v1.0` | Overworld / map screen supplement (future) |
+| `Minifantasy_Towers_v1.0` | Environment supplement (reserve) |
+| `Minifantasy_Towns2_v1.5` | Hub environment supplement |
+| `Minifantasy_Towns_v3.0` | Hub environment |
+| `Minifantasy_Trains_v1.0` | Unused (reserve) |
+| `Minifantasy_TrueHeroes_v1.0` | **Player character — The Drifter archetype** |
+| `Minifantasy_True_Heroes_II_v1.0` | **Player character — The Spark archetype** |
+| `Minifantasy_True_Heroes_III_v1.1` | **Player character — The Cursed archetype (post-launch)** |
+| `Minifantasy_True_Heroes_IV_v1.1` | **Player character — The Herald archetype (post-launch)** |
+| `Minifantasy_True_Villains_I_v1.0` | **Phase 3-4 elite humanoid enemies** |
+| `Minifantasy_UI _Overhaul_v1.0` | **All UI chrome — bars, panels, buttons, frames** |
+| `Minifantasy_Undead_Creatures_v1.0` | **Phase 1-2 undead enemy set** |
+| `Minifantasy_Warp_Lands_v1.0` | Phase 4-5 environment supplement |
+| `Minifantasy_Weapons_v3.0` | **Physical weapon sprites** |
+| `Minifantasy_Wild_West_Town_v1.0` | Unused (reserve) |
+| `Minifantasy_Wildlife_v1.0` | Passive creature supplement (future) |
+| `Minifantasy_Wizards_Academy_v1.0` | Phase 2-3 supplement / mage enemies |
 
-Godot supports this through:
+---
+
+## The Palette-Shift Strategy
+
+Phases 1-4 use MiniFantasy packs as-is — the environmental packs already provide distinct looks. Palette shifting is reserved for edge cases only:
+
+**When to apply palette/shader work:**
+- Phase 5 enemy variants: take Phase 1-3 enemy sprites (Creatures, Undead) and apply void palette shader (deep purple/black with bioluminescent accents) to create Phase-Warped variants without needing separate sprites
+- Any Phase 4-5 enemy that needs to look "wrong" but doesn't have a dedicated pack equivalent
+
+**Godot tools for palette shifting:**
 - **CanvasModulate** — global color tinting per scene
-- **Shaders** — color replacement, distortion, glow effects
-- **GPU Particles** — fog, floating particles, ambient effects
-- **Light2D** — dynamic lighting and shadow casting
+- **Shaders** — color replacement, distortion, glow
+- **GPU Particles** — fog, floating particles, atmospheric density
+- **Light2D** — dynamic lighting to reinforce phase atmosphere
 
-The same stone wall looks warm and safe in Phase 1 and alien and hostile in Phase 5, purely through color and atmosphere.
-
----
-
-## Immediate Action Items (For Prototype Phase)
-
-When we reach Phase 9 (Prototype), these are the first assets to download:
-
-1. **Anokolisa's Free Pixel Art Topdown Tileset** — dungeon tiles, heroes, enemies, weapons. This single pack covers initial prototyping.
-2. **One free VFX pack** — basic explosions, hit effects, elemental particles.
-3. **One free UI pack** — health bar, basic panels.
-4. **juanjo_sound's Dark Dungeon Ambient Vol. 1** — 16 tracks for prototype atmosphere.
-5. **One free SFX pack** — basic combat sounds.
-
-That's enough to prototype with. Full asset sourcing happens during Phase 10 (Build Out) when we know exactly what content we're creating.
+The MiniFantasy packs eliminate the need for heavy palette manipulation that was previously planned. The Nightmare Realm and Hellscape packs already look alien; the Sci-Fi packs already look like a different world.
 
 ---
 
-## License Tracking Template
-
-Every asset used MUST be tracked:
-
-```
-Asset: [Name]
-Source: [URL]
-Author: [Creator name]
-License: [CC0 / CC-BY / Custom]
-Attribution Required: [Yes/No]
-Attribution Text: [Exact credit text if required]
-Used For: [What it's used for in our game]
-Modified: [Yes/No — description of modifications]
-```
-
-This list becomes the game's credits screen. Non-negotiable — skipping attribution on CC-BY assets is a legal and ethical violation.
-
----
-
-*Phase 6 (Asset Inventory) is complete. We know what's available, what gaps exist, and how to fill them. The palette-shift strategy gives us 5 distinct visual phases from minimal base assets.*
+*Phase 6 (Asset Inventory) is complete. We have 74 MiniFantasy commercial packs covering all visual needs. No asset sourcing required — implementation can begin directly from `/assets/minifantasy/`.*
 
 *Next: Phase 7 — Architecture Blueprint (Plain English). Define the code structure in plain english before writing any code. What systems exist, what they're responsible for, how they communicate, and what data structures look like.*

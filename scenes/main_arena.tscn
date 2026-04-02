@@ -56,36 +56,36 @@ offset_right = 816.0
 offset_bottom = 616.0
 color = Color(0.047, 0.035, 0.027, 1)
 
-[node name="WallTop" type="StaticBody2D" parent="."]
+[node name="WallTop" type="StaticBody2D" parent="." unique_id=1528558516]
 position = Vector2(0, -608)
 collision_layer = 3
 collision_mask = 0
 
-[node name="CollisionShape" type="CollisionShape2D" parent="WallTop"]
+[node name="CollisionShape" type="CollisionShape2D" parent="WallTop" unique_id=1052917623]
 shape = SubResource("RS_walltop")
 
-[node name="WallBottom" type="StaticBody2D" parent="."]
+[node name="WallBottom" type="StaticBody2D" parent="." unique_id=1038182591]
 position = Vector2(0, 608)
 collision_layer = 3
 collision_mask = 0
 
-[node name="CollisionShape" type="CollisionShape2D" parent="WallBottom"]
+[node name="CollisionShape" type="CollisionShape2D" parent="WallBottom" unique_id=304642551]
 shape = SubResource("RS_wallbot")
 
-[node name="WallLeft" type="StaticBody2D" parent="."]
+[node name="WallLeft" type="StaticBody2D" parent="." unique_id=1036575556]
 position = Vector2(-808, 0)
 collision_layer = 3
 collision_mask = 0
 
-[node name="CollisionShape" type="CollisionShape2D" parent="WallLeft"]
+[node name="CollisionShape" type="CollisionShape2D" parent="WallLeft" unique_id=570399817]
 shape = SubResource("RS_walllft")
 
-[node name="WallRight" type="StaticBody2D" parent="."]
+[node name="WallRight" type="StaticBody2D" parent="." unique_id=1843603567]
 position = Vector2(808, 0)
 collision_layer = 3
 collision_mask = 0
 
-[node name="CollisionShape" type="CollisionShape2D" parent="WallRight"]
+[node name="CollisionShape" type="CollisionShape2D" parent="WallRight" unique_id=1670401556]
 shape = SubResource("RS_wallrgt")
 
 [node name="Player" parent="." unique_id=24050192 instance=ExtResource("2_ht0qy")]

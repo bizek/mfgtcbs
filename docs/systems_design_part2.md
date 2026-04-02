@@ -34,7 +34,7 @@ Every enemy is defined by:
 
 **Stalkers** — Invisible until within a close range of the player. Sudden appearance with a distinct audio sting. Low HP but high burst damage. Terrifying in dark, deep phases. Force the player to stay alert even when the screen seems clear. Appear Phase 3+.
 
-**Mimics** — Disguised as loot pickups (weapons, mods, resources). When the player gets within pickup radius, the mimic reveals itself and attacks. Punishes autopilot. Rewards attentive players who notice subtle visual tells (slightly wrong color, faint movement). Appear Phase 2+. Extremely on-brand for an extraction game — even the loot is dangerous.
+**Mimics** — Disguised as loot pickups (weapons, mods, resources). When the player gets within pickup radius, the mimic reveals itself and attacks. **Spawn rate: replaces 1 in 20 non-resource loot drops, starting Phase 2.** Results in roughly 1-3 Mimics per run — enough to keep players alert without making loot pickups feel stressful. Punishes autopilot. Rewards attentive players who notice subtle visual tells (slightly wrong color, faint movement). Extremely on-brand for an extraction game — even the loot is dangerous.
 
 **Heralds** — Don't attack directly. Emit an aura that buffs all nearby enemies (damage, speed, or armor). Fragile but high priority — killing the Herald immediately weakens the surrounding group. Creates triage decisions: do I focus the Herald or deal with the immediate threats? Appear Phase 3+.
 
@@ -88,7 +88,7 @@ Modifiers are data flags, not unique systems. Easy to add more post-launch.
 
 ### Core Principle: No Manual Looting
 
-All pickups are **auto-collected** within the player's Pickup Radius. There is no manual loot interaction, no inventory management screen, no "press E to pick up." The player moves through the battlefield and things get collected. This keeps the pace fast, the dopamine constant, and respects the player's time (Pillar 2).
+All pickups are **auto-collected** within the player's Pickup Radius. There is no manual loot interaction, no inventory management screen, no "press E to pick up." The player moves through the battlefield and things get collected. This keeps the pace fast, the dopamine constant, and respects the player's time.
 
 Pickup Radius is one of the most satisfying stats to upgrade — turning the player into a loot vacuum that hoovers up everything on screen.
 
@@ -104,7 +104,6 @@ Two distinct streams of pickups exist on the battlefield:
 | Pickup | Source | Purpose |
 |--------|--------|---------|
 | XP Gems | All enemy kills | Level up → upgrade choices |
-| In-Run Currency | Enemy kills, breakables | Reroll upgrade choices during level-up |
 | Health Orbs | Enemy kills (low chance), breakables | Sustain during combat |
 
 **Extractable Loot (Kept on Successful Extraction — Lost on Death):**
@@ -120,11 +119,11 @@ Two distinct streams of pickups exist on the battlefield:
 
 ### Loot Visual/Audio Hierarchy
 
-Loot must be instantly readable on a chaotic screen (Master Rule: information before decision):
+Loot must be instantly readable on a chaotic screen (information before decision):
 
 - **Resources** — Small, subtle pickup. Quiet sound. Constant background collection.
 - **Weapons/Mods** — Larger pickup with a glow. Distinct sound. Player should notice.
-- **Blueprints/Artifacts** — Prominent visual effect (beam of light? pulsing glow?). Attention-grabbing sound. This is a moment.
+- **Blueprints/Artifacts** — Prominent visual effect (beam of light, pulsing glow). Attention-grabbing sound. This is a moment.
 - **Keystones** — Unique visual unlike anything else. Unmistakable. Finding one should feel like an event.
 - **Lore Fragments** — Subtle but distinct. Players who care will recognize them; players who don't won't be distracted.
 
@@ -140,7 +139,14 @@ Loot must be instantly readable on a chaotic screen (Master Rule: information be
 
 ### Instability System
 
-**Core Mechanic:** As the player accumulates extractable loot during a run, a hidden (or visible? — TBD) **Instability value** rises. Higher Instability = harder enemies.
+**Core Mechanic:** As the player accumulates extractable loot during a run, an **Instability value** rises. Higher Instability = harder enemies.
+
+**Visibility: VISIBLE.** Instability is displayed via:
+- **HUD meter** — always visible, color-coded by tier (green → yellow → orange → red)
+- **Player aura VFX** — a subtle particle effect around the player character that scales in intensity and shifts color per tier. Barely visible at Stable, noticeable shimmer at Unsettled, pulsing energy at Volatile, aggressive distortion at Critical.
+- **Asset source:** Spell Effects packs for aura base animations, UI Overhaul pack for meter elements.
+
+Information before decision: the player should always know their Instability tier and feel the world reacting to it.
 
 **How It Scales:**
 
@@ -152,20 +158,19 @@ Loot must be instantly readable on a chaotic screen (Master Rule: information be
 | Critical (75-100%) | Massive loot haul / deep phase | Enemies gain +50%+ stats. Elite modifiers stack (enemies get 2 modifiers). Environmental hazards intensify. You are being hunted. |
 
 **Design Notes:**
-- Instability should be VISIBLE to the player (a meter, a visual effect on the screen edges, a color shift in the environment). Information before decision (Master Rule 2). The player should know they're carrying too much and the world is reacting.
-- Different loot types contribute different Instability amounts (a Legendary weapon adds more than a handful of resources)
+- Different loot types contribute different Instability amounts (a Legendary weapon adds more than a handful of resources). See Core Framework Decisions for exact values.
 - Instability resets to zero on extraction or death
-- Certain upgrades and corruption perks interact with Instability (Greed increases it faster, some perks reduce it, etc.)
+- Certain upgrades and corruption perks interact with Instability (Greed increases it faster, some perks reduce it, Instability Siphon mod reduces it on kills)
 
 ### Cursed Loot (v1)
 
 Some loot drops are **Cursed** — visually distinct (different color, ominous particles).
 
 - Cursed items are significantly more powerful than their normal counterparts
-- Picking up a Cursed item adds a large chunk of Instability
+- Picking up a Cursed item adds double its normal Instability value
 - The player can see it's cursed before walking into pickup radius (visual tell from a distance)
 - Creates an instant micro-decision: "That cursed weapon is amazing, but it'll push me to Volatile Instability. Is it worth it?"
-- Simple to implement — just a flag on the loot data that adds bonus Instability on pickup
+- Simple to implement — just a flag on the loot data that doubles Instability on pickup
 
 ### Insurance (v1 — Hub Feature)
 
@@ -198,12 +203,12 @@ A hub upgrade that allows the player to **insure** one item before a run begins.
 1. Phase ends (final wave cleared or timer threshold reached)
 2. 10-second warning: audio cue + visual indicator showing WHERE the portal will appear
 3. Portal materializes at the designated arena location
-4. Active window: 15-20 seconds
+4. Active window: 18 seconds
 5. Portal closes. Next phase begins.
 
 **Activation:**
 - Player enters the extraction zone (visible radius around the portal)
-- Channeled activation: 3-5 seconds of standing in the zone
+- Channeled activation: 4 seconds of standing in the zone
 - Enemies do NOT stop spawning during the extraction window
 - Taking damage during channel: does NOT interrupt, but the player must survive the channel duration
 - Visual feedback: progress bar or ring filling around the player during channel
@@ -212,18 +217,18 @@ A hub upgrade that allows the player to **insure** one item before a run begins.
 
 ### Extraction Type 2: Guarded Extraction (The Costly Option)
 
-**When:** A guarded extraction point is present in the arena from the start of the run (or appears starting at a specific phase — TBD).
+**When:** Present from Phase 1. Always visible from the start of every run.
 
 **Spawn Behavior:**
 - Fixed location in the arena, visible from the beginning
 - A miniboss-tier guardian stands on the point
-- Guardian scales with current phase (fighting it in Phase 1 is easy; Phase 4 is a real fight)
+- Guardian scales with current phase × 1.5 (fighting it in Phase 1 is manageable; Phase 4 is a real fight)
 
 **Activation:**
 1. Player kills the guardian
-2. Extraction point activates for a limited window (20-30 seconds — longer than timed, since you earned it)
-3. Same channeled activation as timed extraction
-4. After window closes, a new (harder) guardian spawns after a delay
+2. Extraction point activates for a limited window (25 seconds — longer than timed, since you earned it)
+3. Same channeled activation as timed extraction (4-second channel)
+4. After window closes, a new (harder) guardian respawns after a 45-second delay
 
 **Design Rationale:** This is the "I need to leave NOW" option, but it has a price. The guardian fight costs health, ability cooldowns, and time. Rewards aggressive/skilled players. Also creates an interesting strategic option: some builds might specifically optimize for guardian killing, making this their primary extraction method.
 
@@ -237,9 +242,9 @@ A hub upgrade that allows the player to **insure** one item before a run begins.
 - Remains visible and locked until a Keystone is used on it
 
 **Activation:**
-1. Player finds a Keystone during the run (rare drop or hidden location)
+1. Player finds a Keystone during the run (~5% from Elites, guaranteed from Miniboss first kill per phase)
 2. Player moves to the locked extraction point
-3. Uses the Keystone → extraction activates immediately (instant or very fast channel — the cost was finding the key)
+3. Uses the Keystone → extraction activates with a fast 2-second channel (the cost was finding the key)
 4. Extraction is one-use (Keystone is consumed)
 
 **Bonus:** Locked extraction grants a loot multiplier on all extracted loot:
@@ -247,9 +252,9 @@ A hub upgrade that allows the player to **insure** one item before a run begins.
 - Used in Phase 4: +50% loot value bonus
 - Used in Phase 5: +100% loot value bonus
 
-**Design Rationale:** This is the "lucky find" extraction. Finding a Keystone is an event. The decision of WHEN to use it (now for safety, or later for a bigger bonus) is one of the most interesting decisions in the game. Directly serves Pillar 1.
+**Design Rationale:** This is the "lucky find" extraction. Finding a Keystone is an event. The decision of WHEN to use it (now for safety, or later for a bigger bonus) is one of the most interesting decisions in the game.
 
-### Extraction Type 4: Sacrifice Extraction (v1 — The Desperate Option)
+### Extraction Type 4: Sacrifice Extraction (The Desperate Option)
 
 **When:** Available from Phase 2+. A secondary extraction point that requires a sacrifice to activate.
 
@@ -261,7 +266,7 @@ A hub upgrade that allows the player to **insure** one item before a run begins.
 **Activation:**
 1. Player enters the sacrifice extraction zone
 2. Must SELECT one piece of extractable loot to sacrifice (destroyed permanently)
-3. Extraction activates immediately after sacrifice
+3. Extraction activates immediately after sacrifice — no channel time (the sacrifice was the cost)
 4. Player extracts with everything EXCEPT the sacrificed item
 
 **Design Rationale:** This is the "agonizing choice" extraction. You can leave anytime, but it costs you something. Which item do you sacrifice? Your worst item (easy choice, low tension)? Or your best item because you're about to die and saving everything else is worth more (brutal choice, maximum tension)? The selection UI is simple — a quick list of carried loot, tap one to sacrifice. Minimal engineering cost.
@@ -286,7 +291,7 @@ Locked Extraction bonus stacks on top of phase bonus.
 ### Death Penalty (Confirmed)
 
 - **All extractable loot: LOST**
-- **Meta XP: earned at penalized rate (~25-33% of what a successful extraction would have granted)**
+- **Meta XP: earned at 25% of what a successful extraction would have granted.** (Extraction from Phase 3 at ~2312 XP is worth more than dying in Phase 4 at ~787 XP. The math strongly incentivizes extraction over pushing recklessly.)
 - **Run pickups: inherently gone (only existed within the run)**
 - **Insured item (if any): SAVED** (returned to hub)
 
@@ -313,7 +318,7 @@ COMBAT SYSTEM (player fights enemies using stats/weapons)
     ↓ enemies drop
 LOOT SYSTEM (pickups appear on battlefield)
     ↓ loot accumulates
-INSTABILITY (difficulty rises with loot carried)
+INSTABILITY (difficulty rises with loot carried — visible via HUD meter + player aura)
     ↓ creates pressure toward
 EXTRACTION SYSTEM (player decides when to leave)
     ↓ successful extraction feeds
@@ -323,23 +328,13 @@ META-PROGRESSION (hub, unlocks, next run)
 **Gameplay moment example:**
 1. Player is in Phase 3. Build is clicking — AOE fire weapon + DOT synergy melting waves.
 2. A Carrier enemy appears. Player chases it across the arena, kills it. It drops a Rare weapon mod.
-3. Mod auto-collects. Instability ticks up to Volatile. Enemies noticeably get tougher.
+3. Mod auto-collects. Instability ticks up to Volatile. The HUD meter shifts orange, the player's aura pulses visibly. Enemies noticeably get tougher.
 4. Player spots the Locked Extraction. They found a Keystone earlier from an Elite kill.
 5. Timed extraction portal warning plays. 10 seconds until it opens at the far end of the arena.
 6. Decision: Use the Keystone on the Locked Extraction for a +25% bonus right now? Run to the Timed Extraction for a safe standard exit? Or push into Phase 4 where that Keystone is worth +50% bonus but Instability is already Volatile?
 7. Player pushes to Phase 4. Enemies are brutal. They're at 30% HP. The guardian on the Guarded Extraction is a Phase 4 miniboss.
 8. They use the Keystone on the Locked Extraction. +50% bonus on everything. They extract. Victory.
 9. At the hub: resources spent on unlocks, new weapon mod equipped for next run, lore fragment reveals a piece of the world's story.
-
----
-
-## Open Questions (For Remaining Systems)
-
-- What does the hub look like and how does spending work? (System 7: Meta-Progression)
-- How are arenas structured? How do phase transitions work spatially? (System 8: Level/Arena System)
-- Is Instability visible as a number, a meter, or an environmental effect? (Visual design question)
-- How many arenas per phase at launch? (Content scope question)
-- What's the minimap situation? (UI question for architecture phase)
 
 ---
 

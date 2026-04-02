@@ -25,7 +25,6 @@ var stats: Dictionary = {
 	"projectile_count": 1,
 	"pierce":          0,
 	"projectile_size": 1.0,
-	"extraction_speed": 1.0,
 }
 
 ## Stat modifiers accumulated from upgrades (level-up choices)
@@ -87,6 +86,7 @@ var knockback_velocity: Vector2 = Vector2.ZERO
 @onready var pickup_shape: CollisionShape2D = $PickupCollector/CollisionShape
 
 func _ready() -> void:
+	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
 	add_to_group("player")
 	projectile_scene = preload("res://scenes/projectile.tscn")
 	_load_character_stats()
@@ -319,6 +319,11 @@ func take_damage(amount: float) -> void:
 	if _dodge_chance > 0.0 and randf() < _dodge_chance:
 		_trigger_dodge()
 		return
+
+	## Interrupt extraction channel on significant hits only (> 10 post-armor damage).
+	## Chip damage is ignored so armor builds can tank small hits without breaking the channel.
+	if ExtractionManager.is_channeling and amount > 10.0:
+		ExtractionManager.interrupt_channel()
 
 	stats.hp -= amount
 	health_changed.emit(stats.hp, get_stat("max_hp"))
@@ -638,6 +643,9 @@ func _detonate_mortar(
 			continue
 		if pos.distance_to(enemy.global_position) <= radius:
 			CombatManager.resolve_hit(self, enemy, dmg, crit_ch, crit_m)
+			## Void Mortar signature: mark every enemy caught in the blast
+			if enemy.has_method("apply_status"):
+				enemy.apply_status("void_touched", {})
 			_apply_direct_hit_mods(enemy, dmg)
 
 	var ring := ColorRect.new()

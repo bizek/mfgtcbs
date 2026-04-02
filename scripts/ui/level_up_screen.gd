@@ -9,6 +9,7 @@ signal upgrade_selected(upgrade: Dictionary)
 
 var player_ref: Node2D = null
 var _choices: Array[Dictionary] = []
+var _rerolls_remaining: int = 0
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -20,6 +21,7 @@ func setup(player: Node2D) -> void:
 
 func _on_player_leveled_up(new_level: int) -> void:
 	title_label.text = "LEVEL %d!" % new_level
+	_rerolls_remaining = ProgressionManager.get_max_rerolls()
 	_choices = UpgradeManager.generate_choices(3)
 	_show_choices()
 	visible = true
@@ -44,6 +46,24 @@ func _show_choices() -> void:
 		btn.add_theme_font_size_override("font_size", 16)
 		btn.pressed.connect(_on_choice_pressed.bind(i))
 		choices_container.add_child(btn)
+
+	## Reroll button
+	var reroll_btn := Button.new()
+	reroll_btn.custom_minimum_size = Vector2(210, 30)
+	if pixel_font:
+		reroll_btn.add_theme_font_override("font", pixel_font)
+	reroll_btn.add_theme_font_size_override("font_size", 14)
+	reroll_btn.disabled = _rerolls_remaining <= 0
+	reroll_btn.text = "Reroll  [%d left]" % _rerolls_remaining
+	reroll_btn.pressed.connect(_on_reroll_pressed)
+	choices_container.add_child(reroll_btn)
+
+func _on_reroll_pressed() -> void:
+	if _rerolls_remaining <= 0:
+		return
+	_rerolls_remaining -= 1
+	_choices = UpgradeManager.generate_choices(3)
+	_show_choices()
 
 func _on_choice_pressed(index: int) -> void:
 	var upgrade: Dictionary = _choices[index]

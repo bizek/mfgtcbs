@@ -1,0 +1,295 @@
+[gd_scene format=3 uid="uid://cu8sa5sh5sgcq"]
+
+[ext_resource type="Script" uid="uid://degod48vtjec5" path="res://scripts/ui/hub_roster_panel.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hub_panel_base.tscn" id="2_base"]
+[ext_resource type="FontFile" path="res://assets/fonts/m5x7.ttf" id="3_font"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fflwu"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+bg_color = Color(0.065, 0.075, 0.1, 0.97)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.45, 0.52, 0.95, 1)
+
+[node name="HubRosterPanel" type="Control" unique_id=134870727]
+layout_mode = 3
+anchors_preset = 0
+offset_left = 90.0
+offset_top = 35.0
+offset_right = 390.0
+offset_bottom = 235.0
+script = ExtResource("1_script")
+
+[node name="PanelBase" parent="." unique_id=263038717 instance=ExtResource("2_base")]
+layout_mode = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_fflwu")
+title_text = "ROSTER"
+accent_color = Color(0.45, 0.52, 0.95, 1)
+
+[node name="ColSeparator" type="ColorRect" parent="PanelBase/ContentContainer"]
+offset_left = 148.0
+offset_top = 0.0
+offset_right = 149.0
+offset_bottom = 158.0
+color = Color(0.22, 0.24, 0.30, 1)
+mouse_filter = 2
+
+[node name="CharHighlight0" type="ColorRect" parent="PanelBase/ContentContainer"]
+offset_left = 4.0
+offset_top = 4.0
+offset_right = 144.0
+offset_bottom = 22.0
+color = Color(0.0, 0.0, 0.0, 0.0)
+mouse_filter = 2
+
+[node name="CharDot0" type="ColorRect" parent="PanelBase/ContentContainer"]
+offset_left = 8.0
+offset_top = 11.0
+offset_right = 13.0
+offset_bottom = 16.0
+color = Color(0.78, 0.72, 0.58, 1)
+mouse_filter = 2
+
+[node name="CharBtn0" type="Button" parent="PanelBase/ContentContainer"]
+offset_left = 16.0
+offset_top = 5.0
+offset_right = 140.0
+offset_bottom = 21.0
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 14
+text = "The Drifter"
+
+[node name="CharHighlight1" type="ColorRect" parent="PanelBase/ContentContainer"]
+offset_left = 4.0
+offset_top = 24.0
+offset_right = 144.0
+offset_bottom = 42.0
+color = Color(0.0, 0.0, 0.0, 0.0)
+mouse_filter = 2
+
+[node name="CharDot1" type="ColorRect" parent="PanelBase/ContentContainer"]
+offset_left = 8.0
+offset_top = 31.0
+offset_right = 13.0
+offset_bottom = 36.0
+color = Color(0.40, 0.60, 0.40, 1)
+mouse_filter = 2
+
+[node name="CharBtn1" type="Button" parent="PanelBase/ContentContainer"]
+offset_left = 16.0
+offset_top = 25.0
+offset_right = 140.0
+offset_bottom = 41.0
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 14
+text = "The Scavenger"
+
+[node name="CharHighlight2" type="ColorRect" parent="PanelBase/ContentContainer"]
+offset_left = 4.0
+offset_top = 44.0
+offset_right = 144.0
+offset_bottom = 62.0
+color = Color(0.0, 0.0, 0.0, 0.0)
+mouse_filter = 2
+
+[node name="CharDot2" type="ColorRect" parent="PanelBase/ContentContainer"]
+offset_left = 8.0
+offset_top = 51.0
+offset_right = 13.0
+offset_bottom = 56.0
+color = Color(0.50, 0.70, 0.90, 1)
+mouse_filter = 2
+
+[node name="CharBtn2" type="Button" parent="PanelBase/ContentContainer"]
+offset_left = 16.0
+offset_top = 45.0
+offset_right = 140.0
+offset_bottom = 61.0
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 14
+text = "The Warden"
+
+[node name="CharHighlight3" type="ColorRect" parent="PanelBase/ContentContainer"]
+offset_left = 4.0
+offset_top = 64.0
+offset_right = 144.0
+offset_bottom = 82.0
+color = Color(0.0, 0.0, 0.0, 0.0)
+mouse_filter = 2
+
+[node name="CharDot3" type="ColorRect" parent="PanelBase/ContentContainer"]
+offset_left = 8.0
+offset_top = 71.0
+offset_right = 13.0
+offset_bottom = 76.0
+color = Color(0.95, 0.85, 0.25, 1)
+mouse_filter = 2
+
+[node name="CharBtn3" type="Button" parent="PanelBase/ContentContainer"]
+offset_left = 16.0
+offset_top = 65.0
+offset_right = 140.0
+offset_bottom = 81.0
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 14
+text = "The Spark"
+
+[node name="CharHighlight4" type="ColorRect" parent="PanelBase/ContentContainer"]
+offset_left = 4.0
+offset_top = 84.0
+offset_right = 144.0
+offset_bottom = 102.0
+color = Color(0.0, 0.0, 0.0, 0.0)
+mouse_filter = 2
+
+[node name="CharDot4" type="ColorRect" parent="PanelBase/ContentContainer"]
+offset_left = 8.0
+offset_top = 91.0
+offset_right = 13.0
+offset_bottom = 96.0
+color = Color(0.55, 0.35, 0.80, 1)
+mouse_filter = 2
+
+[node name="CharBtn4" type="Button" parent="PanelBase/ContentContainer"]
+offset_left = 16.0
+offset_top = 85.0
+offset_right = 140.0
+offset_bottom = 101.0
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 14
+text = "The Shade"
+
+[node name="CharHighlight5" type="ColorRect" parent="PanelBase/ContentContainer"]
+offset_left = 4.0
+offset_top = 104.0
+offset_right = 144.0
+offset_bottom = 122.0
+color = Color(0.0, 0.0, 0.0, 0.0)
+mouse_filter = 2
+
+[node name="CharDot5" type="ColorRect" parent="PanelBase/ContentContainer"]
+offset_left = 8.0
+offset_top = 111.0
+offset_right = 13.0
+offset_bottom = 116.0
+color = Color(0.90, 0.50, 0.20, 1)
+mouse_filter = 2
+
+[node name="CharBtn5" type="Button" parent="PanelBase/ContentContainer"]
+offset_left = 16.0
+offset_top = 105.0
+offset_right = 140.0
+offset_bottom = 121.0
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 14
+text = "The Herald"
+
+[node name="CharHighlight6" type="ColorRect" parent="PanelBase/ContentContainer"]
+offset_left = 4.0
+offset_top = 124.0
+offset_right = 144.0
+offset_bottom = 142.0
+color = Color(0.0, 0.0, 0.0, 0.0)
+mouse_filter = 2
+
+[node name="CharDot6" type="ColorRect" parent="PanelBase/ContentContainer"]
+offset_left = 8.0
+offset_top = 131.0
+offset_right = 13.0
+offset_bottom = 136.0
+color = Color(0.70, 0.20, 0.20, 1)
+mouse_filter = 2
+
+[node name="CharBtn6" type="Button" parent="PanelBase/ContentContainer"]
+offset_left = 16.0
+offset_top = 125.0
+offset_right = 140.0
+offset_bottom = 141.0
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 14
+text = "The Cursed"
+
+[node name="DetailNameLabel" type="Label" parent="PanelBase/ContentContainer"]
+offset_left = 152.0
+offset_top = 6.0
+offset_right = 288.0
+offset_bottom = 24.0
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.92, 0.88, 0.70, 1)
+text = "The Drifter"
+
+[node name="DetailHPLabel" type="Label" parent="PanelBase/ContentContainer"]
+offset_left = 152.0
+offset_top = 34.0
+offset_right = 288.0
+offset_bottom = 48.0
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.58, 0.58, 0.64, 1)
+text = "HP   100"
+
+[node name="DetailArmLabel" type="Label" parent="PanelBase/ContentContainer"]
+offset_left = 152.0
+offset_top = 50.0
+offset_right = 288.0
+offset_bottom = 64.0
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.58, 0.58, 0.64, 1)
+text = "Arm  0"
+
+[node name="DetailSpdLabel" type="Label" parent="PanelBase/ContentContainer"]
+offset_left = 152.0
+offset_top = 66.0
+offset_right = 288.0
+offset_bottom = 80.0
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.58, 0.58, 0.64, 1)
+text = "Spd  200"
+
+[node name="DetailWeaponLabel" type="Label" parent="PanelBase/ContentContainer"]
+offset_left = 152.0
+offset_top = 84.0
+offset_right = 288.0
+offset_bottom = 98.0
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.58, 0.58, 0.64, 1)
+text = "Standard Sidearm"
+
+[node name="DetailPassiveLabel" type="Label" parent="PanelBase/ContentContainer"]
+offset_left = 152.0
+offset_top = 100.0
+offset_right = 288.0
+offset_bottom = 144.0
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.58, 0.58, 0.64, 1)
+autowrap_mode = 3
+text = "None."
+
+[node name="DetailActionBtn" type="Button" parent="PanelBase/ContentContainer"]
+offset_left = 152.0
+offset_top = 148.0
+offset_right = 288.0
+offset_bottom = 166.0
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 14
+text = "SELECT"
+
+[node name="ResourcesLabel" type="Label" parent="PanelBase/ContentContainer"]
+offset_left = 12.0
+offset_top = 162.0
+offset_right = 288.0
+offset_bottom = 176.0
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.50, 0.50, 0.56, 1)
+text = "Resources: 0"

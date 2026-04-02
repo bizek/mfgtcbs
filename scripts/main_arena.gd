@@ -22,6 +22,9 @@ var extraction_zone: Node2D = null
 var arena_generator: ArenaGenerator = null
 var _camera: Camera2D = null
 var _extraction_pulse_tween: Tween = null
+## True once the timed extraction window is open (extraction is actually usable).
+## The zone may be visible earlier as a ghost when Extraction Intel I is owned.
+var _timed_window_open: bool = false
 
 ## ── Guarded extraction state machine ─────────────────────────────────────────
 ## States: "inactive" | "guarded" | "active" | "respawning"
@@ -148,13 +151,22 @@ func _on_any_extraction_complete() -> void:
 	_locked_channeling = false
 
 func _on_any_extraction_interrupted() -> void:
+	_active_channeling_type = ""
 	ExtractionManager.channel_duration = 4.0
+	_locked_channeling = false
 
 func _on_extraction_window_opened() -> void:
+	_timed_window_open = true
 	var pos: Vector2 = arena_generator.get_extraction_position() if arena_generator else Vector2.ZERO
-	_spawn_extraction_zone(pos)
+	if extraction_zone != null and is_instance_valid(extraction_zone):
+		## Ghost was pre-spawned by Extraction Intel I — restore full opacity and start pulse.
+		extraction_zone.modulate = Color(1.0, 1.0, 1.0, 1.0)
+		_start_extraction_pulse()
+	else:
+		_spawn_extraction_zone(pos)
 
 func _on_extraction_window_closed() -> void:
+	_timed_window_open = false
 	if _active_channeling_type == "timed":
 		ExtractionManager.interrupt_channel()
 		_active_channeling_type = ""
@@ -191,6 +203,13 @@ func _setup_persistent_extraction_points() -> void:
 
 	## Locked activates at phase 3+ (it's always visible but keystone unlocks it)
 	## Nothing extra needed — it's always "available" once visible, keyed to player having keystone
+
+	## Extraction Intel I — pre-spawn a ghost of the timed zone at low opacity.
+	## The zone becomes fully visible and usable when the extraction window opens.
+	if arena_generator and ProgressionManager.has_extraction_intel():
+		var intel_pos: Vector2 = arena_generator.get_extraction_position()
+		_spawn_extraction_zone(intel_pos)
+		extraction_zone.modulate = Color(1.0, 1.0, 1.0, 0.28)
 
 ## ── Guarded Extraction ────────────────────────────────────────────────────────
 
@@ -388,11 +407,10 @@ func _unlock_locked_zone() -> void:
 	GameManager.player_has_keystone = false  ## Consume the key
 	GameManager.active_extraction_type = "locked"
 
-	## Fast 2-second channel
+	## Fast 2-second channel (locked extractions bypass hub channel duration)
 	ExtractionManager.channel_duration = 2.0
 	_active_channeling_type = "locked"
-	var speed: float = player.get_stat("extraction_speed") if player.has_method("get_stat") else 1.0
-	ExtractionManager.start_channel(speed)
+	ExtractionManager.start_channel(1.0)
 
 	## Update label
 	if locked_zone:
@@ -496,16 +514,15 @@ func _check_extraction_zones() -> void:
 	if not is_instance_valid(player):
 		return
 	var ppos: Vector2 = player.global_position
-	var speed: float = player.get_stat("extraction_speed") if player.has_method("get_stat") else 1.0
 
 	## ── Timed extraction ─────────────────────────────────────────────────────
 	if extraction_zone != null and is_instance_valid(extraction_zone):
 		var in_zone: bool = ppos.distance_to(extraction_zone.global_position) <= 40.0
-		if in_zone and not ExtractionManager.is_channeling:
+		if in_zone and _timed_window_open and not ExtractionManager.is_channeling:
 			GameManager.active_extraction_type = "timed"
-			ExtractionManager.channel_duration = 4.0
+			ExtractionManager.channel_duration = ProgressionManager.get_channel_duration()
 			_active_channeling_type = "timed"
-			ExtractionManager.start_channel(speed)
+			ExtractionManager.start_channel(1.0)
 			return
 		elif not in_zone and ExtractionManager.is_channeling and _active_channeling_type == "timed":
 			ExtractionManager.interrupt_channel()
@@ -518,9 +535,9 @@ func _check_extraction_zones() -> void:
 		var in_zone: bool = ppos.distance_to(guarded_zone.global_position) <= 40.0
 		if in_zone and not ExtractionManager.is_channeling:
 			GameManager.active_extraction_type = "guarded"
-			ExtractionManager.channel_duration = 4.0
+			ExtractionManager.channel_duration = ProgressionManager.get_channel_duration()
 			_active_channeling_type = "guarded"
-			ExtractionManager.start_channel(speed)
+			ExtractionManager.start_channel(1.0)
 			return
 		elif not in_zone and ExtractionManager.is_channeling and _active_channeling_type == "guarded":
 			ExtractionManager.interrupt_channel()

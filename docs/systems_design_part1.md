@@ -17,7 +17,7 @@
 | Damage | Base damage per hit | Enemies die faster |
 | Attack Speed | Rate of auto-attacks | More projectiles / swings on screen |
 | Crit Chance | % chance of critical hit | Occasional big satisfying numbers |
-| Crit Damage | Multiplier on crits (default 2x?) | Crits feel impactful |
+| Crit Damage | Multiplier on crits (base 1.5x) | Crits feel impactful |
 | AOE | Size of attack hitboxes | Attacks feel bigger, catch more enemies |
 | Projectile Count | Number of projectiles per attack | Screen fills with more firepower |
 | Projectile Speed | Velocity of projectiles | Snappier, more responsive attacks |
@@ -28,7 +28,7 @@
 | Stat | Description | Felt As |
 |------|-------------|---------|
 | Health (HP) | Die at zero | Can take more hits before panicking |
-| Armor | Flat or % damage reduction | Hits feel less threatening |
+| Armor | Flat damage reduction (subtract from each hit, minimum 1 damage) | Hits feel less threatening |
 | Shield | Regenerating secondary HP | Safety buffer that refills, less cautious play |
 | Dodge Chance | % to avoid damage entirely | Satisfying "miss" moments in dense fights |
 | Health Regen | Passive HP/sec recovery | Can recover from mistakes over time |
@@ -55,12 +55,12 @@ These are powerful concepts that emerge from the upgrade, mod, and corruption sy
 | Greed | Upgrade/Mod effect | Increases loot find but also increases enemy difficulty. Pure risk/reward. |
 | Depth Attunement | Upgrade/Mod effect | Stronger in deeper phases, weaker in early ones. Rewards pushing deep. |
 | Extraction Speed | Base stat on some characters, moddable | How fast you activate an extraction point. Life or death in tense moments. |
-| Instability | Passive system effect | Rises as you carry more valuable loot. More loot = harder enemies/wilder effects. The game punishes hoarding. Directly serves Pillar 1. |
+| Instability | Passive system effect | Rises as you carry more valuable loot. More loot = harder enemies/wilder effects. The game punishes hoarding. Directly serves extraction tension. |
 | Elemental Affinity | Weapon/Mod property | Bonus to a specific damage type. Emerges from loadout, not base stats. |
 
 ### Design Notes
-- Stats must be FELT, not just read (Master Rule 5). Every stat increase should produce a noticeable gameplay change.
-- Stat ranges and scaling formulas will be defined in Phase 8 (Core Framework Decisions). For now, we're defining WHAT exists, not HOW MUCH.
+- Stats must be FELT, not just read. Every stat increase should produce a noticeable gameplay change.
+- Stat ranges and scaling formulas are defined in Core Framework Decisions.
 - Enemies have a subset of these stats (primarily HP, Damage, Movement Speed, Armor, and any special properties). Not every stat applies to every entity.
 
 ---
@@ -77,31 +77,31 @@ These are powerful concepts that emerge from the upgrade, mod, and corruption sy
 
 **Auto-Attacks:** Equipped weapons fire automatically based on their weapon type patterns (interval, direction, spread, etc.). The player does not aim or trigger basic attacks. This keeps the cognitive load on positioning and decisions, not mechanical inputs.
 
-**Active Abilities:** The player has a small number of active ability slots (2-3) with manual activation and cooldowns. These are the skill-expression moments — a dash to reach an extraction point, a burst ability to clear a path, a shield for a clutch survival moment. Active abilities can come from character kits, weapons, or upgrades.
+**Active Abilities:** The player has 1-2 active ability slots with manual activation and cooldowns. These are the skill-expression moments — a dash to reach an extraction point, a burst ability to clear a path, a shield for a clutch survival moment. Active abilities can come from character kits, weapons, or upgrades.
 
 **Why Hybrid?** Auto-attacks handle the constant horde pressure (satisfying, low effort, screen full of action). Active abilities create deliberate, high-impact moments where the player's skill and timing matter. This serves both casual players (auto-attacks carry them) and skilled players (ability timing separates good from great).
 
 ### Weapon Slots
 
-The player carries **multiple weapon slots** (exact number TBD — likely 2-4 that unlock/expand through progression).
+The player has **1 weapon slot at start, expandable to a maximum of 3 via hub upgrades** (Armory Expansion I and II).
 
 - Weapons fire simultaneously in their own patterns (like Vampire Survivors)
 - Each weapon has its own stats (damage, attack speed, projectile behavior, etc.)
+- Each weapon has 1-3 mod slots depending on rarity (Common/Uncommon: 1, Rare/Epic: 2, Legendary: 3)
 - Weapons are LOOT — found during runs, extractable to keep permanently
-- Weapons have **mod slots** for attachments (see Upgrade System)
 - The combination of weapons + mods IS the player's build identity for that run
+- **Depth comes from mod combinations, not weapon count.** 3 weapons × up to 3 mods each = 12 gear decisions per run, plus passives, abilities, corruption upgrades, and extraction perks.
 
-**Weapons as Extraction Loot:** Finding a powerful weapon during a run creates an instant extraction tension moment: "This weapon is amazing. Do I extract now to keep it, or keep going and risk losing it?" This directly serves Pillar 1.
+**Weapons as Extraction Loot:** Finding a powerful weapon during a run creates an instant extraction tension moment: "This weapon is amazing. Do I extract now to keep it, or keep going and risk losing it?"
 
 ### Finisher/Execution Mechanic
 
-Enemies at low HP (below a threshold, maybe 10-15%) enter a **vulnerable state** (visual indicator — flickering, staggered, glowing).
+Enemies at low HP (below 10-15% threshold) enter a **vulnerable/staggered state** (visual indicator — flickering, staggered, glowing).
 
-- Moving close to a vulnerable enemy triggers a **finisher** (auto or button press, TBD)
+- **Auto-triggers on proximity:** Moving within finisher radius of a staggered enemy executes the finisher automatically. No button press required — consistent with the auto-attack philosophy of keeping cognitive load on positioning, not inputs.
 - Finishers grant bonus rewards: extra XP, higher loot drop chance, or specific resource drops
 - **Risk/reward:** You have to get close to a potentially dangerous enemy cluster to execute. Is the bonus worth the risk?
 - Ties into build diversity: some builds invest in finisher bonuses (execution radius, execution rewards), others ignore it entirely
-- Faction/enemy-type specific bonuses possible (certain enemy types grant better execution rewards)
 
 ### Environmental Hazards
 
@@ -112,7 +112,7 @@ Hand-designed arenas include environmental hazards that affect BOTH player and e
 - **Terrain Blockers** — obstacles that block movement and projectiles (pillars, walls, debris)
 - **Traps** — triggered hazards (pressure plates, proximity mines, falling objects)
 
-**Design principle:** Hazards are tools, not just threats. A skilled player uses hazards to their advantage — kiting enemies through damage zones, using pillars as cover, triggering traps on pursuing hordes. This adds spatial strategy without adding input complexity (Pillar 3).
+**Design principle:** Hazards are tools, not just threats. A skilled player uses hazards to their advantage — kiting enemies through damage zones, using pillars as cover, triggering traps on pursuing hordes. This adds spatial strategy without adding input complexity.
 
 ### ~~Overcharge Mechanic~~ → MOVED TO v1.5
 
@@ -135,9 +135,12 @@ Hand-designed arenas include environmental hazards that affect BOTH player and e
 
 **XP → Level Up → Choose an Upgrade**
 
+Target: **15-20 level-ups per full run** (through Phase 5). Front-loaded — several in Phase 1 (feels good, build takes shape fast), fewer in Phase 5 (focused on survival and extraction).
+
 When the player levels up, they're presented with upgrade choices:
 
-- **Tiered choices with reroll:** Normally 3-4 options of varying rarity (Common, Uncommon, Rare, Epic). Rarity of options is influenced by Luck stat and current phase depth. A reroll option is available at a cost (in-run currency — collected from kills or a slowly regenerating resource). Reroll gives a fresh set of options.
+- **Tiered choices with reroll:** Normally 3-4 options of varying rarity (Common, Uncommon, Rare, Epic). Rarity of options is influenced by Luck stat and current phase depth.
+- **Reroll system:** Limited uses per run. Base 2 rerolls, upgradeable to 4 via Workshop (Reroll Capacity I: 2→3, Reroll Capacity II: 3→4). Each reroll gives a fresh set of options. Scarcity makes each reroll a meaningful decision.
 - **Rarity tiers:** Common (stat boosts, basic effects) → Uncommon (notable effects, minor synergies) → Rare (powerful effects, clear build-defining) → Epic (game-changing, rare to see). Legendary upgrades exist but only appear in Phase 4-5 or through Evolution.
 
 ### Upgrade Categories
@@ -145,7 +148,7 @@ When the player levels up, they're presented with upgrade choices:
 **Weapons:** New weapons added to your loadout. Occupy weapon slots. Each has a distinct fire pattern and stat profile.
 
 **Weapon Mods:** Attachments that modify a specific equipped weapon.
-- Mods snap onto weapon mod slots (each weapon has 1-3 mod slots depending on rarity/type)
+- Mods snap onto weapon mod slots (Common/Uncommon weapons: 1 slot, Rare/Epic: 2 slots, Legendary: 3 slots)
 - Mods change how the weapon feels and performs (pierce mod, split shot mod, DOT mod, AOE mod, etc.)
 - The same weapon with different mods plays differently — a basic rifle + pierce mod vs. basic rifle + chain lightning mod = two different experiences
 - Mods are LOOT — findable during runs, extractable, and equippable at the hub for future runs
@@ -174,7 +177,7 @@ When the player levels up, they're presented with upgrade choices:
 - Extraction shield (temporary invulnerability while extracting)
 - These perks create a build sub-archetype: the player who invests in extraction perks is playing a different game than the player who goes pure damage
 
-### Corruption Upgrades (v1 Feature — Directly Serves Pillar 1)
+### Corruption Upgrades (v1 Feature — Directly Serves Extraction Tension)
 
 Corruption upgrades are powerful options with an explicit downside:
 
@@ -190,7 +193,7 @@ Corruption upgrades are powerful options with an explicit downside:
 Specific upgrade combinations fuse into a super-upgrade:
 
 - Weapon A + specific Mod + specific Passive = Evolved Weapon (dramatically more powerful, unique visual/behavior)
-- This creates build GOALS within a run: "If I can find all three pieces, I get something amazing"
+- **15+ evolution recipes at launch.** Enough for community discovery and multiple recipes per weapon behavior archetype.
 - Evolutions are discoverable (not spelled out) — players share them, write guides, datamine them. Community engagement driver.
 - Evolutions also appear as lore-relevant combinations (thematic fusions, not random pairings)
 
@@ -198,14 +201,14 @@ Specific upgrade combinations fuse into a super-upgrade:
 
 | Feature | Version | Rationale |
 |---------|---------|-----------|
-| Tiered choices + reroll | v1 | Core upgrade presentation |
+| Tiered choices + limited rerolls | v1 | Core upgrade presentation. Base 2 rerolls, upgradeable to 4 via hub. |
 | Weapons + Weapon Mods | v1 | Core build identity, key extraction loot |
 | Passive Upgrades | v1 | Genre staple, must have |
 | Active Abilities | v1 | Hybrid combat model requires these |
 | Synergy Triggers | v1 | Creates depth and discovery |
-| Extraction Perks | v1 | Unique to this game, serves Pillar 1 |
+| Extraction Perks | v1 | Unique to this game, serves extraction tension |
 | Corruption Upgrades | v1 | Directly serves core tension |
-| Evolution/Fusion | v1 | Build goals + community engagement |
+| Evolution/Fusion (15+ recipes) | v1 | Build goals + community engagement |
 | Overcharge Mechanic | v1.5 | Weapon slots already encourage variety; adds UI/tuning cost for marginal benefit |
 | Sacrifice Mechanic (destroy upgrade for better one) | v1.5 | Good idea but not essential for launch |
 | Loot-Linked Upgrades (power scales with carried loot) | v1.5 | Cool but adds complexity, can be added later |
@@ -230,21 +233,23 @@ COMBAT SYSTEM (upgraded stats change combat performance)
 3. Fire DOT mod triggers → Combat System applies DOT based on DOT stat
 4. Enemy dies → drops XP → player levels up → Upgrade System presents choices
 5. Player picks "+20% Crit Chance" → Stat System updates Crit Chance
-6. Next attack → Combat System reads new Crit Chance, rolls crit, applies Crit Damage multiplier
+6. Next attack → Combat System reads new Crit Chance, rolls crit, applies Crit Damage multiplier (1.5x base)
 7. Player has synergy upgrade "Crits release shockwave" → shockwave triggers on crit
 8. Shockwave kills nearby enemies → more XP, more drops, more loot to agonize over extracting with
 
 ---
 
-## Open Questions (For Later Systems / Phases)
+## Resolved Decisions (Previously Open Questions)
 
-- Exact number of weapon slots (2? 3? 4? Does it scale with progression?)
-- Exact number of mod slots per weapon (1? 2? 3? Varies by weapon rarity?)
-- How does the Instability system scale? Linear? Exponential? Breakpoints?
-- How many Evolution recipes at launch? (10? 20? More?)
-- What's the in-run reroll currency? (Gold from kills? A separate resource? Limited uses per run?)
-- How do active abilities interact with Overcharge? (Separate Overcharge per ability? Shared meter?)
-- Finisher activation: automatic when close, or a button press?
+| Question | Decision | Rationale |
+|----------|----------|-----------|
+| Weapon slot count | 1 starting, max 3 via hub | Depth comes from mod combinations, not weapon count |
+| Mod slots per weapon | 1-3 based on rarity (C/U: 1, R/E: 2, L: 3) | Scales naturally with loot quality |
+| Instability scaling | Breakpoint tiers (Stable/Unsettled/Volatile/Critical) | See Core Framework Decisions for exact thresholds |
+| Evolution recipes at launch | 15+ | Community discovery driver |
+| Reroll currency | Limited uses per run (base 2, upgradeable to 4 via hub) | Simple, no extra economy to track |
+| Overcharge + abilities | N/A — Overcharge deferred to v1.5 | Not needed with weapon slot system |
+| Finisher activation | Auto-trigger on proximity | Matches auto-attack philosophy |
 
 ---
 

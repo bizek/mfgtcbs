@@ -8,14 +8,22 @@ const SAVE_PATH := "user://progression.json"
 
 ## Workshop upgrade definitions: id → cost
 const UPGRADE_COSTS: Dictionary = {
-	"insurance_license": 300,
-	"armory_expansion":  750,
+	"insurance_license":      300,
+	"armory_expansion_1":     750,
+	"armory_expansion_2":    1500,
+	"channel_accelerator_1":  400,
+	"channel_accelerator_2":  800,
+	"channel_accelerator_3": 1200,
+	"reroll_capacity_1":      500,
+	"reroll_capacity_2":     1000,
+	"extraction_intel_1":    600,
 }
 
 var resources: int = 0
 var unlocked_weapons: Array = []
 var selected_weapon: String = "Standard Sidearm"
-var selected_weapon_2: String = ""          ## Only used when armory_expansion is owned
+var selected_weapon_2: String = ""          ## Only used when armory_expansion_1 is owned
+var selected_weapon_3: String = ""          ## Only used when armory_expansion_2 is owned
 var hub_upgrades: Array = []               ## IDs of purchased Workshop upgrades
 var total_resources_spent: int = 0         ## Drives hub visual tier
 
@@ -44,6 +52,7 @@ func save_data() -> void:
 		"unlocked_weapons":       unlocked_weapons,
 		"selected_weapon":        selected_weapon,
 		"selected_weapon_2":      selected_weapon_2,
+		"selected_weapon_3":      selected_weapon_3,
 		"hub_upgrades":           hub_upgrades,
 		"total_resources_spent":  total_resources_spent,
 		"total_runs":             total_runs,
@@ -77,7 +86,12 @@ func load_data() -> void:
 	unlocked_weapons      = result.get("unlocked_weapons", [])
 	selected_weapon       = str(result.get("selected_weapon", "Standard Sidearm"))
 	selected_weapon_2     = str(result.get("selected_weapon_2", ""))
+	selected_weapon_3     = str(result.get("selected_weapon_3", ""))
 	hub_upgrades          = result.get("hub_upgrades", [])
+	## Migrate legacy "armory_expansion" → "armory_expansion_1"
+	var _old_idx: int = hub_upgrades.find("armory_expansion")
+	if _old_idx >= 0:
+		hub_upgrades[_old_idx] = "armory_expansion_1"
 	total_resources_spent = int(result.get("total_resources_spent", 0))
 	total_runs            = int(result.get("total_runs", 0))
 	successful_extractions = int(result.get("successful_extractions", 0))
@@ -93,13 +107,41 @@ func load_data() -> void:
 	owned_mods   = result.get("owned_mods",  [])
 	weapon_mods  = result.get("weapon_mods", {})
 
+## Returns true if the player owns Extraction Intel I (timed zone revealed at run start).
+func has_extraction_intel() -> bool:
+	return has_upgrade("extraction_intel_1")
+
 ## Returns true if the player owns the upgrade.
 func has_upgrade(id: String) -> bool:
 	return id in hub_upgrades
 
-## How many starting weapon slots the player has.
+## How many starting weapon slots the player has (1 base + 1 per armory_expansion tier).
 func starting_weapon_slots() -> int:
-	return 2 if has_upgrade("armory_expansion") else 1
+	return 1 + get_upgrade_tier("armory_expansion")
+
+## Returns how many tiers of a tiered upgrade the player owns (e.g., "channel_accelerator" → 0-3).
+func get_upgrade_tier(base_id: String) -> int:
+	var tier := 0
+	for i in range(1, 10):
+		if has_upgrade("%s_%d" % [base_id, i]):
+			tier = i
+		else:
+			break
+	return tier
+
+## Returns the max number of rerolls per level-up (base 2, +1 per tier, max 4).
+func get_max_rerolls() -> int:
+	return 2 + get_upgrade_tier("reroll_capacity")
+
+## Returns the extraction channel duration based on purchased Channel Accelerator tiers.
+## Base: 4.0s → Tier 1: 3.25s → Tier 2: 2.5s → Tier 3: 2.0s
+func get_channel_duration() -> float:
+	var tier := get_upgrade_tier("channel_accelerator")
+	match tier:
+		1: return 3.25
+		2: return 2.5
+		3: return 2.0
+		_: return 4.0
 
 ## Attempt to purchase a Workshop upgrade. Returns true on success.
 func purchase_upgrade(id: String) -> bool:

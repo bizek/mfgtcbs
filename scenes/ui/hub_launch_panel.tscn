@@ -1,0 +1,105 @@
+[gd_scene format=3 uid="uid://bbftgvhugnka0"]
+
+[ext_resource type="Script" uid="uid://4s71j5xqy0et" path="res://scripts/ui/hub_launch_panel.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hub_panel_base.tscn" id="2_base"]
+[ext_resource type="FontFile" path="res://assets/fonts/m5x7.ttf" id="3_font"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sd6a2"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+bg_color = Color(0.065, 0.075, 0.1, 0.97)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.2, 0.9, 0.4, 1)
+
+[node name="HubLaunchPanel" type="Control" unique_id=121546959]
+layout_mode = 3
+anchors_preset = 0
+offset_left = 90.0
+offset_top = 35.0
+offset_right = 390.0
+offset_bottom = 235.0
+script = ExtResource("1_script")
+
+[node name="PanelBase" parent="." unique_id=484348869 instance=ExtResource("2_base")]
+layout_mode = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_sd6a2")
+title_text = "LAUNCH PAD"
+accent_color = Color(0.2, 0.9, 0.4, 1)
+
+[node name="CharacterLabel" type="Label" parent="PanelBase/ContentContainer"]
+offset_left = 12.0
+offset_top = 10.0
+offset_right = 288.0
+offset_bottom = 26.0
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.92, 0.86, 0.60, 1)
+text = "Character:   The Drifter"
+
+[node name="WeaponLabel" type="Label" parent="PanelBase/ContentContainer"]
+offset_left = 12.0
+offset_top = 32.0
+offset_right = 288.0
+offset_bottom = 48.0
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.82, 0.82, 0.87, 1)
+text = "Weapon:      Standard Sidearm"
+
+[node name="Slot1Label" type="Label" parent="PanelBase/ContentContainer"]
+offset_left = 12.0
+offset_top = 32.0
+offset_right = 288.0
+offset_bottom = 48.0
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.82, 0.82, 0.87, 1)
+text = "Slot 1:      Standard Sidearm"
+visible = false
+
+[node name="Slot2Label" type="Label" parent="PanelBase/ContentContainer"]
+offset_left = 12.0
+offset_top = 50.0
+offset_right = 288.0
+offset_bottom = 66.0
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.82, 0.82, 0.87, 1)
+text = "Slot 2:      — none —"
+visible = false
+
+[node name="Slot3Label" type="Label" parent="PanelBase/ContentContainer"]
+offset_left = 12.0
+offset_top = 68.0
+offset_right = 288.0
+offset_bottom = 84.0
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.82, 0.82, 0.87, 1)
+text = "Slot 3:      — none —"
+visible = false
+
+[node name="PassiveLabel" type="Label" parent="PanelBase/ContentContainer"]
+offset_left = 12.0
+offset_top = 52.0
+offset_right = 288.0
+offset_bottom = 92.0
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.72, 0.72, 0.80, 1)
+autowrap_mode = 3
+text = "Passive:"
+
+[node name="BeginDescentBtn" type="Button" parent="PanelBase/ContentContainer"]
+offset_left = 60.0
+offset_top = 140.0
+offset_right = 240.0
+offset_bottom = 164.0
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 16
+text = "BEGIN DESCENT"

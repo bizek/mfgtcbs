@@ -1,62 +1,70 @@
 # Seed Document — Untitled Survivors-Like
-### Phase 1 Output | Project Foundation
+### Project Foundation (Revised)
 
 ---
 
 ## The Developer
 
-**Who:** Ben, solo developer. No formal game dev training but technically literate — comfortable with AI-assisted workflows, modding communities, and technical concepts. Has used Unreal Engine 5 with Claude Code integration (UnrealClaude plugin), but is not an engine specialist.
+**Who:** Ben, solo developer. No formal game dev training but technically literate — comfortable with AI-assisted workflows, modding communities, and technical concepts. Working in Godot 4.6 with GDScript, using Claude Code Desktop with godot-mcp-pro (WebSocket on port 6505) and godot-doc-mcp for implementation.
 
-**Working style:** Works best with AI doing the heavy lifting on code and generation. Ben provides creative direction, taste, curation, and decision-making. Previous game dev attempts have stalled because design and building happened simultaneously — this project follows a strict design-first methodology to break that pattern.
+**Working style:** Works best with AI doing the heavy lifting on code and generation. Ben provides creative direction, taste, curation, and decision-making. Previous game dev attempts stalled because design and building happened simultaneously — this project follows a strict phase-based methodology (design docs → architecture → prototype → build) to break that pattern.
 
 **Skills:** Can type, can prompt, can source free assets, can follow technical instructions with explanation. Not an artist, not a musician, not a programmer by trade.
 
-**Budget:** $0 beyond Claude subscription ($20/mo). All assets must be free (open-source, CC0, free asset packs, generated).
+**Budget:** $0 beyond Claude subscription. All assets sourced from owned MiniFantasy commercial packs (74 packs) and free CC0 audio libraries.
 
 ---
 
 ## The Game
 
-**Genre:** Survivors-like / auto-battler hybrid. The genre defined by Vampire Survivors — top-down, horde-survival, build-crafting with escalating chaos.
+**Genre:** Survivors-like extraction hybrid. Top-down 2D horde-survival with build-crafting and extraction shooter risk/reward mechanics. The core loop combines the escalating chaos and auto-attack power fantasy of Vampire Survivors with the "keep or lose everything" tension of extraction shooters like Marathon.
 
-**Setting:** Science-fantasy. Ancient unknowable forces meet advanced technology. Think Dead Space meets Dark Souls — cosmic horror, deep-space dread, impossible architecture, and dark magic coexisting with technology. Not campy, not bright. Dark, atmospheric, vast.
+**What Makes This Different:** The extraction layer. Every other survivors-like ends when you die or a timer runs out. In this game, the player chooses when to leave — and everything they've collected during the run is only kept on successful extraction. Death means losing all loot. This transforms every moment of gameplay into a risk/reward decision: push deeper for better loot, or extract now and keep what you have.
+
+**Setting:** Science-fantasy. Ancient unknowable forces meet advanced technology. Cosmic horror, deep-space dread, impossible architecture, and dark magic coexisting with technology. Not campy, not bright. Dark, atmospheric, vast.
 
 **Aesthetic Vision — "Hyperreal Sublime":**
-A friend coined this term and it captures the target perfectly: *photorealistic rendering of impossible scale, exploiting the gap between what your eyes believe and what your brain knows.* The Edmund Burke connection — terror plus beauty plus safety equals aesthetic pleasure. Cosmic insignificance from the comfort of your screen.
+Environments that suggest impossible scale and unknowable depth. Dark palettes, atmospheric lighting, a sense that the space you're fighting in is a tiny pocket of a vast, incomprehensible place. The game should feel like descending into something ancient and enormous. Delivered through pixel art (MiniFantasy assets) enhanced with lighting, particle effects, shaders, and atmospheric audio — the art provides the foundation while presentation carries the tone.
 
-In practical terms for a 2D survivors-like: this translates to environments that suggest impossible scale and unknowable depth. Dark palettes, atmospheric lighting, a sense that the space you're fighting in is a tiny pocket of a vast, incomprehensible place. The game should feel like descending into something ancient and enormous.
+**Core Fantasy:** The player ventures into something unknown — an ancient, vast, terrible place where science and magic have blurred — growing powerful enough to survive it and escape with what they find. Each run is a descent through 5 phases, each deeper and more hostile than the last. Progression is both mechanical (meta-unlocks, better loadouts) and narrative (understanding what this place IS).
 
-**Inspiration Games:**
+**Run Length:** 15-20 minutes per run across 5 phases.
+
+**Monetization:** One-time purchase on Steam, $5-10 range. Post-launch content updates (arenas, characters, weapons) at no additional cost initially.
+
+**Platform:** PC first, Steam primary distribution.
+
+---
+
+## Inspiration Games
+
 - **He Is Coming** — Core mechanical reference. Adventuring auto-battler structure. Build-crafting loop, escalating difficulty, satisfying power spikes.
-- **Vampire Survivors** — Genre-defining. Proof that simple mechanics + satisfying feedback + meta-progression = addictive. Learn: accessibility, dopamine pacing, "one more run" factor. Avoid: can feel mindless/passive.
+- **Vampire Survivors** — Genre-defining. Accessibility, dopamine pacing, "one more run" factor. Avoid: can feel mindless/passive.
 - **There Are No Orcs** — Quick-hit dopamine, satisfying destruction loops.
 - **BALL x PIT** — Satisfying physics/chaos feedback.
-- **Marathon (Bungie)** — NOT a mechanical reference. Aesthetic/lore reference only. Deep-space cosmic horror, fragmented lore, the sense that something ancient and terrible is just out of frame.
-
-**Core Fantasy:** The player is venturing into something unknown — an ancient, vast, terrible place where science and magic have blurred — and growing powerful enough to survive it. Each run is a descent deeper. Progression is both mechanical (meta-unlocks) and narrative (understanding what this place IS).
-
-**Run Length:** 15-20 minutes per run. Long enough for meaningful build decisions and power curve, short enough for "one more run."
+- **Marathon (Bungie)** — Aesthetic AND mechanical inspiration. Deep-space cosmic horror, fragmented lore, plus the extraction shooter tension of risking everything you've found.
 
 ---
 
-## What We Love (Design Values)
+## Design Values
 
 - **Quick dopamine hits** — satisfying feedback on kills, pickups, level-ups, build choices
-- **Build diversity** — many viable paths, interesting choices, synergy discovery
+- **Build diversity** — many viable paths through weapon + mod combinations, interesting choices, synergy discovery
 - **Respecting the player's time** — every minute should feel worthwhile, no padding, no grinding for grinding's sake
 - **Atmosphere** — the game should FEEL like something, not just be a mechanical exercise
-- **Progression that matters** — both within a run (power curve) and across runs (meta-progression)
+- **Progression that matters** — both within a run (power curve) and across runs (meta-progression at the hub)
 - **Accessible complexity** — easy to start, deep to master, never overwhelming
+- **Extraction tension** — every decision is colored by "should I leave now or push deeper?"
 
 ---
 
-## What We Hate (Anti-Goals)
+## Anti-Goals
 
 - **Disrespecting the player's time** — forced grinding, artificial padding, waiting for the sake of waiting
 - **Complexity without depth** — lots of systems that don't meaningfully interact
 - **Scope creep** — this is a solo dev side hustle, not a AAA title. Ship something.
-- **Generic aesthetic** — the survivors-like market is crowded. "Another pixel art horde game" won't stand out.
-- **Design paralysis** — we've been here before. When in doubt, prototype and iterate.
+- **Generic aesthetic** — "another pixel art horde game" won't stand out. Atmosphere and extraction mechanics are the differentiators.
+- **Design paralysis** — when in doubt, prototype and iterate.
 
 ---
 
@@ -66,38 +74,29 @@ In practical terms for a 2D survivors-like: this translates to environments that
 |---|---|
 | Team | Solo (Ben + Claude) |
 | Budget | $0 (beyond Claude sub) |
-| Engine | Godot 4 |
-| Art | Free assets, generated assets, asset packs. No custom art budget. |
-| Audio | Free/CC0 music and SFX |
+| Engine | Godot 4.6 (GDScript) |
+| Art | MiniFantasy commercial packs (74 packs, all visual needs covered) |
+| Audio | Free/CC0 music and SFX (OpenGameArt, Kenney, Pixabay, itch.io) |
 | Timeline | Side hustle pace. No hard deadline, but bias toward shipping. |
 | Distribution | Steam (primary target) |
 | Platform | PC first |
+| Monetization | One-time purchase, $5-10 |
 
 ---
 
-## Previous Attempts & Lessons Learned
+## Current State
 
-Ben has started multiple game dev projects and never finished one. The consistent failure mode: **building and designing simultaneously**, leading to architectural dead-ends, scope creep, and eventual abandonment.
-
-**This time is different because:**
-1. We're following a strict phase-based methodology (design docs → architecture → prototype → build)
-2. No code until Phase 9
-3. Every decision gets documented with rationale
-4. The LLM handles generation/implementation; Ben handles direction/curation
-5. Scope is controlled by the genre (survivors-likes are mechanically bounded)
-
----
-
-## Open Questions (To Resolve in Later Phases)
-
-- What is the player character? (Human? Something else? Multiple options?)
-- What is the "place" they're descending into? (Space station? Ancient ruin? Dimensional rift?)
-- 2D top-down vs isometric vs other perspective?
-- What does meta-progression look like between runs?
-- What's the monetization model? (One-time purchase? DLC? Free with cosmetics?)
-- Art style specifics — how do we achieve "hyperreal sublime" on a zero budget in 2D?
-- What makes this game stand out in a crowded survivors-like market beyond aesthetic?
+The game has a working prototype with:
+- Core combat (auto-attack + active abilities)
+- Hub with meta-progression and save/load
+- 6 weapons across multiple behavior types
+- 5 playable characters (Drifter, Scavenger, Warden, Spark, Shade) with 2 post-launch characters planned (Herald, Cursed)
+- 5 enemy types plus elite modifiers
+- 10 weapon mods
+- All 4 extraction types functional (Timed, Guarded, Locked, Sacrifice)
+- Debug menu for testing
+- Currently in polish pass (UI, VFX, bug fixing, balancing) before audio implementation
 
 ---
 
-*This is a living document. It will be updated as decisions are made in subsequent phases.*
+*This document provides the project overview. For detailed system designs, see the Systems Design documents (Parts 1-3). For architecture and data structures, see the Architecture Blueprint. For formulas and numbers, see Core Framework Decisions. For the mechanical grammar, see Mechanical Vocabulary.*

@@ -1,0 +1,112 @@
+[gd_scene format=3 uid="uid://blpyux5rfd3or"]
+
+[ext_resource type="Script" uid="uid://dfa4enguxrn48" path="res://scripts/ui/hub_records_panel.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hub_panel_base.tscn" id="2_base"]
+[ext_resource type="FontFile" path="res://assets/fonts/m5x7.ttf" id="3_font"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fik0o"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+bg_color = Color(0.065, 0.075, 0.1, 0.97)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.65, 0.65, 0.72, 1)
+
+[node name="HubRecordsPanel" type="Control" unique_id=817144467]
+layout_mode = 3
+anchors_preset = 0
+offset_left = 90.0
+offset_top = 35.0
+offset_right = 390.0
+offset_bottom = 235.0
+script = ExtResource("1_script")
+
+[node name="PanelBase" parent="." unique_id=1134690836 instance=ExtResource("2_base")]
+layout_mode = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_fik0o")
+title_text = "RECORDS"
+accent_color = Color(0.65, 0.65, 0.72, 1)
+
+[node name="TotalRunsLabel" type="Label" parent="PanelBase/ContentContainer"]
+offset_left = 12.0
+offset_top = 8.0
+offset_right = 288.0
+offset_bottom = 22.0
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.82, 0.82, 0.87, 1)
+text = "Total Runs:          0"
+
+[node name="ExtractionsLabel" type="Label" parent="PanelBase/ContentContainer"]
+offset_left = 12.0
+offset_top = 26.0
+offset_right = 288.0
+offset_bottom = 40.0
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.82, 0.82, 0.87, 1)
+text = "Extractions:         0"
+
+[node name="DeathsLabel" type="Label" parent="PanelBase/ContentContainer"]
+offset_left = 12.0
+offset_top = 44.0
+offset_right = 288.0
+offset_bottom = 58.0
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.82, 0.82, 0.87, 1)
+text = "Deaths:              0"
+
+[node name="KillsLabel" type="Label" parent="PanelBase/ContentContainer"]
+offset_left = 12.0
+offset_top = 62.0
+offset_right = 288.0
+offset_bottom = 76.0
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.82, 0.82, 0.87, 1)
+text = "Total Kills:         0"
+
+[node name="DeepestPhaseLabel" type="Label" parent="PanelBase/ContentContainer"]
+offset_left = 12.0
+offset_top = 80.0
+offset_right = 288.0
+offset_bottom = 94.0
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.82, 0.82, 0.87, 1)
+text = "Deepest Phase:       0"
+
+[node name="MostLootLabel" type="Label" parent="PanelBase/ContentContainer"]
+offset_left = 12.0
+offset_top = 98.0
+offset_right = 288.0
+offset_bottom = 112.0
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.82, 0.82, 0.87, 1)
+text = "Most Loot (run):     0"
+
+[node name="DividerLabel" type="Label" parent="PanelBase/ContentContainer"]
+offset_left = 12.0
+offset_top = 118.0
+offset_right = 288.0
+offset_bottom = 130.0
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.35, 0.35, 0.40, 1)
+text = "──────────────────────"
+
+[node name="ExtractionRateLabel" type="Label" parent="PanelBase/ContentContainer"]
+offset_left = 12.0
+offset_top = 136.0
+offset_right = 288.0
+offset_bottom = 150.0
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.82, 0.82, 0.87, 1)
+text = "Extraction Rate:     —"

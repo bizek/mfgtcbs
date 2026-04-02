@@ -9,7 +9,7 @@
 
 **Boundaries:** This system handles the hub space, resource spending, character/equipment management, and progression tracking. It does NOT handle what loot drops during runs (that's the Loot System) or what upgrades appear during runs (that's the Upgrade System). This is the "before and after" of a run — the bookends.
 
-### The Hub: Simple Visual Room (Option B)
+### The Hub: Simple Visual Room
 
 The hub is a single room/area the player character walks around in. Interactive stations handle different functions. The room visually upgrades as the player invests resources, providing tangible evidence of progress.
 
@@ -20,7 +20,7 @@ The hub is a single room/area the player character walks around in. Interactive 
 | Armory | Equip loadout | Select starting weapons, mods, and artifacts for next run |
 | Research Terminal | Activate blueprints | Spend resources to unlock new items in the run drop pool |
 | Roster | Unlock/select characters | Spend resources to unlock new characters; select active character |
-| Workshop | Hub upgrades | Spend resources to improve hub capabilities (more artifact slots, Insurance, etc.) |
+| Workshop | Hub upgrades | Spend resources to improve hub capabilities (more artifact slots, Insurance, reroll capacity, etc.) |
 | Lore Archive | View collected lore | Browse collected lore fragments. No cost. |
 | Records Terminal | View statistics | Personal bests, run history, achievement tracking. No cost. |
 | Launch Pad | Start a run | Begin the next descent |
@@ -29,7 +29,7 @@ The hub is a single room/area the player character walks around in. Interactive 
 - The hub starts bare, damaged, minimal. Functional but rough.
 - As the player invests resources into Workshop upgrades and generally progresses, the hub visually improves: better lighting, repaired structures, new decorations, functional equipment humming.
 - This is purely cosmetic feedback on progression but it's powerful — the player's "home" reflects their success.
-- Serves Pillar 4 (The Descent): the hub is the contrast point. A small pocket of warmth and safety against the vast unknown the player descends into.
+- The hub is the contrast point: a small pocket of warmth and safety against the vast unknown the player descends into.
 
 **Hub Feel Principles:**
 - **Fast.** Getting from "run just ended" to "next run starting" should take under 60 seconds if the player wants to go fast. No forced menus, no mandatory interactions. Walk to the Launch Pad and go.
@@ -53,7 +53,9 @@ All extracted resources are the same currency. Simple, clean, no confusion about
 
 **Economy Principle:** The player should always have something worth saving for, but never feel like they can't afford to make ANY progress. Multiple price tiers ensure that even a modest extraction yields enough to buy something — a cheap blueprint, a small hub upgrade. Big-ticket items (characters, major upgrades) are aspirational but not demoralizing.
 
-### Character Roster (v1 Launch Characters)
+### Character Roster
+
+**Launch Roster (5 characters):**
 
 Each character has:
 - A unique starting weapon (cannot be unequipped, defines early-run playstyle)
@@ -65,14 +67,17 @@ Each character has:
 | The Drifter | Standard Sidearm (balanced ranged) | None — baseline stats, no gimmick | Balanced across the board | The "learn the game" character. Reliable, no surprises. |
 | The Scavenger | Salvage Cutter (short range, wide arc) | +25% Pickup Radius, +15% Loot Find | Lower Damage, Higher Movement Speed | The extraction optimizer. Finds more, fights less efficiently. |
 | The Warden | Heavy Repeater (slow, high damage) | Armor doubles when below 50% HP | High HP, High Armor, Low Movement Speed | The immovable wall. Survives deep phases through sheer toughness. |
-| The Spark | Overcharged Pistol (fast, fragile) | +50% Crit Damage | High Damage, High Attack Speed, Low HP | The glass cannon. Kills everything fast or dies trying. |
-| The Shade | Phantom Blade (melee, fast) | Dodge grants brief invisibility (0.5s) | High Dodge Chance, High Movement Speed, Low Armor | The untouchable. Weaves through danger. |
-| The Herald | Signal Beacon (mediocre weapon) | Active abilities deal +30% damage and have -20% cooldown | Average stats, extra active ability slot | The ability specialist. Weapon is weak, abilities are everything. |
+| The Spark | Overcharged Pistol (fast, fragile) | +50% Crit Damage (2.25x total) | High Damage, High Attack Speed, Low HP | The glass cannon. Kills everything fast or dies trying. |
+| The Shade | Phantom Blade (melee, fast) | Dodge grants brief invisibility (0.5s) | High Dodge Chance (15%), High Movement Speed, Low Armor | The untouchable. Weaves through danger. |
+
+**Post-Launch Characters (2 additions):**
+
+| Character | Starting Weapon | Passive Ability | Stat Adjustments | Fantasy |
+|-----------|----------------|-----------------|------------------|---------|
+| The Herald | Signal Beacon (mediocre weapon) | Active abilities deal +30% damage and have -20% cooldowns | Average stats, extra active ability slot | The ability specialist. Weapon is weak, abilities are everything. |
 | The Cursed | Void Siphon (drains enemy HP) | Starts every run at Unsettled Instability (25%) but gains +20% to all base stats | Boosted everything, permanent Instability penalty | The expert character. Maximum risk, maximum power. |
 
-**Unlock Order:** The Drifter is free (starting character). Other characters unlock via resource spending at the Roster station. No forced order — the player picks which character interests them most and saves toward it.
-
-**Design Note:** Characters should be unlockable at a pace that feels natural. The second character should feel achievable within the first few sessions of play. Later characters cost more but by then the player is extracting more efficiently. The curve matches the player's skill growth.
+**Unlock Order:** The Drifter is free (starting character). Other characters unlock via resource spending at the Roster station. No forced order — the player picks which character interests them most and saves toward it. The second character should feel achievable within the first few sessions of play. Later characters cost more but by then the player is extracting more efficiently.
 
 ### Loadout System
 
@@ -81,8 +86,8 @@ Before each run, the player equips:
 | Slot | What Goes Here | Starting Capacity | Expandable? |
 |------|---------------|-------------------|-------------|
 | Character | Selected character from Roster | 1 (The Drifter) | Unlock more characters |
-| Starting Weapons | Weapons from extracted collection | 1 slot (character's starting weapon fills it) | Hub upgrade to add 1-2 more starting weapon slots |
-| Weapon Mods | Pre-attached to starting weapons | Based on weapon mod slots | Find weapons with more mod slots |
+| Starting Weapons | Weapons from extracted collection | 1 slot (character's starting weapon fills it) | Hub upgrade to add 1-2 more starting weapon slots (max 3 total) |
+| Weapon Mods | Pre-attached to starting weapons | Based on weapon mod slots (C/U: 1, R/E: 2, L: 3) | Find weapons with more mod slots |
 | Artifacts | Passive items from extracted collection | 1 slot | Hub upgrade to unlock slot 2 (and maybe 3) |
 | Insurance | Select one item to insure | 1 (after unlocking Insurance at Workshop) | No — always 1 per run |
 
@@ -117,6 +122,8 @@ Before each run, the player equips:
 | Armory Expansion II | High | +1 starting weapon slot (start runs with 3 weapons) |
 | Artifact Chamber I | Medium | Unlock 2nd artifact equipment slot |
 | Artifact Chamber II | High | Unlock 3rd artifact equipment slot |
+| Reroll Capacity I | Medium | +1 reroll per run (2→3) |
+| Reroll Capacity II | High | +1 reroll per run (3→4) |
 | Extraction Intel I | Medium | Extraction points visible on minimap from further away |
 | Extraction Intel II | High | Preview which extraction types will be in the next run |
 | Lore Decoder | Medium | Lore fragments reveal bonus context (expanded lore text) |
@@ -126,7 +133,7 @@ Before each run, the player equips:
 
 - **Prestige/Reset System** — Reset progression for cosmetic rewards or difficulty modifiers. Adds endgame replayability.
 - **Challenge Runs** — Unlock modifiers that make runs harder for better rewards (no extraction until Phase 3, double Instability, etc.)
-- **Expanding Hub (Option C)** — Multiple rooms unlocked over time. Each with unique function and atmosphere.
+- **Expanding Hub** — Multiple rooms unlocked over time. Each with unique function and atmosphere.
 - **Cosmetics** — Character skins, weapon visual effects, hub decorations. No gameplay impact.
 
 ---
@@ -139,7 +146,7 @@ Before each run, the player equips:
 
 ### Arena Structure: One Arena Per Phase
 
-Each run consists of 5 phases, each in a distinct arena. The game randomly selects one arena from that phase's pool. At launch, 1 arena per phase (5 total), expandable with additional arenas added to each phase's pool post-launch.
+Each run consists of 5 phases, each in a distinct arena. **Launch content: 1 arena per phase (5 total).** The game randomly selects one arena from that phase's pool. The data-driven approach means adding more arenas post-launch is pure content work, not engineering work.
 
 **Run Flow:**
 ```
@@ -176,13 +183,13 @@ An arena data file contains:
 
 Regardless of phase or visual theme, every arena follows these rules:
 
-1. **Size scales with phase.** Phase 1 arenas are smaller (player feels contained, manageable). Phase 5 arenas are larger (player feels exposed, overwhelmed). Exact dimensions TBD in Phase 8 (framework decisions).
+1. **Size scales with phase.** Phase 1 arenas are smaller (player feels contained, manageable). Phase 5 arenas are larger (player feels exposed, overwhelmed). See Core Framework Decisions for exact dimensions.
 
 2. **Spawn zones are distributed around the perimeter and/or at designated portal points.** Enemies should come from multiple directions. The player should never be able to "corner camp" safely.
 
 3. **At least one Timed Extraction point** at a fixed location. Visible from most of the arena. The player should always know where it is.
 
-4. **Guarded Extraction point** at a distinct, slightly inconvenient location (not center, not near the Timed point). The guardian is visible from a distance.
+4. **Guarded Extraction point** at a distinct, slightly inconvenient location (not center, not near the Timed point). The guardian is visible from a distance. **Present from Phase 1.**
 
 5. **Locked Extraction point (Phase 3+ only)** at a visible but separate location. Clearly sealed/inactive until a Keystone is used.
 
@@ -198,12 +205,13 @@ Regardless of phase or visual theme, every arena follows these rules:
 
 ### Phase Visual Themes
 
-Each phase has a distinct visual identity that reinforces the sense of descent. Exact assets depend on what's available (Phase 6 — Asset Inventory), but the design direction is:
+Each phase has a distinct visual identity that reinforces the sense of descent. MiniFantasy packs provide the visual foundation; atmosphere is delivered through lighting, particles, shaders, and audio.
 
 **Phase 1 — The Threshold**
 - *Feel:* Entry point. Recognizable. "You can still turn back."
 - *Palette:* Muted grays, dim blues, occasional warm light sources
 - *Environment:* Damaged structures, scattered debris, broken technology mixed with organic growth. Looks like something that was once built by people.
+- *Tileset:* Minifantasy_Dungeon + DeepCaves supplement
 - *Lighting:* Dim but functional. The player can see everything clearly.
 - *Sound:* Distant rumbles. Dripping. Faint mechanical hum.
 
@@ -211,27 +219,31 @@ Each phase has a distinct visual identity that reinforces the sense of descent. 
 - *Feel:* Deeper. Less familiar. "Something is wrong here."
 - *Palette:* Darker grays, cold blues, first hints of unnatural color (faint green/purple bioluminescence)
 - *Environment:* Architecture becomes less recognizable. Organic elements mixing with corroded machinery. Walls that might be breathing. Geometry that's slightly off.
+- *Tileset:* Minifantasy_Crypt_Of_The_Forgotten + DeepCaves supplement
 - *Lighting:* Darker overall with more contrast. Pools of light and shadow.
 - *Sound:* The mechanical hum is gone. Organic sounds. Something in the walls.
 
 **Phase 3 — The Deep**
 - *Feel:* Alien. Hostile. "This place doesn't want you here."
 - *Palette:* Deep blacks, bioluminescent accents (blue, green, violet), occasional hot spots of orange/red
-- *Environment:* Impossible geometry visible at the edges. Structures that blend organic and mechanical seamlessly. The "floor" might not be floor. Gravity feels visual — things hang at odd angles in the background.
+- *Environment:* Impossible geometry visible at the edges. Structures that blend organic and mechanical seamlessly. The "floor" might not be floor.
+- *Tileset:* Minifantasy_SilentSwamp + Gloom_Hollows supplement
 - *Lighting:* Dark with dramatic bioluminescent lighting. The player's immediate area is lit; the edges fade into oppressive darkness.
 - *Sound:* Low-frequency drones. Sounds that shouldn't exist. Occasional silence that's worse than noise.
 
 **Phase 4 — The Abyss**
 - *Feel:* Near-total sensory oppression. "You should not be here."
 - *Palette:* Almost monochrome darkness with intense, saturated accent colors (searing white, deep crimson, electric blue)
-- *Environment:* Reality feels thin. Visual distortions at screen edges. The environment seems to shift when you're not looking directly at it. Background elements suggest impossible scale — structures stretching into infinite darkness.
+- *Environment:* Reality feels thin. Visual distortions at screen edges. The environment seems to shift when you're not looking directly at it. Background elements suggest impossible scale.
+- *Tileset:* Minifantasy_Nightmare_Realm + Hellscape supplement
 - *Lighting:* Point lights only. The player's vision/reveal radius stat matters here — you can only see so far. Enemies emerge from darkness.
 - *Sound:* Distorted. Familiar sounds at wrong pitches. Your own footsteps echo differently. The audio itself feels unstable.
 
 **Phase 5 — The Core**
 - *Feel:* The source. Ancient. Vast. "No one was meant to be here."
 - *Palette:* Whatever the core IS — something luminous at the center of all this darkness. Intense contrast between the light of the core and the surrounding void.
-- *Environment:* The architecture (if you can call it that) defies understanding. The background suggests something enormous — a structure, an entity, a phenomenon. The arena floor feels like a platform over an abyss. Maximum hyperreal sublime energy within asset constraints.
+- *Environment:* The architecture (if you can call it that) defies understanding. The background suggests something enormous — a structure, an entity, a phenomenon. The arena floor feels like a platform over an abyss.
+- *Tileset:* Minifantasy_Scifi_Reliquary_Vault + SpaceDerelict supplement
 - *Lighting:* Dramatic. The Core itself provides light. Everything else is void.
 - *Sound:* A tone. A frequency. Something that might be alive. Or might be a machine. Or might be a god. The sound design should leave it ambiguous.
 
@@ -239,7 +251,7 @@ Each phase has a distinct visual identity that reinforces the sense of descent. 
 
 **Transition Sequence (between phases):**
 1. Current phase ends (final wave cleared or phase timer completes)
-2. Timed Extraction portal opens (15-20 second window)
+2. Timed Extraction portal opens (18-second window)
 3. Player either extracts (run ends, go to hub with loot) OR the window closes
 4. **Descent Transition** plays:
    - Brief animation/screen effect (3-5 seconds max)
@@ -251,7 +263,7 @@ Each phase has a distinct visual identity that reinforces the sense of descent. 
 **Transition Principles:**
 - **Fast.** Never more than 5 seconds. If loading takes longer, start preloading during the extraction window.
 - **Atmospheric.** The transition itself reinforces the descent fantasy. Each transition should feel like going deeper.
-- **Informative.** The brief info overlay reminds the player what they're risking by continuing. Instability level + loot summary = "here's what you'll lose if you die." Serves Pillar 1 (information before decision).
+- **Informative.** The brief info overlay reminds the player what they're risking by continuing. Instability level + loot summary = "here's what you'll lose if you die." Information before decision.
 
 ### Arena Generation Workflow
 
@@ -276,14 +288,12 @@ How new arenas get created (for both launch and post-launch content):
 | Phase 5 — The Core | 1 | 2-3 |
 | **Total** | **5** | **10-15** |
 
-One arena per phase is the minimum viable launch. The data-driven approach means adding more arenas post-launch is pure content work, not engineering work.
-
 ### v1.5 Level/Arena Features
 
 - **Arena pool expansion** — Additional arenas per phase for run variety
 - **Arena modifiers** — Random modifiers applied to arenas (low gravity, darkness, enemy speed boost). Adds variety without new content.
 - **Secret arenas** — Rare arena variants with unique challenges and exclusive loot. Discovery/community moments.
-- **Interconnected rooms (Option C)** — Multiple rooms per phase connected by corridors. More exploration feel. Significant scope increase.
+- **Interconnected rooms** — Multiple rooms per phase connected by corridors. More exploration feel. Significant scope increase.
 
 ---
 
@@ -296,15 +306,15 @@ META-PROGRESSION (Hub)
     ├── Spend resources (from Loot System)
     ├── Equip loadout (weapons/mods/artifacts from extraction)
     ├── Activate blueprints (expand future run drop pools)
-    ├── Upgrade hub capabilities (Workshop)
-    ├── Select character (Roster)
+    ├── Upgrade hub capabilities (Workshop — including reroll capacity)
+    ├── Select character (Roster — 5 at launch, 2 post-launch)
     └── Launch next run
          ↓
 LEVEL/ARENA SYSTEM
-    ├── Select arena for Phase 1 (from pool)
+    ├── Select arena for Phase 1 (from pool — 1 per phase at launch)
     ├── Load arena data → place assets
     ├── Define spawn zones → Enemy System uses them
-    ├── Define extraction points → Extraction System uses them
+    ├── Define extraction points → Extraction System uses them (Guarded from Phase 1, Sacrifice from Phase 2, Locked from Phase 3)
     ├── Define hazards → Combat System interacts with them
     └── Phase transition → select next arena → repeat
 ```
@@ -315,7 +325,7 @@ LEVEL/ARENA SYSTEM
 3. Notices the hub looks slightly better — a light fixture they hadn't seen before is now working. (Visual upgrade from cumulative spending.)
 4. Launches next run. Phase 1 arena loads — The Threshold. Familiar but the weapon loadout is different this time.
 5. By Phase 2, the player finds the newly unlocked shotgun as a drop. "The blueprint paid off!"
-6. Phase 3 arena is dark, hostile, alien. Instability is climbing. Two extraction types visible. The player pushes for Phase 4...
+6. Phase 3 arena is dark, hostile, alien. Instability is climbing — the HUD meter is orange, the player's aura is pulsing. Two extraction types visible. The player pushes for Phase 4...
 
 ---
 
@@ -332,7 +342,7 @@ UPGRADE SYSTEM          ENEMY SYSTEM
     ↓                    ↓
 LOOT SYSTEM (drops from enemies, collected by player)
     ↓
-INSTABILITY (rises with loot, increases difficulty)
+INSTABILITY (rises with loot, increases difficulty — visible via HUD meter + player aura)
     ↓
 EXTRACTION SYSTEM (player decides when to leave)
     ↓
@@ -345,6 +355,4 @@ LEVEL/ARENA SYSTEM (where runs take place)
 
 ---
 
-*Phase 4 (Systems Design) is complete. All 8 core systems are defined at the conceptual level with clear purposes, boundaries, connections, and scope decisions.*
-
-*Next: Phase 5 — Define the Mechanical Vocabulary. Before designing any specific weapon, enemy, or upgrade, we define the GRAMMAR — the categories of mechanical interaction the game supports.*
+*Phase 4 (Systems Design) is complete. All 8 core systems are defined with clear purposes, boundaries, connections, and scope decisions. All previously open questions have been resolved — see individual system sections for locked decisions.*

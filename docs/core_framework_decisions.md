@@ -27,7 +27,7 @@ The Drifter is the baseline. All other characters are defined as modifications t
 | Damage | 10 | Base weapon damage (Drifter's starting weapon). |
 | Attack Speed | 1.0 | Attacks per second (Drifter's starting weapon). |
 | Crit Chance | 5% | Low base. Meaningful to invest in. |
-| Crit Damage | 1.5x | 150% damage on crit. Can be upgraded. |
+| Crit Damage | 1.5x | 150% damage on crit (universal base). Can be upgraded. The Spark gets 2.25x via passive. |
 | Dodge Chance | 0% | No dodging by default. Earned through upgrades or character choice (The Shade). |
 | Pickup Radius | 50 | Pixels. Starts small — upgrading this should feel amazing. |
 | Loot Find | 0% | No bonus. Baseline drop rates. |
@@ -41,6 +41,8 @@ The Drifter is the baseline. All other characters are defined as modifications t
 
 ### Character Stat Modifiers (Relative to Drifter Baseline)
 
+**Launch Roster (5 characters):**
+
 | Character | HP | Damage | Move Speed | Armor | Special |
 |-----------|-----|--------|------------|-------|---------|
 | The Drifter | 100 | 10 | 200 | 0 | None — pure baseline |
@@ -48,6 +50,11 @@ The Drifter is the baseline. All other characters are defined as modifications t
 | The Warden | 150 | 10 | 160 | 5 | Armor doubles below 50% HP |
 | The Spark | 60 | 14 | 210 | 0 | +50% Crit Damage (2.25x total) |
 | The Shade | 75 | 9 | 240 | 0 | 15% Dodge Chance, dodge grants 0.5s invisibility |
+
+**Post-Launch Characters (2 additions):**
+
+| Character | HP | Damage | Move Speed | Armor | Special |
+|-----------|-----|--------|------------|-------|---------|
 | The Herald | 90 | 8 | 200 | 0 | +30% ability damage, -20% ability cooldowns, extra ability slot |
 | The Cursed | 120 | 12 | 210 | 3 | Starts at 25% Instability. +20% all base stats but permanent penalty. |
 
@@ -384,7 +391,7 @@ Base Meta XP = (Total Enemies Killed × XP Value) + (Phase Bonus × Phases Compl
 Phase Bonus: Phase 1 = 50, Phase 2 = 100, Phase 3 = 200, Phase 4 = 400, Phase 5 = 800
 
 On Successful Extraction: Base Meta XP × (1 + Extraction Phase Bonus%)
-On Death: Base Meta XP × 0.25 (25% penalty — confirmed design decision)
+On Death: Base Meta XP × 0.25 (25% — locked value. Extraction always beats death economically.)
 ```
 
 **Example: Extract from Phase 3 with ~500 kills**

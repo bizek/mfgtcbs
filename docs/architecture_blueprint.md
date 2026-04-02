@@ -731,7 +731,7 @@ Transition to Hub
 ## Performance Considerations
 
 - **Object pooling for projectiles and pickups.** Don't create/destroy — reuse from a pool. Horde games can have hundreds of projectiles on screen.
-- **Enemy count cap.** Maximum simultaneous enemies on screen (maybe 150-200?). New spawns queue until existing enemies die. Prevents frame drops.
+- **Enemy count cap.** Maximum 150 simultaneous enemies on screen. New spawns queue until existing enemies die. Prevents frame drops.
 - **Pickup magnet on screen clear.** If too many pickups accumulate, they get pulled toward the player automatically. Prevents thousands of pickup nodes.
 - **Particle budget.** Limit total active particle systems. Reduce particle count on lower settings.
 - **Tilemap optimization.** Godot 4's TileMap is efficient for 2D. No concerns here for arena sizes we're planning.

@@ -1,0 +1,42 @@
+[gd_scene format=3 uid="uid://cu4u5h2l5kr8i"]
+
+[ext_resource type="Script" uid="uid://bm51u0gsqoa0c" path="res://scripts/ui/hub_workshop_panel.gd" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://c0uvbpf8o2ifu" path="res://scenes/ui/hub_panel_base.tscn" id="2_base"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_afsn8"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+bg_color = Color(0.065, 0.075, 0.1, 0.97)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.68, 0.24, 0.88, 1)
+
+[node name="HubWorkshopPanel" type="Control" unique_id=178276045]
+layout_mode = 3
+anchors_preset = 0
+offset_left = 90.0
+offset_top = 35.0
+offset_right = 390.0
+offset_bottom = 265.0
+script = ExtResource("1_script")
+
+[node name="PanelBase" parent="." unique_id=2008636417 instance=ExtResource("2_base")]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = -0.023000002
+anchor_top = -0.108
+anchor_right = 0.97700006
+anchor_bottom = 0.892
+offset_left = 0.115820885
+offset_top = -0.02671814
+offset_right = 0.11581421
+offset_bottom = -0.02671814
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_afsn8")
+title_text = "WORKSHOP"
+accent_color = Color(0.68, 0.24, 0.88, 1)

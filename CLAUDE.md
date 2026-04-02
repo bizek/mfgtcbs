@@ -143,3 +143,26 @@ Do NOT build for prototype:
 - When in doubt about a design decision, check the design docs first. If the answer isn't there, ask Ben.
 - Placeholder art is fine. Colored rectangles are fine. The prototype validates FEEL, not LOOK.
 - The prototype is DISPOSABLE. Its purpose is to validate decisions. If something fundamental is wrong, we throw it away and redesign.
+
+---
+
+## Godot Rules — CRITICAL
+
+### Scene Editing
+
+**NEVER hand-edit `.tscn` scene files directly.** Always use MCP tools (`godot-mcp-pro`) or the Godot editor. Hand-editing `.tscn` files causes silent node stripping, broken layouts, and parse errors.
+
+### UI
+
+This project uses a **4x viewport scaling factor**. All UI text sizes, font sizes, and label dimensions must account for this multiplier. Default font sizes will appear unreadably small.
+
+### Debugging Checklist
+
+After implementing any spatial/positioning feature (spawns, projectiles, collisions), verify coordinates are within expected bounds. Check that:
+- Spawn positions are inside arena walls
+- Collision layers are correct
+- Projectile rotations match visual expectations
+
+### MCP Usage
+
+Do **NOT** call `validate_script` repeatedly during implementation. It creates conflicting in-memory scripts that cause parse errors in subsequent sessions. Validate only once at the end.
