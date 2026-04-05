@@ -23,9 +23,6 @@ UpgradeManager="*res://scripts/managers/upgrade_manager.gd"
 EnemySpawnManager="*res://scripts/managers/enemy_spawn_manager.gd"
 ExtractionManager="*res://scripts/managers/extraction_manager.gd"
 ProgressionManager="*res://scripts/managers/progression_manager.gd"
-MCPScreenshot="*res://addons/godot_mcp/mcp_screenshot_service.gd"
-MCPInputService="*res://addons/godot_mcp/mcp_input_service.gd"
-MCPGameInspector="*res://addons/godot_mcp/mcp_game_inspector_service.gd"
 
 [display]
 
