@@ -5,10 +5,12 @@ extends Node2D
 const ARENA_HALF_W: float = 800.0
 const ARENA_HALF_H: float = 600.0
 
-const DamageNumberClass  = preload("res://scripts/ui/damage_number.gd")
 const LootDropScene      = preload("res://scenes/pickups/loot_drop.tscn")
 const WeaponPickupScript = preload("res://scripts/pickups/weapon_pickup.gd")
 const ModPickupScript    = preload("res://scripts/pickups/mod_pickup.gd")
+
+## Pooled combat feedback — replaces per-hit DamageNumber node instantiation
+var combat_feedback: CombatFeedbackManager = null
 
 @onready var player: CharacterBody2D = $Player
 @onready var hud: CanvasLayer = $HUD
@@ -70,9 +72,12 @@ func _ready() -> void:
 	_camera.limit_bottom = int(ARENA_HALF_H)
 	player.add_child(_camera)
 
-	## Connect combat signals for screen shake and damage numbers
+	## Connect combat signals for screen shake and loot drops
 	CombatManager.entity_killed.connect(_on_entity_killed)
-	CombatManager.damage_dealt.connect(_on_damage_dealt)
+
+	## Pooled damage numbers — auto-connects to CombatManager.damage_dealt
+	combat_feedback = CombatFeedbackManager.new()
+	add_child(combat_feedback)
 
 	## Wire UI to player
 	hud.setup(player)
@@ -945,12 +950,6 @@ func _spawn_weapon_drop(pos: Vector2) -> void:
 	pickup.weapon_id       = weapon_id
 	pickup.global_position = pos
 	add_child(pickup)
-
-func _on_damage_dealt(_attacker: Node, defender: Node, amount: float, was_crit: bool) -> void:
-	if is_instance_valid(defender) and defender.is_in_group("enemies"):
-		var dmg_num: Node2D = DamageNumberClass.new()
-		add_child(dmg_num)
-		dmg_num.setup(amount, was_crit, defender.global_position)
 
 func _shake_camera(intensity: float = 3.0, duration: float = 0.12) -> void:
 	if _camera == null or not is_instance_valid(_camera):
