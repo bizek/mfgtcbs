@@ -23,10 +23,14 @@ func _physics_process(delta: float) -> void:
 	if _is_dead or player_ref == null or not is_instance_valid(player_ref):
 		return
 
+	## Tick status effects and contact damage cooldown
+	_contact_damage_timer = maxf(_contact_damage_timer - delta, 0.0)
+	_tick_statuses(delta)
+
 	## Move toward player (stays near pack naturally)
 	if not (player_ref.has_method("is_invisible") and player_ref.is_invisible()):
 		var direction: Vector2 = (player_ref.global_position - global_position).normalized()
-		velocity = direction * move_speed + knockback_velocity
+		velocity = direction * move_speed * _speed_mult + knockback_velocity
 	else:
 		velocity = knockback_velocity
 

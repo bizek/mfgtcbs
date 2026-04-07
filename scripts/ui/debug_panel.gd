@@ -238,9 +238,8 @@ func _cmd_unlock_all_characters() -> void:
 
 func _cmd_kill_all() -> void:
 	for enemy in get_tree().get_nodes_in_group("enemies"):
-		if is_instance_valid(enemy):
-			GameManager.register_kill()
-			enemy.queue_free()
+		if is_instance_valid(enemy) and enemy.has_method("take_damage"):
+			enemy.take_damage(99999.0)
 
 func _cmd_spawn_enemy(type: String) -> void:
 	const PATHS: Dictionary = {

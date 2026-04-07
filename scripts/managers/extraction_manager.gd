@@ -14,6 +14,10 @@ var channel_timer: float = 0.0
 var channel_duration: float = 4.0 ## 4 seconds to extract
 var extraction_speed_multiplier: float = 1.0
 
+func _ready() -> void:
+	GameManager.run_started.connect(reset)
+	GameManager.player_died.connect(func(): interrupt_channel())
+
 func _process(delta: float) -> void:
 	if not is_channeling:
 		return
@@ -46,7 +50,6 @@ func _complete_extraction() -> void:
 	is_channeling = false
 	channel_timer = 0.0
 	extraction_complete.emit()
-	GameManager.on_extraction_complete()
 
 func reset() -> void:
 	is_channeling = false

@@ -24,6 +24,10 @@ signal enemy_spawned(enemy: Node)
 const PHASE2_TIME: float = 120.0   ## Brutes + Casters appear after 2 min
 const PHASE3_TIME: float = 240.0   ## Carriers + Stalkers + Heralds after 4 min
 
+## Roll ramp rates — seconds of elapsed time for probability to scale from base to cap
+const BRUTE_ROLL_RAMP: float = 600.0   ## Brute spawn chance ramps over 10 min
+const CASTER_ROLL_RAMP: float = 500.0  ## Caster spawn chance ramps over ~8 min
+
 ## ── Carrier pacing — 1 per interval early, 2 per interval late ───────────────
 const CARRIER_INTERVAL: float = 55.0  ## Seconds between carrier spawns
 var _carrier_timer: float = CARRIER_INTERVAL * 0.8  ## First carrier slightly early
@@ -80,13 +84,21 @@ func start_spawning(player: Node2D, bounds: Rect2) -> void:
 	spawn_enabled = true
 	spawn_timer = 3.0  ## Grace period before first wave
 	active_enemies = 0
+	## Track enemy deaths via combat signal
+	if not CombatManager.entity_killed.is_connected(_on_entity_killed):
+		CombatManager.entity_killed.connect(_on_entity_killed)
 	_carrier_timer = CARRIER_INTERVAL * 0.8
 	_herald_timer  = HERALD_INTERVAL
 
 func stop_spawning() -> void:
 	spawn_enabled = false
 
-func on_enemy_died() -> void:
+func _on_entity_killed(_killer: Node, victim: Node, _pos: Vector2) -> void:
+	if victim.is_in_group("enemies"):
+		active_enemies -= 1
+
+## For non-combat despawns (e.g. carrier escaping arena bounds)
+func on_enemy_despawned() -> void:
 	active_enemies -= 1
 
 ## ── Wave composition ─────────────────────────────────────────────────────────
@@ -105,7 +117,7 @@ func _spawn_wave() -> void:
 
 	## Phase 2+: occasional Brute (1–2 per wave, rare roll)
 	if GameManager.run_time >= PHASE2_TIME and brute_scene != null:
-		var brute_roll: float = clampf(0.12 + (GameManager.run_time - PHASE2_TIME) / 600.0, 0.12, 0.35)
+		var brute_roll: float = clampf(0.12 + (GameManager.run_time - PHASE2_TIME) / BRUTE_ROLL_RAMP, 0.12, 0.35)
 		if randf() < brute_roll:
 			var brute_count: int = randi_range(1, 2)
 			for _b in range(brute_count):
@@ -114,7 +126,7 @@ func _spawn_wave() -> void:
 
 	## Phase 2+: occasional Caster pair
 	if GameManager.run_time >= PHASE2_TIME and caster_scene != null:
-		var caster_roll: float = clampf(0.15 + (GameManager.run_time - PHASE2_TIME) / 500.0, 0.15, 0.40)
+		var caster_roll: float = clampf(0.15 + (GameManager.run_time - PHASE2_TIME) / CASTER_ROLL_RAMP, 0.15, 0.40)
 		if randf() < caster_roll:
 			for _c in range(2):  ## Casters always spawn in pairs
 				if active_enemies < max_enemies:

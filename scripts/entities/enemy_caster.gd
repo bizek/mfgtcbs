@@ -5,6 +5,7 @@ extends "res://scripts/entities/enemy.gd"
 
 const PREFERRED_RANGE: float = 175.0
 const FIRE_INTERVAL: float = 2.0
+const ENEMY_PROJECTILE_PATH: String = "res://scenes/projectiles/enemy_projectile.tscn"
 
 var _fire_timer: float = 1.2  ## Slight delay before first shot
 var _projectile_scene: PackedScene = null
@@ -14,12 +15,16 @@ func _ready() -> void:
 	_base_modulate = Color(0.45, 0.5, 1.0, 1.0)
 	if sprite:
 		sprite.modulate = _base_modulate
-	if ResourceLoader.exists("res://scenes/projectiles/enemy_projectile.tscn"):
-		_projectile_scene = load("res://scenes/projectiles/enemy_projectile.tscn")
+	if ResourceLoader.exists(ENEMY_PROJECTILE_PATH):
+		_projectile_scene = load(ENEMY_PROJECTILE_PATH)
 
 func _physics_process(delta: float) -> void:
 	if _is_dead or player_ref == null or not is_instance_valid(player_ref):
 		return
+
+	## Tick status effects (fire DOT, cryo, etc.) and contact damage cooldown
+	_contact_damage_timer = maxf(_contact_damage_timer - delta, 0.0)
+	_tick_statuses(delta)
 
 	## Shade passive: don't react to an invisible player
 	if player_ref.has_method("is_invisible") and player_ref.is_invisible():
@@ -33,7 +38,7 @@ func _physics_process(delta: float) -> void:
 	if dist > PREFERRED_RANGE:
 		## Close the gap
 		var dir: Vector2 = (player_ref.global_position - global_position).normalized()
-		velocity = dir * move_speed + knockback_velocity
+		velocity = dir * move_speed * _speed_mult + knockback_velocity
 	else:
 		## Hold position — only knockback moves us
 		velocity = knockback_velocity

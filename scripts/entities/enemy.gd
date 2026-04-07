@@ -4,6 +4,9 @@ extends CharacterBody2D
 
 signal died(enemy: Node2D)
 
+const XP_GEM_SCENE_PATH: String = "res://scenes/pickups/xp_gem.tscn"
+const HEALTH_ORB_SCENE_PATH: String = "res://scenes/pickups/health_orb.tscn"
+
 ## Stats (overridden per enemy type via @export)
 @export var max_hp: float = 30.0
 @export var move_speed: float = 42.0
@@ -65,8 +68,8 @@ func _ready() -> void:
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
 	hp = max_hp
 	add_to_group("enemies")
-	xp_pickup_scene = load("res://scenes/pickups/xp_gem.tscn") if ResourceLoader.exists("res://scenes/pickups/xp_gem.tscn") else null
-	health_orb_scene = load("res://scenes/pickups/health_orb.tscn") if ResourceLoader.exists("res://scenes/pickups/health_orb.tscn") else null
+	xp_pickup_scene = load(XP_GEM_SCENE_PATH) if ResourceLoader.exists(XP_GEM_SCENE_PATH) else null
+	health_orb_scene = load(HEALTH_ORB_SCENE_PATH) if ResourceLoader.exists(HEALTH_ORB_SCENE_PATH) else null
 
 	## Find the player
 	player_ref = get_tree().get_first_node_in_group("player")
@@ -242,10 +245,9 @@ func _tick_statuses(delta: float) -> void:
 				if s["tick_timer"] <= 0.0:
 					s["tick_timer"] = 1.0
 					if not _is_dead:
-						hp -= s["dot_damage"]
-						if hp <= 0.0:
-							hp = 0.0
-							_die()
+						## Route through CombatManager so entity_killed signal fires
+						CombatManager.resolve_hit(self, self, s["dot_damage"], 0.0, 1.0)
+						if _is_dead:
 							return
 
 	for key in to_remove:
@@ -380,10 +382,6 @@ func _die() -> void:
 	_is_dead = true
 	died.emit(self)
 
-	## Notify managers
-	GameManager.register_kill()
-	EnemySpawnManager.on_enemy_died()
-
 	## Void-Touched: explode before the death burst so damage fires from the right position
 	if _void_touched:
 		_void_explosion()
@@ -415,33 +413,13 @@ func _void_explosion() -> void:
 	GameManager.modify_instability(2)
 
 	## Visual: dark purple expanding ring + void particle burst
-	var ring := ColorRect.new()
-	ring.color = Color(0.40, 0.08, 0.65, 0.55)
-	ring.size = Vector2(VOID_RADIUS * 2.0, VOID_RADIUS * 2.0)
-	ring.position = global_position - Vector2(VOID_RADIUS, VOID_RADIUS)
-	get_tree().current_scene.add_child(ring)
-	var rt := ring.create_tween()
-	rt.tween_property(ring, "scale", Vector2(1.4, 1.4), 0.25).set_trans(Tween.TRANS_EXPO)
-	rt.parallel().tween_property(ring, "modulate:a", 0.0, 0.25)
-	rt.tween_callback(ring.queue_free)
-
-	var p := CPUParticles2D.new()
-	p.global_position = global_position
-	p.amount = 14
-	p.lifetime = 0.55
-	p.one_shot = true
-	p.explosiveness = 1.0
-	p.direction = Vector2.ZERO
-	p.spread = 180.0
-	p.initial_velocity_min = 60.0
-	p.initial_velocity_max = 160.0
-	p.gravity = Vector2.ZERO
-	p.scale_amount_min = 2.0
-	p.scale_amount_max = 5.0
-	p.color = Color(0.55, 0.10, 0.90, 0.90)
-	get_tree().current_scene.add_child(p)
-	p.emitting = true
-	get_tree().create_timer(1.0).timeout.connect(func(): if is_instance_valid(p): p.queue_free())
+	VFXHelpers.spawn_expanding_ring(
+		get_tree().current_scene, global_position,
+		Color(0.40, 0.08, 0.65, 0.55), VOID_RADIUS, 1.4, 0.25)
+	VFXHelpers.spawn_burst(
+		get_tree().current_scene, global_position,
+		Color(0.55, 0.10, 0.90, 0.90), 14, 0.55, 60.0, 160.0, 2.0, 5.0,
+		Vector2.ZERO)
 
 ## Persistent void aura particles — applied when void_touched status lands.
 func _spawn_void_touched_particles() -> void:
@@ -463,24 +441,10 @@ func _spawn_void_touched_particles() -> void:
 	## Particles are a child — they queue_free with the enemy on death automatically
 
 func _spawn_death_effect() -> void:
-	var particles := CPUParticles2D.new()
-	particles.global_position = global_position
-	particles.amount = 8
-	particles.lifetime = 0.45
-	particles.one_shot = true
-	particles.explosiveness = 1.0
-	particles.direction = Vector2(0.0, -1.0)
-	particles.spread = 180.0
-	particles.initial_velocity_min = 50.0
-	particles.initial_velocity_max = 130.0
-	particles.gravity = Vector2(0.0, 120.0)
-	particles.scale_amount_min = 2.0
-	particles.scale_amount_max = 4.0
-	particles.color = Color(1.0, 0.5, 0.1, 1.0)
-	get_tree().current_scene.add_child(particles)
-	particles.emitting = true
-	## Auto-free after particles finish
-	get_tree().create_timer(1.0).timeout.connect(func(): if is_instance_valid(particles): particles.queue_free())
+	VFXHelpers.spawn_burst(
+		get_tree().current_scene, global_position,
+		Color(1.0, 0.5, 0.1, 1.0), 8, 0.45, 50.0, 130.0, 2.0, 4.0,
+		Vector2(0.0, 120.0))
 
 func _drop_xp() -> void:
 	if xp_pickup_scene == null:

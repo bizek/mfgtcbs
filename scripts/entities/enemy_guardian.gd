@@ -43,9 +43,9 @@ func _ready() -> void:
 	add_to_group("guardians")
 	player_ref = get_tree().get_first_node_in_group("player")
 
-	## Physics — same layers as regular enemies
+	## Physics — layer 2 (enemies), mask 1+2 (collides with player and other enemies)
 	collision_layer = 2
-	collision_mask = 3
+	collision_mask = 3  ## Bit 1 (player) + Bit 2 (enemies) = 3
 
 	_build_collision_shape()
 	_build_sprite()
@@ -208,9 +208,6 @@ func _die() -> void:
 	_is_dead = true
 	guardian_killed.emit()
 
-	GameManager.register_kill()
-	EnemySpawnManager.on_enemy_died()
-
 	_try_drop_keystone()
 	_drop_xp()
 	_spawn_death_burst()
@@ -238,23 +235,10 @@ func _drop_xp() -> void:
 	get_tree().current_scene.add_child(gem)
 
 func _spawn_death_burst() -> void:
-	var p := CPUParticles2D.new()
-	p.global_position = global_position
-	p.amount = 22
-	p.lifetime = 1.0
-	p.one_shot = true
-	p.explosiveness = 1.0
-	p.direction = Vector2.ZERO
-	p.spread = 180.0
-	p.initial_velocity_min = 90.0
-	p.initial_velocity_max = 260.0
-	p.gravity = Vector2(0.0, 90.0)
-	p.scale_amount_min = 3.0
-	p.scale_amount_max = 9.0
-	p.color = Color(0.9, 0.18, 0.06, 1.0)
-	get_tree().current_scene.add_child(p)
-	p.emitting = true
-	get_tree().create_timer(1.6).timeout.connect(func(): if is_instance_valid(p): p.queue_free())
+	VFXHelpers.spawn_burst(
+		get_tree().current_scene, global_position,
+		Color(0.9, 0.18, 0.06, 1.0), 22, 1.0, 90.0, 260.0, 3.0, 9.0,
+		Vector2(0.0, 90.0))
 
 func _on_hurtbox_body_entered(body: Node2D) -> void:
 	if _is_dead:

@@ -9,6 +9,7 @@ var _loot_value: float = 45.0  ## High instability weight — worth extracting w
 
 func _ready() -> void:
 	super._ready()
+	add_to_group("carriers")
 	_base_modulate = Color(1.0, 0.85, 0.1, 1.0)
 	if sprite:
 		sprite.modulate = _base_modulate
@@ -20,9 +21,13 @@ func _physics_process(delta: float) -> void:
 	if _is_dead or player_ref == null or not is_instance_valid(player_ref):
 		return
 
+	## Tick status effects (fire DOT, cryo, etc.) and contact damage cooldown
+	_contact_damage_timer = maxf(_contact_damage_timer - delta, 0.0)
+	_tick_statuses(delta)
+
 	## Run away from player
 	var dir: Vector2 = (global_position - player_ref.global_position).normalized()
-	velocity = dir * move_speed + knockback_velocity
+	velocity = dir * move_speed * _speed_mult + knockback_velocity
 	move_and_slide()
 	knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 800.0 * delta)
 
@@ -36,7 +41,7 @@ func _physics_process(delta: float) -> void:
 
 func _despawn_escaped() -> void:
 	_is_dead = true
-	EnemySpawnManager.on_enemy_died()
+	EnemySpawnManager.on_enemy_despawned()
 	queue_free()
 
 func _die() -> void:

@@ -41,6 +41,8 @@ var kills: int = 0
 var is_paused: bool = false
 
 ## Difficulty scaling — time-based for prototype
+const DIFFICULTY_SCALE_PERIOD: float = 30.0
+const DIFFICULTY_SCALE_RATE: float = 0.15
 var difficulty_multiplier: float = 1.0
 
 ## Loot and instability
@@ -66,6 +68,10 @@ var active_extraction_type: String = "timed"
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	## Listen to extraction completion via signal (not direct call)
+	ExtractionManager.extraction_complete.connect(on_extraction_complete)
+	## Track kills via combat signal instead of direct register_kill() calls
+	CombatManager.entity_killed.connect(_on_entity_killed)
 
 func _process(delta: float) -> void:
 	if current_state != GameState.RUN_ACTIVE:
@@ -74,8 +80,8 @@ func _process(delta: float) -> void:
 	run_time += delta
 	phase_timer += delta
 	
-	## Update difficulty over time (scales every 30 seconds)
-	difficulty_multiplier = 1.0 + (run_time / 30.0) * 0.15
+	## Update difficulty over time
+	difficulty_multiplier = 1.0 + (run_time / DIFFICULTY_SCALE_PERIOD) * DIFFICULTY_SCALE_RATE
 	
 	## Check if phase timer reached duration — open extraction window
 	if phase_timer >= phase_duration and not extraction_window_active:
@@ -88,7 +94,6 @@ func _process(delta: float) -> void:
 			_close_extraction_window()
 
 func start_run() -> void:
-	ExtractionManager.reset()
 	current_state = GameState.RUN_ACTIVE
 	phase_number = 1
 	phase_timer = 0.0
@@ -120,8 +125,9 @@ func start_run() -> void:
 		loot_changed.emit(loot_carried)
 		instability_changed.emit(instability)
 
-func register_kill() -> void:
-	kills += 1
+func _on_entity_killed(_killer: Node, victim: Node, _pos: Vector2) -> void:
+	if victim.is_in_group("enemies"):
+		kills += 1
 
 func set_paused(paused: bool) -> void:
 	if paused == is_paused:
@@ -143,7 +149,6 @@ func exit_level_up() -> void:
 
 func on_player_died() -> void:
 	current_state = GameState.GAME_OVER
-	ExtractionManager.interrupt_channel()
 	player_died.emit()
 
 func on_extraction_complete() -> void:
