@@ -7,18 +7,18 @@ signal close_requested
 
 @onready var _base: HubPanelBase = $PanelBase
 
-@onready var _insurance_name: Label  = $PanelBase/ContentContainer/WorkshopScroll/WorkshopInner/InsuranceNameLabel
-@onready var _insurance_btn:  Button = $PanelBase/ContentContainer/WorkshopScroll/WorkshopInner/InsuranceBtn
-@onready var _armory_name:    Label  = $PanelBase/ContentContainer/WorkshopScroll/WorkshopInner/ArmoryNameLabel
-@onready var _armory_btn:     Button = $PanelBase/ContentContainer/WorkshopScroll/WorkshopInner/ArmoryExpansionBtn
-@onready var _channel_name:   Label  = $PanelBase/ContentContainer/WorkshopScroll/WorkshopInner/ChannelAccelNameLabel
-@onready var _channel_btn:    Button = $PanelBase/ContentContainer/WorkshopScroll/WorkshopInner/ChannelAccelBtn
-@onready var _reroll_cap_name: Label  = $PanelBase/ContentContainer/WorkshopScroll/WorkshopInner/RerollCapNameLabel
-@onready var _reroll_cap_btn:  Button = $PanelBase/ContentContainer/WorkshopScroll/WorkshopInner/RerollCapBtn
-@onready var _intel_name:      Label  = $PanelBase/ContentContainer/WorkshopScroll/WorkshopInner/ExtractionIntelNameLabel
-@onready var _intel_btn:       Button = $PanelBase/ContentContainer/WorkshopScroll/WorkshopInner/ExtractionIntelBtn
-@onready var _hub_tier:       Label  = $PanelBase/ContentContainer/WorkshopScroll/WorkshopInner/HubTierLabel
-@onready var _spent:          Label  = $PanelBase/ContentContainer/WorkshopScroll/WorkshopInner/SpentLabel
+var _insurance_name: Label  = null
+var _insurance_btn:  Button = null
+var _armory_name:    Label  = null
+var _armory_btn:     Button = null
+var _channel_name:   Label  = null
+var _channel_btn:    Button = null
+var _reroll_cap_name: Label  = null
+var _reroll_cap_btn:  Button = null
+var _intel_name:      Label  = null
+var _intel_btn:       Button = null
+var _hub_tier:       Label  = null
+var _spent:          Label  = null
 
 var _pm: Node = null
 
@@ -26,7 +26,66 @@ func _ready() -> void:
 	_base.close_requested.connect(func(): close_requested.emit())
 	if Engine.is_editor_hint():
 		return
+	_build_ui()
 	populate(ProgressionManager)
+
+func _build_ui() -> void:
+	var content: Control = _base.get_content()
+	var font := HubPanelBase.PIXEL_FONT
+
+	var scroll := ScrollContainer.new()
+	scroll.position = Vector2(0, 0)
+	scroll.size = Vector2(HubPanelBase.PANEL_W, HubPanelBase.CONTENT_H)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	content.add_child(scroll)
+
+	var vbox := VBoxContainer.new()
+	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vbox.add_theme_constant_override("separation", 2)
+	## Inset content within the scroll area
+	var margin := MarginContainer.new()
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	margin.add_theme_constant_override("margin_left", 8)
+	margin.add_theme_constant_override("margin_right", 8)
+	margin.add_theme_constant_override("margin_top", 4)
+	margin.add_theme_constant_override("margin_bottom", 4)
+	scroll.add_child(margin)
+	margin.add_child(vbox)
+
+	## Upgrade rows: [label_var, btn_var]
+	_insurance_name   = _add_row_label(vbox, font, HubPanelBase.FONT_BODY)
+	_insurance_btn    = _add_row_btn(vbox, font, HubPanelBase.FONT_BODY)
+	_armory_name      = _add_row_label(vbox, font, HubPanelBase.FONT_BODY)
+	_armory_btn       = _add_row_btn(vbox, font, HubPanelBase.FONT_BODY)
+	_channel_name     = _add_row_label(vbox, font, HubPanelBase.FONT_BODY)
+	_channel_btn      = _add_row_btn(vbox, font, HubPanelBase.FONT_BODY)
+	_reroll_cap_name  = _add_row_label(vbox, font, HubPanelBase.FONT_BODY)
+	_reroll_cap_btn   = _add_row_btn(vbox, font, HubPanelBase.FONT_BODY)
+	_intel_name       = _add_row_label(vbox, font, HubPanelBase.FONT_BODY)
+	_intel_btn        = _add_row_btn(vbox, font, HubPanelBase.FONT_BODY)
+
+	## Footer
+	_hub_tier = _add_row_label(vbox, font, HubPanelBase.FONT_DIM, Color(0.55, 0.55, 0.62))
+	_spent    = _add_row_label(vbox, font, HubPanelBase.FONT_DIM, Color(0.55, 0.55, 0.62))
+
+func _add_row_label(parent: Control, font: Font, font_size: int,
+		color: Color = Color(0.82, 0.82, 0.87)) -> Label:
+	var lbl := Label.new()
+	lbl.add_theme_font_override("font", font)
+	lbl.add_theme_font_size_override("font_size", font_size)
+	lbl.add_theme_color_override("font_color", color)
+	lbl.custom_minimum_size = Vector2(272, 18)
+	parent.add_child(lbl)
+	return lbl
+
+func _add_row_btn(parent: Control, font: Font, font_size: int) -> Button:
+	var btn := Button.new()
+	btn.add_theme_font_override("font", font)
+	btn.add_theme_font_size_override("font_size", font_size)
+	btn.custom_minimum_size = Vector2(272, 20)
+	parent.add_child(btn)
+	return btn
 
 func populate(pm: Node) -> void:
 	_pm = pm

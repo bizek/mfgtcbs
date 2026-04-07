@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://buxvu0uk7jfxn"]
 
 [ext_resource type="Script" uid="uid://cm7mpep17584s" path="res://scripts/ui/hub_armory_panel.gd" id="1_script"]
-[ext_resource type="PackedScene" path="res://scenes/ui/hub_panel_base.tscn" id="2_base"]
+[ext_resource type="PackedScene" uid="uid://c0uvbpf8o2ifu" path="res://scenes/ui/hub_panel_base.tscn" id="2_base"]
 [ext_resource type="FontFile" uid="uid://cm5x7font0001" path="res://assets/fonts/m5x7.ttf" id="3_font"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vxasb"]
@@ -30,21 +30,15 @@ bg_color = Color(0.18, 0.16, 0.12, 0.55)
 layout_mode = 3
 anchors_preset = 0
 offset_left = 90.0
-offset_top = 35.0
+offset_top = 10.0
 offset_right = 390.0
-offset_bottom = 285.0
+offset_bottom = 260.0
 script = ExtResource("1_script")
 
 [node name="PanelBase" parent="." unique_id=651479519 instance=ExtResource("2_base")]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = -11.0
-offset_right = 29.0
-offset_bottom = -20.0
-grow_horizontal = 2
-grow_vertical = 2
+layout_mode = 0
+offset_right = 300.0
+offset_bottom = 250.0
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_vxasb")
 title_text = "ARMORY"
@@ -55,9 +49,6 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -4.0
-offset_right = -1.0
-offset_bottom = 13.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
@@ -67,10 +58,6 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -12.0
-offset_top = -1.0
-offset_right = -2.0
-offset_bottom = 18.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2

@@ -98,6 +98,8 @@ func _build() -> void:
 		else:
 			name_col = Color(0.36, 0.36, 0.40)
 		_char_btns[i].add_theme_color_override("font_color", name_col)
+		_base.style_btn(_char_btns[i],
+				Color(0.0, 0.0, 0.0, 0.0), Color(0.15, 0.15, 0.20, 0.50), 2)
 
 		## Reconnect pressed signal (disconnect old first to avoid duplicates).
 		if _char_btns[i].pressed.get_connections().size() > 0:

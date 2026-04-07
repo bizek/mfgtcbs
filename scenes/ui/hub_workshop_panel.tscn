@@ -25,18 +25,9 @@ offset_bottom = 265.0
 script = ExtResource("1_script")
 
 [node name="PanelBase" parent="." unique_id=2008636417 instance=ExtResource("2_base")]
-layout_mode = 1
-anchors_preset = -1
-anchor_left = -0.023000002
-anchor_top = -0.108
-anchor_right = 0.97700006
-anchor_bottom = 0.892
-offset_left = 0.115820885
-offset_top = -0.02671814
-offset_right = 0.11581421
-offset_bottom = -0.02671814
-grow_horizontal = 2
-grow_vertical = 2
+layout_mode = 0
+offset_right = 300.0
+offset_bottom = 230.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_afsn8")
 title_text = "WORKSHOP"
 accent_color = Color(0.68, 0.24, 0.88, 1)
