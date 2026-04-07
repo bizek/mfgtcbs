@@ -69,6 +69,9 @@ var ability_damage_mult: float = 1.0
 var ability_cdr_mult: float = 1.0
 var ability_slots: int = 1
 
+## Spatial grid for fast enemy lookups (set by main_arena.gd)
+var enemy_grid: SpatialGrid = null
+
 ## State
 var _is_dead: bool = false
 var god_mode: bool = false  ## Debug: player takes no damage when true
@@ -508,7 +511,8 @@ func _fire_melee_weapon() -> void:
 	var arc_half: float   = deg_to_rad(arc_deg * 0.5)
 	var center_angle: float = swing_dir.angle()
 
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	var melee_candidates: Array = enemy_grid.get_nearby_in_range(global_position, range_px) if enemy_grid else get_tree().get_nodes_in_group("enemies")
+	for enemy in melee_candidates:
 		if not is_instance_valid(enemy):
 			continue
 		var to_enemy: Vector2 = enemy.global_position - global_position
@@ -633,7 +637,8 @@ func _detonate_mortar(
 		pos: Vector2, radius: float,
 		dmg: float, crit_ch: float, crit_m: float, tint: Color) -> void:
 
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	var mortar_targets: Array = enemy_grid.get_nearby_in_range(pos, radius) if enemy_grid else get_tree().get_nodes_in_group("enemies")
+	for enemy in mortar_targets:
 		if not is_instance_valid(enemy):
 			continue
 		if pos.distance_to(enemy.global_position) <= radius:
@@ -724,7 +729,8 @@ func _apply_direct_hit_mods(enemy: Node, raw_damage: float) -> void:
 func _do_chain_hit(origin: Vector2, origin_enemy: Node, dmg: float, range_px: float) -> void:
 	var nearest: Node2D = null
 	var nearest_dist: float = range_px
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	var chain_candidates: Array = enemy_grid.get_nearby_in_range(origin, range_px) if enemy_grid else get_tree().get_nodes_in_group("enemies")
+	for enemy in chain_candidates:
 		if not is_instance_valid(enemy) or enemy == origin_enemy:
 			continue
 		var dist: float = origin.distance_to(enemy.global_position)
@@ -748,7 +754,8 @@ func _do_chain_hit(origin: Vector2, origin_enemy: Node, dmg: float, range_px: fl
 
 ## Explosion for direct-hit weapons.
 func _do_explosion(pos: Vector2, dmg: float, radius: float) -> void:
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	var explosion_targets: Array = enemy_grid.get_nearby_in_range(pos, radius) if enemy_grid else get_tree().get_nodes_in_group("enemies")
+	for enemy in explosion_targets:
 		if not is_instance_valid(enemy):
 			continue
 		if pos.distance_to(enemy.global_position) <= radius:
@@ -768,6 +775,9 @@ func _do_explosion(pos: Vector2, dmg: float, radius: float) -> void:
 # ─── Shared helpers ────────────────────────────────────────────────────────────
 
 func _get_nearest_enemy() -> Node2D:
+	if enemy_grid:
+		return enemy_grid.find_nearest(global_position)
+	## Fallback: linear scan (only if grid isn't wired yet)
 	var enemies := get_tree().get_nodes_in_group("enemies")
 	var nearest: Node2D = null
 	var nearest_dist: float = INF
