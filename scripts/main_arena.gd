@@ -13,6 +13,9 @@ const ModPickupScript    = preload("res://scripts/pickups/mod_pickup.gd")
 ## Pooled combat feedback — replaces per-hit DamageNumber node instantiation
 var combat_feedback: CombatFeedbackManager = null
 
+## Spatial grid for fast proximity queries (replaces per-frame group iteration)
+var enemy_grid: SpatialGrid = SpatialGrid.new()
+
 @onready var player: CharacterBody2D = $Player
 @onready var hud: CanvasLayer = $HUD
 @onready var level_up_screen: CanvasLayer = $LevelUpScreen
@@ -96,6 +99,9 @@ func _ready() -> void:
 		add_child(debug_panel)
 		debug_panel.setup(player)
 
+	## Give the player a reference to the spatial grid for targeting queries
+	player.enemy_grid = enemy_grid
+
 	## Start run
 	GameManager.start_run()
 
@@ -111,6 +117,9 @@ func _process(delta: float) -> void:
 
 	if not is_instance_valid(player):
 		return
+
+	## Rebuild spatial grid once per frame for all proximity queries
+	enemy_grid.rebuild(get_tree().get_nodes_in_group("enemies"))
 
 	var ppos: Vector2 = player.global_position
 

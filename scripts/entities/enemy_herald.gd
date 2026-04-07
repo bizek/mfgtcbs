@@ -60,14 +60,21 @@ func _draw() -> void:
 	draw_circle(Vector2.ZERO, AURA_RADIUS * 0.6, Color(0.9, 0.3, 1.0, _aura_alpha))
 
 func _update_aura_buffs() -> void:
-	var all_enemies: Array = get_tree().get_nodes_in_group("enemies")
+	## Use the spatial grid from main_arena if available, else fall back to group scan
+	var arena := get_tree().current_scene
 	var now_nearby: Array = []
-
-	for enemy in all_enemies:
-		if enemy == self or not is_instance_valid(enemy):
-			continue
-		if global_position.distance_to(enemy.global_position) <= AURA_RADIUS:
-			now_nearby.append(enemy)
+	if arena and arena.has("enemy_grid") and arena.enemy_grid != null:
+		var candidates: Array = arena.enemy_grid.get_nearby_in_range(global_position, AURA_RADIUS)
+		for enemy in candidates:
+			if enemy != self and is_instance_valid(enemy):
+				now_nearby.append(enemy)
+	else:
+		var all_enemies: Array = get_tree().get_nodes_in_group("enemies")
+		for enemy in all_enemies:
+			if enemy == self or not is_instance_valid(enemy):
+				continue
+			if global_position.distance_to(enemy.global_position) <= AURA_RADIUS:
+				now_nearby.append(enemy)
 
 	## Unbuff enemies that have left the aura
 	var still_buffed: Array = []

@@ -62,6 +62,9 @@ var ability_damage_mult: float = 1.0
 var ability_cdr_mult: float = 1.0
 var ability_slots: int = 1
 
+## Spatial grid for fast enemy lookups (set by main_arena.gd)
+var enemy_grid: SpatialGrid = null
+
 ## State
 var _is_dead: bool = false
 var god_mode: bool = false
