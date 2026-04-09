@@ -2,12 +2,32 @@
 
 This document is the master plan for porting the autobattler engine framework into Extraction Survivors. It replaces ad-hoc prototype patterns with a scalable, data-driven architecture where new abilities, status effects, enemies, weapons, and talents are created entirely as Resource definitions — zero code changes needed for new content.
 
-**Source engine:** `M:\autobattler` (Hans's autobattler project)
-**Target project:** This repo (Extraction Survivors / mfgtcbs)
+## Project Locations
 
-**How to use this doc:** Each session, run `/implement` with the next unchecked task from the build order. Read this doc first to understand what you're building and why. Read the referenced source files from `M:\autobattler` to understand the pattern. Then implement in this project, adapting for top-down survivors gameplay where noted.
+| Role | Path | Description |
+|---|---|---|
+| **Target project (you write code HERE)** | `C:\Users\Hans\AppData\Local\Temp\mfgtcbs` | Extraction Survivors — the game being refactored |
+| **Source engine (you READ patterns from here)** | `M:\autobattler` | Hans's autobattler — the reference architecture to port FROM |
+
+**All file creation and editing happens in the target project.** The source engine is read-only reference material. When a task says "Source: `M:\autobattler\autoloads\event_bus.gd`", that means: read that file to understand the pattern, then create the equivalent in the target project at the specified target path.
+
+## How to Use This Doc
+
+1. Open a new context window **in the target project directory** (`C:\Users\Hans\AppData\Local\Temp\mfgtcbs`)
+2. Run `/implement` with the next unchecked task from the build order below (e.g., `/implement Layer 0: EventBus + HitData + ModifierDefinition`)
+3. `/implement` will load its reading discipline. After that completes, read THIS doc (`docs/engine_port.md`) to understand the specific task
+4. For each task: read the **Source** files from `M:\autobattler` to understand the pattern, then implement the equivalent at the **Target** path within this project
+5. After building and testing, check off completed tasks in this doc and commit
 
 **Rule:** Never invent a pattern when the source engine has one. Read the source implementation, understand it, adapt it. The whole point is pattern consistency across both projects.
+
+## Target Project Context
+
+This is a **top-down 2D survivors-like extraction game** built in Godot 4.3+ with GDScript. The player controls a character with WASD movement and auto-firing weapons. Enemies chase the player in hordes. The core loop: descend through 5 phases, fight escalating waves, collect loot (which raises instability = harder enemies), then extract to keep your loot.
+
+**Current architecture (prototype):** ~35 scripts, 6 autoload managers (GameManager, CombatManager, UpgradeManager, EnemySpawnManager, ExtractionManager, ProgressionManager), monolithic player.gd (408 lines) and enemy.gd (591 lines) with inline status effects, flat stat dictionaries, `max(raw - armor, 1)` damage formula. All data stored as const Dictionary entries (CharacterData.ALL, WeaponData.ALL, ModData.ALL).
+
+**Target architecture (after port):** Component-based entities, data-driven Resource definitions for all content, 8-step damage pipeline, EventBus signal vocabulary, stateless EffectDispatcher, pooled projectiles/VFX, and the full modifier/status/trigger/ability/choreography system from the source engine.
 
 ---
 
