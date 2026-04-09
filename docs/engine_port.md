@@ -11,13 +11,9 @@ This document is the master plan for porting the autobattler engine framework in
 
 **All file creation and editing happens in the target project.** The source engine is read-only reference material. When a task says "Source: `M:\autobattler\autoloads\event_bus.gd`", that means: read that file to understand the pattern, then create the equivalent in the target project at the specified target path.
 
-## How to Use This Doc
+## How This Doc Works
 
-1. Open a new context window **in the target project directory** (`C:\Users\Hans\AppData\Local\Temp\mfgtcbs`)
-2. Run `/implement` with the next unchecked task from the build order below (e.g., `/implement Layer 0: EventBus + HitData + ModifierDefinition`)
-3. `/implement` will load its reading discipline. After that completes, read THIS doc (`docs/engine_port.md`) to understand the specific task
-4. For each task: read the **Source** files from `M:\autobattler` to understand the pattern, then implement the equivalent at the **Target** path within this project
-5. After building and testing, check off completed tasks in this doc and commit
+This doc is consumed by `/implement`. When you're told to implement a layer or session from this doc, find the corresponding section below, read the **Source** files from `M:\autobattler` to understand the pattern, then implement the equivalent at the **Target** path within this project. After building and testing, check off completed tasks and commit.
 
 **Rule:** Never invent a pattern when the source engine has one. Read the source implementation, understand it, adapt it. The whole point is pattern consistency across both projects.
 
