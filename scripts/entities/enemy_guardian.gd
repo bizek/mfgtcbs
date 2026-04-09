@@ -1,60 +1,41 @@
 extends "res://scripts/entities/enemy.gd"
 
 ## EnemyGuardian — Miniboss-tier enemy that guards an extraction point.
-## Extends enemy.gd to inherit status effects, elite modifiers, health drops.
-## Stats (Phase 1 base): 300 HP, 20 damage, 10 armor, slow (42 speed).
-## All stat multipliers applied via phase_multiplier set BEFORE add_child().
-## Emits guardian_killed on death. Drops a Keystone (guaranteed first kill per phase).
+## Uses GuardianData for base stats via setup_from_enemy_def().
+## Game-specific overrides: custom sprite, keystone drops, guardian_killed signal.
 
 signal guardian_killed
 
 ## Set these BEFORE adding to the scene tree so _ready() picks them up.
 var phase_multiplier: float = 1.0
-## Spawn count — 0 = first guardian, 1+ = respawned (harder each time)
 var spawn_count: int = 0
 
-## Local ref used during _build_sprite(); wired to parent's `sprite` in _ready()
 var _guardian_sprite: AnimatedSprite2D = null
-## Local ref used during _build_hurtbox(); wired to parent's `hurtbox` in _ready()
 var _guardian_hurtbox: Area2D = null
 
-## ── Lifecycle ─────────────────────────────────────────────────────────────────
 
 func _ready() -> void:
-	## Apply phase scaling and respawn hardening BEFORE super._ready() sets hp = max_hp
+	# Apply difficulty scaling based on phase/spawn count
 	var effective_mult: float = phase_multiplier * (1.0 + spawn_count * 0.35)
-	max_hp = 300.0 * effective_mult
-	contact_damage = 20.0 * effective_mult
-	armor = 10.0
-	xp_value = 50.0
-	move_speed = 42.0
-	health_drop_chance = 0.25  ## Guardians are generous with health orbs
+	max_hp *= effective_mult
+	contact_damage *= effective_mult
+	health.setup(max_hp)
 
-	## Build programmatic children (guardian has no .tscn)
 	_build_collision_shape()
 	_build_sprite()
 	_build_hurtbox()
 
-	## Wire parent's @onready vars — they resolved to null because there's no .tscn scene
 	sprite = _guardian_sprite
 	hurtbox = _guardian_hurtbox
 
-	## Parent _ready(): sets hp=max_hp, adds to "enemies" group, finds player_ref,
-	## loads pickup scenes, connects hurtbox.body_entered signal
 	super._ready()
 
 	add_to_group("guardians")
-
-	## Guardian base tint (crimson)
-	_base_modulate = Color(0.72, 0.14, 0.11, 1.0)
 	if sprite:
 		sprite.modulate = _base_modulate
-
-	## Physics — layer 2 (enemies), mask 1+2 (collides with player and other enemies)
 	collision_layer = 2
 	collision_mask = 3
 
-## ── Build ─────────────────────────────────────────────────────────────────────
 
 func _build_collision_shape() -> void:
 	var cs := CollisionShape2D.new()
@@ -63,11 +44,12 @@ func _build_collision_shape() -> void:
 	cs.shape = rect
 	add_child(cs)
 
+
 func _build_sprite() -> void:
 	_guardian_sprite = AnimatedSprite2D.new()
 	_guardian_sprite.name = "Sprite"
 	_guardian_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_guardian_sprite.modulate = Color(0.72, 0.14, 0.11, 1.0)
+	_guardian_sprite.modulate = _base_modulate
 
 	var frames := SpriteFrames.new()
 	frames.clear_all()
@@ -76,7 +58,6 @@ func _build_sprite() -> void:
 	var idle_path: String = CYCLOP_BASE + "CyclopIdle.png"
 	var walk_path: String = CYCLOP_BASE + "CyclopWalk.png"
 
-	## Idle: 8 frames × 64 wide × 128 tall (512×128 sheet)
 	if ResourceLoader.exists(idle_path):
 		var sheet: Texture2D = load(idle_path)
 		frames.add_animation("idle")
@@ -89,7 +70,6 @@ func _build_sprite() -> void:
 			atlas.filter_clip = true
 			frames.add_frame("idle", atlas)
 
-	## Walk: 3 frames × 64 wide × 128 tall (192×128 sheet)
 	if ResourceLoader.exists(walk_path):
 		var sheet: Texture2D = load(walk_path)
 		frames.add_animation("walk")
@@ -103,14 +83,11 @@ func _build_sprite() -> void:
 			frames.add_frame("walk", atlas)
 
 	_guardian_sprite.sprite_frames = frames
-	## Scale 0.65 → ~42×83 display px (clearly bigger than brute at ~58 wide)
 	_guardian_sprite.scale = Vector2(0.65, 0.65)
-	## Offset up so the center of the 128-tall sprite aligns to the collision body
 	_guardian_sprite.offset = Vector2(0, -26)
 	_guardian_sprite.play("idle")
 	add_child(_guardian_sprite)
 
-	## Glowing ember particles — emanate from the guardian at all times
 	var p := CPUParticles2D.new()
 	p.amount = 12
 	p.lifetime = 0.9
@@ -127,13 +104,12 @@ func _build_sprite() -> void:
 	p.emitting = true
 	add_child(p)
 
-	## Scale-breathe pulse (alive, menacing)
 	var breathe := create_tween().set_loops().set_trans(Tween.TRANS_SINE)
 	breathe.tween_property(self, "scale", Vector2(1.06, 1.06), 1.1)
 	breathe.tween_property(self, "scale", Vector2(1.0, 1.0), 1.1)
 
+
 func _build_hurtbox() -> void:
-	## Area2D that detects player body for contact damage
 	_guardian_hurtbox = Area2D.new()
 	_guardian_hurtbox.name = "Hurtbox"
 	_guardian_hurtbox.collision_layer = 2
@@ -144,84 +120,33 @@ func _build_hurtbox() -> void:
 	hcs.shape = hrect
 	_guardian_hurtbox.add_child(hcs)
 	add_child(_guardian_hurtbox)
-	## Signal connection handled by super._ready() via inherited hurtbox var
 
-## ── Physics (override for guardian-specific behavior) ─────────────────────────
 
-func _physics_process(delta: float) -> void:
-	if _is_dead or player_ref == null or not is_instance_valid(player_ref):
+func take_damage(hit_data) -> void:
+	super.take_damage(hit_data)
+	GameManager.guardian_state_changed.emit(maxf(health.current_hp, 0.0), health.max_hp, true)
+
+
+func _on_health_died(_entity: Node2D) -> void:
+	if not is_alive:
 		return
-	if GameManager.current_state != GameManager.GameState.RUN_ACTIVE:
-		return
+	is_alive = false
+	if trigger_component:
+		trigger_component.cleanup()
 
-	_contact_damage_timer = maxf(_contact_damage_timer - delta, 0.0)
-
-	## Frozen: cannot move (inherited from enemy.gd status system)
-	if _frozen:
-		_freeze_timer -= delta
-		if _freeze_timer <= 0.0:
-			_frozen = false
-			_speed_mult = 1.0 if not _statuses.has("cryo") else (1.0 - _statuses["cryo"].get("slow_pct", 0.3))
-			if sprite:
-				sprite.modulate = _base_modulate
-		velocity = knockback_velocity
-		move_and_slide()
-		knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 600.0 * delta)
-		return
-
-	## Shade passive: don't chase an invisible player
-	if player_ref.has_method("is_invisible") and player_ref.is_invisible():
-		velocity = knockback_velocity
-		move_and_slide()
-		knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 600.0 * delta)
-		return
-
-	## Tick status effects (burning DOT, cryo duration) — inherited
-	_tick_statuses(delta)
-
-	var dir: Vector2 = (player_ref.global_position - global_position).normalized()
-	velocity = dir * move_speed * _speed_mult + knockback_velocity
-	move_and_slide()
-	knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 600.0 * delta)
-
-	## Sustained contact damage polling
-	if _contact_damage_timer <= 0.0 and hurtbox != null:
-		for body in hurtbox.get_overlapping_bodies():
-			if body.is_in_group("player") and body.has_method("take_damage"):
-				CombatManager.resolve_hit(self, body, contact_damage, 0.0, 1.0)
-				_contact_damage_timer = CONTACT_DAMAGE_INTERVAL
-				break
-
-	if sprite and sprite.sprite_frames and sprite.sprite_frames.has_animation("walk"):
-		sprite.play("walk")
-
-## ── Overrides ────────────────────────────────────────────────────────────────
-
-## Guardians resist knockback — they're massive, not skittish
-func apply_knockback(force: Vector2) -> void:
-	knockback_velocity += force * 0.25
-
-func take_damage(amount: float) -> void:
-	super.take_damage(amount)
-	## Broadcast HP so HUD health bar stays current
-	GameManager.guardian_state_changed.emit(maxf(hp, 0.0), max_hp, true)
-
-func _die() -> void:
-	_is_dead = true
 	guardian_killed.emit()
+	EventBus.on_death.emit(self)
+	var killer: Node2D = last_hit_by if is_instance_valid(last_hit_by) else null
+	if killer:
+		EventBus.on_kill.emit(killer, self)
+
 	died.emit(self)
-
-	## Void-Touched: explode before the death burst
-	if _void_touched:
-		_void_explosion()
-
 	_try_drop_keystone()
 	_drop_xp()
 	_drop_health()
 	_spawn_death_burst()
 	queue_free()
 
-## ── Guardian-specific ────────────────────────────────────────────────────────
 
 func _try_drop_keystone() -> void:
 	if GameManager.player_has_keystone:
@@ -234,6 +159,7 @@ func _try_drop_keystone() -> void:
 			var pickup: Area2D = KeystoneScript.new()
 			pickup.global_position = global_position
 			get_tree().current_scene.add_child(pickup)
+
 
 func _spawn_death_burst() -> void:
 	VFXHelpers.spawn_burst(

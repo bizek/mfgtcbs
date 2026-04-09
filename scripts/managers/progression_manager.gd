@@ -20,6 +20,7 @@ const UPGRADE_COSTS: Dictionary = {
 }
 
 var resources: int = 0
+var run_stats: Dictionary = {}            ## Per-run stats (deepest_phase, etc.)
 var unlocked_weapons: Array = []
 var selected_weapon: String = "Standard Sidearm"
 var selected_weapon_2: String = ""          ## Only used when armory_expansion_1 is owned

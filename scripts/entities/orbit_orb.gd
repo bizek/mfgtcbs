@@ -95,17 +95,19 @@ func _on_body_entered(body: Node2D) -> void:
 
 	## Read player's live damage stat so upgrades apply
 	var dmg: float = 28.0
-	var crit_ch: float = 0.05
-	var crit_m: float = 1.5
 	if is_instance_valid(player_ref):
-		dmg    = player_ref.get_stat("damage")
-		crit_ch = player_ref.get_stat("crit_chance")
-		crit_m  = player_ref.get_stat("crit_multiplier")
+		dmg = player_ref.get_stat("damage")
 
-	CombatManager.resolve_hit(
-		player_ref if is_instance_valid(player_ref) else self,
-		body, dmg, crit_ch, crit_m
-	)
+	var attacker: Node2D = player_ref if is_instance_valid(player_ref) else self
+	var hit := DamageCalculator.calculate_raw_hit(attacker, body, dmg, "Lightning")
+	if not hit.is_dodged:
+		body.take_damage(hit)
+		# Knockback from orb contact
+		var kb_dir: Vector2 = (body.global_position - global_position).normalized()
+		if kb_dir == Vector2.ZERO:
+			kb_dir = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)).normalized()
+		if body.has_method("apply_knockback"):
+			body.apply_knockback(kb_dir * 120.0)
 
 	## Small electric flash on the orb
 	modulate = Color(2.2, 2.2, 2.8, 1.0)

@@ -70,7 +70,7 @@ func setup(player: Node2D) -> void:
 	player_ref.health_changed.connect(_on_health_changed)
 	player_ref.xp_changed.connect(_on_xp_changed)
 	player_ref.leveled_up.connect(_on_leveled_up)
-	_on_health_changed(player_ref.stats.hp, player_ref.get_stat("max_hp"))
+	_on_health_changed(player_ref.health.current_hp, player_ref.health.max_hp)
 	_on_xp_changed(player_ref.xp, player_ref._xp_to_next_level())
 	level_label.text = "Lv%d" % player_ref.level
 

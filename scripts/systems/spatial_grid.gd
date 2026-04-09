@@ -1,11 +1,11 @@
 class_name SpatialGrid
 extends RefCounted
 ## Fixed-cell spatial partitioning for fast proximity queries.
-## Replaces per-frame get_nodes_in_group("enemies") iteration with cell-based
-## lookups. Rebuilt every frame — simple, immune to teleport edge cases.
+## Entities register by faction. Queries return candidates in nearby cells.
+## Rebuilt every frame — simple, immune to teleport/tween edge cases.
 ##
-## Grid covers the arena bounds (-800,-600) to (800,600) with 64px cells.
-## 25 cols x 19 rows = 475 cells.
+## Grid covers arena bounds (-800,-600) to (800,600) with 64px cells.
+## Faction indices: 0 = player/allies, 1 = enemies.
 
 const CELL_SIZE := 64.0
 const ORIGIN_X := -800.0
@@ -14,47 +14,53 @@ const COLS := 25   ## ceil(1600 / 64)
 const ROWS := 19   ## ceil(1200 / 64)
 const TOTAL_CELLS := COLS * ROWS  ## 475
 
-## Cell storage: flat array indexed by cell_y * COLS + cell_x
-var _cells: Array = []
-## Track which cells were written to, so clear only touches occupied cells
-var _dirty: Array[int] = []
-## All alive entities from last rebuild (avoids repeated group queries)
-var _all: Array = []
+## Per-faction cell storage: flat array indexed by cell_y * COLS + cell_x
+var _cells: Array = [[], []]  ## [player_cells, enemy_cells]
+var _dirty: Array = [[], []]
+var _all: Array = [[], []]    ## [all_players, all_enemies]
 
 
 func _init() -> void:
-	_cells.resize(TOTAL_CELLS)
-	for i in TOTAL_CELLS:
-		_cells[i] = []
+	for f in 2:
+		var cells: Array = []
+		cells.resize(TOTAL_CELLS)
+		for i in TOTAL_CELLS:
+			cells[i] = []
+		_cells[f] = cells
+		_dirty[f] = []
+		_all[f] = []
 
 
-## Call once per frame before any targeting/combat logic.
-## Pass the full list of enemies from get_nodes_in_group("enemies").
-func rebuild(entities: Array) -> void:
-	_clear_dirty()
-	_all = []
+func rebuild(players: Array, enemies: Array) -> void:
+	_clear_dirty(0)
+	_clear_dirty(1)
+	_all[0] = []
+	_all[1] = []
 
-	for e in entities:
-		if not is_instance_valid(e):
-			continue
-		if e.has_method("is_dead") and e.is_dead():
-			continue
-		_all.append(e)
-		_insert(e)
+	for e in players:
+		if is_instance_valid(e) and e.is_alive:
+			if e.get("is_untargetable") and e.is_untargetable:
+				continue
+			_all[0].append(e)
+			_insert(e, 0)
+
+	for e in enemies:
+		if is_instance_valid(e) and e.is_alive:
+			if e.get("is_untargetable") and e.is_untargetable:
+				continue
+			_all[1].append(e)
+			_insert(e, 1)
 
 
-## Returns the alive-entity list from last rebuild. Do NOT modify.
-func get_all() -> Array:
-	return _all
+func get_all(faction: int) -> Array:
+	return _all[faction]
 
 
-## Returns all entities in the cell containing pos plus its 8 neighbors.
-## Callers do final distance checks on the returned candidates.
-func get_nearby(pos: Vector2) -> Array:
+func get_nearby(pos: Vector2, faction: int) -> Array:
 	var results: Array = []
 	var cx := _col(pos.x)
 	var cy := _row(pos.y)
-
+	var cells: Array = _cells[faction]
 	for dy in range(-1, 2):
 		var ny := cy + dy
 		if ny < 0 or ny >= ROWS:
@@ -63,21 +69,18 @@ func get_nearby(pos: Vector2) -> Array:
 			var nx := cx + dx
 			if nx < 0 or nx >= COLS:
 				continue
-			var cell: Array = _cells[ny * COLS + nx]
+			var cell: Array = cells[ny * COLS + nx]
 			for e in cell:
 				results.append(e)
 	return results
 
 
-## Returns entities within squared distance of pos. Checks enough neighbor
-## rings to cover the range. For ranges <= CELL_SIZE, checks 3x3.
-func get_nearby_in_range(pos: Vector2, range_px: float) -> Array:
-	var range_sq: float = range_px * range_px
+func get_nearby_in_range(pos: Vector2, faction: int, range_sq: float) -> Array:
 	var results: Array = []
 	var cx := _col(pos.x)
 	var cy := _row(pos.y)
-	var rings: int = 1 + int(range_px / CELL_SIZE)
-
+	var cells: Array = _cells[faction]
+	var rings := 1 + int(sqrt(range_sq) / CELL_SIZE)
 	for dy in range(-rings, rings + 1):
 		var ny := cy + dy
 		if ny < 0 or ny >= ROWS:
@@ -86,21 +89,19 @@ func get_nearby_in_range(pos: Vector2, range_px: float) -> Array:
 			var nx := cx + dx
 			if nx < 0 or nx >= COLS:
 				continue
-			var cell: Array = _cells[ny * COLS + nx]
+			var cell: Array = cells[ny * COLS + nx]
 			for e in cell:
 				if pos.distance_squared_to(e.global_position) <= range_sq:
 					results.append(e)
 	return results
 
 
-## Returns the nearest alive entity, or null.
-## Starts with the center cell, expands outward ring by ring.
-func find_nearest(pos: Vector2) -> Node2D:
+func find_nearest(pos: Vector2, faction: int) -> Node2D:
 	var best: Node2D = null
 	var best_dist_sq := INF
 	var cx := _col(pos.x)
 	var cy := _row(pos.y)
-
+	var cells: Array = _cells[faction]
 	var max_ring := maxi(maxi(cx, COLS - 1 - cx), maxi(cy, ROWS - 1 - cy))
 	for ring in range(0, max_ring + 1):
 		var found_in_ring := false
@@ -114,7 +115,7 @@ func find_nearest(pos: Vector2) -> Node2D:
 				var nx := cx + dx
 				if nx < 0 or nx >= COLS:
 					continue
-				var cell: Array = _cells[ny * COLS + nx]
+				var cell: Array = cells[ny * COLS + nx]
 				for e in cell:
 					var d_sq := pos.distance_squared_to(e.global_position)
 					if d_sq < best_dist_sq:
@@ -126,18 +127,40 @@ func find_nearest(pos: Vector2) -> Node2D:
 	return best
 
 
+func find_nearest_n(pos: Vector2, faction: int, count: int, range_sq: float) -> Array:
+	var candidates := get_nearby_in_range(pos, faction, range_sq)
+	candidates.sort_custom(func(a, b):
+		return pos.distance_squared_to(a.position) < pos.distance_squared_to(b.position))
+	if count > 0 and candidates.size() > count:
+		return candidates.slice(0, count)
+	return candidates
+
+
+func find_furthest(pos: Vector2, faction: int) -> Node2D:
+	var best: Node2D = null
+	var best_dist_sq := -1.0
+	for e in _all[faction]:
+		var d_sq := pos.distance_squared_to(e.global_position)
+		if d_sq > best_dist_sq:
+			best_dist_sq = d_sq
+			best = e
+	return best
+
+
 # --- Internal ---
 
-func _insert(entity: Node2D) -> void:
-	var key := _cell_key(entity.global_position)
-	_cells[key].append(entity)
-	_dirty.append(key)
+func _insert(entity: Node2D, faction: int) -> void:
+	var key := _cell_key(entity.position)
+	_cells[faction][key].append(entity)
+	_dirty[faction].append(key)
 
 
-func _clear_dirty() -> void:
-	for key in _dirty:
-		_cells[key].clear()
-	_dirty.clear()
+func _clear_dirty(faction: int) -> void:
+	var cells: Array = _cells[faction]
+	var dirty: Array = _dirty[faction]
+	for key in dirty:
+		cells[key].clear()
+	dirty.clear()
 
 
 func _cell_key(pos: Vector2) -> int:

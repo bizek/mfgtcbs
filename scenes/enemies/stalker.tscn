@@ -1,13 +1,7 @@
 [gd_scene format=3 uid="uid://ddm36530rjvee"]
 
-[ext_resource type="Script" path="res://scripts/entities/enemy_stalker.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://cp7gnmjq6gvun" path="res://scripts/entities/enemy.gd" id="1_script"]
 [ext_resource type="PackedScene" path="res://scenes/enemies/fodder.tscn" id="2_base"]
 
 [node name="Stalker" instance=ExtResource("2_base")]
 script = ExtResource("1_script")
-max_hp = 40.0
-move_speed = 120.0
-contact_damage = 25.0
-armor = 0.0
-xp_value = 4.0
-health_drop_chance = 0.06

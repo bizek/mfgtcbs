@@ -80,7 +80,7 @@ func _ready() -> void:
 	## Listen to extraction completion via signal (not direct call)
 	ExtractionManager.extraction_complete.connect(on_extraction_complete)
 	## Track kills via combat signal instead of direct register_kill() calls
-	CombatManager.entity_killed.connect(_on_entity_killed)
+	EventBus.on_kill.connect(_on_entity_killed_eb)
 
 func _process(delta: float) -> void:
 	if current_state != GameState.RUN_ACTIVE:
@@ -137,7 +137,7 @@ func start_run() -> void:
 		loot_changed.emit(loot_carried)
 		instability_changed.emit(instability)
 
-func _on_entity_killed(_killer: Node, victim: Node, _pos: Vector2) -> void:
+func _on_entity_killed_eb(_killer: Node, victim: Node) -> void:
 	if victim.is_in_group("enemies"):
 		kills += 1
 

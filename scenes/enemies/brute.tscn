@@ -1,15 +1,10 @@
 [gd_scene format=3 uid="uid://brute0001defg"]
 
-[ext_resource type="PackedScene" path="res://scenes/enemies/fodder.tscn" id="1_base"]
+[ext_resource type="Script" uid="uid://cp7gnmjq6gvun" path="res://scripts/entities/enemy.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/fodder.tscn" id="2_base"]
 
-[node name="Brute" instance=ExtResource("1_base")]
-max_hp = 80.0
-move_speed = 60.0
-contact_damage = 15.0
-armor = 5.0
-xp_value = 5.0
-health_drop_chance = 0.08
+[node name="Brute" instance=ExtResource("2_base")]
+script = ExtResource("1_script")
 
 [node name="Sprite" parent="."]
 scale = Vector2(1.8, 1.8)
-modulate = Color(0.72, 0.14, 0.11, 1.0)

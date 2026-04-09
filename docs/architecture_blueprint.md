@@ -50,40 +50,34 @@ Example: When an enemy dies, the Enemy doesn't call the Loot system directly. In
 
 ```
 AUTOLOADED SINGLETONS (always running, globally accessible)
-├── GameManager         — Game state, phase transitions, run lifecycle
-├── StatManager         — Reads/writes stats for all entities
-├── CombatManager       — Damage calculation, hit resolution
-├── UpgradeManager      — Upgrade pool, level-up choices, build tracking
-├── LootManager         — Drop tables, loot spawning, Instability tracking
-├── ExtractionManager   — Extraction point state, extraction logic
-├── ProgressionManager  — Meta-progression, currency, unlocks, save/load
-├── ArenaManager        — Arena loading, phase environment setup
+├── EventBus            — Global combat signal bus (on_hit_dealt, on_kill, on_status_applied, etc.)
+├── GameManager         — Game state machine, phase transitions, run lifecycle, instability
+├── UpgradeManager      — Upgrade pool, level-up choices, evolution recipes
+├── ExtractionManager   — Extraction channel state, speed multiplier
 ├── EnemySpawnManager   — Wave composition, spawn timing, difficulty scaling
-├── AudioManager        — Music, SFX, ambient. Handles phase-based transitions.
-└── UIManager           — HUD updates, menus, level-up screen, hub interface
+└── ProgressionManager  — Meta-progression, currency, unlocks, save/load
 
-GAME WORLD (instanced per run)
-├── Arena (TileMap + environment objects)
-│   ├── SpawnZones (markers for enemy spawning)
-│   ├── ExtractionPoints (timed, guarded, locked, sacrifice)
-│   ├── Hazards (damage zones, displacement, traps)
-│   ├── Cover (collision obstacles)
-│   └── HiddenSpots (keystone/lore locations)
-├── Player (CharacterBody2D)
-│   ├── WeaponSlots (child nodes, each fires independently)
-│   ├── ActiveAbilities (cooldown-managed abilities)
-│   ├── PickupCollector (Area2D for pickup radius)
-│   └── HurtBox (takes damage)
-├── Enemies (spawned by EnemySpawnManager)
-│   ├── Each is a CharacterBody2D with AI behavior
-│   ├── HitBox (deals damage)
-│   ├── HurtBox (takes damage)
-│   └── LootTable (what it drops on death)
-├── Projectiles (spawned by weapons/abilities)
-│   └── Each is an Area2D with movement behavior
-├── Pickups (spawned by LootManager)
-│   └── Each is an Area2D that auto-collects on player overlap
-└── VFX (spawned for hit effects, death effects, environmental)
+SCENE-OWNED (child of MainArena, created per run)
+└── CombatOrchestrator  — Owns all combat subsystems, manages tick order
+    ├── ProjectileManager       — Pooled parallel-array projectiles, _draw() rendering
+    ├── VfxManager              — Ability/status VFX lifecycle via EventBus
+    ├── DisplacementSystem      — Throws, knockbacks, pulls, charges with on-arrival effects
+    ├── CombatFeedbackManager   — Pooled floating damage numbers via _draw()
+    └── DebugDraw               — Targeting/hitbox visualization
+
+GAME WORLD (instanced per run — MainArena scene)
+├── ArenaFloor (TextureRect)
+├── Walls (StaticBody2D × 4)
+├── ArenaGenerator (procedural layout: rocks, extraction markers)
+├── Player (CharacterBody2D — component-based entity with 6 engine components)
+│   ├── Camera2D
+│   └── PickupCollector (Area2D — scaled by pickup_radius modifier)
+├── CombatOrchestrator (owns all combat subsystems)
+├── Enemies (spawned by EnemySpawnManager, registered with CombatOrchestrator)
+│   └── All use enemy.gd + EnemyDefinition data factories
+├── Extraction Zones (GuardedExtraction, LockedExtraction, SacrificeExtraction, TimedExtraction)
+├── Pickups (XP gems, health orbs, loot drops, weapon/mod pickups, keystones)
+└── HUD + LevelUpScreen + GameOverScreen + ExtractionSuccessScreen (CanvasLayers)
 
 UI LAYER (separate CanvasLayer, always on top)
 ├── HUD (health, shield, XP bar, Instability meter, minimap)
@@ -127,73 +121,45 @@ UI LAYER (separate CanvasLayer, always on top)
 
 ---
 
-### StatManager (Autoload Singleton)
+### Modifier System (Per-Entity Component)
 
-**Purpose:** Central authority on all entity stats. Every stat read/write goes through here.
+**Purpose:** Every entity owns a `ModifierComponent` — a flat list of `ModifierDefinition` resources with a cached query layer.
 
 **Responsible For:**
-- Storing base stats for all active entities (player + all enemies on screen)
-- Applying stat modifiers (from upgrades, mods, buffs, debuffs, corruption effects)
-- Calculating final stat values: base + flat modifiers, then × percentage modifiers
-- Providing stat lookup: "What is this entity's current Damage?" → returns final calculated value
+- Storing all active modifiers from any source (upgrades, weapon mods, status effects, talents, passives)
+- O(1) cached stat queries via `sum_modifiers(tag, operation)`
+- Immunity checks via `has_negation(tag)`
+- Damage type conversion via `get_first_conversion(source_type)`
 
-**Data Structure — Entity Stats:**
+**Stat Read Pattern:**
 ```
-EntityStats:
-    entity_id: unique identifier
-    base_stats: {stat_name: value} — from character/enemy definition
-    flat_modifiers: [{source, stat_name, value}] — additive bonuses
-    percent_modifiers: [{source, stat_name, value}] — multiplicative bonuses
-    status_effects: [{effect_type, source, duration_remaining, stacks}]
-
-Final value = (base + sum(flat_modifiers)) × (1 + sum(percent_modifiers))
+base = modifier_component.sum_modifiers(stat_name, "add")
+final = base * (1.0 + modifier_component.sum_modifiers(stat_name, "bonus"))
 ```
 
-**Signals Emitted:**
-- `stat_changed(entity_id, stat_name, old_value, new_value)`
-- `status_effect_applied(entity_id, effect_type, source)`
-- `status_effect_removed(entity_id, effect_type)`
-
-**Does NOT Do:** Does not decide WHEN stats change. Other systems tell StatManager to apply modifiers; StatManager just does the math and stores the results.
+**Does NOT Do:** Does not decide WHEN modifiers change. Other systems (upgrades, statuses, talents) add/remove ModifierDefinitions; the component just stores and queries.
 
 ---
 
-### CombatManager (Autoload Singleton)
+### Combat Pipeline (Stateless Systems)
 
-**Purpose:** Resolves all damage events. When something hits something, CombatManager calculates the result.
+**Purpose:** Resolves all damage and healing through a deterministic pipeline.
 
-**Responsible For:**
-- Damage calculation: attacker stats vs defender stats → final damage number
-- Crit resolution: roll against Crit Chance → apply Crit Damage multiplier
-- Damage type interactions: check defender resistances/vulnerabilities to the damage type
-- Status effect application: if the attack should apply a status (from weapon damage type, mods, etc.), tell StatManager
-- Dodge resolution: roll against defender's Dodge Chance
-- Knockback calculation: based on hit force vs Knockback Resistance
-- Finisher check: after damage, check if target is now below Stagger threshold → apply Staggered status
-- Trigger resolution: after a hit/kill/crit, check all registered triggers and fire matching ones
+**DamageCalculator** — Stateless 8-step damage pipeline:
+1. Base damage (+ attribute scaling)
+2. Damage type conversion (via source's ModifierComponent)
+3. Offensive modifiers (source "bonus" for damage type + "All")
+4. Dodge check (target dodge_chance)
+5. Block check (target block_chance + block_mitigation)
+6. Resistance: `raw × (1 - resist / (resist + 100))`
+7. Damage taken modifiers + vulnerability
+8. Crit (source crit_chance + crit_multiplier)
 
-**Flow for one attack:**
-1. Receive hit event: (attacker_id, defender_id, weapon_data, damage_type)
-2. Get attacker's final Damage stat from StatManager
-3. Roll dodge: if defender dodges, emit `dodge_occurred`, fire On Dodge triggers, done
-4. Roll crit: if crit, multiply damage by Crit Damage stat
-5. Apply defender's Armor reduction
-6. Apply damage type resistance/vulnerability
-7. Apply final damage to defender's HP via StatManager
-8. Apply status effects if weapon/mod dictates
-9. Check Stagger threshold
-10. Emit signals: `damage_dealt`, `enemy_killed` (if HP ≤ 0), `crit_occurred` (if crit)
-11. Fire registered triggers: On Hit, On Kill, On Crit as appropriate
+Returns `HitData` (RefCounted) with amount, damage_type, is_crit, is_blocked, is_dodged, etc.
 
-**Signals Emitted:**
-- `damage_dealt(attacker_id, defender_id, amount, damage_type, was_crit)`
-- `entity_killed(killer_id, victim_id, victim_data, position)`
-- `dodge_occurred(attacker_id, defender_id)`
-- `crit_occurred(attacker_id, defender_id, damage)`
-- `stagger_applied(entity_id)`
-- `finisher_executed(player_id, enemy_id, enemy_data)`
+**EffectDispatcher** — Stateless type-switch dispatcher. All game effects route through `EffectDispatcher.execute_effects()`. 15 effect types: DealDamage, Heal, ApplyStatus, ApplyShield, SpawnProjectiles, Displacement, AreaDamage, Cleanse, ConsumeStacks, GroundZone, ApplyModifier, SetMaxStacks, OverflowChain, Resurrect, Summon.
 
-**Does NOT Do:** Does not move entities, spawn projectiles, or spawn VFX. It only resolves "X hit Y for Z damage" and emits the results.
+**EventBus** — Global signal bus. Every combat event flows through here: `on_hit_dealt`, `on_hit_received`, `on_kill`, `on_death`, `on_heal`, `on_crit`, `on_block`, `on_dodge`, `on_status_applied`, `on_status_expired`, `on_ability_used`, etc. TriggerComponent listens lazily via refcount.
 
 ---
 
@@ -481,43 +447,36 @@ EnemyDefinition:
 
 ### Player Scene
 ```
-Player (CharacterBody2D)
-├── Sprite (AnimatedSprite2D — character visuals)
-├── CollisionShape (for physics/movement)
-├── HurtBox (Area2D — detects incoming damage)
-├── PickupCollector (Area2D — scaled by Pickup Radius stat)
-├── WeaponMount (Node2D — container for weapon child nodes)
-│   ├── WeaponSlot1 (fires independently based on weapon data)
-│   ├── WeaponSlot2
-│   └── WeaponSlot3
-├── AbilityMount (Node2D — container for active abilities)
-│   ├── AbilitySlot1
-│   └── AbilitySlot2
-├── VisionRadius (PointLight2D — scales with Vision stat, affects what player can see)
-└── StatusEffectDisplay (visual indicators for active buffs/debuffs)
+Player (CharacterBody2D) — scripts/entities/player.gd
+├── Sprite (AnimatedSprite2D)
+├── CollisionShape2D
+├── PickupCollector (Area2D — scaled by pickup_radius modifier)
+│   └── CollisionShape (CircleShape2D)
+├── HealthComponent (runtime child)
+├── ModifierComponent (runtime child)
+├── AbilityComponent (runtime child)
+├── BehaviorComponent (runtime child — auto-attack timer, target resolution)
+├── StatusEffectComponent (runtime child)
+└── TriggerComponent (runtime child)
 ```
 
-### Enemy Scene (Generic — configured by EnemyDefinition data)
+### Enemy Scene (Generic — ALL enemy types use enemy.gd)
 ```
-Enemy (CharacterBody2D)
-├── Sprite (AnimatedSprite2D — from enemy definition)
-├── CollisionShape
-├── HitBox (Area2D — deals damage to player on overlap)
-├── HurtBox (Area2D — receives damage from player attacks)
-├── BehaviorController (script that reads behavior type from definition)
-├── StatusEffectDisplay
-├── HealthBar (small bar above enemy, optional for non-bosses)
-└── EliteIndicator (visual modifier overlays if elite)
+Enemy (CharacterBody2D) — scripts/entities/enemy.gd
+├── Sprite (AnimatedSprite2D — from scene, tinted/scaled by EnemyDefinition)
+├── Hurtbox (Area2D — contact damage to player on overlap)
+├── HealthComponent (runtime child)
+├── ModifierComponent (runtime child)
+├── AbilityComponent (runtime child — auto-attack + optional skills from definition)
+├── BehaviorComponent (runtime child — AI targeting, attack timer)
+├── StatusEffectComponent (runtime child)
+└── TriggerComponent (runtime child)
 ```
 
-### Projectile Scene (Generic — configured by weapon/ability data)
-```
-Projectile (Area2D)
-├── Sprite (AnimatedSprite2D — from weapon VFX data)
-├── CollisionShape (hitbox)
-├── MovementController (handles projectile behavior: straight, homing, orbit, etc.)
-└── TrailEffect (GPUParticles2D — optional visual trail)
-```
+Configured entirely by `EnemyDefinition` data factories via `setup_from_enemy_def(def)`.
+
+### Projectiles
+No projectile scene. `ProjectileManager` uses pooled parallel arrays with `_draw()` rendering. Projectiles are data (position, velocity, config), not nodes.
 
 ### Pickup Scene (Generic — configured by loot data)
 ```
@@ -534,28 +493,32 @@ Pickup (Area2D)
 ## Signal Flow Diagram (One Kill Event)
 
 ```
-Player's Weapon fires Projectile
+BehaviorComponent resolves targets via SpatialGrid
     ↓
-Projectile collides with Enemy HurtBox
+auto_attack_requested signal → player._on_auto_attack()
     ↓
-CombatManager.resolve_hit(attacker, defender, weapon_data)
-    ├── Calculates damage (stats, crit, armor, type resistance)
-    ├── Applies status effects via StatManager
-    ├── Emits: damage_dealt(...)
-    │   ├── UIManager hears → spawns damage number
-    │   ├── AudioManager hears → plays hit SFX
-    │   └── VFX spawned at hit location
-    ├── If enemy HP ≤ 0:
-    │   ├── Emits: entity_killed(...)
-    │   │   ├── LootManager hears → rolls loot table → spawns pickups
-    │   │   ├── EnemySpawnManager hears → decrements active enemy count
-    │   │   ├── AudioManager hears → plays death SFX
-    │   │   ├── VFX spawned (death animation/particles)
-    │   │   └── Trigger system checks On Kill triggers → fires effects
-    │   └── XP gem spawned at position
-    └── If enemy HP ≤ stagger threshold:
-        └── Emits: stagger_applied(...)
-            └── Enemy enters vulnerable state (visual change, finisher available)
+EffectDispatcher.execute_effects(ability.effects, source, targets, ability, combat_manager)
+    ├── SpawnProjectilesEffect → ProjectileManager.spawn_projectiles()
+    │   ↓ (projectile hits enemy via spatial grid proximity check)
+    │   ProjectileManager._on_hit() → EffectDispatcher.execute_effect(on_hit_effects...)
+    │       ├── DealDamageEffect → DamageCalculator.calculate_damage() → HitData
+    │       │   ↓
+    │       │   enemy.take_damage(hit) → CombatUtils.process_incoming_damage()
+    │       │       ├── HealthComponent.apply_damage()
+    │       │       ├── EventBus.on_hit_dealt.emit() → CombatFeedbackManager (damage number)
+    │       │       ├── EventBus.on_crit.emit() (if crit)
+    │       │       ├── StatusEffectComponent.notify_hit_received() (thorns, on-hit reactives)
+    │       │       └── source.StatusEffectComponent.notify_hit_dealt() (on-hit-dealt effects)
+    │       └── ApplyStatusEffectData → target.status_effect_component.apply_status()
+    │           └── EventBus.on_status_applied.emit()
+    ↓ (if enemy HP ≤ 0)
+    enemy._on_health_died()
+        ├── EventBus.on_death.emit()
+        ├── EventBus.on_kill.emit() → GameManager (kill count), EnemySpawnManager (active count)
+        ├── EventBus.on_overkill.emit() (if overkill > 0)
+        ├── TriggerComponent listeners fire (on_kill triggers)
+        ├── XP gem spawned, health orb roll
+        └── MainArena._on_entity_killed() → loot drop rolls
 ```
 
 ---

@@ -329,26 +329,26 @@ LEVEL/ARENA SYSTEM
 
 ---
 
-## All 8 Systems — Complete Dependency Map
+## All Systems — Dependency Map
 
 ```
-STAT SYSTEM (defines all numbers)
+MODIFIER SYSTEM (ModifierComponent per entity — defines all numbers)
     ↓
-COMBAT SYSTEM (uses stats, handles fighting)
+COMBAT PIPELINE (DamageCalculator + EffectDispatcher + EventBus)
     ↓                    ↑
 UPGRADE SYSTEM          ENEMY SYSTEM
-(modifies stats,        (uses stats,
- build choices)         spawns in arenas)
+(ModifierDefinitions    (EnemyDefinition data factories,
+ from level-up choices)  AbilityDefinitions, StatusEffects)
     ↓                    ↓
-LOOT SYSTEM (drops from enemies, collected by player)
+LOOT (drops from enemies via EventBus.on_kill → main_arena)
     ↓
-INSTABILITY (rises with loot, increases difficulty — visible via HUD meter + player aura)
+INSTABILITY (rises with loot, increases difficulty — HUD meter + tier multipliers)
     ↓
-EXTRACTION SYSTEM (player decides when to leave)
+EXTRACTION SYSTEM (4 types: timed, guarded, locked, sacrifice)
     ↓
-META-PROGRESSION (hub, spending, loadouts)
+META-PROGRESSION (hub, ProgressionManager save/load)
     ↓
-LEVEL/ARENA SYSTEM (where runs take place)
+ARENA (MainArena scene with CombatOrchestrator)
     ↓
     └──→ loops back to COMBAT (new run begins)
 ```

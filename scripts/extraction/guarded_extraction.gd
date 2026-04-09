@@ -116,6 +116,9 @@ func _spawn_guardian() -> void:
 
 	var g: CharacterBody2D = CharacterBody2D.new()
 	g.set_script(GuardianScript)
+	var guardian_def: EnemyDefinition = EnemyRegistry.get_def("guardian")
+	if guardian_def:
+		g.setup_from_enemy_def(guardian_def)
 	g.phase_multiplier = float(GameManager.phase_number)
 	g.spawn_count = spawn_count
 	g.global_position = global_position
@@ -176,7 +179,7 @@ func _tick_guardian_health(player_pos: Vector2) -> void:
 	if guardian_enemy != null and is_instance_valid(guardian_enemy):
 		var dist: float = player_pos.distance_to(guardian_enemy.global_position)
 		var show: bool = dist <= 220.0
-		guardian_health_updated.emit(guardian_enemy.hp, guardian_enemy.max_hp, show)
+		guardian_health_updated.emit(guardian_enemy.health.current_hp, guardian_enemy.health.max_hp, show)
 	else:
 		guardian_health_updated.emit(0.0, 1.0, false)
 

@@ -7,7 +7,7 @@ class_name CombatFeedbackManager
 ## At high enemy density (150+), dozens of damage numbers spawn per second;
 ## pooling eliminates the instantiate/queue_free churn entirely.
 ##
-## Owned by MainArena. Listens to CombatManager.damage_dealt for auto-spawning.
+## Owned by MainArena. Listens to EventBus.on_hit_dealt for auto-spawning.
 
 const POOL_SIZE := 128
 const FLOAT_DISTANCE := 28.0
@@ -57,8 +57,9 @@ func _ready() -> void:
 
 	_init_pool()
 
-	## Auto-wire to CombatManager signals
-	CombatManager.damage_dealt.connect(_on_damage_dealt)
+	## Auto-wire to EventBus signals (replaces legacy CombatManager.damage_dealt)
+	EventBus.on_hit_dealt.connect(_on_hit_dealt)
+	EventBus.on_dodge.connect(_on_dodge)
 
 
 func _init_pool() -> void:
@@ -191,8 +192,18 @@ func spawn_heal(pos: Vector2, amount: float) -> void:
 
 # --- Signal handler ---
 
-func _on_damage_dealt(attacker: Node, defender: Node, amount: float, was_crit: bool) -> void:
-	if not is_instance_valid(defender):
+func _on_hit_dealt(source, target, hit_data) -> void:
+	if not is_instance_valid(target):
 		return
+	if not hit_data is HitData:
+		return
+	var was_crit: bool = hit_data.is_crit
+	var amount: float = hit_data.amount
 	var color := CRIT_COLOR if was_crit else NORMAL_COLOR
-	spawn_number(defender.global_position, str(int(amount)), color, was_crit)
+	spawn_number(target.global_position, str(int(amount)), color, was_crit)
+
+
+func _on_dodge(_source, target, _hit_data) -> void:
+	if not is_instance_valid(target):
+		return
+	spawn_number(target.global_position, "DODGE", Color(0.8, 0.8, 0.8), false)

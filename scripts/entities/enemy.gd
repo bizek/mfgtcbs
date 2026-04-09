@@ -1,236 +1,832 @@
 extends CharacterBody2D
 
-## Enemy — Base enemy script. Chases player, has health, deals contact damage, drops XP on death.
+## Enemy — Data-driven base enemy script. All enemy types use this script.
+## Behavior is driven by EnemyDefinition fields (behavior_type, preferred_range, etc.)
+## Uses engine component system for stats, damage pipeline, and status effects.
 
 signal died(enemy: Node2D)
 
 const XP_GEM_SCENE_PATH: String = "res://scenes/pickups/xp_gem.tscn"
 const HEALTH_ORB_SCENE_PATH: String = "res://scenes/pickups/health_orb.tscn"
 
-## Stats (overridden per enemy type via @export)
+## Base stats (set by setup_from_enemy_def or @export for legacy scenes)
 @export var max_hp: float = 30.0
-@export var move_speed: float = 42.0
+@export var base_move_speed: float = 42.0
 @export var contact_damage: float = 10.0
-@export var armor: float = 0.0
+@export var base_armor: float = 0.0
 @export var xp_value: float = 1.0
 
-var hp: float
-var _is_dead: bool = false
-var is_elite: bool = false   ## Set true by apply_elite_modifier(); checked for mod drops
+## Engine entity interface
+var faction: int = 1  ## 0 = player/allies, 1 = enemies
+var is_alive: bool = true
+var is_attacking: bool = false
+var is_channeling: bool = false
+var is_invulnerable: bool = false
+var is_untargetable: bool = false
+var attack_target: Node2D = null
+var last_hit_by: Node2D = null
+var last_hit_time: float = -1e18
+var _last_hit_time_by_tag: Dictionary = {}
+var talent_picks: Array[String] = []
+var combat_manager: Node2D = null
+var spatial_grid: SpatialGrid = null
+var combat_role: String = "MELEE"
 
+## Elite system
+var is_elite: bool = false
 enum EliteModifier { NONE, HASTING, EXPLODING, SHIELDED }
 var elite_modifier: int = EliteModifier.NONE
-var _shield_hp: float = 0.0
-var _shield_max: float = 0.0
 
 var player_ref: Node2D = null
-
-## Knockback
 var knockback_velocity: Vector2 = Vector2.ZERO
-
-## Hit flash tween (stored so rapid hits kill the previous tween)
 var _hit_tween: Tween = null
-
-## Base sprite color — hit flash tweens back to this instead of plain white.
-## Override in subclass _ready() or via apply_elite_modifier() to change resting color.
 var _base_modulate: Color = Color.WHITE
 
-## Preload pickup scenes
 var xp_pickup_scene: PackedScene
 var health_orb_scene: PackedScene
-@export var health_drop_chance: float = 0.05 ## 5% chance to drop health orb
+@export var health_drop_chance: float = 0.05
+
+var _contact_damage_timer: float = 0.0
+const CONTACT_DAMAGE_INTERVAL: float = 0.8
 
 @onready var sprite: AnimatedSprite2D = $Sprite
 @onready var hurtbox: Area2D = $Hurtbox
 
-# ─── Status effects ───────────────────────────────────────────────────────────
+## Engine components (created at runtime)
+var health: HealthComponent = null
+var modifier_component: ModifierComponent = null
+var ability_component: AbilityComponent = null
+var behavior_component: BehaviorComponent = null
+var status_effect_component: StatusEffectComponent = null
+var trigger_component: TriggerComponent = null
 
-## Active status effects: { "fire": {timer, ...}, "cryo": {...}, "shock": {...} }
-var _statuses: Dictionary = {}
+## Data-driven behavior fields (set by setup_from_enemy_def)
+var _enemy_def: EnemyDefinition = null
+var _behavior_type: String = "chase"        ## "chase", "ranged", "flee"
+var _preferred_range: float = 0.0
+var _knockback_multiplier: float = 1.0
+var _flee_despawn_at_bounds: bool = false
 
-## Speed multiplier from Chilled. Separate from base move_speed.
-var _speed_mult: float = 1.0
+## Ability pipeline active flag (true when auto_attack registered with AbilityComponent)
+var _abilities_wired: bool = false
 
-## Contact damage cooldown — prevents body_entered from dealing damage more than once per interval,
-## and drives the get_overlapping_bodies() poll for sustained contact.
-var _contact_damage_timer: float = 0.0
-const CONTACT_DAMAGE_INTERVAL: float = 0.8
+## Stalker stealth state
+var _stealth_active: bool = false
+var _stealth_reveal_distance: float = 0.0
+var _stealth_revealed: bool = false
+var _stealth_hidden_alpha: float = 0.07
 
-## Cryo stacks toward Frozen
-var _cryo_stacks: int = 0
-var _frozen: bool = false
-var _freeze_timer: float = 0.0
+## Herald aura visual
+var _has_aura_visual: bool = false
+var _aura_radius: float = 0.0
+var _aura_color: Color = Color(0.85, 0.2, 1.0, 0.18)
+var _aura_pulse: float = 0.0
 
-## Void-Touched: explodes on death, damages nearby enemies and bleeds instability
-var _void_touched: bool = false
+## Carrier loot
+var _loot_drop_scene: PackedScene = null
+var _loot_value: float = 45.0
 
-## Burning particle emitter (child node, managed by status system)
-var _burn_particles: CPUParticles2D = null
+## Choreography state (multi-phase boss abilities)
+var _choreography: ChoreographyDefinition = null
+var _choreography_ability: AbilityDefinition = null
+var _choreography_phase_index: int = -1
+var _choreography_timer: float = 0.0
+var _choreography_targets: Array = []
+var _ability_anim_active: bool = false
+var _current_attack_anim: String = "attack"
+var _current_hit_frame: int = 3
+var _hit_frame_fired: bool = false
+var _pending_ability: AbilityDefinition = null
+var _pending_targets: Array = []
 
-## Bleed particle emitter (child node, managed by status system)
-var _bleed_particles: CPUParticles2D = null
 
-## Shock visual tween (looping, killed when shock removed)
-var _shock_tween: Tween = null
+func _init() -> void:
+	# Components must exist before _ready() because EnemySpawnManager calls
+	# apply_difficulty_scaling() and apply_elite_modifier() before add_child().
+	_setup_components()
+	set_process(false)  # _process only enabled during choreography phases
+
 
 func _ready() -> void:
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
-	hp = max_hp
 	add_to_group("enemies")
 	xp_pickup_scene = load(XP_GEM_SCENE_PATH) if ResourceLoader.exists(XP_GEM_SCENE_PATH) else null
 	health_orb_scene = load(HEALTH_ORB_SCENE_PATH) if ResourceLoader.exists(HEALTH_ORB_SCENE_PATH) else null
-
-	## Find the player
 	player_ref = get_tree().get_first_node_in_group("player")
-
-	## Connect hurtbox for contact damage
 	if hurtbox:
 		hurtbox.body_entered.connect(_on_hurtbox_body_entered)
+	if sprite:
+		sprite.frame_changed.connect(_on_frame_changed)
+		sprite.animation_finished.connect(_on_animation_finished)
 
-func _physics_process(delta: float) -> void:
-	if _is_dead or player_ref == null or not is_instance_valid(player_ref):
+	# Apply definition if set before add_child
+	if _enemy_def:
+		_apply_def_visuals()
+		_apply_def_spawn_statuses()
+
+
+func setup_from_enemy_def(def: EnemyDefinition) -> void:
+	## Configure this enemy from a data definition. Call BEFORE add_child().
+	_enemy_def = def
+
+	# Core stats
+	max_hp = def.base_stats.get("max_hp", 30.0)
+	base_move_speed = def.move_speed
+	contact_damage = def.contact_damage
+	base_armor = def.base_armor
+	xp_value = def.xp_value
+	health_drop_chance = def.health_drop_chance
+	combat_role = def.combat_role
+
+	# Re-setup health with correct max_hp
+	health.setup(max_hp)
+
+	# Re-apply armor if needed
+	if base_armor > 0.0:
+		var armor_mod := ModifierDefinition.new()
+		armor_mod.target_tag = "Physical"
+		armor_mod.operation = "resist"
+		armor_mod.value = base_armor
+		armor_mod.source_name = "base_armor"
+		modifier_component.add_modifier(armor_mod)
+
+	# Behavior
+	_behavior_type = def.behavior_type
+	_preferred_range = def.preferred_range
+	_knockback_multiplier = def.knockback_multiplier
+	_flee_despawn_at_bounds = def.flee_despawn_at_bounds
+	_base_modulate = def.base_modulate
+
+	# Groups
+	for group_name in def.groups:
+		add_to_group(group_name)
+
+	# Wire abilities through engine pipeline (BehaviorComponent → AbilityComponent → EffectDispatcher)
+	if def.auto_attack:
+		var aa_interval: float = def.auto_attack.cooldown_base if def.auto_attack.cooldown_base > 0.0 else 2.0
+		if def.aa_interval_override > 0.0:
+			aa_interval = def.aa_interval_override
+		ability_component.setup_abilities(def.auto_attack, def.skills, 99)
+		behavior_component.setup(modifier_component, aa_interval)
+		behavior_component.ability_requested.connect(_on_ability_requested)
+		behavior_component.auto_attack_requested.connect(_on_auto_attack_requested)
+		_abilities_wired = true
+		_check_heal_reactive_targeting(def.auto_attack, def.skills)
+
+	# Carrier loot
+	if "carriers" in def.groups:
+		if ResourceLoader.exists("res://scenes/pickups/loot_drop.tscn"):
+			_loot_drop_scene = load("res://scenes/pickups/loot_drop.tscn")
+
+	# Stalker stealth (tag-driven: "Stealth" in tags)
+	if "Stealth" in def.tags:
+		_stealth_active = true
+		_stealth_reveal_distance = def.aggro_range if def.aggro_range > 0.0 else 60.0
+
+	# Herald aura visual (detected from on_spawn_statuses having aura_radius > 0)
+	for status_def in def.on_spawn_statuses:
+		if status_def.aura_radius > 0.0:
+			_has_aura_visual = true
+			_aura_radius = status_def.aura_radius
+			break
+
+
+func _apply_def_visuals() -> void:
+	## Apply definition's visual settings to the scene's sprite. Called in _ready().
+	if not _enemy_def:
+		return
+	if sprite and _enemy_def.sprite_scale != Vector2(1.0, 1.0):
+		sprite.scale = _enemy_def.sprite_scale
+	if sprite and _base_modulate != Color.WHITE:
+		sprite.modulate = _base_modulate
+	if _stealth_active and not _stealth_revealed:
+		_base_modulate = Color(0.85, 0.9, 1.0, _stealth_hidden_alpha)
+		if sprite:
+			sprite.modulate = _base_modulate
+	# Carrier trail particles
+	if _flee_despawn_at_bounds:
+		_spawn_trail_particles()
+
+
+func _apply_def_spawn_statuses() -> void:
+	## Apply on_spawn_statuses from the definition. Called in _ready() after tree is available.
+	if not _enemy_def:
+		return
+	for status_def in _enemy_def.on_spawn_statuses:
+		status_effect_component.apply_status(status_def, self, 1, status_def.base_duration)
+
+
+func _setup_components() -> void:
+	modifier_component = ModifierComponent.new()
+	modifier_component.name = "ModifierComponent"
+	add_child(modifier_component)
+
+	health = HealthComponent.new()
+	health.name = "HealthComponent"
+	add_child(health)
+	health.setup(max_hp)
+	health.died.connect(_on_health_died)
+
+	status_effect_component = StatusEffectComponent.new()
+	status_effect_component.name = "StatusEffectComponent"
+	add_child(status_effect_component)
+	status_effect_component.setup(modifier_component)
+
+	trigger_component = TriggerComponent.new()
+	trigger_component.name = "TriggerComponent"
+	add_child(trigger_component)
+
+	ability_component = AbilityComponent.new()
+	ability_component.name = "AbilityComponent"
+	add_child(ability_component)
+
+	behavior_component = BehaviorComponent.new()
+	behavior_component.name = "BehaviorComponent"
+	add_child(behavior_component)
+	behavior_component.setup(modifier_component)
+
+	# Base armor as a resistance modifier (for legacy @export scenes)
+	if base_armor > 0.0 and _enemy_def == null:
+		var armor_mod := ModifierDefinition.new()
+		armor_mod.target_tag = "Physical"
+		armor_mod.operation = "resist"
+		armor_mod.value = base_armor
+		armor_mod.source_name = "base_armor"
+		modifier_component.add_modifier(armor_mod)
+
+
+func _process(delta: float) -> void:
+	## Per-frame monitoring during choreography phases only.
+	if not is_alive or _choreography == null:
+		_choreography = null
+		_choreography_phase_index = -1
+		set_process(false)
 		return
 
-	## Tick contact damage cooldown regardless of movement state
+	if _choreography_phase_index < 0 or _choreography_phase_index >= _choreography.phases.size():
+		_end_choreography()
+		return
+
+	var phase: ChoreographyPhase = _choreography.phases[_choreography_phase_index]
+
+	if phase.exit_type == "wait":
+		_choreography_timer -= delta
+		# Evaluate branches each frame
+		for branch in phase.branches:
+			if _evaluate_choreography_branch(branch):
+				_enter_choreography_phase(branch.next_phase)
+				return
+		# Timeout → default_next
+		if _choreography_timer <= 0.0:
+			_on_choreography_phase_exit()
+
+	elif phase.exit_type == "displacement_complete":
+		if not is_channeling:
+			_on_choreography_phase_exit()
+
+
+func _physics_process(delta: float) -> void:
+	if not is_alive or player_ref == null or not is_instance_valid(player_ref):
+		return
+
 	_contact_damage_timer = maxf(_contact_damage_timer - delta, 0.0)
 
-	## Frozen: cannot move
-	if _frozen:
-		_freeze_timer -= delta
-		if _freeze_timer <= 0.0:
-			_frozen = false
-			_speed_mult = 1.0 if not _statuses.has("cryo") else (1.0 - _statuses["cryo"].get("slow_pct", 0.3))
-			if sprite:
-				sprite.modulate = _base_modulate
+	# Choreography active: movement suppressed (boss is executing an attack sequence)
+	if _choreography != null:
 		velocity = knockback_velocity
 		move_and_slide()
 		knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 800.0 * delta)
 		return
 
-	## Shade passive: don't chase an invisible player
+	# Stunned/frozen: cannot move or act. Interrupts choreography.
+	if status_effect_component.is_disabled():
+		if _choreography != null:
+			_end_choreography()
+		elif _ability_anim_active:
+			_end_animated_ability()
+		velocity = knockback_velocity
+		move_and_slide()
+		knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 800.0 * delta)
+		return
+
+	# Shade passive: don't chase invisible player
 	if player_ref.has_method("is_invisible") and player_ref.is_invisible():
 		velocity = knockback_velocity
 		move_and_slide()
 		knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 800.0 * delta)
 		return
 
-	## Tick status effects (burning DOT, cryo duration)
-	_tick_statuses(delta)
+	# Stalker reveal check
+	if _stealth_active and not _stealth_revealed:
+		var dist_to_player: float = global_position.distance_to(player_ref.global_position)
+		if dist_to_player <= _stealth_reveal_distance:
+			_stalker_reveal()
 
-	## Chase player (chilled = reduced speed)
-	var direction: Vector2 = (player_ref.global_position - global_position).normalized()
-	velocity = direction * move_speed * _speed_mult + knockback_velocity
+	# Movement speed from modifiers (slow = negative bonus)
+	var speed_mult: float = 1.0 + modifier_component.sum_modifiers("move_speed", "bonus")
+	if status_effect_component.is_movement_disabled():
+		speed_mult = 0.0
+
+	# Movement direction based on behavior type
+	var dist: float = global_position.distance_to(player_ref.global_position)
+	match _behavior_type:
+		"flee":
+			var dir: Vector2 = (global_position - player_ref.global_position).normalized()
+			velocity = dir * base_move_speed * maxf(speed_mult, 0.0) + knockback_velocity
+		"ranged":
+			if dist > _preferred_range:
+				var dir: Vector2 = (player_ref.global_position - global_position).normalized()
+				velocity = dir * base_move_speed * maxf(speed_mult, 0.0) + knockback_velocity
+			else:
+				velocity = knockback_velocity
+		_:  # "chase" (default)
+			var dir: Vector2 = (player_ref.global_position - global_position).normalized()
+			velocity = dir * base_move_speed * maxf(speed_mult, 0.0) + knockback_velocity
+
 	move_and_slide()
-
-	## Decay knockback
 	knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 800.0 * delta)
 
-	## Sustained contact damage: poll the hurtbox every CONTACT_DAMAGE_INTERVAL seconds.
-	## Handles cases where the player stays inside the hurtbox without re-triggering body_entered.
-	if _contact_damage_timer <= 0.0 and hurtbox != null:
+	# Flee bounds despawn (carrier)
+	if _flee_despawn_at_bounds:
+		if not EnemySpawnManager.arena_bounds.has_point(global_position):
+			_despawn_escaped()
+			return
+
+	# Sustained contact damage
+	if contact_damage > 0.0 and _contact_damage_timer <= 0.0 and hurtbox != null:
 		for body in hurtbox.get_overlapping_bodies():
 			if body.is_in_group("player") and body.has_method("take_damage"):
-				CombatManager.resolve_hit(self, body, contact_damage, 0.0, 1.0)
+				var hit := DamageCalculator.calculate_raw_hit(
+					self, body, contact_damage, "Physical", null,
+					combat_manager.rng if combat_manager else null)
+				if not hit.is_dodged:
+					body.take_damage(hit)
+					_apply_contact_knockback(body)
 				_contact_damage_timer = CONTACT_DAMAGE_INTERVAL
 				break
 
+	# Set attack_target for BehaviorComponent targeting (player is always the target in arena)
+	if is_instance_valid(player_ref) and player_ref.is_alive:
+		attack_target = player_ref
+
+	# Animation
 	if sprite:
-		sprite.play("walk")
+		if _behavior_type == "ranged" and velocity.length() < 5.0:
+			if sprite.sprite_frames and sprite.sprite_frames.has_animation("idle"):
+				sprite.play("idle")
+			else:
+				sprite.play("walk")
+		else:
+			sprite.play("walk")
+
+	# Herald aura visual
+	if _has_aura_visual:
+		_aura_pulse += delta * 2.8
+		queue_redraw()
+
+
+func _draw() -> void:
+	if not _has_aura_visual or not is_alive:
+		return
+	var alpha: float = 0.12 + sin(_aura_pulse) * 0.07
+	draw_circle(Vector2.ZERO, _aura_radius, Color(_aura_color.r, _aura_color.g, _aura_color.b, alpha * 0.5))
+	draw_circle(Vector2.ZERO, _aura_radius * 0.6, Color(_aura_color.r, _aura_color.g, _aura_color.b, alpha))
+
+
+func _check_heal_reactive_targeting(auto_attack: AbilityDefinition,
+		skills: Array) -> void:
+	## Enable heal-reactive targeting if any ability uses the "most_recently_healed_enemy" type.
+	if auto_attack and auto_attack.targeting and auto_attack.targeting.type == "most_recently_healed_enemy":
+		behavior_component.enable_heal_reactive_targeting()
+		return
+	for skill in skills:
+		if skill.ability and skill.ability.targeting and skill.ability.targeting.type == "most_recently_healed_enemy":
+			behavior_component.enable_heal_reactive_targeting()
+			return
+
+
+func _on_ability_requested(ability: AbilityDefinition, targets: Array) -> void:
+	## Engine ability pipeline: BehaviorComponent resolved targets and wants to fire.
+	if _ability_anim_active:
+		return
+
+	# Choreography: multi-phase ability sequence (boss attacks, etc.)
+	if ability.choreography != null:
+		_start_choreography(ability, targets)
+		return
+
+	# Standard animated ability: play attack animation, fire on hit frame
+	if ability.anim_override != "" or ability.hit_frame_override >= 0:
+		_start_animated_ability(ability, targets)
+		return
+
+	# Instant ability: fire effects immediately
+	EffectDispatcher.execute_effects(ability.effects, self, targets, ability, combat_manager)
+	EventBus.on_ability_used.emit(self, ability)
+
+
+func _on_auto_attack_requested(ability: AbilityDefinition, targets: Array) -> void:
+	## Engine auto-attack pipeline: BehaviorComponent timer expired, fire AA.
+	if _ability_anim_active and ability.choreography == null:
+		return  # Auto-attacks don't interrupt ability animations (but are ignored during choreography)
+
+	# Animated auto-attack
+	if ability.anim_override != "" or ability.hit_frame_override >= 0:
+		_start_animated_ability(ability, targets)
+		return
+
+	# Instant auto-attack
+	EffectDispatcher.execute_effects(ability.effects, self, targets, ability, combat_manager)
+	EventBus.on_ability_used.emit(self, ability)
+
+
+# --- Animated Ability Execution (non-choreography) ---
+
+func _start_animated_ability(ability: AbilityDefinition, targets: Array) -> void:
+	## Play attack animation and fire effects on the hit frame.
+	_pending_ability = ability
+	_pending_targets = targets
+	_ability_anim_active = true
+	_current_attack_anim = ability.anim_override if ability.anim_override != "" else "attack"
+	_current_hit_frame = ability.hit_frame_override if ability.hit_frame_override >= 0 else 3
+	_hit_frame_fired = false
+	is_attacking = true
+
+	if ability.grants_invulnerability:
+		is_invulnerable = true
+
+	EventBus.on_ability_used.emit(self, ability)
+
+	if sprite and sprite.sprite_frames and sprite.sprite_frames.has_animation(_current_attack_anim):
+		sprite.play(_current_attack_anim)
+	else:
+		# No animation available — fire immediately
+		_execute_pending_effects()
+		_end_animated_ability()
+
+
+func _execute_pending_effects() -> void:
+	if _pending_ability == null:
+		return
+	var targets: Array = _pending_targets
+	if targets.is_empty() and is_instance_valid(player_ref) and player_ref.is_alive:
+		targets = [player_ref]
+	EffectDispatcher.execute_effects(
+		_pending_ability.effects, self, targets, _pending_ability, combat_manager)
+
+
+func _end_animated_ability() -> void:
+	_ability_anim_active = false
+	is_attacking = false
+	is_invulnerable = false
+	_pending_ability = null
+	_pending_targets = []
+
+	if sprite and sprite.sprite_frames and sprite.sprite_frames.has_animation("idle"):
+		sprite.play("idle")
+
+
+# --- Frame Changed / Animation Finished ---
+
+func _on_frame_changed() -> void:
+	if not is_attacking or not is_alive:
+		return
+
+	# Choreography phase: fire effects on the phase's hit frame
+	if _choreography != null:
+		if _choreography_phase_index < 0 or _choreography_phase_index >= _choreography.phases.size():
+			return
+		var phase: ChoreographyPhase = _choreography.phases[_choreography_phase_index]
+		if phase.hit_frame >= 0 and sprite.animation == _current_attack_anim \
+				and sprite.frame == phase.hit_frame and not _hit_frame_fired:
+			_hit_frame_fired = true
+			_execute_choreography_phase_effects(phase)
+		return
+
+	# Standard animated ability: fire on hit frame
+	if _pending_ability != null and not _hit_frame_fired:
+		if sprite.frame == _current_hit_frame:
+			_hit_frame_fired = true
+			_execute_pending_effects()
+
+
+func _on_animation_finished() -> void:
+	if not is_alive:
+		return
+
+	# Choreography: animation finished for current phase
+	if _choreography != null:
+		_on_choreography_animation_finished()
+		return
+
+	# Standard animated ability: done
+	if _ability_anim_active and _pending_ability != null:
+		# If hit frame was never reached (short anim), fire effects now
+		if not _hit_frame_fired:
+			_execute_pending_effects()
+		_end_animated_ability()
+
+
+# --- Choreography System (multi-phase boss abilities) ---
+
+func _start_choreography(ability: AbilityDefinition, targets: Array) -> void:
+	## Begin a choreography sequence. Sets up state and enters phase 0.
+	_choreography = ability.choreography
+	_choreography_ability = ability
+	_choreography_targets = targets.duplicate()
+	_choreography_phase_index = -1
+	_choreography_timer = 0.0
+
+	is_channeling = true
+	is_attacking = true
+	_ability_anim_active = true
+	_pending_ability = null
+	_pending_targets = []
+
+	EventBus.on_ability_used.emit(self, ability)
+	_enter_choreography_phase(0)
+
+
+func _enter_choreography_phase(index: int) -> void:
+	## Enter a specific phase. index = -1 or out of bounds ends the choreography.
+	if _choreography == null or index < 0 or index >= _choreography.phases.size():
+		_end_choreography()
+		return
+
+	_choreography_phase_index = index
+	var phase: ChoreographyPhase = _choreography.phases[index]
+
+	# Entity state flags
+	is_untargetable = phase.set_untargetable
+	is_invulnerable = phase.set_invulnerable
+
+	# Retarget if specified
+	if phase.retarget and spatial_grid:
+		var targets: Array = behavior_component.resolve_targets_with_rule(phase.retarget, self)
+		if not targets.is_empty():
+			_choreography_targets = targets
+
+	# Execute displacement if specified
+	if phase.displacement and combat_manager and combat_manager.get("displacement_system"):
+		var disp_source: Node2D = _choreography_targets[0] if not _choreography_targets.is_empty() else self
+		combat_manager.displacement_system.execute(
+			disp_source, _choreography_ability, phase.displacement, [self])
+
+	# Fire effects immediately if no hit_frame specified
+	if phase.hit_frame < 0 and not phase.effects.is_empty():
+		_execute_choreography_phase_effects(phase)
+
+	# Play animation or set up exit monitoring
+	if phase.animation != "":
+		_current_attack_anim = phase.animation
+		_hit_frame_fired = false
+		is_attacking = true
+
+		if sprite and sprite.sprite_frames and sprite.sprite_frames.has_animation(phase.animation):
+			sprite.play(phase.animation)
+		elif phase.exit_type == "anim_finished":
+			# No animation available — skip to next
+			_on_choreography_phase_exit()
+			return
+
+	# Set up phase exit monitoring
+	match phase.exit_type:
+		"wait":
+			_choreography_timer = phase.wait_duration
+			set_process(true)
+		"displacement_complete":
+			set_process(true)
+		"anim_finished":
+			if phase.animation == "":
+				_on_choreography_phase_exit()
+
+
+func _execute_choreography_phase_effects(phase: ChoreographyPhase) -> void:
+	## Fire effects for the current choreography phase.
+	if phase.effects.is_empty():
+		return
+
+	var targets: Array = _choreography_targets.duplicate()
+	if targets.is_empty() and spatial_grid:
+		var enemy_faction: int = 1 if int(faction) == 0 else 0
+		var nearest: Node2D = spatial_grid.find_nearest(global_position, enemy_faction)
+		if nearest:
+			targets = [nearest]
+
+	# Set attack_target for projectile aim direction
+	if not targets.is_empty():
+		attack_target = targets[0]
+
+	EffectDispatcher.execute_effects(
+		phase.effects, self, targets, _choreography_ability, combat_manager)
+
+	# Dispatch ability modifications (talent/item augments)
+	if _choreography_ability and ability_component:
+		var mod_effects: Array = ability_component.get_ability_modifications(
+			_choreography_ability.ability_id)
+		if not mod_effects.is_empty():
+			EffectDispatcher.execute_effects(
+				mod_effects, self, targets, _choreography_ability, combat_manager)
+
+
+func _on_choreography_animation_finished() -> void:
+	## Animation finished during a choreography phase.
+	if _choreography_phase_index < 0 or _choreography_phase_index >= _choreography.phases.size():
+		return
+	var phase: ChoreographyPhase = _choreography.phases[_choreography_phase_index]
+	if phase.exit_type == "anim_finished":
+		_on_choreography_phase_exit()
+
+
+func _on_choreography_phase_exit() -> void:
+	## Current phase complete. Transition to default_next.
+	set_process(false)
+	if _choreography == null:
+		return
+	var phase: ChoreographyPhase = _choreography.phases[_choreography_phase_index]
+	_enter_choreography_phase(phase.default_next)
+
+
+func _evaluate_choreography_branch(branch: ChoreographyBranch) -> bool:
+	## Evaluate a choreography branch condition.
+	if not branch.condition:
+		return true
+	var condition: Resource = branch.condition
+	if condition is ConditionEntityCount:
+		return ability_component._check_entity_count(condition, self)
+	return false
+
+
+func _end_choreography() -> void:
+	## Clean up all choreography state and return to normal behavior.
+	_choreography = null
+	_choreography_ability = null
+	_choreography_phase_index = -1
+	_choreography_timer = 0.0
+	_choreography_targets = []
+	is_untargetable = false
+	is_invulnerable = false
+	is_channeling = false
+	is_attacking = false
+	_ability_anim_active = false
+	attack_target = null
+	_pending_ability = null
+	_pending_targets = []
+	set_process(false)
+
+	if sprite and sprite.sprite_frames and sprite.sprite_frames.has_animation("idle"):
+		sprite.play("idle")
+
+
+func _stalker_reveal() -> void:
+	_stealth_revealed = true
+	var revealed_color := Color(0.65, 0.82, 1.0, 1.0)
+	_base_modulate = revealed_color
+	if sprite:
+		sprite.modulate = Color(8.0, 8.0, 8.0, 1.0)
+		var t := create_tween()
+		t.tween_property(sprite, "modulate", revealed_color, 0.20)
+
+
+func _despawn_escaped() -> void:
+	is_alive = false
+	EnemySpawnManager.on_enemy_despawned()
+	queue_free()
+
+
+func _spawn_trail_particles() -> void:
+	var p := CPUParticles2D.new()
+	p.amount = 8
+	p.lifetime = 0.7
+	p.one_shot = false
+	p.explosiveness = 0.0
+	p.direction = Vector2(0.0, -1.0)
+	p.spread = 180.0
+	p.initial_velocity_min = 8.0
+	p.initial_velocity_max = 20.0
+	p.gravity = Vector2.ZERO
+	p.scale_amount_min = 1.5
+	p.scale_amount_max = 3.0
+	p.color = Color(1.0, 0.85, 0.2, 0.9)
+	add_child(p)
+	p.emitting = true
+
 
 func get_armor() -> float:
-	return armor
+	return modifier_component.sum_modifiers("Physical", "resist")
+
 
 func is_dead() -> bool:
-	return _is_dead
+	return not is_alive
 
-func take_damage(amount: float) -> void:
-	if _is_dead:
+
+func apply_status(effect: String, params: Dictionary = {}) -> void:
+	## Compatibility bridge: translates old string-based status calls from weapon_controller
+	## and projectile.gd into engine StatusEffectComponent calls.
+	if not is_alive or not status_effect_component:
+		return
+	StatusFactory.build_all()
+	var status_def: StatusEffectDefinition = StatusFactory.get_by_id(effect)
+	if not status_def:
 		return
 
-	## Shielded: absorb damage into shield first
-	if _shield_hp > 0.0:
-		_shield_hp -= amount
-		if _shield_hp <= 0.0:
-			## Shield broken — apply remaining damage normally
-			amount = -_shield_hp
-			_shield_hp = 0.0
-			_base_modulate = Color(1.0, 0.75, 0.1, 1.0)  ## Revert to gold (standard elite)
-			if sprite:
-				sprite.modulate = Color(6.0, 6.0, 6.0, 1.0)  ## Bright flash on shield break
-				var break_tween := create_tween()
-				break_tween.tween_property(sprite, "modulate", _base_modulate, 0.15)
-			## Spawn shield break particles
-			VFXHelpers.spawn_burst(
-				get_tree().current_scene, global_position,
-				Color(0.3, 0.5, 1.0, 0.9), 10, 0.35, 40.0, 100.0, 2.0, 4.0,
-				Vector2.ZERO)
+	# Cryo special case: stacking toward Frozen
+	if effect == "cryo":
+		var stacks: int = status_effect_component.get_stacks("chilled") + 1
+		var freeze_threshold: int = params.get("freeze_stacks", 3)
+		if stacks >= freeze_threshold:
+			# Clear chilled, apply frozen
+			status_effect_component.force_remove_status("chilled")
+			var frozen_def: StatusEffectDefinition = StatusFactory.frozen
+			var freeze_dur: float = params.get("freeze_duration", 1.5)
+			status_effect_component.apply_status(frozen_def, self, 1, freeze_dur)
 		else:
-			## Shield still up — show hit but no HP damage
-			if sprite:
-				if _hit_tween and _hit_tween.is_valid():
-					_hit_tween.kill()
-				sprite.modulate = Color(0.5, 0.7, 1.5, 1.0)
-				_hit_tween = create_tween()
-				_hit_tween.tween_property(sprite, "modulate", _base_modulate, 0.08)
-			return  ## No HP damage while shield holds
-
-	if amount <= 0.0:
+			var chill_dur: float = params.get("duration", 3.0)
+			status_effect_component.apply_status(status_def, self, 1, chill_dur)
 		return
 
-	## Shocked: chain damage to nearest OTHER enemy on this hit, then remove shocked
-	if _statuses.has("shock"):
-		var shock_data: Dictionary = _statuses["shock"]
-		_statuses.erase("shock")
-		_remove_shock_visual()
-		_trigger_shock_chain(amount, shock_data)
+	# Override duration/damage from params if provided
+	var duration: float = -1.0
+	if params.has("dot_duration"):
+		duration = params["dot_duration"]
+	elif params.has("duration"):
+		duration = params["duration"]
 
-	hp -= amount
+	status_effect_component.apply_status(status_def, self, 1, duration)
 
-	## Flash bright white on hit — kill any running tween first
-	if sprite:
+
+func take_damage(hit_data) -> void:
+	if not is_alive:
+		return
+	if is_invulnerable:
+		return
+
+	CombatUtils.process_incoming_damage(self, hit_data)
+
+	# Enemy-specific: hit flash
+	if is_alive and sprite:
 		if _hit_tween and _hit_tween.is_valid():
 			_hit_tween.kill()
 		sprite.modulate = Color(5.0, 5.0, 5.0, 1.0)
 		_hit_tween = create_tween()
 		_hit_tween.tween_property(sprite, "modulate", _base_modulate, 0.08)
 
-	if hp <= 0.0:
-		hp = 0.0
-		_die()
 
 func apply_knockback(force: Vector2) -> void:
-	knockback_velocity += force
+	knockback_velocity += force * _knockback_multiplier
+
+
+static func apply_knockback_from_hit(attacker: Node2D, defender: Node2D, force: float = 160.0) -> void:
+	if not is_instance_valid(defender) or not defender.has_method("apply_knockback"):
+		return
+	var dir: Vector2 = (defender.global_position - attacker.global_position).normalized()
+	if dir == Vector2.ZERO:
+		dir = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)).normalized()
+	defender.apply_knockback(dir * force)
+
+
+func _apply_contact_knockback(target: Node2D) -> void:
+	apply_knockback_from_hit(self, target, 160.0)
+
 
 func apply_difficulty_scaling(difficulty: float) -> void:
 	max_hp *= (1.0 + (difficulty - 1.0) * 0.5)
-	hp = max_hp
+	health.setup(max_hp)
 	contact_damage *= (1.0 + (difficulty - 1.0) * 0.3)
-	move_speed *= (1.0 + (difficulty - 1.0) * 0.1)
+	base_move_speed *= (1.0 + (difficulty - 1.0) * 0.1)
 
-## Upgrades this enemy into an Elite: doubled HP, 1.5× damage, +3 armor, plus a random behavioral modifier.
-## Call after apply_difficulty_scaling so the elite bonus stacks on top of difficulty.
+
 func apply_elite_modifier() -> void:
-	## Base elite stat boost
 	max_hp *= 2.0
-	hp = max_hp
+	health.setup(max_hp)
 	contact_damage *= 1.5
-	armor += 3.0
 	xp_value *= 2.5
 	is_elite = true
 
-	## Select a random behavioral modifier
+	# Elite armor via modifier
+	var elite_armor := ModifierDefinition.new()
+	elite_armor.target_tag = "Physical"
+	elite_armor.operation = "resist"
+	elite_armor.value = 3.0
+	elite_armor.source_name = "elite"
+	modifier_component.add_modifier(elite_armor)
+
 	var modifiers: Array = [EliteModifier.HASTING, EliteModifier.EXPLODING, EliteModifier.SHIELDED]
 	elite_modifier = modifiers[randi() % modifiers.size()]
 
 	match elite_modifier:
 		EliteModifier.HASTING:
-			move_speed *= 2.0
+			var haste_mod := ModifierDefinition.new()
+			haste_mod.target_tag = "move_speed"
+			haste_mod.operation = "bonus"
+			haste_mod.value = 1.0
+			haste_mod.source_name = "elite_hasting"
+			modifier_component.add_modifier(haste_mod)
 			_base_modulate = Color(0.2, 1.0, 0.3, 1.0)
 		EliteModifier.EXPLODING:
 			_base_modulate = Color(1.0, 0.25, 0.1, 1.0)
 		EliteModifier.SHIELDED:
-			_shield_max = max_hp * 0.4
-			_shield_hp = _shield_max
+			health.add_shield(max_hp * 0.4, "elite_shield")
 			_base_modulate = Color(0.3, 0.5, 1.0, 1.0)
 
 	if sprite:
@@ -239,274 +835,61 @@ func apply_elite_modifier() -> void:
 		glow_tween.tween_property(sprite, "modulate", _base_modulate * 1.6, 0.45)
 		glow_tween.tween_property(sprite, "modulate", _base_modulate * 0.7, 0.45)
 
-# ─── Status effect system ─────────────────────────────────────────────────────
 
-func apply_status(effect: String, params: Dictionary) -> void:
-	if _is_dead:
+# --- Death ---
+
+func _on_health_died(_entity: Node2D) -> void:
+	if not is_alive:
 		return
-	match effect:
-		"fire":
-			_statuses["fire"] = {
-				"timer":      params.get("dot_duration", 3.0),
-				"dot_damage": params.get("dot_damage",   3.0),
-				"tick_timer": 1.0,
-			}
-			_spawn_burn_particles()
+	is_alive = false
+	if trigger_component:
+		trigger_component.cleanup()
 
-		"bleed":
-			_statuses["bleed"] = {
-				"timer":      params.get("dot_duration", 4.0),
-				"dot_damage": params.get("dot_damage",   2.0),
-				"tick_timer": 1.0,
-			}
-			_spawn_bleed_particles()
+	EventBus.on_death.emit(self)
+	var killer: Node2D = last_hit_by if is_instance_valid(last_hit_by) else null
+	if killer:
+		EventBus.on_kill.emit(killer, self)
+		if health.last_overkill > 0.0:
+			EventBus.on_overkill.emit(killer, self, health.last_overkill)
 
-		"cryo":
-			var freeze_stacks: int = params.get("freeze_stacks", 3)
-			_cryo_stacks += 1
-			if _cryo_stacks >= freeze_stacks and not _frozen:
-				_apply_freeze(params.get("freeze_duration", 1.5))
-			else:
-				_statuses["cryo"] = {
-					"timer":    params.get("duration", 3.0),
-					"slow_pct": params.get("slow_pct", 0.3),
-				}
-				_speed_mult = 1.0 - params.get("slow_pct", 0.3)
-				_apply_chilled_tint()
-
-		"shock":
-			_statuses["shock"] = {
-				"timer":            params.get("duration", 5.0),
-				"chain_damage_pct": params.get("chain_damage_pct", 0.5),
-				"chain_range":      params.get("chain_range",      100.0),
-			}
-			_spawn_shock_particles()
-
-		"void_touched":
-			if not _void_touched:
-				_void_touched = true
-				## Dark purple base tint — persists until death
-				_base_modulate = Color(0.55, 0.15, 0.80, 1.0)
-				if sprite and not (_hit_tween and _hit_tween.is_valid()):
-					sprite.modulate = _base_modulate
-				_spawn_void_touched_particles()
-
-func _tick_statuses(delta: float) -> void:
-	var to_remove: Array = []
-
-	for effect in _statuses:
-		var s: Dictionary = _statuses[effect]
-		s["timer"] -= delta
-		if s["timer"] <= 0.0:
-			to_remove.append(effect)
-			continue
-		match effect:
-			"fire":
-				## Tick burning damage once per second
-				s["tick_timer"] -= delta
-				if s["tick_timer"] <= 0.0:
-					s["tick_timer"] = 1.0
-					if not _is_dead:
-						## Route through CombatManager so entity_killed signal fires
-						CombatManager.resolve_hit(self, self, s["dot_damage"], 0.0, 1.0)
-						if _is_dead:
-							return
-			"bleed":
-				## Tick bleed damage once per second
-				s["tick_timer"] -= delta
-				if s["tick_timer"] <= 0.0:
-					s["tick_timer"] = 1.0
-					if not _is_dead:
-						CombatManager.resolve_hit(self, self, s["dot_damage"], 0.0, 1.0)
-						if _is_dead:
-							return
-
-	for key in to_remove:
-		_remove_status(key)
-
-func _remove_status(effect: String) -> void:
-	_statuses.erase(effect)
-	match effect:
-		"fire":
-			if _burn_particles and is_instance_valid(_burn_particles):
-				_burn_particles.emitting = false
-				get_tree().create_timer(1.0).timeout.connect(
-					func(): if is_instance_valid(_burn_particles): _burn_particles.queue_free()
-				)
-				_burn_particles = null
-		"bleed":
-			if _bleed_particles and is_instance_valid(_bleed_particles):
-				_bleed_particles.emitting = false
-				get_tree().create_timer(1.0).timeout.connect(
-					func(): if is_instance_valid(_bleed_particles): _bleed_particles.queue_free()
-				)
-				_bleed_particles = null
-		"cryo":
-			_cryo_stacks = 0
-			_speed_mult = 1.0
-			_restore_base_modulate()
-		"shock":
-			_remove_shock_visual()
-
-func _apply_freeze(duration: float) -> void:
-	_frozen = true
-	_freeze_timer = duration
-	_cryo_stacks = 0
-	_statuses.erase("cryo")
-	_speed_mult = 0.0
-	## Bright ice-blue flash to signal freeze
-	if sprite:
-		if _hit_tween and _hit_tween.is_valid():
-			_hit_tween.kill()
-		sprite.modulate = Color(0.7, 0.9, 1.0, 1.0)
-
-func _apply_chilled_tint() -> void:
-	_base_modulate = Color(0.55, 0.78, 1.0)
-	if sprite and not (_hit_tween and _hit_tween.is_valid()):
-		sprite.modulate = _base_modulate
-
-func _restore_base_modulate() -> void:
-	_base_modulate = Color(1.0, 0.75, 0.1, 1.0) if is_elite else Color.WHITE
-	if sprite and not (_hit_tween and _hit_tween.is_valid()):
-		sprite.modulate = _base_modulate
-
-## Spawn persistent orange particle emitter child for burning visual
-func _spawn_burn_particles() -> void:
-	if _burn_particles and is_instance_valid(_burn_particles):
-		return  ## Already burning
-	var p := CPUParticles2D.new()
-	p.amount = 6
-	p.lifetime = 0.5
-	p.one_shot = false
-	p.explosiveness = 0.0
-	p.direction = Vector2(0.0, -1.0)
-	p.spread = 40.0
-	p.initial_velocity_min = 12.0
-	p.initial_velocity_max = 28.0
-	p.gravity = Vector2(0.0, -10.0)
-	p.scale_amount_min = 1.5
-	p.scale_amount_max = 3.5
-	p.color = Color(1.0, 0.42, 0.06, 0.9)
-	add_child(p)
-	p.emitting = true
-	_burn_particles = p
-
-## Persistent red particle emitter child for bleed visual
-func _spawn_bleed_particles() -> void:
-	if _bleed_particles and is_instance_valid(_bleed_particles):
-		return  ## Already bleeding
-	var p := CPUParticles2D.new()
-	p.amount = 6
-	p.lifetime = 0.5
-	p.one_shot = false
-	p.explosiveness = 0.0
-	p.direction = Vector2(0.0, -1.0)
-	p.spread = 40.0
-	p.initial_velocity_min = 12.0
-	p.initial_velocity_max = 28.0
-	p.gravity = Vector2(0.0, -10.0)
-	p.scale_amount_min = 1.5
-	p.scale_amount_max = 3.5
-	p.color = Color(0.85, 0.1, 0.1, 0.9)
-	add_child(p)
-	p.emitting = true
-	_bleed_particles = p
-
-## Brief yellow spark burst — applied on shock application
-func _spawn_shock_particles() -> void:
-	var p := CPUParticles2D.new()
-	p.amount = 8
-	p.lifetime = 0.3
-	p.one_shot = true
-	p.explosiveness = 1.0
-	p.direction = Vector2.ZERO
-	p.spread = 180.0
-	p.initial_velocity_min = 20.0
-	p.initial_velocity_max = 55.0
-	p.gravity = Vector2.ZERO
-	p.scale_amount_min = 1.5
-	p.scale_amount_max = 3.0
-	p.color = Color(1.0, 0.92, 0.15, 1.0)
-	add_child(p)
-	p.emitting = true
-	get_tree().create_timer(0.5).timeout.connect(func(): if is_instance_valid(p): p.queue_free())
-	## Sustained yellow shimmer while shocked
-	if sprite:
-		if _shock_tween and _shock_tween.is_valid():
-			_shock_tween.kill()
-		_shock_tween = create_tween().set_loops()
-		_shock_tween.tween_property(sprite, "modulate:g", 1.3, 0.12)
-		_shock_tween.tween_property(sprite, "modulate:g", 0.85, 0.12)
-
-func _remove_shock_visual() -> void:
-	if _shock_tween and _shock_tween.is_valid():
-		_shock_tween.kill()
-		_shock_tween = null
-	if sprite and not (_hit_tween and _hit_tween.is_valid()):
-		sprite.modulate = _base_modulate
-
-## Triggered by take_damage when shocked. Chains damage to nearest other enemy.
-func _trigger_shock_chain(source_damage: float, shock_data: Dictionary) -> void:
-	var chain_range: float  = shock_data.get("chain_range",      100.0)
-	var chain_pct:   float  = shock_data.get("chain_damage_pct",   0.5)
-	var chain_dmg:   float  = source_damage * chain_pct
-	var nearest: Node2D = null
-	var nearest_dist: float = chain_range
-
-	for other in get_tree().get_nodes_in_group("enemies"):
-		if not is_instance_valid(other) or other == self:
-			continue
-		var dist: float = global_position.distance_to(other.global_position)
-		if dist < nearest_dist:
-			nearest_dist = dist
-			nearest = other
-
-	if nearest != null and nearest.has_method("take_damage"):
-		CombatManager.resolve_secondary_hit(self, nearest, chain_dmg)
-		_spawn_shock_chain_visual(nearest.global_position)
-
-func _spawn_shock_chain_visual(target_pos: Vector2) -> void:
-	var line := Line2D.new()
-	line.top_level = true
-	line.add_point(global_position)
-	line.add_point(target_pos)
-	line.width = 2.5
-	line.default_color = Color(1.0, 0.95, 0.2, 0.9)
-	get_tree().current_scene.add_child(line)
-	var t := line.create_tween()
-	t.tween_property(line, "modulate:a", 0.0, 0.18)
-	t.tween_callback(line.queue_free)
-
-func _die() -> void:
-	_is_dead = true
 	died.emit(self)
 
-	## Exploding elite: AoE damage on death
 	if elite_modifier == EliteModifier.EXPLODING:
 		_exploding_death()
 
-	## Void-Touched: explode before the death burst so damage fires from the right position
-	if _void_touched:
+	# Void-Touched death explosion
+	if status_effect_component and status_effect_component.has_status("void_touched"):
 		_void_explosion()
 
-	## Spawn burst effect before freeing
-	_spawn_death_effect()
+	# Carrier loot
+	if _loot_drop_scene:
+		_drop_carrier_loot()
 
-	## Drop pickups
+	_spawn_death_effect()
 	_drop_xp()
 	_drop_health()
-
-	## Remove from scene
 	queue_free()
 
-## Exploding elite death: AoE damage to player if in range, red expanding ring + burst.
+
+func _drop_carrier_loot() -> void:
+	var count: int = randi_range(2, 3)
+	for i in range(count):
+		var drop: Area2D = _loot_drop_scene.instantiate()
+		var offset := Vector2(randf_range(-18.0, 18.0), randf_range(-18.0, 18.0))
+		drop.global_position = global_position + offset
+		drop.value = _loot_value / float(count)
+		get_tree().current_scene.add_child(drop)
+
+
 func _exploding_death() -> void:
 	const EXPLODE_RADIUS: float = 60.0
 	const EXPLODE_DAMAGE: float = 15.0
 	var player := get_tree().get_first_node_in_group("player")
 	if player and global_position.distance_to(player.global_position) <= EXPLODE_RADIUS:
 		if player.has_method("take_damage"):
-			CombatManager.resolve_hit(self, player, EXPLODE_DAMAGE, 0.0, 1.0)
+			var hit := DamageCalculator.calculate_raw_hit(self, player, EXPLODE_DAMAGE, "Fire")
+			if not hit.is_dodged:
+				player.take_damage(hit)
 	VFXHelpers.spawn_expanding_ring(
 		get_tree().current_scene, global_position,
 		Color(1.0, 0.2, 0.05, 0.6), EXPLODE_RADIUS, 1.2, 0.3)
@@ -515,23 +898,19 @@ func _exploding_death() -> void:
 		Color(1.0, 0.35, 0.0, 0.9), 12, 0.4, 40.0, 120.0, 2.5, 5.0,
 		Vector2.ZERO)
 
-## Void-Touched death explosion: damages nearby enemies and bleeds instability onto the player.
-## Radius 80 px, damage = 2× this enemy's contact_damage, instability bleed +2.
+
 func _void_explosion() -> void:
 	const VOID_RADIUS: float = 80.0
 	var dmg: float = contact_damage * 2.0
-
 	for other in get_tree().get_nodes_in_group("enemies"):
 		if not is_instance_valid(other) or other == self:
 			continue
 		if global_position.distance_to(other.global_position) <= VOID_RADIUS:
 			if other.has_method("take_damage"):
-				CombatManager.resolve_secondary_hit(self, other, dmg)
-
-	## Bleed instability onto the player — carrying void-touched enemies is a liability
+				var hit := DamageCalculator.calculate_raw_hit(self, other, dmg, "Void")
+				if not hit.is_dodged:
+					other.take_damage(hit)
 	GameManager.modify_instability(2)
-
-	## Visual: dark purple expanding ring + void particle burst
 	VFXHelpers.spawn_expanding_ring(
 		get_tree().current_scene, global_position,
 		Color(0.40, 0.08, 0.65, 0.55), VOID_RADIUS, 1.4, 0.25)
@@ -540,30 +919,13 @@ func _void_explosion() -> void:
 		Color(0.55, 0.10, 0.90, 0.90), 14, 0.55, 60.0, 160.0, 2.0, 5.0,
 		Vector2.ZERO)
 
-## Persistent void aura particles — applied when void_touched status lands.
-func _spawn_void_touched_particles() -> void:
-	var p := CPUParticles2D.new()
-	p.amount = 5
-	p.lifetime = 0.7
-	p.one_shot = false
-	p.explosiveness = 0.0
-	p.direction = Vector2(0.0, -1.0)
-	p.spread = 80.0
-	p.initial_velocity_min = 10.0
-	p.initial_velocity_max = 22.0
-	p.gravity = Vector2(0.0, -8.0)
-	p.scale_amount_min = 1.5
-	p.scale_amount_max = 3.0
-	p.color = Color(0.50, 0.08, 0.85, 0.80)
-	add_child(p)
-	p.emitting = true
-	## Particles are a child — they queue_free with the enemy on death automatically
 
 func _spawn_death_effect() -> void:
 	VFXHelpers.spawn_burst(
 		get_tree().current_scene, global_position,
 		Color(1.0, 0.5, 0.1, 1.0), 8, 0.45, 50.0, 130.0, 2.0, 4.0,
 		Vector2(0.0, 120.0))
+
 
 func _drop_xp() -> void:
 	if xp_pickup_scene == null:
@@ -572,6 +934,7 @@ func _drop_xp() -> void:
 	pickup.global_position = global_position
 	pickup.xp_value = xp_value
 	get_tree().current_scene.add_child(pickup)
+
 
 func _drop_health() -> void:
 	if health_orb_scene == null:
@@ -582,9 +945,15 @@ func _drop_health() -> void:
 	orb.global_position = global_position
 	get_tree().current_scene.add_child(orb)
 
+
 func _on_hurtbox_body_entered(body: Node2D) -> void:
-	if _is_dead:
+	if not is_alive:
 		return
 	if body.is_in_group("player") and body.has_method("take_damage") and _contact_damage_timer <= 0.0:
-		CombatManager.resolve_hit(self, body, contact_damage, 0.0, 1.0)
+		var hit := DamageCalculator.calculate_raw_hit(
+			self, body, contact_damage, "Physical", null,
+			combat_manager.rng if combat_manager else null)
+		if not hit.is_dodged:
+			body.take_damage(hit)
+			_apply_contact_knockback(body)
 		_contact_damage_timer = CONTACT_DAMAGE_INTERVAL

@@ -7,7 +7,9 @@
 
 **Purpose:** Define the numbers that describe every entity in the game. Every other system reads from these stats.
 
-**Boundaries:** This system DEFINES stats and their ranges. It does NOT handle how stats change (that's the Upgrade System) or how they're used in formulas (that's the Combat System). This is the dictionary, not the grammar.
+**Implementation:** Each entity owns a `ModifierComponent` — a flat list of `ModifierDefinition` resources with cached O(1) queries. Stats are queried via `modifier_component.sum_modifiers(tag, operation)`. Base stats, upgrades, status effects, talents, and equipment all add ModifierDefinitions to the same pool.
+
+**Stat formula:** `final = (base + sum(flat_adds)) × (1 + sum(percent_bonuses))`
 
 ### Core Stats (Every Entity Has These)
 
