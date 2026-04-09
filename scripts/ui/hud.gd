@@ -32,6 +32,10 @@ var _keystone_indicator: Control = null
 var _guardian_bar_root: Control = null
 var _guardian_hp_bar: ProgressBar = null
 var _guardian_hp_label: Label = null
+## ── Phase indicators (top-center) ────────────────────────────────────────────
+var _phase_label: Label = null
+var _phase_flash_label: Label = null
+var _extraction_warning_label: Label = null
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -56,6 +60,10 @@ func _ready() -> void:
 
 	_build_keystone_indicator()
 	_build_guardian_health_bar()
+	_build_phase_label()
+	_build_phase_flash_label()
+	_build_extraction_warning_label()
+	GameManager.phase_started.connect(_on_phase_started)
 
 func setup(player: Node2D) -> void:
 	player_ref = player
@@ -96,6 +104,23 @@ func _process(delta: float) -> void:
 	## Keystone indicator visibility
 	if _keystone_indicator:
 		_keystone_indicator.visible = GameManager.player_has_keystone
+
+	## Phase countdown warning / Core phase notice
+	if _extraction_warning_label != null:
+		var time_remaining: float = GameManager.phase_duration - GameManager.phase_timer
+		if GameManager.phase_number >= GameManager.MAX_PHASES:
+			## Phase 5: no timed exit — show a permanent notice
+			_extraction_warning_label.text = "THE CORE — NO TIMED EXIT"
+			_extraction_warning_label.add_theme_color_override("font_color", Color(0.9, 0.3, 0.3))
+			_extraction_warning_label.visible = true
+			_extraction_warning_label.modulate.a = 1.0
+		elif time_remaining <= 10.0 and time_remaining > 0.0 and not GameManager.extraction_window_active:
+			## Last 10 seconds before extraction window opens — blink warning
+			_extraction_warning_label.text = "EXTRACTION IN %d" % ceili(time_remaining)
+			_extraction_warning_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.1))
+			_extraction_warning_label.visible = fmod(_blink_timer, 1.0) > 0.5
+		else:
+			_extraction_warning_label.visible = false
 
 func _on_health_changed(current: float, maximum: float) -> void:
 	health_bar.max_value = maximum
@@ -258,6 +283,72 @@ func _on_guardian_state_changed(hp: float, max_hp: float, show_bar: bool) -> voi
 		var hp_pct: int = int(round(hp / max_hp * 100.0))
 		if _guardian_hp_label:
 			_guardian_hp_label.text = "GUARDIAN  %d / %d  (%d%%)" % [int(hp), int(max_hp), hp_pct]
+
+## ── Phase label + flash ──────────────────────────────────────────────────────
+
+func _build_phase_label() -> void:
+	## Persistent phase name strip, top-center (x=140–340, y=2). Font 12 → 48px at 4×.
+	var lbl := Label.new()
+	lbl.name = "PhaseLabel"
+	lbl.text = "PHASE 1: THE THRESHOLD"
+	lbl.position = Vector2(140.0, 2.0)
+	lbl.size = Vector2(200.0, 14.0)
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.add_theme_font_size_override("font_size", 12)
+	lbl.modulate = Color(1.0, 1.0, 1.0, 0.75)
+	if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
+		lbl.add_theme_font_override("font", load("res://assets/fonts/m5x7.ttf"))
+	add_child(lbl)
+	_phase_label = lbl
+
+func _build_phase_flash_label() -> void:
+	## Large centred flash label that briefly announces the new phase name.
+	## Starts invisible; fades out after being triggered by _on_phase_started.
+	var lbl := Label.new()
+	lbl.name = "PhaseFlashLabel"
+	lbl.text = ""
+	lbl.position = Vector2(40.0, 110.0)
+	lbl.size = Vector2(400.0, 40.0)
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.add_theme_font_size_override("font_size", 20)
+	lbl.add_theme_color_override("font_color", Color(1.0, 0.9, 0.7))
+	lbl.modulate.a = 0.0
+	if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
+		lbl.add_theme_font_override("font", load("res://assets/fonts/m5x7.ttf"))
+	add_child(lbl)
+	_phase_flash_label = lbl
+
+func _build_extraction_warning_label() -> void:
+	## Blinking 10-second countdown before the extraction window opens.
+	## Sits one text-row below the phase label (y=15). Same centre column.
+	var lbl := Label.new()
+	lbl.name = "ExtractionWarningLabel"
+	lbl.text = ""
+	lbl.position = Vector2(140.0, 15.0)
+	lbl.size = Vector2(200.0, 12.0)
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.add_theme_font_size_override("font_size", 10)
+	lbl.add_theme_color_override("font_color", Color(1.0, 0.9, 0.1))
+	lbl.visible = false
+	if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
+		lbl.add_theme_font_override("font", load("res://assets/fonts/m5x7.ttf"))
+	add_child(lbl)
+	_extraction_warning_label = lbl
+
+func _on_phase_started(phase: int) -> void:
+	## Update the persistent phase strip
+	if _phase_label:
+		_phase_label.text = "PHASE %d: %s" % [phase, GameManager.PHASE_NAMES[phase - 1]]
+	## Trigger the centred flash announcement
+	if _phase_flash_label:
+		_phase_flash_label.text = GameManager.PHASE_NAMES[phase - 1]
+		_phase_flash_label.modulate.a = 1.0
+		var tween := create_tween()
+		tween.tween_interval(0.5)               ## Hold at full opacity briefly
+		tween.tween_property(_phase_flash_label, "modulate:a", 0.0, 1.5)
+	## Hide the warning label immediately — new phase timer starts fresh
+	if _extraction_warning_label:
+		_extraction_warning_label.visible = false
 
 func _update_extraction_arrow() -> void:
 	if ExtractionManager.extraction_point == null or not is_instance_valid(ExtractionManager.extraction_point):

@@ -33,6 +33,38 @@ func activate() -> void:
 	state = "guarded"
 	_spawn_guardian()
 
+func reset_for_new_phase() -> void:
+	## Silently remove the existing guardian before activate() spawns a fresh one.
+	## Disconnect the signal first so queue_free doesn't trigger _on_guardian_killed
+	## → _open_window(), which would wrongly unlock the zone.
+	if guardian_enemy != null and is_instance_valid(guardian_enemy):
+		if guardian_enemy.guardian_killed.is_connected(_on_guardian_killed):
+			guardian_enemy.guardian_killed.disconnect(_on_guardian_killed)
+		guardian_enemy.queue_free()
+		guardian_enemy = null
+		EnemySpawnManager.active_enemies = maxi(EnemySpawnManager.active_enemies - 1, 0)
+
+	## Stop active-window pulse tween
+	if _active_pulse:
+		_active_pulse.kill()
+		_active_pulse = null
+	scale = Vector2(1.0, 1.0)
+
+	## Interrupt channeling if the player was mid-extraction when the phase rolled over
+	if ExtractionManager.is_channeling:
+		ExtractionManager.interrupt_channel()
+
+	## Reset fill back to dim/locked appearance
+	if _fill:
+		_fill.color = Color(0.50, 0.05, 0.05, 0.18)
+
+	## Zero out timers and flags — activate() will set state to "guarded"
+	_window_timer = 0.0
+	_respawn_timer = 0.0
+	active = false
+	state = "inactive"
+	_update_label()
+
 ## ── Process (called by main_arena) ──────────────────────────────────────────
 
 func tick(delta: float, player_pos: Vector2) -> void:

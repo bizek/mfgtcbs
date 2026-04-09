@@ -91,11 +91,52 @@ const ALL: Dictionary = {
 		"effect_type": "instability_siphon",
 		"params": {},
 	},
+	"split": {
+		"id": "split",
+		"name": "SPLIT",
+		"desc": "Projectiles split into 3 smaller shots on hit or expiry.",
+		"color": Color(0.90, 0.55, 0.95),
+		"effect_type": "split",
+		"params": { "split_count": 3, "split_damage_mult": 0.4 },
+	},
+	"gravity": {
+		"id": "gravity",
+		"name": "GRAVITY",
+		"desc": "Projectiles curve toward the nearest enemy.",
+		"color": Color(0.50, 0.20, 0.80),
+		"effect_type": "gravity",
+		"params": { "pull_strength": 300.0, "seek_range": 150.0 },
+	},
+	"ricochet": {
+		"id": "ricochet",
+		"name": "RICOCHET",
+		"desc": "Projectiles bounce off arena walls up to 3 times.",
+		"color": Color(0.75, 0.85, 0.95),
+		"effect_type": "ricochet",
+		"params": { "max_bounces": 3 },
+	},
+	"accelerating": {
+		"id": "accelerating",
+		"name": "ACCELERATING",
+		"desc": "Attack speed ramps up by 50% over 3 seconds of sustained fire.",
+		"color": Color(0.95, 0.65, 0.15),
+		"effect_type": "accelerating",
+		"params": { "max_bonus": 0.5, "ramp_time": 3.0 },
+	},
+	"dot_applicator": {
+		"id": "dot_applicator",
+		"name": "DOT APPLICATOR",
+		"desc": "All hits apply Bleed: 2 dmg/sec for 4 seconds. Stacks duration.",
+		"color": Color(0.85, 0.15, 0.15),
+		"effect_type": "dot_applicator",
+		"params": { "dot_damage": 2.0, "dot_duration": 4.0 },
+	},
 }
 
 ## Stable display order for armory / debug panels
 const ORDER: Array = [
 	"pierce", "chain", "explosive",
 	"fire", "cryo", "shock",
-	"lifesteal", "size", "crit_amp", "instability_siphon",
+	"lifesteal", "size", "crit_amp", "instability_siphon", "split", "gravity", "ricochet",
+	"accelerating", "dot_applicator",
 ]

@@ -39,7 +39,11 @@ func _show_choices() -> void:
 	for i in range(_choices.size()):
 		var upgrade: Dictionary = _choices[i]
 		var btn := Button.new()
-		btn.text = "%s\n%s" % [upgrade.name, upgrade.description]
+		if upgrade.get("is_evolution", false):
+			btn.text = "★ %s\n%s" % [upgrade.name, upgrade.description]
+			btn.add_theme_color_override("font_color", Color(1.0, 0.85, 0.15))
+		else:
+			btn.text = "%s\n%s" % [upgrade.name, upgrade.description]
 		btn.custom_minimum_size = Vector2(210, 38)
 		if pixel_font:
 			btn.add_theme_font_override("font", pixel_font)

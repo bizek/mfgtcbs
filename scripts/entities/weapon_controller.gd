@@ -14,6 +14,7 @@ var weapon_id: String = ""
 var active_mods: Array = []
 var fire_timer: float = 0.0
 var _orbit_orbs: Array = []
+var _sustained_fire_timer: float = 0.0
 
 ## ── Setup ────────────────────────────────────────────────────────────────────
 
@@ -23,6 +24,7 @@ func setup(p_player: CharacterBody2D, p_weapon_data: Dictionary, p_weapon_id: St
 	weapon_id = p_weapon_id
 	projectile_scene = p_proj_scene
 
+	_sustained_fire_timer = 0.0
 	if weapon_data.get("behavior") == "orbit":
 		call_deferred("_setup_orbit_orbs")
 
@@ -32,10 +34,31 @@ func set_mods(mods: Array) -> void:
 ## ── Tick (called from player._physics_process) ──────────────────────────────
 
 func tick(delta: float) -> void:
+	_update_accel_timer(delta)
 	fire_timer -= delta
 	if fire_timer <= 0.0:
 		_fire_weapon()
-		fire_timer = 1.0 / player.get_stat("attack_speed")
+		fire_timer = 1.0 / _get_effective_attack_speed()
+
+func _update_accel_timer(delta: float) -> void:
+	if not "accelerating" in active_mods:
+		return
+	var params: Dictionary = ModData.ALL["accelerating"]["params"]
+	var ramp_time: float = params.get("ramp_time", 3.0)
+	if _get_nearest_enemy() != null:
+		_sustained_fire_timer = minf(_sustained_fire_timer + delta, ramp_time)
+	else:
+		_sustained_fire_timer = maxf(_sustained_fire_timer - delta, 0.0)
+
+func _get_effective_attack_speed() -> float:
+	var base_speed: float = player.get_stat("attack_speed")
+	if not "accelerating" in active_mods:
+		return base_speed
+	var params: Dictionary = ModData.ALL["accelerating"]["params"]
+	var max_bonus: float = params.get("max_bonus", 0.5)
+	var ramp_time: float = params.get("ramp_time", 3.0)
+	var accel_bonus: float = clampf(_sustained_fire_timer / ramp_time, 0.0, 1.0) * max_bonus
+	return base_speed * (1.0 + accel_bonus)
 
 ## ── Weapon dispatch ──────────────────────────────────────────────────────────
 
@@ -325,6 +348,17 @@ func apply_mods_to_projectile(proj: Node) -> void:
 				proj.mod_lifesteal = params.get("steal_pct", 0.05)
 			"size":
 				proj.scale_factor *= params.get("size_mult", 1.5)
+			"split":
+				proj.mod_split             = true
+				proj.mod_split_count       = params.get("split_count", 3)
+				proj.mod_split_damage_mult = params.get("split_damage_mult", 0.4)
+			"gravity":
+				proj.mod_gravity       = true
+				proj.mod_gravity_pull  = params.get("pull_strength", 300.0)
+				proj.mod_gravity_range = params.get("seek_range", 150.0)
+			"ricochet":
+				proj.mod_ricochet        = true
+				proj._bounces_remaining  = params.get("max_bounces", 3)
 
 func _apply_direct_hit_mods(enemy: Node, raw_damage: float) -> void:
 	if not is_instance_valid(enemy):
@@ -346,6 +380,9 @@ func _apply_direct_hit_mods(enemy: Node, raw_damage: float) -> void:
 				_do_explosion(enemy.global_position,
 					raw_damage * params.get("damage_mult", 0.3),
 					params.get("radius", 40.0))
+			"dot_applicator":
+				if enemy.has_method("apply_status"):
+					enemy.apply_status("bleed", params)
 
 func _do_chain_hit(origin: Vector2, origin_enemy: Node, dmg: float, range_px: float) -> void:
 	var nearest: Node2D = null
@@ -360,7 +397,7 @@ func _do_chain_hit(origin: Vector2, origin_enemy: Node, dmg: float, range_px: fl
 			nearest = enemy
 	if nearest == null or not nearest.has_method("take_damage"):
 		return
-	nearest.take_damage(dmg)
+	CombatManager.resolve_secondary_hit(player, nearest, dmg)
 	var line := Line2D.new()
 	line.top_level = true
 	line.add_point(origin)
@@ -379,7 +416,7 @@ func _do_explosion(pos: Vector2, dmg: float, radius: float) -> void:
 			continue
 		if pos.distance_to(enemy.global_position) <= radius:
 			if enemy.has_method("take_damage"):
-				enemy.take_damage(dmg)
+				CombatManager.resolve_secondary_hit(player, enemy, dmg)
 	var ring := ColorRect.new()
 	ring.color    = Color(1.0, 0.48, 0.08, 0.50)
 	ring.size     = Vector2(radius * 2.0, radius * 2.0)

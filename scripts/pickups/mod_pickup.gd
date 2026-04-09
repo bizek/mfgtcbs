@@ -134,13 +134,14 @@ func _try_auto_equip() -> bool:
 	for i in range(max_slots):
 		var existing: String = current_mods[i] if i < current_mods.size() else ""
 		if existing.is_empty():
-			## Equip directly — bypass owned_mods (mid-run find, no inventory step)
+			## Equip to in-memory state (so reload_mods() picks it up) but do NOT save to disk.
+			## GameManager tracks it for rollback on death / commit on extraction.
 			if not ProgressionManager.weapon_mods.has(weapon_id):
 				ProgressionManager.weapon_mods[weapon_id] = []
 			while ProgressionManager.weapon_mods[weapon_id].size() <= i:
 				ProgressionManager.weapon_mods[weapon_id].append("")
 			ProgressionManager.weapon_mods[weapon_id][i] = mod_id
-			ProgressionManager.save_data()
+			GameManager.equip_mod_mid_run(weapon_id, i, mod_id)
 
 			## Tell the player to reload its mod set immediately
 			if player.has_method("reload_mods"):

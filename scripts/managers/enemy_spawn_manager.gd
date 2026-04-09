@@ -1,12 +1,13 @@
 extends Node
 
 ## EnemySpawnManager — Wave composition, spawn timing, difficulty scaling.
-## New enemy types are introduced at elapsed-time thresholds that simulate phase progression:
-##   0 – 120 s  →  Fodder + Swarmers
-##   120 – 240 s →  + Brutes (rare) + Casters (pairs)
-##   240 s +     →  + Carriers (solo) + Stalkers + Heralds
+## New enemy types are gated by GameManager.phase_number:
+##   Phase 1  →  Fodder + Swarmers
+##   Phase 2+ →  + Brutes (rare) + Casters (pairs)
+##   Phase 3+ →  + Carriers (solo) + Stalkers + Heralds
 ##
-## Elite modifier: any basic enemy has a time-scaling chance to spawn as an Elite
+## Per-phase HP/damage/spawn multipliers stack on top of time-based difficulty scaling.
+## Elite modifier: any basic enemy has a time+phase-scaling chance to spawn as an Elite
 ##   (2× HP, 1.5× damage, +3 armor, gold glow tint, 2.5× XP).
 
 signal enemy_spawned(enemy: Node)
@@ -20,9 +21,10 @@ signal enemy_spawned(enemy: Node)
 @export var stalker_scene:  PackedScene
 @export var herald_scene:   PackedScene
 
-## ── Timing thresholds (seconds of elapsed run time) ──────────────────────────
-const PHASE2_TIME: float = 120.0   ## Brutes + Casters appear after 2 min
-const PHASE3_TIME: float = 240.0   ## Carriers + Stalkers + Heralds after 4 min
+## ── Phase stat multipliers (index = phase_number - 1) ────────────────────────
+const PHASE_HP_MULT: Array    = [1.0, 1.5, 2.5, 4.0, 6.0]
+const PHASE_DMG_MULT: Array   = [1.0, 1.3, 1.6, 2.0, 2.5]
+const PHASE_SPAWN_MULT: Array = [1.0, 1.2, 1.5, 1.8, 2.2]
 
 ## Roll ramp rates — seconds of elapsed time for probability to scale from base to cap
 const BRUTE_ROLL_RAMP: float = 600.0   ## Brute spawn chance ramps over 10 min
@@ -52,8 +54,6 @@ func _process(delta: float) -> void:
 	if GameManager.current_state != GameManager.GameState.RUN_ACTIVE:
 		return
 
-	var run_time: float = GameManager.run_time
-
 	## ── Main wave timer ──────────────────────────────────────────────────────
 	spawn_timer -= delta
 	if spawn_timer <= 0.0:
@@ -63,16 +63,16 @@ func _process(delta: float) -> void:
 		spawn_timer = base_spawn_interval / (difficulty * channel_pressure)
 
 	## ── Carrier spawn (solo runs, scarce) ────────────────────────────────────
-	if run_time >= PHASE3_TIME and carrier_scene != null:
+	if GameManager.phase_number >= 3 and carrier_scene != null:
 		_carrier_timer -= delta
 		if _carrier_timer <= 0.0:
-			var carrier_count: int = 2 if run_time >= PHASE3_TIME + 120.0 else 1
+			var carrier_count: int = 2 if GameManager.phase_number >= 4 else 1
 			for _i in range(carrier_count):
 				_spawn_enemy_at_edge(carrier_scene, false)
 			_carrier_timer = CARRIER_INTERVAL
 
 	## ── Herald spawn (always arrives with a pack) ────────────────────────────
-	if run_time >= PHASE3_TIME and herald_scene != null:
+	if GameManager.phase_number >= 3 and herald_scene != null:
 		_herald_timer -= delta
 		if _herald_timer <= 0.0:
 			_spawn_herald_pack()
@@ -87,11 +87,18 @@ func start_spawning(player: Node2D, bounds: Rect2) -> void:
 	## Track enemy deaths via combat signal
 	if not CombatManager.entity_killed.is_connected(_on_entity_killed):
 		CombatManager.entity_killed.connect(_on_entity_killed)
+	## Reset carrier/herald pacing on each new phase
+	if not GameManager.phase_started.is_connected(_on_phase_started):
+		GameManager.phase_started.connect(_on_phase_started)
 	_carrier_timer = CARRIER_INTERVAL * 0.8
 	_herald_timer  = HERALD_INTERVAL
 
 func stop_spawning() -> void:
 	spawn_enabled = false
+
+func _on_phase_started(_phase: int) -> void:
+	_carrier_timer = CARRIER_INTERVAL * 0.8
+	_herald_timer = HERALD_INTERVAL
 
 func _on_entity_killed(_killer: Node, victim: Node, _pos: Vector2) -> void:
 	if victim.is_in_group("enemies"):
@@ -108,7 +115,8 @@ func _spawn_wave() -> void:
 		return
 
 	var difficulty: float = GameManager.difficulty_multiplier
-	var count: int = mini(int(enemies_per_spawn * difficulty), max_enemies - active_enemies)
+	var phase_idx: int = clampi(GameManager.phase_number - 1, 0, 4)
+	var count: int = mini(int(enemies_per_spawn * difficulty * PHASE_SPAWN_MULT[phase_idx]), max_enemies - active_enemies)
 
 	for _i in range(count):
 		if active_enemies >= max_enemies:
@@ -116,8 +124,8 @@ func _spawn_wave() -> void:
 		_spawn_single_enemy()
 
 	## Phase 2+: occasional Brute (1–2 per wave, rare roll)
-	if GameManager.run_time >= PHASE2_TIME and brute_scene != null:
-		var brute_roll: float = clampf(0.12 + (GameManager.run_time - PHASE2_TIME) / BRUTE_ROLL_RAMP, 0.12, 0.35)
+	if GameManager.phase_number >= 2 and brute_scene != null:
+		var brute_roll: float = clampf(0.12 + GameManager.run_time / BRUTE_ROLL_RAMP, 0.12, 0.35)
 		if randf() < brute_roll:
 			var brute_count: int = randi_range(1, 2)
 			for _b in range(brute_count):
@@ -125,16 +133,16 @@ func _spawn_wave() -> void:
 					_spawn_enemy_at_spawn_pos(brute_scene, true)
 
 	## Phase 2+: occasional Caster pair
-	if GameManager.run_time >= PHASE2_TIME and caster_scene != null:
-		var caster_roll: float = clampf(0.15 + (GameManager.run_time - PHASE2_TIME) / CASTER_ROLL_RAMP, 0.15, 0.40)
+	if GameManager.phase_number >= 2 and caster_scene != null:
+		var caster_roll: float = clampf(0.15 + GameManager.run_time / CASTER_ROLL_RAMP, 0.15, 0.40)
 		if randf() < caster_roll:
 			for _c in range(2):  ## Casters always spawn in pairs
 				if active_enemies < max_enemies:
 					_spawn_enemy_at_spawn_pos(caster_scene, false)
 
 	## Phase 3+: Stalker (solo, slow roll)
-	if GameManager.run_time >= PHASE3_TIME and stalker_scene != null:
-		var stalker_roll: float = clampf(0.10 + (GameManager.run_time - PHASE3_TIME) / 400.0, 0.10, 0.28)
+	if GameManager.phase_number >= 3 and stalker_scene != null:
+		var stalker_roll: float = clampf(0.10 + GameManager.run_time / 400.0, 0.10, 0.28)
 		if randf() < stalker_roll:
 			if active_enemies < max_enemies:
 				_spawn_enemy_at_spawn_pos(stalker_scene, false)
@@ -143,10 +151,10 @@ func _spawn_single_enemy() -> void:
 	if player_ref == null:
 		return
 
-	var run_time: float = GameManager.run_time
 	var swarmer_chance: float = clampf(0.1 + (GameManager.difficulty_multiplier - 1.0) * 0.15, 0.1, 0.5)
 	var spawn_pos: Vector2 = _get_spawn_position()
-	var effective_difficulty: float = GameManager.difficulty_multiplier * GameManager.get_instability_multiplier()
+	var phase_idx: int = clampi(GameManager.phase_number - 1, 0, 4)
+	var effective_difficulty: float = GameManager.difficulty_multiplier * GameManager.get_instability_multiplier() * PHASE_HP_MULT[phase_idx]
 	var elite_chance: float = _get_elite_chance()
 
 	if randf() < swarmer_chance and swarmer_scene != null:
@@ -176,7 +184,8 @@ func _spawn_single_enemy() -> void:
 
 func _spawn_enemy_at_spawn_pos(scene: PackedScene, can_be_elite: bool) -> void:
 	var spawn_pos: Vector2 = _get_spawn_position()
-	var effective_difficulty: float = GameManager.difficulty_multiplier * GameManager.get_instability_multiplier()
+	var phase_idx: int = clampi(GameManager.phase_number - 1, 0, 4)
+	var effective_difficulty: float = GameManager.difficulty_multiplier * GameManager.get_instability_multiplier() * PHASE_HP_MULT[phase_idx]
 	var enemy: Node2D = scene.instantiate()
 	enemy.global_position = spawn_pos
 	if enemy.has_method("apply_difficulty_scaling"):
@@ -192,7 +201,8 @@ func _spawn_enemy_at_edge(scene: PackedScene, can_be_elite: bool) -> void:
 	if active_enemies >= max_enemies:
 		return
 	var spawn_pos: Vector2 = _get_edge_spawn_position()
-	var effective_difficulty: float = GameManager.difficulty_multiplier * GameManager.get_instability_multiplier()
+	var phase_idx: int = clampi(GameManager.phase_number - 1, 0, 4)
+	var effective_difficulty: float = GameManager.difficulty_multiplier * GameManager.get_instability_multiplier() * PHASE_HP_MULT[phase_idx]
 	var enemy: Node2D = scene.instantiate()
 	enemy.global_position = spawn_pos
 	if enemy.has_method("apply_difficulty_scaling"):
@@ -215,7 +225,8 @@ func _spawn_herald_pack() -> void:
 		return
 	var pack_size: int = randi_range(4, 6)
 	var base_pos: Vector2 = _get_spawn_position()
-	var effective_difficulty: float = GameManager.difficulty_multiplier * GameManager.get_instability_multiplier()
+	var phase_idx: int = clampi(GameManager.phase_number - 1, 0, 4)
+	var effective_difficulty: float = GameManager.difficulty_multiplier * GameManager.get_instability_multiplier() * PHASE_HP_MULT[phase_idx]
 	for _i in range(pack_size):
 		if active_enemies >= max_enemies:
 			break
@@ -279,6 +290,7 @@ func _get_edge_spawn_position() -> Vector2:
 			y = randf_range(arena_bounds.position.y + 20.0, arena_bounds.end.y - 20.0)
 	return Vector2(x, y)
 
-## Elite chance: 5% base, +0.4% every 30 seconds, soft cap 22%
+## Elite chance: 5% base, +0.4% every 30 seconds, +3% per phase beyond phase 1, soft cap 35%
 func _get_elite_chance() -> float:
-	return clampf(0.05 + (GameManager.run_time / 30.0) * 0.004, 0.05, 0.22)
+	var phase_bonus: float = (GameManager.phase_number - 1) * 0.03
+	return clampf(0.05 + (GameManager.run_time / 30.0) * 0.004 + phase_bonus, 0.05, 0.35)

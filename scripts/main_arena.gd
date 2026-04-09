@@ -76,6 +76,7 @@ func _ready() -> void:
 	GameManager.extraction_window_closed.connect(_on_extraction_window_closed)
 	ExtractionManager.extraction_complete.connect(_on_any_extraction_complete)
 	ExtractionManager.extraction_interrupted.connect(_on_any_extraction_interrupted)
+	GameManager.phase_started.connect(_on_phase_advanced)
 
 	## Tile the floor
 	_setup_floor()
@@ -227,6 +228,8 @@ func _on_any_extraction_interrupted() -> void:
 	ExtractionManager.channel_duration = 4.0
 
 func _on_extraction_window_opened() -> void:
+	if GameManager.phase_number >= GameManager.MAX_PHASES:
+		return  ## Phase 5 has no timed extraction — player must use Guarded, Locked, or Sacrifice
 	var pos: Vector2 = arena_generator.get_extraction_position() if arena_generator else Vector2.ZERO
 	if _timed != null and is_instance_valid(_timed):
 		## Ghost was pre-spawned by Extraction Intel I — open window
@@ -244,6 +247,27 @@ func _on_extraction_window_closed() -> void:
 	if _timed != null and is_instance_valid(_timed):
 		_timed.close_window()
 		_timed = null
+
+func _on_phase_advanced(phase: int) -> void:
+	## Reset and reactivate guarded zone so a fresh guardian guards each phase
+	if _guarded:
+		_guarded.reset_for_new_phase()
+	if _guarded and phase >= 1:
+		_guarded.activate()
+
+	## Sacrifice becomes available from phase 2 onwards
+	if _sacrifice and phase >= 2:
+		_sacrifice.activate_label()
+
+	## Any lingering timed portal from the previous phase (e.g. pre-spawned ghost)
+	## is freed here. The new timed portal spawns when the next window opens.
+	if _timed != null and is_instance_valid(_timed):
+		_timed.queue_free()
+		_timed = null
+
+	## Clear channeling state so no stale extraction carries across the phase boundary
+	_active_channeling_type = ""
+	ExtractionManager.channel_duration = 4.0
 
 ## ── Debug: activate all extractions ─────────────────────────────────────────
 

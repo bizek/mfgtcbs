@@ -9,6 +9,7 @@ extends Area2D
 var _current_speed: float = 0.0
 var _target: Node2D = null
 var _collected: bool = false
+var _player_cache: Node2D = null
 
 func _ready() -> void:
 	## Pickups on collision layer 5
@@ -20,8 +21,13 @@ func _physics_process(delta: float) -> void:
 		return
 
 	if _target == null or not is_instance_valid(_target):
-		_target = null
 		_current_speed = 0.0
+		if _player_cache == null or not is_instance_valid(_player_cache):
+			_player_cache = get_tree().get_first_node_in_group("player")
+		if _player_cache != null:
+			var pickup_radius: float = _player_cache.get_stat("pickup_radius") if _player_cache.has_method("get_stat") else 50.0
+			if global_position.distance_to(_player_cache.global_position) <= pickup_radius:
+				start_magnet(_player_cache)
 		return
 
 	## Accelerate toward player

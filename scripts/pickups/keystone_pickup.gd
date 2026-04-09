@@ -8,7 +8,7 @@ extends Area2D
 const PIXEL_FONT_PATH: String = "res://assets/fonts/m5x7.ttf"
 
 func _ready() -> void:
-	collision_layer = 5  ## pickups layer
+	collision_layer = 16  ## pickups layer (bit 4 = layer 5)
 	collision_mask = 1   ## detect player body
 
 	var cs := CollisionShape2D.new()

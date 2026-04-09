@@ -32,13 +32,18 @@ enum GameState {
 var current_state: GameState = GameState.MENU
 var phase_number: int = 1
 var phase_timer: float = 0.0
-var phase_duration: float = 180.0 ## 3 minutes for prototype single phase
+var phase_duration: float = PHASE_DURATIONS[0]
 var extraction_window_timer: float = 0.0
 var extraction_window_duration: float = 18.0 ## Portal stays open 18 seconds
 var extraction_window_active: bool = false
 var run_time: float = 0.0
 var kills: int = 0
 var is_paused: bool = false
+
+## Phase configuration
+const PHASE_DURATIONS: Array = [180.0, 210.0, 240.0, 210.0, 240.0]
+const PHASE_NAMES: Array = ["The Threshold", "The Descent", "The Deep", "The Abyss", "The Core"]
+const MAX_PHASES: int = 5
 
 ## Difficulty scaling — time-based for prototype
 const DIFFICULTY_SCALE_PERIOD: float = 30.0
@@ -57,6 +62,10 @@ var collected_weapons: Array = []
 ## Mods found during this run and bagged (no open weapon slot).
 ## Unlocked in ProgressionManager on successful extraction. Lost on death.
 var collected_mods: Array = []
+
+## Mods equipped to weapons mid-run. { weapon_id: { slot_index: mod_id } }
+## Committed on extraction, rolled back on death.
+var run_equipped_mods: Dictionary = {}
 
 ## Keystone state — reset each run. One keystone held at a time.
 var player_has_keystone: bool = false
@@ -79,7 +88,8 @@ func _process(delta: float) -> void:
 	
 	run_time += delta
 	phase_timer += delta
-	
+	phase_timer_updated.emit(phase_duration - phase_timer)
+
 	## Update difficulty over time
 	difficulty_multiplier = 1.0 + (run_time / DIFFICULTY_SCALE_PERIOD) * DIFFICULTY_SCALE_RATE
 	
@@ -97,6 +107,7 @@ func start_run() -> void:
 	current_state = GameState.RUN_ACTIVE
 	phase_number = 1
 	phase_timer = 0.0
+	phase_duration = PHASE_DURATIONS[0]
 	run_time = 0.0
 	kills = 0
 	difficulty_multiplier = 1.0
@@ -106,6 +117,7 @@ func start_run() -> void:
 	instability = 0.0
 	collected_weapons.clear()
 	collected_mods.clear()
+	run_equipped_mods.clear()
 	player_has_keystone = false
 	guardian_killed_this_phase = false
 	active_extraction_type = "timed"
@@ -148,10 +160,22 @@ func exit_level_up() -> void:
 	set_paused(false)
 
 func on_player_died() -> void:
+	if phase_number > ProgressionManager.run_stats.get("deepest_phase", 0):
+		ProgressionManager.run_stats["deepest_phase"] = phase_number
 	current_state = GameState.GAME_OVER
+	## Rollback mid-run equipped mods — death means lose everything
+	for weapon_id in run_equipped_mods:
+		for slot in run_equipped_mods[weapon_id]:
+			if ProgressionManager.weapon_mods.has(weapon_id):
+				if slot < ProgressionManager.weapon_mods[weapon_id].size():
+					ProgressionManager.weapon_mods[weapon_id][slot] = ""
+	run_equipped_mods.clear()
+	ProgressionManager.save_data()
 	player_died.emit()
 
 func on_extraction_complete() -> void:
+	if phase_number > ProgressionManager.run_stats.get("deepest_phase", 0):
+		ProgressionManager.run_stats["deepest_phase"] = phase_number
 	current_state = GameState.EXTRACTION_SUCCESS
 	set_paused(true)
 	## Preserve loot value for results screen before clearing
@@ -170,11 +194,27 @@ func on_extraction_complete() -> void:
 		ProgressionManager.add_weapon(weapon_id)
 	for mod_id in collected_mods:
 		ProgressionManager.add_mod(mod_id)
+	## Commit mid-run equipped mods to permanent save
+	for weapon_id in run_equipped_mods:
+		for slot in run_equipped_mods[weapon_id]:
+			var mid_mod: String = run_equipped_mods[weapon_id][slot]
+			if not ProgressionManager.weapon_mods.has(weapon_id):
+				ProgressionManager.weapon_mods[weapon_id] = []
+			while ProgressionManager.weapon_mods[weapon_id].size() <= slot:
+				ProgressionManager.weapon_mods[weapon_id].append("")
+			ProgressionManager.weapon_mods[weapon_id][slot] = mid_mod
+	run_equipped_mods.clear()
+	ProgressionManager.save_data()
 	extraction_successful.emit()
 
 func pickup_keystone() -> void:
 	player_has_keystone = true
 	keystone_picked_up.emit()
+
+func equip_mod_mid_run(weapon_id: String, slot: int, mod_id: String) -> void:
+	if not run_equipped_mods.has(weapon_id):
+		run_equipped_mods[weapon_id] = {}
+	run_equipped_mods[weapon_id][slot] = mod_id
 
 func add_loot(value: float) -> void:
 	loot_carried += value
@@ -223,7 +263,17 @@ func _open_extraction_window() -> void:
 func _close_extraction_window() -> void:
 	extraction_window_active = false
 	extraction_window_closed.emit()
-	## After window closes, keep spawning — no more extraction until player dies
+	if phase_number < MAX_PHASES:
+		_advance_phase()
+	## Phase 5 or beyond: no more timed extraction windows. Player must find another way out.
+
+func _advance_phase() -> void:
+	phase_number += 1
+	phase_timer = 0.0
+	phase_duration = PHASE_DURATIONS[clampi(phase_number - 1, 0, PHASE_DURATIONS.size() - 1)]
+	guardian_killed_this_phase = false
+	player_has_keystone = false
+	phase_started.emit(phase_number)
 
 ## Debug helpers — only called from DebugPanel when debug_mode is true.
 func debug_open_extraction() -> void:

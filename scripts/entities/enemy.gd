@@ -17,6 +17,12 @@ const HEALTH_ORB_SCENE_PATH: String = "res://scenes/pickups/health_orb.tscn"
 var hp: float
 var _is_dead: bool = false
 var is_elite: bool = false   ## Set true by apply_elite_modifier(); checked for mod drops
+
+enum EliteModifier { NONE, HASTING, EXPLODING, SHIELDED }
+var elite_modifier: int = EliteModifier.NONE
+var _shield_hp: float = 0.0
+var _shield_max: float = 0.0
+
 var player_ref: Node2D = null
 
 ## Knockback
@@ -60,6 +66,9 @@ var _void_touched: bool = false
 
 ## Burning particle emitter (child node, managed by status system)
 var _burn_particles: CPUParticles2D = null
+
+## Bleed particle emitter (child node, managed by status system)
+var _bleed_particles: CPUParticles2D = null
 
 ## Shock visual tween (looping, killed when shock removed)
 var _shock_tween: Tween = null
@@ -138,6 +147,36 @@ func take_damage(amount: float) -> void:
 	if _is_dead:
 		return
 
+	## Shielded: absorb damage into shield first
+	if _shield_hp > 0.0:
+		_shield_hp -= amount
+		if _shield_hp <= 0.0:
+			## Shield broken — apply remaining damage normally
+			amount = -_shield_hp
+			_shield_hp = 0.0
+			_base_modulate = Color(1.0, 0.75, 0.1, 1.0)  ## Revert to gold (standard elite)
+			if sprite:
+				sprite.modulate = Color(6.0, 6.0, 6.0, 1.0)  ## Bright flash on shield break
+				var break_tween := create_tween()
+				break_tween.tween_property(sprite, "modulate", _base_modulate, 0.15)
+			## Spawn shield break particles
+			VFXHelpers.spawn_burst(
+				get_tree().current_scene, global_position,
+				Color(0.3, 0.5, 1.0, 0.9), 10, 0.35, 40.0, 100.0, 2.0, 4.0,
+				Vector2.ZERO)
+		else:
+			## Shield still up — show hit but no HP damage
+			if sprite:
+				if _hit_tween and _hit_tween.is_valid():
+					_hit_tween.kill()
+				sprite.modulate = Color(0.5, 0.7, 1.5, 1.0)
+				_hit_tween = create_tween()
+				_hit_tween.tween_property(sprite, "modulate", _base_modulate, 0.08)
+			return  ## No HP damage while shield holds
+
+	if amount <= 0.0:
+		return
+
 	## Shocked: chain damage to nearest OTHER enemy on this hit, then remove shocked
 	if _statuses.has("shock"):
 		var shock_data: Dictionary = _statuses["shock"]
@@ -168,22 +207,37 @@ func apply_difficulty_scaling(difficulty: float) -> void:
 	contact_damage *= (1.0 + (difficulty - 1.0) * 0.3)
 	move_speed *= (1.0 + (difficulty - 1.0) * 0.1)
 
-## Upgrades this enemy into an Elite: doubled HP, 1.5× damage, +3 armor, gold glow tint.
+## Upgrades this enemy into an Elite: doubled HP, 1.5× damage, +3 armor, plus a random behavioral modifier.
 ## Call after apply_difficulty_scaling so the elite bonus stacks on top of difficulty.
 func apply_elite_modifier() -> void:
+	## Base elite stat boost
 	max_hp *= 2.0
 	hp = max_hp
 	contact_damage *= 1.5
 	armor += 3.0
 	xp_value *= 2.5
 	is_elite = true
-	## Gold pulsing glow
-	_base_modulate = Color(1.0, 0.75, 0.1, 1.0)
+
+	## Select a random behavioral modifier
+	var modifiers: Array = [EliteModifier.HASTING, EliteModifier.EXPLODING, EliteModifier.SHIELDED]
+	elite_modifier = modifiers[randi() % modifiers.size()]
+
+	match elite_modifier:
+		EliteModifier.HASTING:
+			move_speed *= 2.0
+			_base_modulate = Color(0.2, 1.0, 0.3, 1.0)
+		EliteModifier.EXPLODING:
+			_base_modulate = Color(1.0, 0.25, 0.1, 1.0)
+		EliteModifier.SHIELDED:
+			_shield_max = max_hp * 0.4
+			_shield_hp = _shield_max
+			_base_modulate = Color(0.3, 0.5, 1.0, 1.0)
+
 	if sprite:
 		sprite.modulate = _base_modulate
 		var glow_tween := create_tween().set_loops()
-		glow_tween.tween_property(sprite, "modulate", Color(1.6, 1.1, 0.15, 1.0), 0.45)
-		glow_tween.tween_property(sprite, "modulate", Color(0.9, 0.55, 0.05, 1.0), 0.45)
+		glow_tween.tween_property(sprite, "modulate", _base_modulate * 1.6, 0.45)
+		glow_tween.tween_property(sprite, "modulate", _base_modulate * 0.7, 0.45)
 
 # ─── Status effect system ─────────────────────────────────────────────────────
 
@@ -198,6 +252,14 @@ func apply_status(effect: String, params: Dictionary) -> void:
 				"tick_timer": 1.0,
 			}
 			_spawn_burn_particles()
+
+		"bleed":
+			_statuses["bleed"] = {
+				"timer":      params.get("dot_duration", 4.0),
+				"dot_damage": params.get("dot_damage",   2.0),
+				"tick_timer": 1.0,
+			}
+			_spawn_bleed_particles()
 
 		"cryo":
 			var freeze_stacks: int = params.get("freeze_stacks", 3)
@@ -249,6 +311,15 @@ func _tick_statuses(delta: float) -> void:
 						CombatManager.resolve_hit(self, self, s["dot_damage"], 0.0, 1.0)
 						if _is_dead:
 							return
+			"bleed":
+				## Tick bleed damage once per second
+				s["tick_timer"] -= delta
+				if s["tick_timer"] <= 0.0:
+					s["tick_timer"] = 1.0
+					if not _is_dead:
+						CombatManager.resolve_hit(self, self, s["dot_damage"], 0.0, 1.0)
+						if _is_dead:
+							return
 
 	for key in to_remove:
 		_remove_status(key)
@@ -263,6 +334,13 @@ func _remove_status(effect: String) -> void:
 					func(): if is_instance_valid(_burn_particles): _burn_particles.queue_free()
 				)
 				_burn_particles = null
+		"bleed":
+			if _bleed_particles and is_instance_valid(_bleed_particles):
+				_bleed_particles.emitting = false
+				get_tree().create_timer(1.0).timeout.connect(
+					func(): if is_instance_valid(_bleed_particles): _bleed_particles.queue_free()
+				)
+				_bleed_particles = null
 		"cryo":
 			_cryo_stacks = 0
 			_speed_mult = 1.0
@@ -312,6 +390,27 @@ func _spawn_burn_particles() -> void:
 	add_child(p)
 	p.emitting = true
 	_burn_particles = p
+
+## Persistent red particle emitter child for bleed visual
+func _spawn_bleed_particles() -> void:
+	if _bleed_particles and is_instance_valid(_bleed_particles):
+		return  ## Already bleeding
+	var p := CPUParticles2D.new()
+	p.amount = 6
+	p.lifetime = 0.5
+	p.one_shot = false
+	p.explosiveness = 0.0
+	p.direction = Vector2(0.0, -1.0)
+	p.spread = 40.0
+	p.initial_velocity_min = 12.0
+	p.initial_velocity_max = 28.0
+	p.gravity = Vector2(0.0, -10.0)
+	p.scale_amount_min = 1.5
+	p.scale_amount_max = 3.5
+	p.color = Color(0.85, 0.1, 0.1, 0.9)
+	add_child(p)
+	p.emitting = true
+	_bleed_particles = p
 
 ## Brief yellow spark burst — applied on shock application
 func _spawn_shock_particles() -> void:
@@ -363,7 +462,7 @@ func _trigger_shock_chain(source_damage: float, shock_data: Dictionary) -> void:
 			nearest = other
 
 	if nearest != null and nearest.has_method("take_damage"):
-		nearest.take_damage(chain_dmg)
+		CombatManager.resolve_secondary_hit(self, nearest, chain_dmg)
 		_spawn_shock_chain_visual(nearest.global_position)
 
 func _spawn_shock_chain_visual(target_pos: Vector2) -> void:
@@ -382,6 +481,10 @@ func _die() -> void:
 	_is_dead = true
 	died.emit(self)
 
+	## Exploding elite: AoE damage on death
+	if elite_modifier == EliteModifier.EXPLODING:
+		_exploding_death()
+
 	## Void-Touched: explode before the death burst so damage fires from the right position
 	if _void_touched:
 		_void_explosion()
@@ -396,6 +499,22 @@ func _die() -> void:
 	## Remove from scene
 	queue_free()
 
+## Exploding elite death: AoE damage to player if in range, red expanding ring + burst.
+func _exploding_death() -> void:
+	const EXPLODE_RADIUS: float = 60.0
+	const EXPLODE_DAMAGE: float = 15.0
+	var player := get_tree().get_first_node_in_group("player")
+	if player and global_position.distance_to(player.global_position) <= EXPLODE_RADIUS:
+		if player.has_method("take_damage"):
+			CombatManager.resolve_hit(self, player, EXPLODE_DAMAGE, 0.0, 1.0)
+	VFXHelpers.spawn_expanding_ring(
+		get_tree().current_scene, global_position,
+		Color(1.0, 0.2, 0.05, 0.6), EXPLODE_RADIUS, 1.2, 0.3)
+	VFXHelpers.spawn_burst(
+		get_tree().current_scene, global_position,
+		Color(1.0, 0.35, 0.0, 0.9), 12, 0.4, 40.0, 120.0, 2.5, 5.0,
+		Vector2.ZERO)
+
 ## Void-Touched death explosion: damages nearby enemies and bleeds instability onto the player.
 ## Radius 80 px, damage = 2× this enemy's contact_damage, instability bleed +2.
 func _void_explosion() -> void:
@@ -407,7 +526,7 @@ func _void_explosion() -> void:
 			continue
 		if global_position.distance_to(other.global_position) <= VOID_RADIUS:
 			if other.has_method("take_damage"):
-				other.take_damage(dmg)
+				CombatManager.resolve_secondary_hit(self, other, dmg)
 
 	## Bleed instability onto the player — carrying void-touched enemies is a liability
 	GameManager.modify_instability(2)

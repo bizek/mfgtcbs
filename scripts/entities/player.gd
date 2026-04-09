@@ -346,6 +346,19 @@ func apply_stat_upgrade(upgrade: Dictionary) -> void:
 	if stat_name == "pickup_radius":
 		_update_pickup_radius()
 
+func remove_stat_upgrade(upgrade: Dictionary) -> void:
+	var stat_name: String = upgrade.stat
+	var value: float      = upgrade.value
+	if upgrade.type == "flat":
+		flat_mods[stat_name] = flat_mods.get(stat_name, 0.0) - value
+		if stat_name == "max_hp":
+			current_hp = minf(current_hp, get_stat("max_hp"))
+	elif upgrade.type == "percent":
+		percent_mods[stat_name] = percent_mods.get(stat_name, 0.0) - value
+
+	if stat_name == "pickup_radius":
+		_update_pickup_radius()
+
 # ─── Pickup collection ───────────────────────────────────────────────────────
 
 func _update_pickup_radius() -> void:
