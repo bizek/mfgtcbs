@@ -15,6 +15,7 @@ var player_ref: Node2D = null
 
 var _panel: Control        ## Root panel container
 var _god_btn: Button       ## Kept for live label/colour updates
+var _debug_draw_btn: Button
 
 func _ready() -> void:
 	layer = 127  ## Above everything in-game, below nothing
@@ -87,6 +88,7 @@ func _build_panel() -> void:
 		["Spawn Loot",                _cmd_spawn_loot],
 		["God Mode: OFF",             _cmd_god_mode],
 		["Kill All Enemies",          _cmd_kill_all],
+		["Debug Draw: OFF",           _cmd_toggle_debug_draw],
 	]
 
 	for d in defs:
@@ -98,6 +100,8 @@ func _build_panel() -> void:
 		vbox.add_child(btn)
 		if d[0].begins_with("God Mode"):
 			_god_btn = btn
+		if d[0].begins_with("Debug Draw"):
+			_debug_draw_btn = btn
 
 	## ── Enemy spawn section ───────────────────────────────────────────────────
 	var sep2 := HSeparator.new()
@@ -240,6 +244,14 @@ func _cmd_kill_all() -> void:
 	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if is_instance_valid(enemy) and enemy.has_method("take_damage"):
 			enemy.take_damage(99999.0)
+
+func _cmd_toggle_debug_draw() -> void:
+	var orchestrator = get_tree().current_scene.get_node_or_null("CombatOrchestrator")
+	if orchestrator and orchestrator.debug_draw:
+		orchestrator.debug_draw.enabled = not orchestrator.debug_draw.enabled
+		if _debug_draw_btn:
+			_debug_draw_btn.text = "Debug Draw: ON" if orchestrator.debug_draw.enabled else "Debug Draw: OFF"
+			_debug_draw_btn.modulate = Color(0.3, 1.0, 0.3) if orchestrator.debug_draw.enabled else Color.WHITE
 
 func _cmd_spawn_enemy(type: String) -> void:
 	const PATHS: Dictionary = {

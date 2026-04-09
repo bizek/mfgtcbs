@@ -1,6 +1,9 @@
 extends Node
 
 ## EnemySpawnManager — Wave composition, spawn timing, difficulty scaling.
+## All enemy types are spawned from their .tscn scene (for sprites/collision) and
+## configured via EnemyDefinition data factories (for stats/behavior).
+##
 ## New enemy types are gated by GameManager.phase_number:
 ##   Phase 1  →  Fodder + Swarmers
 ##   Phase 2+ →  + Brutes (rare) + Casters (pairs)
@@ -20,6 +23,7 @@ signal enemy_spawned(enemy: Node)
 @export var carrier_scene:  PackedScene
 @export var stalker_scene:  PackedScene
 @export var herald_scene:   PackedScene
+@export var guardian_scene:  PackedScene
 
 ## ── Phase stat multipliers (index = phase_number - 1) ────────────────────────
 const PHASE_HP_MULT: Array    = [1.0, 1.5, 2.5, 4.0, 6.0]
@@ -48,6 +52,15 @@ var arena_bounds: Rect2 = Rect2(-320, -240, 640, 480)
 var player_ref: Node2D = null
 var spawn_enabled: bool = false
 
+## Cached definitions
+var _defs: Dictionary = {}
+
+
+func _ready() -> void:
+	EnemyRegistry.build_all()
+	_defs = EnemyRegistry.get_all()
+
+
 func _process(delta: float) -> void:
 	if not spawn_enabled or player_ref == null:
 		return
@@ -68,7 +81,7 @@ func _process(delta: float) -> void:
 		if _carrier_timer <= 0.0:
 			var carrier_count: int = 2 if GameManager.phase_number >= 4 else 1
 			for _i in range(carrier_count):
-				_spawn_enemy_at_edge(carrier_scene, false)
+				_spawn_enemy_at_edge("carrier", carrier_scene, false)
 			_carrier_timer = CARRIER_INTERVAL
 
 	## ── Herald spawn (always arrives with a pack) ────────────────────────────
@@ -85,8 +98,8 @@ func start_spawning(player: Node2D, bounds: Rect2) -> void:
 	spawn_timer = 3.0  ## Grace period before first wave
 	active_enemies = 0
 	## Track enemy deaths via combat signal
-	if not CombatManager.entity_killed.is_connected(_on_entity_killed):
-		CombatManager.entity_killed.connect(_on_entity_killed)
+	if not EventBus.on_kill.is_connected(_on_entity_killed_eb):
+		EventBus.on_kill.connect(_on_entity_killed_eb)
 	## Reset carrier/herald pacing on each new phase
 	if not GameManager.phase_started.is_connected(_on_phase_started):
 		GameManager.phase_started.connect(_on_phase_started)
@@ -100,7 +113,8 @@ func _on_phase_started(_phase: int) -> void:
 	_carrier_timer = CARRIER_INTERVAL * 0.8
 	_herald_timer = HERALD_INTERVAL
 
-func _on_entity_killed(_killer: Node, victim: Node, _pos: Vector2) -> void:
+func _on_entity_killed_eb(killer: Node, victim: Node) -> void:
+	## EventBus.on_kill signature: (killer, victim) — no position
 	if victim.is_in_group("enemies"):
 		active_enemies -= 1
 
@@ -108,7 +122,31 @@ func _on_entity_killed(_killer: Node, victim: Node, _pos: Vector2) -> void:
 func on_enemy_despawned() -> void:
 	active_enemies -= 1
 
-## ── Wave composition ─────────────────────────────────────────────────────────
+
+## ── Spawn from definition ────────────────────────────────────────────────────
+
+func _spawn_from_def(enemy_id: String, scene: PackedScene, pos: Vector2,
+		difficulty: float, can_be_elite: bool) -> Node2D:
+	## Instantiate a scene and configure it from an EnemyDefinition.
+	if scene == null or active_enemies >= max_enemies:
+		return null
+	var def: EnemyDefinition = _defs.get(enemy_id)
+	var enemy: Node2D = scene.instantiate()
+	if def:
+		enemy.setup_from_enemy_def(def)
+	enemy.global_position = pos
+	if enemy.has_method("apply_difficulty_scaling"):
+		enemy.apply_difficulty_scaling(difficulty)
+	if can_be_elite and randf() < _get_elite_chance():
+		if enemy.has_method("apply_elite_modifier"):
+			enemy.apply_elite_modifier()
+	get_tree().current_scene.add_child(enemy)
+	active_enemies += 1
+	enemy_spawned.emit(enemy)
+	return enemy
+
+
+## ── Wave composition ───────────────────────────────────────���─────────────────
 
 func _spawn_wave() -> void:
 	if active_enemies >= max_enemies:
@@ -128,24 +166,30 @@ func _spawn_wave() -> void:
 		var brute_roll: float = clampf(0.12 + GameManager.run_time / BRUTE_ROLL_RAMP, 0.12, 0.35)
 		if randf() < brute_roll:
 			var brute_count: int = randi_range(1, 2)
+			var effective_diff: float = _get_effective_difficulty()
 			for _b in range(brute_count):
 				if active_enemies < max_enemies:
-					_spawn_enemy_at_spawn_pos(brute_scene, true)
+					_spawn_from_def("brute", brute_scene, _get_spawn_position(),
+						effective_diff, true)
 
 	## Phase 2+: occasional Caster pair
 	if GameManager.phase_number >= 2 and caster_scene != null:
 		var caster_roll: float = clampf(0.15 + GameManager.run_time / CASTER_ROLL_RAMP, 0.15, 0.40)
 		if randf() < caster_roll:
-			for _c in range(2):  ## Casters always spawn in pairs
+			var effective_diff: float = _get_effective_difficulty()
+			for _c in range(2):
 				if active_enemies < max_enemies:
-					_spawn_enemy_at_spawn_pos(caster_scene, false)
+					_spawn_from_def("caster", caster_scene, _get_spawn_position(),
+						effective_diff, false)
 
 	## Phase 3+: Stalker (solo, slow roll)
 	if GameManager.phase_number >= 3 and stalker_scene != null:
 		var stalker_roll: float = clampf(0.10 + GameManager.run_time / 400.0, 0.10, 0.28)
 		if randf() < stalker_roll:
 			if active_enemies < max_enemies:
-				_spawn_enemy_at_spawn_pos(stalker_scene, false)
+				var effective_diff: float = _get_effective_difficulty()
+				_spawn_from_def("stalker", stalker_scene, _get_spawn_position(),
+					effective_diff, false)
 
 func _spawn_single_enemy() -> void:
 	if player_ref == null:
@@ -153,9 +197,7 @@ func _spawn_single_enemy() -> void:
 
 	var swarmer_chance: float = clampf(0.1 + (GameManager.difficulty_multiplier - 1.0) * 0.15, 0.1, 0.5)
 	var spawn_pos: Vector2 = _get_spawn_position()
-	var phase_idx: int = clampi(GameManager.phase_number - 1, 0, 4)
-	var effective_difficulty: float = GameManager.difficulty_multiplier * GameManager.get_instability_multiplier() * PHASE_HP_MULT[phase_idx]
-	var elite_chance: float = _get_elite_chance()
+	var effective_difficulty: float = _get_effective_difficulty()
 
 	if randf() < swarmer_chance and swarmer_scene != null:
 		## Pack of 3–5 swarmers
@@ -163,80 +205,44 @@ func _spawn_single_enemy() -> void:
 		for _j in range(pack_size):
 			if active_enemies >= max_enemies:
 				break
-			var enemy: Node2D = swarmer_scene.instantiate()
 			var offset := Vector2(randf_range(-22.0, 22.0), randf_range(-22.0, 22.0))
-			enemy.global_position = spawn_pos + offset
-			enemy.apply_difficulty_scaling(effective_difficulty)
-			if randf() < elite_chance and enemy.has_method("apply_elite_modifier"):
-				enemy.apply_elite_modifier()
-			get_tree().current_scene.add_child(enemy)
-			active_enemies += 1
-			enemy_spawned.emit(enemy)
+			_spawn_from_def("swarmer", swarmer_scene, spawn_pos + offset,
+				effective_difficulty, true)
 	elif fodder_scene != null:
-		var enemy: Node2D = fodder_scene.instantiate()
-		enemy.global_position = spawn_pos
-		enemy.apply_difficulty_scaling(effective_difficulty)
-		if randf() < elite_chance and enemy.has_method("apply_elite_modifier"):
-			enemy.apply_elite_modifier()
-		get_tree().current_scene.add_child(enemy)
-		active_enemies += 1
-		enemy_spawned.emit(enemy)
+		_spawn_from_def("fodder", fodder_scene, spawn_pos,
+			effective_difficulty, true)
 
-func _spawn_enemy_at_spawn_pos(scene: PackedScene, can_be_elite: bool) -> void:
-	var spawn_pos: Vector2 = _get_spawn_position()
-	var phase_idx: int = clampi(GameManager.phase_number - 1, 0, 4)
-	var effective_difficulty: float = GameManager.difficulty_multiplier * GameManager.get_instability_multiplier() * PHASE_HP_MULT[phase_idx]
-	var enemy: Node2D = scene.instantiate()
-	enemy.global_position = spawn_pos
-	if enemy.has_method("apply_difficulty_scaling"):
-		enemy.apply_difficulty_scaling(effective_difficulty)
-	if can_be_elite and randf() < _get_elite_chance() and enemy.has_method("apply_elite_modifier"):
-		enemy.apply_elite_modifier()
-	get_tree().current_scene.add_child(enemy)
-	active_enemies += 1
-	enemy_spawned.emit(enemy)
 
-## Carriers spawn AT the arena edge (not off-screen) so they run across the arena
-func _spawn_enemy_at_edge(scene: PackedScene, can_be_elite: bool) -> void:
+func _spawn_enemy_at_edge(enemy_id: String, scene: PackedScene, can_be_elite: bool) -> void:
 	if active_enemies >= max_enemies:
 		return
 	var spawn_pos: Vector2 = _get_edge_spawn_position()
-	var phase_idx: int = clampi(GameManager.phase_number - 1, 0, 4)
-	var effective_difficulty: float = GameManager.difficulty_multiplier * GameManager.get_instability_multiplier() * PHASE_HP_MULT[phase_idx]
-	var enemy: Node2D = scene.instantiate()
-	enemy.global_position = spawn_pos
-	if enemy.has_method("apply_difficulty_scaling"):
-		enemy.apply_difficulty_scaling(effective_difficulty)
-	if can_be_elite and randf() < _get_elite_chance() and enemy.has_method("apply_elite_modifier"):
-		enemy.apply_elite_modifier()
-	get_tree().current_scene.add_child(enemy)
-	active_enemies += 1
-	enemy_spawned.emit(enemy)
+	var effective_difficulty: float = _get_effective_difficulty()
+	_spawn_from_def(enemy_id, scene, spawn_pos, effective_difficulty, can_be_elite)
+
 
 ## Herald always spawns with a small pack of fodder or swarmers
 func _spawn_herald_pack() -> void:
 	if active_enemies >= max_enemies or herald_scene == null:
 		return
+	var effective_difficulty: float = _get_effective_difficulty()
 	## Spawn herald first
-	_spawn_enemy_at_spawn_pos(herald_scene, false)
+	_spawn_from_def("herald", herald_scene, _get_spawn_position(),
+		effective_difficulty, false)
 	## Then 4–6 companions near it
 	var pack_scene: PackedScene = swarmer_scene if swarmer_scene != null else fodder_scene
+	var pack_id: String = "swarmer" if swarmer_scene != null else "fodder"
 	if pack_scene == null:
 		return
 	var pack_size: int = randi_range(4, 6)
 	var base_pos: Vector2 = _get_spawn_position()
-	var phase_idx: int = clampi(GameManager.phase_number - 1, 0, 4)
-	var effective_difficulty: float = GameManager.difficulty_multiplier * GameManager.get_instability_multiplier() * PHASE_HP_MULT[phase_idx]
 	for _i in range(pack_size):
 		if active_enemies >= max_enemies:
 			break
-		var companion: Node2D = pack_scene.instantiate()
-		companion.global_position = base_pos + Vector2(randf_range(-30.0, 30.0), randf_range(-30.0, 30.0))
-		if companion.has_method("apply_difficulty_scaling"):
-			companion.apply_difficulty_scaling(effective_difficulty)
-		get_tree().current_scene.add_child(companion)
-		active_enemies += 1
-		enemy_spawned.emit(companion)
+		var offset := Vector2(randf_range(-30.0, 30.0), randf_range(-30.0, 30.0))
+		_spawn_from_def(pack_id, pack_scene, base_pos + offset,
+			effective_difficulty, false)
+
 
 ## ── Debug helpers ─────────────────────────────────────────────────────────────
 
@@ -252,6 +258,40 @@ func debug_spawn(scene: PackedScene, as_elite: bool = false) -> void:
 	get_tree().current_scene.add_child(enemy)
 	active_enemies += 1
 	enemy_spawned.emit(enemy)
+
+## Spawn by enemy_id (data-driven debug spawn)
+func debug_spawn_by_id(enemy_id: String, as_elite: bool = false) -> void:
+	if player_ref == null:
+		return
+	var scene: PackedScene = _get_scene_for_id(enemy_id)
+	if scene == null:
+		return
+	var offset := Vector2(randf_range(-80.0, 80.0), randf_range(-80.0, 80.0)).normalized() * 80.0
+	var pos: Vector2 = player_ref.global_position + offset
+	var enemy: Node2D = _spawn_from_def(enemy_id, scene, pos, 1.0, as_elite)
+	if enemy == null:
+		return
+
+
+func _get_scene_for_id(enemy_id: String) -> PackedScene:
+	match enemy_id:
+		"fodder": return fodder_scene
+		"swarmer": return swarmer_scene
+		"brute": return brute_scene
+		"caster": return caster_scene
+		"carrier": return carrier_scene
+		"stalker": return stalker_scene
+		"herald": return herald_scene
+		"guardian": return guardian_scene
+	return null
+
+
+## ── Difficulty helper ────────────────────────────────────────────────────────
+
+func _get_effective_difficulty() -> float:
+	var phase_idx: int = clampi(GameManager.phase_number - 1, 0, 4)
+	return GameManager.difficulty_multiplier * GameManager.get_instability_multiplier() * PHASE_HP_MULT[phase_idx]
+
 
 ## ── Spawn position helpers ────────────────────────────────────────────────────
 

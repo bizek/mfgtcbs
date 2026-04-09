@@ -62,62 +62,46 @@ The Drifter is the baseline. All other characters are defined as modifications t
 
 ## Damage Formula
 
-### Base Damage Calculation
+### Damage Pipeline (8-Step)
 
-```
-Raw Damage = Weapon Base Damage × (1 + Player Damage% Bonus)
+Implemented in `DamageCalculator.calculate_damage()`. Full pipeline:
 
-If Crit: Raw Damage × Crit Damage Multiplier
+1. **Base damage** = `base_damage × (1 + scaling_value × coefficient)`
+2. **Conversion** — source modifier converts damage type (first match wins, True damage immune)
+3. **Offensive modifiers** — `raw × (1 + source bonus for damage_type + source bonus for "All")`
+4. **Dodge** — target dodge_chance roll → HitData.is_dodged
+5. **Block** — target block_chance roll → partial mitigation via block_mitigation %
+6. **Resistance** — `raw × (1 - effective_resist / (effective_resist + 100))` where effective_resist = resist × (1 - source pierce)
+7. **Damage taken** — target damage_taken modifiers + vulnerability (per-type + "All")
+8. **Crit** — source crit_chance roll → `raw × (1 + crit_multiplier)`
 
-After Armor: Final Damage = Raw Damage - Defender Armor (minimum 1 damage)
+### Why Percentage-Based Armor
 
-After Resistance: Final Damage × (1 - Damage Type Resistance%)
-```
-
-### Why Flat Armor (Not Percentage)
-
-Flat armor (subtract X from every hit) means:
-- It's very effective against many small hits (Fodder swarms) — each hit reduced by flat amount
-- It's less effective against single big hits (Brutes, Minibosses) — flat reduction is a smaller % of total
-- This naturally makes armor good against hordes but not a complete defense against bosses
-- Easy to understand: "5 armor means every hit does 5 less damage"
-
-### Armor Formula Detail
-
-```
-Final Damage = max(Raw Damage - Armor, 1)
-```
-
-Minimum 1 damage ensures no enemy is fully immune to any attack. Even a max-armor build still takes chip damage from Fodder — you're never invincible.
+Armor uses the formula `reduction = armor / (armor + 100)`:
+- 5 armor = 4.8% reduction (small, Fodder-level)
+- 10 armor = 9.1% reduction (guardian-level)
+- 100 armor = 50% reduction (theoretical cap target)
+- Scales smoothly — never reaches 100% reduction
+- Source "pierce" reduces effective armor by a percentage before the formula
 
 ### Damage Type Resistance
 
-Enemies can have resistance (or vulnerability) to specific damage types:
-
-```
-Resistance: 25% = take 75% damage of that type
-Vulnerability: -25% = take 125% damage of that type
-```
-
-Most enemies have 0% resistance to everything (neutral). Special/elite enemies and Phase-Warped enemies may have specific resistances/vulnerabilities to create tactical variety.
+Implemented as `ModifierDefinition` with `operation = "resist"` and `target_tag` = damage type name. Vulnerability uses `operation = "vulnerability"`. Both per-type and "All" variants stack additively.
 
 ### Example Damage Calculations
 
-**Drifter with base weapon vs Fodder enemy (5 HP, 0 Armor):**
-- Raw: 10 × 1.0 = 10 damage
-- After Armor: 10 - 0 = 10
-- Result: Fodder dies in 1 hit. Feels good. ✓
+**Drifter (18 base damage) vs Fodder (30 HP, 0 Armor):**
+- Raw: 18, Resist: 0/(0+100) = 0% reduction → 18 damage
+- Result: 2 hits to kill. Fast. ✓
 
-**Drifter with base weapon vs Brute enemy (80 HP, 5 Armor):**
-- Raw: 10 × 1.0 = 10 damage
-- After Armor: 10 - 5 = 5
-- Result: 16 hits to kill. Takes ~16 seconds at 1.0 attack speed. Brute is a real threat. ✓
+**Drifter (18 base damage) vs Brute (80 HP, 5 Armor):**
+- Raw: 18, Resist: 5/(5+100) = 4.8% → 18 × 0.952 = 17.1 damage
+- Result: ~5 hits to kill. Noticeable tankiness without being a slog. ✓
 
-**Spark with +50% damage upgrade vs Brute (80 HP, 5 Armor):**
-- Raw: 14 × 1.5 = 21 damage
-- After Armor: 21 - 5 = 16
-- Crit (2.25x): 14 × 1.5 × 2.25 = 47.25 → 47 - 5 = 42
-- Result: 5 hits to kill (or 2 crits). Glass cannon fantasy delivered. ✓
+**Spark (+50% damage bonus, 2.25x crit) vs Brute (80 HP, 5 Armor):**
+- Raw: 14 × 1.5 = 21, Resist: 4.8% → 20.0 damage
+- Crit: 21 × 2.25 = 47.25, Resist → 45.0 damage
+- Result: 4 hits or 2 crits. Glass cannon fantasy delivered. ✓
 
 ---
 

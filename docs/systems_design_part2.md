@@ -7,7 +7,9 @@
 
 **Purpose:** Define what enemies are as data, what types exist, how they behave, and how they scale across phases.
 
-**Boundaries:** This system defines enemy types, behaviors, and scaling patterns. It does NOT handle specific enemy content (individual enemy designs with exact stats — that's Phase 10 data). It does NOT handle combat math (that's the Combat System). This defines the categories and rules; content fills them later.
+**Implementation:** All enemy types use a single `enemy.gd` script driven by `EnemyDefinition` data factories in `data/factories/enemies/`. Each factory's `static func create() -> EnemyDefinition` sets stats, behavior type ("chase"/"ranged"/"flee"), auto-attack abilities, and spawn statuses. `EnemyRegistry` caches all definitions. `EnemySpawnManager` instantiates scenes and calls `setup_from_enemy_def(def)` which wires all components automatically.
+
+**Loot drops** handled in `main_arena.gd._on_entity_killed()` via `EventBus.on_kill`. **Instability** is simplified: `instability = loot_carried` on GameManager, with tier thresholds at 30/70/120.
 
 ### Enemy Data Structure
 
