@@ -157,7 +157,7 @@ func spawn(source: Node2D, ability, config: ProjectileConfig,
 	_target_factions[i] = 1 if int(source.faction) == 0 else 0
 	_velocities[i] = direction * config.speed
 	if not config.use_directional_anims:
-		_rotations[i] = direction.angle()
+		_rotations[i] = direction.angle() + config.rotation_offset
 	else:
 		_rotations[i] = 0.0
 
@@ -318,6 +318,8 @@ func _check_hits(i: int) -> void:
 	var hits: Array = _hit_lists[i]
 	for tgt in nearby:
 		if tgt in hits:
+			continue
+		if not is_instance_valid(tgt):
 			continue
 		if pos.distance_squared_to(tgt.global_position) <= hit_radius_sq:
 			_on_hit(i, tgt)

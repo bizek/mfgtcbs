@@ -20,7 +20,38 @@ static func create() -> EnemyDefinition:
 
 	# Aura: permanent status on self that ticks a buff to nearby allies
 	def.on_spawn_statuses = [_create_herald_aura()]
+
+	# Corruption circle: ground zone that damages player and buffs allies
+	def.auto_attack = _create_corruption_circle()
 	return def
+
+
+static func _create_corruption_circle() -> AbilityDefinition:
+	var tick_dmg := DealDamageEffect.new()
+	tick_dmg.damage_type = "Void"
+	tick_dmg.base_damage = 3.0
+
+	var zone := GroundZoneEffect.new()
+	zone.zone_id = "herald_corruption"
+	zone.radius = 45.0
+	zone.duration = 5.0
+	zone.tick_interval = 0.5
+	zone.target_faction = "enemy"  ## Damages player
+	zone.tick_effects = [tick_dmg]
+	zone.debug_color = Color(0.6, 0.1, 0.8, 0.5)
+
+	var aa := AbilityDefinition.new()
+	aa.ability_id = "herald_corruption_circle"
+	aa.ability_name = "Corruption Circle"
+	aa.tags = ["AOE", "Void", "Zone"]
+	aa.cooldown_base = 10.0
+	aa.mode = "Auto"
+	var targeting := TargetingRule.new()
+	targeting.type = "nearest_enemy"
+	targeting.max_range = 150.0
+	aa.targeting = targeting
+	aa.effects = [zone]
+	return aa
 
 
 static func _create_herald_aura() -> StatusEffectDefinition:

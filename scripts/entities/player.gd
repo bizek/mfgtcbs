@@ -306,6 +306,7 @@ func _physics_process(delta: float) -> void:
 	velocity = velocity.move_toward(target_velocity, 2600.0 * delta)
 	velocity += knockback_velocity
 	move_and_slide()
+	position = position.round()  # pixel-snap: prevents sub-pixel blur on high-Hz monitors
 	knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 1400.0 * delta)
 
 	if sprite:
@@ -449,6 +450,13 @@ func _xp_to_next_level() -> float:
 # --- Upgrade application ---
 
 func apply_stat_upgrade(upgrade: Dictionary) -> void:
+	## Status-type upgrades apply a permanent passive status with trigger listeners
+	if upgrade.get("type") == "status":
+		var status_def := StatusFactory.get_by_id(upgrade["status_id"])
+		if status_def and status_effect_component:
+			status_effect_component.apply_status(status_def, self)
+		return
+
 	var stat_name: String = upgrade.stat
 	var value: float      = upgrade.value
 	var mod := ModifierDefinition.new()
@@ -474,6 +482,10 @@ func apply_stat_upgrade(upgrade: Dictionary) -> void:
 
 func remove_stat_upgrade(upgrade: Dictionary) -> void:
 	## For evolution recipes that remove prerequisite upgrades.
+	if upgrade.get("type") == "status":
+		if status_effect_component:
+			status_effect_component.remove_status(upgrade["status_id"])
+		return
 	## Finds and removes the first matching modifier.
 	var stat_name: String = upgrade.stat
 	var value: float      = upgrade.value

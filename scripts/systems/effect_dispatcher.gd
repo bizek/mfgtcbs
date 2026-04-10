@@ -51,6 +51,8 @@ static func execute_effect(effect: Resource, source: Node2D, target: Node2D,
 		if not actual_alive:
 			return
 		var src: Node2D = source if source_alive else fallback_source
+		if src == null:
+			return
 		actual_target.status_effect_component.apply_status(
 				effect.status, src, effect.stacks, effect.duration)
 
@@ -70,6 +72,8 @@ static func execute_effect(effect: Resource, source: Node2D, target: Node2D,
 		if not target_alive:
 			return
 		var src: Node2D = source if source_alive else fallback_source
+		if src == null:
+			return
 		if effect.target_status_id != "":
 			target.status_effect_component.force_remove_status(effect.target_status_id, src)
 		else:

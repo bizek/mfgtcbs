@@ -58,8 +58,7 @@ func _ready() -> void:
 	# Camera
 	_camera = Camera2D.new()
 	_camera.zoom = Vector2(1, 1)
-	_camera.position_smoothing_enabled = true
-	_camera.position_smoothing_speed = 10.0
+	_camera.position_smoothing_enabled = false
 	_camera.limit_left = int(-ARENA_HALF_W)
 	_camera.limit_right = int(ARENA_HALF_W)
 	_camera.limit_top = int(-ARENA_HALF_H)
@@ -95,12 +94,18 @@ func _ready() -> void:
 	add_child(arena_generator)
 	arena_generator.generate(2025)
 
+	# Pause menu (ESC)
+	var PauseMenuScript := preload("res://scripts/ui/pause_menu.gd")
+	var pause_menu: CanvasLayer = PauseMenuScript.new()
+	add_child(pause_menu)
+
 	# Debug panel + entity inspector
 	if GameManager.debug_mode:
 		var DebugPanelScript := preload("res://scripts/ui/debug_panel.gd")
 		var debug_panel: CanvasLayer = DebugPanelScript.new()
 		add_child(debug_panel)
 		debug_panel.setup(player)
+		pause_menu._debug_panel_ref = debug_panel
 
 		var InspectorScript := preload("res://scripts/ui/entity_inspector.gd")
 		var entity_inspector: CanvasLayer = InspectorScript.new()

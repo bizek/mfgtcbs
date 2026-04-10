@@ -816,16 +816,16 @@ func apply_elite_modifier() -> void:
 
 	match elite_modifier:
 		EliteModifier.HASTING:
-			var haste_mod := ModifierDefinition.new()
-			haste_mod.target_tag = "move_speed"
-			haste_mod.operation = "bonus"
-			haste_mod.value = 1.0
-			haste_mod.source_name = "elite_hasting"
-			modifier_component.add_modifier(haste_mod)
+			if status_effect_component:
+				status_effect_component.apply_status(StatusFactory.get_by_id("elite_hasting"), self)
 			_base_modulate = Color(0.2, 1.0, 0.3, 1.0)
 		EliteModifier.EXPLODING:
+			if status_effect_component:
+				status_effect_component.apply_status(StatusFactory.get_by_id("elite_exploding"), self)
 			_base_modulate = Color(1.0, 0.25, 0.1, 1.0)
 		EliteModifier.SHIELDED:
+			if status_effect_component:
+				status_effect_component.apply_status(StatusFactory.get_by_id("elite_shielded"), self)
 			health.add_shield(max_hp * 0.4, "elite_shield")
 			_base_modulate = Color(0.3, 0.5, 1.0, 1.0)
 
@@ -854,7 +854,7 @@ func _on_health_died(_entity: Node2D) -> void:
 
 	died.emit(self)
 
-	if elite_modifier == EliteModifier.EXPLODING:
+	if status_effect_component and status_effect_component.has_status("elite_exploding"):
 		_exploding_death()
 
 	# Void-Touched death explosion

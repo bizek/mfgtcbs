@@ -101,6 +101,37 @@ var EVOLUTION_RECIPES: Array[Dictionary] = [
 			{"stat": "move_speed", "type": "percent", "value": 0.15},
 		],
 	},
+	{
+		"id": "vampiric_blade",
+		"name": "VAMPIRIC BLADE",
+		"description": "Hits apply Bleed + On Kill: Heal 8% Max HP",
+		"requires": ["bloodthirst", "serrated_strikes"],
+		"is_evolution": true,
+		"effects": [
+			{"type": "status", "status_id": "vampiric_blade"},
+		],
+	},
+	{
+		"id": "overdrive",
+		"name": "OVERDRIVE",
+		"description": "On Kill: +40% Speed for 4s",
+		"requires": ["adrenaline_rush", "move_speed_up"],
+		"is_evolution": true,
+		"effects": [
+			{"type": "status", "status_id": "overdrive"},
+			{"stat": "move_speed", "type": "percent", "value": 0.10},
+		],
+	},
+	{
+		"id": "lightning_reflexes",
+		"name": "LIGHTNING REFLEXES",
+		"description": "On Crit: 20 Lightning AoE + On Dodge: Heal 5%",
+		"requires": ["static_discharge", "second_wind"],
+		"is_evolution": true,
+		"effects": [
+			{"type": "status", "status_id": "lightning_reflexes"},
+		],
+	},
 ]
 
 var earned_evolutions: Array[String] = []
@@ -121,10 +152,24 @@ func _build_upgrade_pool() -> void:
 		{"id": "projectile_count_up", "name": "Multi Shot", "description": "+1 Projectile", "stat": "projectile_count", "type": "flat", "value": 1.0},
 		{"id": "pierce_up", "name": "Pierce", "description": "+1 Pierce", "stat": "pierce", "type": "flat", "value": 1.0},
 		{"id": "projectile_size_up", "name": "Bigger Shots", "description": "+25% Projectile Size", "stat": "projectile_size", "type": "percent", "value": 0.25},
+		{"id": "bloodthirst", "name": "Bloodthirst", "description": "On Kill: Heal 5% Max HP", "type": "status", "status_id": "bloodthirst"},
+		{"id": "static_discharge", "name": "Static Discharge", "description": "On Crit: Lightning AOE", "type": "status", "status_id": "static_discharge"},
+		{"id": "serrated_strikes", "name": "Serrated Strikes", "description": "Hits apply Bleed", "type": "status", "status_id": "serrated_strikes"},
+		{"id": "adrenaline_rush", "name": "Adrenaline Rush", "description": "On Kill: +25% Speed (3s)", "type": "status", "status_id": "adrenaline_rush"},
+		{"id": "thorns_passive", "name": "Thorns", "description": "Reflect 8 damage when hit", "type": "status", "status_id": "thorns_passive"},
+		{"id": "second_wind", "name": "Second Wind", "description": "On Dodge: Heal 3% Max HP", "type": "status", "status_id": "second_wind"},
 	]
 
 func generate_choices(count: int = 3) -> Array[Dictionary]:
-	var pool_copy := upgrade_pool.duplicate()
+	## Filter out status upgrades already owned (they're one-time pickups)
+	var owned_ids: Array[String] = []
+	for u in player_upgrades:
+		owned_ids.append(u["id"])
+	var pool_copy: Array[Dictionary] = []
+	for entry in upgrade_pool:
+		if entry.get("type") == "status" and entry["id"] in owned_ids:
+			continue
+		pool_copy.append(entry)
 	pool_copy.shuffle()
 	var choices: Array[Dictionary] = []
 	for i in range(mini(count, pool_copy.size())):
@@ -132,7 +177,7 @@ func generate_choices(count: int = 3) -> Array[Dictionary]:
 
 	## Check if player qualifies for any evolution
 	var available_evo: Dictionary = _get_available_evolution()
-	if not available_evo.is_empty():
+	if not available_evo.is_empty() and not choices.is_empty():
 		## Replace the last choice with the evolution
 		choices[choices.size() - 1] = available_evo
 
@@ -181,12 +226,11 @@ func _apply_evolution(evo: Dictionary, player: Node) -> void:
 
 	## Apply each effect in the evolution
 	for effect in evo["effects"]:
-		var pseudo_upgrade := {
-			"id": evo["id"],
-			"stat": effect["stat"],
-			"type": effect["type"],
-			"value": effect["value"],
-		}
+		var pseudo_upgrade: Dictionary
+		if effect.get("type") == "status":
+			pseudo_upgrade = {"id": evo["id"], "type": "status", "status_id": effect["status_id"]}
+		else:
+			pseudo_upgrade = {"id": evo["id"], "stat": effect["stat"], "type": effect["type"], "value": effect["value"]}
 		if player.has_method("apply_stat_upgrade"):
 			player.apply_stat_upgrade(pseudo_upgrade)
 

@@ -229,6 +229,7 @@ static func _build_projectile_config(data: Dictionary, mods: Array) -> Projectil
 	config.sprite_frames = _get_projectile_sprite_frames()
 	config.use_directional_anims = false
 	config.animation = "default"
+	config.rotation_offset = PI / 2.0  ## Sword sprite points down; rotate to align with travel direction
 
 	# Mod: pierce, gravity, size, ricochet
 	for mod_id in mods:

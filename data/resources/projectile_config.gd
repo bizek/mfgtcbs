@@ -13,6 +13,7 @@ extends Resource
 @export var use_directional_anims: bool = true   ## true = pick anim from direction ("n","ne","e"...)
 @export var animation: String = ""               ## Single anim name if not directional
 @export var visual_scale: Vector2 = Vector2.ONE
+@export var rotation_offset: float = 0.0   ## Sprite baseline correction in radians (e.g. -PI/2 if sprite points up)
 @export var fallback_color: Color = Color(1.0, 0.5, 0.1, 0.9) ## Procedural circle color when no sprite_frames
 
 # --- Hit Detection ---

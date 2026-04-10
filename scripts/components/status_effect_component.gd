@@ -74,7 +74,9 @@ func apply_status(status_def: StatusEffectDefinition, source: Node2D,
 			_movement_disable_count += 1
 		if status_def.prevents_death:
 			_death_prevention_count += 1
-			get_parent().health._death_prevention_count += 1
+			var _h = get_parent().get("health")
+			if _h:
+				_h._death_prevention_count += 1
 		if status_def.movement_override != "":
 			_movement_override = status_def.movement_override
 		if status_def.grants_taunt:
@@ -301,7 +303,9 @@ func _cleanup_status(active: ActiveStatus) -> void:
 		_movement_disable_count -= 1
 	if active.definition.prevents_death:
 		_death_prevention_count -= 1
-		get_parent().health._death_prevention_count -= 1
+		var _h = get_parent().get("health")
+		if _h:
+			_h._death_prevention_count -= 1
 	if active.definition.movement_override != "":
 		_recompute_movement_override()
 	if active.definition.grants_taunt:

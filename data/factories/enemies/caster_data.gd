@@ -21,6 +21,9 @@ static func create() -> EnemyDefinition:
 
 	# Ranged auto-attack: slow orange bolt via ProjectileManager
 	def.auto_attack = _create_caster_bolt(def.contact_damage)
+
+	# Skill: fire puddle ground zone at player location
+	def.skills = [_create_fire_puddle_skill()]
 	return def
 
 
@@ -57,3 +60,39 @@ static func _create_caster_bolt(base_damage: float) -> AbilityDefinition:
 	aa.targeting = targeting
 	aa.effects = [spawn]
 	return aa
+
+
+static func _create_fire_puddle_skill() -> SkillDefinition:
+	var skill := SkillDefinition.new()
+	skill.skill_name = "Fire Puddle"
+	skill.unlock_level = 1
+
+	var tick_dmg := DealDamageEffect.new()
+	tick_dmg.damage_type = "Fire"
+	tick_dmg.base_damage = 4.0
+
+	var zone := GroundZoneEffect.new()
+	zone.zone_id = "caster_fire_puddle"
+	zone.radius = 35.0
+	zone.duration = 4.0
+	zone.tick_interval = 0.5
+	zone.target_faction = "enemy"  ## Damages player (enemy of the caster)
+	zone.tick_effects = [tick_dmg]
+	zone.debug_color = Color(0.9, 0.3, 0.0, 0.6)
+
+	var ability := AbilityDefinition.new()
+	ability.ability_id = "caster_fire_puddle"
+	ability.ability_name = "Fire Puddle"
+	ability.tags = ["Ranged", "AOE", "Fire"]
+	ability.cooldown_base = 8.0
+	ability.mode = "Auto"
+	ability.priority = 5  ## Higher priority than bolt — fires first when off cooldown
+	ability.cast_range = 200.0
+	var targeting := TargetingRule.new()
+	targeting.type = "nearest_enemy"
+	targeting.max_range = 200.0
+	ability.targeting = targeting
+	ability.effects = [zone]
+
+	skill.ability = ability
+	return skill
