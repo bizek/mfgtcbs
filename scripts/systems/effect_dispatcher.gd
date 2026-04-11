@@ -127,6 +127,7 @@ static func execute_effect(effect: Resource, source: Node2D, target: Node2D,
 		dmg_effect.scaling_attribute = effect.scaling_attribute
 		dmg_effect.scaling_coefficient = effect.scaling_coefficient
 		dmg_effect.base_damage = effect.base_damage
+		var total_aoe_damage: float = 0.0
 		for aoe_target in aoe_targets:
 			if aoe_target == target:
 				continue
@@ -137,6 +138,17 @@ static func execute_effect(effect: Resource, source: Node2D, target: Node2D,
 			if hit.is_dodged:
 				continue
 			aoe_target.take_damage(hit)
+			total_aoe_damage += hit.amount
+			## Per-hit effects (e.g. Galvanized Bleed spread, Conductor chain slow)
+			for sub_effect in effect.on_hit_effects:
+				execute_effect(sub_effect, source, aoe_target, ability, combat_manager, source)
+		## Leech: AoE damage also heals source (Lifesteal + Shock, Lifesteal + Explosive, etc.)
+		if total_aoe_damage > 0.0 and source_alive and not source.health.is_dead:
+			var leech: float = source.modifier_component.sum_modifiers("leech", "bonus")
+			if leech > 0.0:
+				var heal_amount: float = total_aoe_damage * leech
+				source.health.apply_healing(heal_amount)
+				EventBus.on_heal.emit(source, source, heal_amount)
 
 	elif effect is SetMaxStacksEffect:
 		if not target_alive:

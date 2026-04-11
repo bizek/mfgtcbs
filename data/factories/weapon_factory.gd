@@ -260,11 +260,11 @@ static func _build_projectile_config(data: Dictionary, mods: Array) -> Projectil
 		var params: Dictionary = mod_data.get("params", {})
 		match mod_data.get("effect_type", ""):
 			"explosive":
-				config.impact_aoe_radius = params.get("radius", 40.0)
+				config.impact_aoe_radius = maxf(config.impact_aoe_radius, params.get("radius", 40.0))
 				var aoe_dmg := DealDamageEffect.new()
 				aoe_dmg.damage_type = _get_damage_type(data)
 				aoe_dmg.base_damage = data.get("damage", 18.0) * params.get("damage_mult", 0.3)
-				config.impact_aoe_effects = [aoe_dmg]
+				config.impact_aoe_effects.append(aoe_dmg)   ## append, not assign
 			"split":
 				var split_config := ProjectileConfig.new()
 				split_config.motion_type = "directional"
@@ -284,6 +284,9 @@ static func _build_projectile_config(data: Dictionary, mods: Array) -> Projectil
 				split_spawn.spawn_pattern = "radial"
 				split_spawn.count = params.get("split_count", 3)
 				config.on_expire_effects = [split_spawn]
+
+	## Apply all named mod combo effects (pairwise + triple interactions)
+	ModComboFactory.apply_projectile_combos(config, mods, data)
 
 	return config
 
@@ -312,13 +315,14 @@ static func _add_projectile_mod_effects(config: ProjectileConfig, mods: Array) -
 				apply.stacks = 1
 				config.on_hit_effects.append(apply)
 			"chain":
-				# Chain: spawn a secondary projectile at hit target toward nearest enemy
-				# This is a simplified version — full chain would use a TriggerListener
+				## Chain: deal damage to enemies near the hit target (AreaDamageEffect in
+				## on_hit_effects, centered on primary hit target, excluding that target).
+				## This correctly fires on every pierce hit and doesn't require impact_aoe_radius.
 				var chain_dmg := AreaDamageEffect.new()
 				chain_dmg.damage_type = _get_damage_type_from_config(config)
 				chain_dmg.base_damage = config.on_hit_effects[0].base_damage * params.get("chain_damage_mult", 0.6) if not config.on_hit_effects.is_empty() else 10.0
 				chain_dmg.aoe_radius = params.get("chain_range", 120.0)
-				config.impact_aoe_effects.append(chain_dmg)
+				config.on_hit_effects.append(chain_dmg)
 
 
 static func _add_mod_on_hit_effects(ability: AbilityDefinition, mods: Array) -> void:
@@ -358,6 +362,18 @@ static func _get_damage_type_from_config(config: ProjectileConfig) -> String:
 	if not config.on_hit_effects.is_empty() and config.on_hit_effects[0] is DealDamageEffect:
 		return config.on_hit_effects[0].damage_type
 	return "Physical"
+
+
+## Build StatusEffectDefinitions for player-level combo passives (runtime trigger effects).
+## Apply each returned definition to the player's status_effect_component when weapon loads.
+static func build_combo_passives(active_mods: Array) -> Array[StatusEffectDefinition]:
+	return ModComboFactory.build_combo_passives(active_mods)
+
+
+## Build extra ModifierDefinitions from mod combo interactions (e.g. Size+Crit bonus chance).
+## Append to the stat_mods returned by build_mod_modifiers.
+static func build_combo_modifiers(active_mods: Array) -> Array[ModifierDefinition]:
+	return ModComboFactory.build_combo_modifiers(active_mods)
 
 
 ## Build ModifierDefinitions for weapon mods that modify stats (not on-hit behavior).

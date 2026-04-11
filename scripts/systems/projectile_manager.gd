@@ -54,6 +54,10 @@ var _pierce_counts: PackedInt32Array
 # --- Bounce tracking ---
 var _bounce_counts: PackedInt32Array
 
+# --- Combo state ---
+var _initial_pierce_counts: PackedInt32Array  ## Phase Bolt: restore pierce to this on bounce
+var _has_bounced: PackedByteArray             ## Ice Ball / Spiral Orbit: non-zero if bounced ≥ once
+
 # --- Rendering state ---
 var _textures: Array = []
 var _visual_scales: PackedVector2Array
@@ -92,6 +96,8 @@ func _init_pool() -> void:
 
 	_pierce_counts.resize(POOL_SIZE)
 	_bounce_counts.resize(POOL_SIZE)
+	_initial_pierce_counts.resize(POOL_SIZE)
+	_has_bounced.resize(POOL_SIZE)
 	_visual_scales.resize(POOL_SIZE)
 	_rotations.resize(POOL_SIZE)
 
@@ -114,6 +120,8 @@ func _init_pool() -> void:
 		_textures[i] = null
 		_impact_sprite_frames[i] = null
 		_impact_animations[i] = ""
+		_initial_pierce_counts[i] = 0
+		_has_bounced[i] = 0
 
 
 func _claim_slot() -> int:
@@ -136,6 +144,8 @@ func _release_slot(i: int) -> void:
 	_textures[i] = null
 	_hit_lists[i].clear()
 	_impact_sprite_frames[i] = null
+	_initial_pierce_counts[i] = 0
+	_has_bounced[i] = 0
 	_free_list.append(i)
 
 
@@ -168,6 +178,8 @@ func spawn(source: Node2D, ability, config: ProjectileConfig,
 	_hit_lists[i] = []
 	_pierce_counts[i] = config.pierce_count
 	_bounce_counts[i] = config.bounce_count
+	_initial_pierce_counts[i] = config.pierce_count_base if config.pierce_resets_on_bounce else config.pierce_count
+	_has_bounced[i] = 0
 
 	match config.motion_type:
 		"directional":
@@ -234,12 +246,27 @@ func _process(delta: float) -> void:
 
 func _process_linear(i: int, delta: float) -> void:
 	if _motion_types[i] == MOTION_HOMING:
+		var config: ProjectileConfig = _configs[i]
+		## Bloodhound (Gravity + DOT): re-evaluate target each frame, prefer bleeding enemies
+		if config and config.homing_prefers_bleeding and spatial_grid:
+			var best: Node2D = null
+			var best_score: float = INF
+			for candidate in spatial_grid.get_nearby(_positions[i], _target_factions[i]):
+				if not is_instance_valid(candidate) or not candidate.is_alive:
+					continue
+				var d: float = _positions[i].distance_to(candidate.global_position)
+				## Bleeding targets get a 50% distance bonus (appear "closer" in scoring)
+				var score: float = d * (0.5 if candidate.status_effect_component.has_status("bleed") else 1.0)
+				if score < best_score:
+					best_score = score
+					best = candidate
+			if best:
+				_targets[i] = best
 		var tgt = _targets[i]
 		if is_instance_valid(tgt) and tgt.is_alive:
 			var dir: Vector2 = (tgt.global_position - _positions[i]).normalized()
 			_velocities[i] = dir * _speeds[i]
-			var config: ProjectileConfig = _configs[i]
-			if config.use_directional_anims:
+			if config and config.use_directional_anims:
 				_textures[i] = _resolve_texture(config, dir)
 
 	_positions[i] += _velocities[i] * delta
@@ -264,6 +291,7 @@ func _process_linear(i: int, delta: float) -> void:
 			_velocities[i] = vel
 			_rotations[i] = vel.angle()
 			_bounce_counts[i] -= 1
+			_on_bounce(i)
 		else:
 			_fire_on_expire(i)
 			_release_slot(i)
@@ -332,6 +360,14 @@ func _on_hit(i: int, target_entity: Node2D) -> void:
 	_execute_effects(i, target_entity)
 	_execute_impact_aoe(i, target_entity)
 	_spawn_impact_vfx(i)
+	## Ice Ball (Ricochet + Cryo): apply extra status on hits made after a bounce
+	var config: ProjectileConfig = _configs[i]
+	if config and _has_bounced[i] and config.bounced_hit_extra_apply != null:
+		var source: Node2D = _sources[i]
+		if is_instance_valid(source):
+			EffectDispatcher.execute_effect(
+					config.bounced_hit_extra_apply, source, target_entity,
+					_abilities[i], combat_manager)
 	var pierce: int = _pierce_counts[i]
 	if pierce >= 0 and _hit_lists[i].size() > pierce:
 		_fire_on_expire(i)
@@ -385,6 +421,58 @@ func _fire_on_expire(i: int) -> void:
 			effect.spawn_offset = orig_offset
 		else:
 			EffectDispatcher.execute_effect(effect, source, null, ability, combat_manager)
+
+
+func _on_bounce(i: int) -> void:
+	## Called immediately after a wall bounce is processed.
+	## Handles all mod combo effects that trigger on bounce.
+	var config: ProjectileConfig = _configs[i]
+	if not config:
+		return
+	var source: Node2D = _sources[i]
+	var ability = _abilities[i]
+	var bounce_pos: Vector2 = _positions[i]
+
+	## Phase Bolt (Pierce + Ricochet): reset pierce counter to full on each bounce
+	if config.pierce_resets_on_bounce:
+		_pierce_counts[i] = _initial_pierce_counts[i]
+		_hit_lists[i].clear()
+
+	## Bouncing Grenade / Storm Breaker: fire impact AoE at the bounce position
+	if config.explodes_on_bounce and config.impact_aoe_radius > 0.0 \
+			and not config.impact_aoe_effects.is_empty() \
+			and is_instance_valid(source) and spatial_grid:
+		var r_sq := config.impact_aoe_radius * config.impact_aoe_radius
+		var bounce_targets := spatial_grid.get_nearby_in_range(bounce_pos, _target_factions[i], r_sq)
+		for bt in bounce_targets:
+			if is_instance_valid(bt) and bt.is_alive:
+				for eff in config.impact_aoe_effects:
+					EffectDispatcher.execute_effect(eff, source, bt, ability, combat_manager)
+
+	## Generic on-bounce AoE: apply effects to nearby enemies at bounce point
+	## (Wildfire fire zones, Thunderball shock, Ricochet Razor bleed refresh, etc.)
+	if config.on_bounce_aoe_radius > 0.0 and not config.on_bounce_aoe_effects.is_empty() \
+			and is_instance_valid(source) and spatial_grid:
+		var r_sq := config.on_bounce_aoe_radius * config.on_bounce_aoe_radius
+		var nearby := spatial_grid.get_nearby_in_range(bounce_pos, _target_factions[i], r_sq)
+		for nb in nearby:
+			if is_instance_valid(nb) and nb.is_alive:
+				for eff in config.on_bounce_aoe_effects:
+					EffectDispatcher.execute_effect(eff, source, nb, ability, combat_manager)
+
+	## Spiral Orbit (Gravity + Ricochet): re-acquire nearest enemy as homing target
+	if config.re_home_after_bounce and spatial_grid:
+		var best_tgt: Node2D = null
+		var best_dist_sq: float = INF
+		for candidate in spatial_grid.get_nearby(bounce_pos, _target_factions[i]):
+			if is_instance_valid(candidate) and candidate.is_alive:
+				var d_sq: float = bounce_pos.distance_squared_to(candidate.global_position)
+				if d_sq < best_dist_sq:
+					best_dist_sq = d_sq
+					best_tgt = candidate
+		_targets[i] = best_tgt
+
+	_has_bounced[i] = 1
 
 
 func _spawn_impact_vfx(i: int) -> void:

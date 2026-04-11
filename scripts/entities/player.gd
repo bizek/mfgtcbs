@@ -224,8 +224,18 @@ func _load_weapon_mods() -> void:
 	for mod in stat_mods:
 		modifier_component.add_modifier(mod)
 
+	# Combo modifier bonuses (Size+Crit, Crit+Ricochet, etc.)
+	var combo_mods: Array[ModifierDefinition] = WeaponFactory.build_combo_modifiers(_active_mods)
+	for mod in combo_mods:
+		modifier_component.add_modifier(mod)
+
 	# Build weapon ability with mods baked into ProjectileConfig/effects
 	_weapon_ability = WeaponFactory.build_weapon_ability(_weapon_id, _weapon_data, _active_mods)
+
+	# Runtime combo passives (Static Strike, etc.) applied as permanent player statuses
+	var combo_passives: Array[StatusEffectDefinition] = WeaponFactory.build_combo_passives(_active_mods)
+	for passive_def in combo_passives:
+		status_effect_component.apply_status(passive_def, self, 1)
 
 	# Wire as auto-attack through engine components
 	var attack_interval: float = _weapon_ability.cooldown_base
@@ -235,10 +245,14 @@ func _load_weapon_mods() -> void:
 
 
 func reload_mods() -> void:
-	# Remove old mod modifiers (all sources starting with "mod_")
+	# Remove old mod modifiers (sources starting with "mod_" or "combo_")
 	for mod in modifier_component.get_all_modifiers().duplicate():
-		if mod.source_name.begins_with("mod_"):
+		if mod.source_name.begins_with("mod_") or mod.source_name.begins_with("combo_"):
 			modifier_component.remove_modifier(mod)
+	# Remove old combo passive statuses
+	for passive_id in ["combo_static_strike"]:
+		if status_effect_component.has_status(passive_id):
+			status_effect_component.force_remove_status(passive_id, self)
 	_load_weapon_mods()
 	if _has_instability_siphon:
 		if not EventBus.on_kill.is_connected(_on_kill_siphon):

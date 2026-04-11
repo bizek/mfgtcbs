@@ -25,6 +25,16 @@ static var vampiric_blade: StatusEffectDefinition
 static var overdrive: StatusEffectDefinition
 static var lightning_reflexes: StatusEffectDefinition
 
+## Mod interaction combo statuses
+## Plasma (Burning + Shocked): 15 hybrid AoE, consumes both
+## Superconductor (Chilled + Shocked): 18 cold AoE, consumes Chilled
+## Searing Wound (Burning + Bleed): double bleed tick rate amplifier
+## Hemorrhage (Frozen expiry + Bleed): burst damage on Frozen expiry
+## Galvanized Shocked (Shocked + DOT Applicator): Conductor also spreads Bleed
+static var searing_wound: StatusEffectDefinition
+static var galvanized_shocked: StatusEffectDefinition
+static var burning_extended: StatusEffectDefinition  ## Comet: 4.5s Burning for Gravity + Fire
+
 ## Elite enemy modifier statuses
 static var elite_hasting: StatusEffectDefinition
 static var elite_exploding: StatusEffectDefinition
@@ -56,6 +66,15 @@ static func build_all() -> void:
 	vampiric_blade = _build_vampiric_blade()
 	overdrive = _build_overdrive()
 	lightning_reflexes = _build_lightning_reflexes()
+
+	searing_wound = _build_searing_wound()
+	galvanized_shocked = _build_galvanized_shocked()
+	burning_extended = _build_burning_extended()
+
+	## Wire new elemental combos onto existing statuses (must run after all statuses built)
+	_wire_plasma_combo()
+	_wire_superconductor_combo()
+	_wire_searing_wound_combo()
 
 	elite_hasting = _build_elite_hasting()
 	elite_exploding = _build_elite_exploding()
@@ -103,6 +122,12 @@ static func get_by_id(status_id: String) -> StatusEffectDefinition:
 			return elite_exploding
 		"elite_shielded":
 			return elite_shielded
+		"searing_wound":
+			return searing_wound
+		"galvanized_shocked":
+			return galvanized_shocked
+		"burning_extended":
+			return burning_extended
 	return null
 
 
@@ -220,6 +245,14 @@ static func _build_frozen() -> StatusEffectDefinition:
 	shatter_listener.conditions = [fire_condition, target_is_self]
 	shatter_listener.effects = [shatter_dmg, shatter_consume]
 	def.trigger_listeners = [shatter_listener]
+
+	## Hemorrhage (Frozen + Bleed): burst damage when Frozen expires.
+	## Full design calls for Bleed-stack-scaled damage; implemented as flat burst
+	## since stack-conditional effects require TriggerConditionHasStatus (future work).
+	var hemorrhage_dmg := DealDamageEffect.new()
+	hemorrhage_dmg.damage_type = "Physical"
+	hemorrhage_dmg.base_damage = 20.0
+	def.on_expire_effects = [hemorrhage_dmg]
 
 	return def
 
@@ -534,6 +567,200 @@ static func _build_lightning_reflexes() -> StatusEffectDefinition:
 
 	def.trigger_listeners = [crit_listener, dodge_listener]
 	return def
+
+
+# ── Mod combo elemental statuses ─────────────────────────────────────
+
+static func _build_searing_wound() -> StatusEffectDefinition:
+	## Searing Wound amplifier: applied to a target that has BOTH Burning and Bleed active.
+	## Deals +2 Fire damage/sec for 3s, stacking on top of existing Bleed tick.
+	## Applied by trigger listeners wired in _wire_searing_wound_combo().
+	var def := StatusEffectDefinition.new()
+	def.status_id = "searing_wound"
+	def.tags = ["Fire", "Physical", "DoT"]
+	def.is_positive = false
+	def.max_stacks = 1
+	def.base_duration = 3.0
+	def.duration_refresh_mode = "overwrite"
+	def.tick_interval = 1.0
+
+	var tick_dmg := DealDamageEffect.new()
+	tick_dmg.damage_type = "Fire"
+	tick_dmg.base_damage = 2.0
+	def.tick_effects = [tick_dmg]
+
+	return def
+
+
+static func _build_burning_extended() -> StatusEffectDefinition:
+	## Comet variant: Burning with 4.5s duration (Gravity + Fire combo).
+	var def := StatusEffectDefinition.new()
+	def.status_id = "burning_extended"
+	def.tags = ["Fire", "DoT"]
+	def.is_positive = false
+	def.max_stacks = 1
+	def.base_duration = 4.5
+	def.duration_refresh_mode = "overwrite"
+	def.tick_interval = 1.0
+
+	var tick_dmg := DealDamageEffect.new()
+	tick_dmg.damage_type = "Fire"
+	tick_dmg.base_damage = 3.0
+	def.tick_effects = [tick_dmg]
+
+	return def
+
+
+static func _build_galvanized_shocked() -> StatusEffectDefinition:
+	## Galvanized Shocked (Shock + DOT Applicator combo variant of Shocked).
+	## Conductor AoE also spreads one Bleed stack to each enemy hit.
+	var def := StatusEffectDefinition.new()
+	def.status_id = "galvanized_shocked"
+	def.tags = ["Lightning"]
+	def.is_positive = false
+	def.max_stacks = 1
+	def.base_duration = 5.0
+
+	## Conductor AoE with Bleed spread via on_hit_effects
+	var chain_dmg := AreaDamageEffect.new()
+	chain_dmg.damage_type = "Lightning"
+	chain_dmg.base_damage = 10.0
+	chain_dmg.aoe_radius = 80.0
+
+	var spread_bleed := ApplyStatusEffectData.new()
+	spread_bleed.status = bleed
+	spread_bleed.stacks = 1
+	chain_dmg.on_hit_effects = [spread_bleed]
+
+	var chain_consume := ConsumeStacksEffect.new()
+	chain_consume.status_id = "galvanized_shocked"
+	chain_consume.stacks_to_consume = -1
+
+	var target_is_self := TriggerConditionTargetIsSelf.new()
+	var conductor_listener := TriggerListenerDefinition.new()
+	conductor_listener.event = "on_hit_received"
+	conductor_listener.target_self = true
+	conductor_listener.conditions = [target_is_self]
+	conductor_listener.effects = [chain_dmg, chain_consume]
+	def.trigger_listeners = [conductor_listener]
+
+	return def
+
+
+static func _wire_plasma_combo() -> void:
+	## Plasma (Burning + Shocked): either order of application triggers the combo.
+	## When Burning is applied to a Shocked target → on Shocked's listener.
+	## When Shocked is applied to a Burning target → on Burning's listener.
+
+	var plasma_aoe := AreaDamageEffect.new()
+	plasma_aoe.damage_type = "Fire"   ## Hybrid: use Fire tag, deal split damage
+	plasma_aoe.base_damage = 15.0
+	plasma_aoe.aoe_radius = 55.0
+
+	## Shocked listener: fires when burning is applied to Shocked entity
+	var consume_shocked := ConsumeStacksEffect.new()
+	consume_shocked.status_id = "shocked"
+	consume_shocked.stacks_to_consume = -1
+
+	var consume_burning_a := ConsumeStacksEffect.new()
+	consume_burning_a.status_id = "burning"
+	consume_burning_a.stacks_to_consume = -1
+
+	var burning_cond_a := TriggerConditionStatusId.new()
+	burning_cond_a.status_id = "burning"
+	var self_cond_a := TriggerConditionTargetIsSelf.new()
+
+	var plasma_on_shocked := TriggerListenerDefinition.new()
+	plasma_on_shocked.event = "on_status_applied"
+	plasma_on_shocked.target_self = true
+	plasma_on_shocked.conditions = [burning_cond_a, self_cond_a]
+	plasma_on_shocked.effects = [plasma_aoe, consume_shocked, consume_burning_a]
+	shocked.trigger_listeners.append(plasma_on_shocked)
+
+	## Burning listener: fires when shocked is applied to Burning entity
+	var plasma_aoe_b := AreaDamageEffect.new()
+	plasma_aoe_b.damage_type = "Fire"
+	plasma_aoe_b.base_damage = 15.0
+	plasma_aoe_b.aoe_radius = 55.0
+
+	var consume_burning_b := ConsumeStacksEffect.new()
+	consume_burning_b.status_id = "burning"
+	consume_burning_b.stacks_to_consume = -1
+
+	var consume_shocked_b := ConsumeStacksEffect.new()
+	consume_shocked_b.status_id = "shocked"
+	consume_shocked_b.stacks_to_consume = -1
+
+	var shocked_cond_b := TriggerConditionStatusId.new()
+	shocked_cond_b.status_id = "shocked"
+	var self_cond_b := TriggerConditionTargetIsSelf.new()
+
+	var plasma_on_burning := TriggerListenerDefinition.new()
+	plasma_on_burning.event = "on_status_applied"
+	plasma_on_burning.target_self = true
+	plasma_on_burning.conditions = [shocked_cond_b, self_cond_b]
+	plasma_on_burning.effects = [plasma_aoe_b, consume_burning_b, consume_shocked_b]
+	burning.trigger_listeners.append(plasma_on_burning)
+
+
+static func _wire_superconductor_combo() -> void:
+	## Superconductor (Chilled + Shocked): Shocked applied to Chilled target
+	## → consume Chilled, deal 18 Cold Lightning AoE (60px).
+	var super_aoe := AreaDamageEffect.new()
+	super_aoe.damage_type = "Ice"
+	super_aoe.base_damage = 18.0
+	super_aoe.aoe_radius = 60.0
+
+	var consume_chilled := ConsumeStacksEffect.new()
+	consume_chilled.status_id = "chilled"
+	consume_chilled.stacks_to_consume = -1
+
+	var shocked_cond := TriggerConditionStatusId.new()
+	shocked_cond.status_id = "shocked"
+	var self_cond := TriggerConditionTargetIsSelf.new()
+
+	var superconductor_listener := TriggerListenerDefinition.new()
+	superconductor_listener.event = "on_status_applied"
+	superconductor_listener.target_self = true
+	superconductor_listener.conditions = [shocked_cond, self_cond]
+	superconductor_listener.effects = [super_aoe, consume_chilled]
+	chilled.trigger_listeners.append(superconductor_listener)
+
+
+static func _wire_searing_wound_combo() -> void:
+	## Searing Wound (Burning + Bleed co-presence):
+	## Burning applied to Bleeding target → apply searing_wound.
+	## Bleed applied to Burning target → apply searing_wound.
+
+	var apply_sw_a := ApplyStatusEffectData.new()
+	apply_sw_a.status = searing_wound
+	apply_sw_a.stacks = 1
+
+	var bleed_cond := TriggerConditionStatusId.new()
+	bleed_cond.status_id = "bleed"
+	var self_cond_a := TriggerConditionTargetIsSelf.new()
+
+	var sw_on_burning := TriggerListenerDefinition.new()
+	sw_on_burning.event = "on_status_applied"
+	sw_on_burning.target_self = true
+	sw_on_burning.conditions = [bleed_cond, self_cond_a]
+	sw_on_burning.effects = [apply_sw_a]
+	burning.trigger_listeners.append(sw_on_burning)
+
+	var apply_sw_b := ApplyStatusEffectData.new()
+	apply_sw_b.status = searing_wound
+	apply_sw_b.stacks = 1
+
+	var burning_cond := TriggerConditionStatusId.new()
+	burning_cond.status_id = "burning"
+	var self_cond_b := TriggerConditionTargetIsSelf.new()
+
+	var sw_on_bleed := TriggerListenerDefinition.new()
+	sw_on_bleed.event = "on_status_applied"
+	sw_on_bleed.target_self = true
+	sw_on_bleed.conditions = [burning_cond, self_cond_b]
+	sw_on_bleed.effects = [apply_sw_b]
+	bleed.trigger_listeners.append(sw_on_bleed)
 
 
 # ── Elite modifier statuses ───────────────────────────────────────────────

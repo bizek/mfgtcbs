@@ -36,3 +36,27 @@ extends Resource
 # --- Impact AOE (splash damage) ---
 @export var impact_aoe_radius: float = 0.0       ## Splash radius around impact (0 = no splash)
 @export var impact_aoe_effects: Array = []        ## Effects on splash targets
+
+# --- Mod Combo Flags ---
+## Phase Bolt (Pierce + Ricochet): pierce counter resets to full on each wall bounce
+@export var pierce_resets_on_bounce: bool = false
+## Base pierce count used for reset; set equal to pierce_count at build time
+@export var pierce_count_base: int = 0
+
+## Bouncing Grenade / Storm Breaker: fire impact_aoe at each wall bounce position
+@export var explodes_on_bounce: bool = false
+
+## Generic on-bounce AoE (Wildfire, Thunderball, Ricochet Razor, etc.): apply effects
+## to enemies within on_bounce_aoe_radius of each bounce point
+@export var on_bounce_aoe_radius: float = 0.0
+@export var on_bounce_aoe_effects: Array = []
+
+## Spiral Orbit (Gravity + Ricochet): re-acquire nearest enemy as homing target after each bounce
+@export var re_home_after_bounce: bool = false
+
+## Bloodhound (Gravity + DOT Applicator): prefer Bleeding targets when homing
+@export var homing_prefers_bleeding: bool = false
+
+## Ice Ball (Ricochet + Cryo): apply extra status stacks on any bounced hit
+## Set bounced_hit_extra_apply to an ApplyStatusEffectData at build time
+@export var bounced_hit_extra_apply: Resource = null  ## ApplyStatusEffectData

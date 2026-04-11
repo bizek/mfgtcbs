@@ -8,3 +8,5 @@ extends Resource
 @export var scaling_coefficient: float = 1.0
 @export var base_damage: float = 1.0
 @export var aoe_radius: float = 20.0
+## Optional per-hit effects executed on each enemy this AoE damages (e.g. Galvanized Bleed spread).
+@export var on_hit_effects: Array = []
