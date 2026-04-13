@@ -20,6 +20,7 @@ var projectile_manager: ProjectileManager = null
 var vfx_manager: VfxManager = null
 var displacement_system: DisplacementSystem = null
 var combat_feedback: Node2D = null  ## CombatFeedbackManager
+var combo_effect_resolver: ComboEffectResolver = null
 var debug_draw: DebugDraw = null
 
 var rng: RandomNumberGenerator = RandomNumberGenerator.new()
@@ -57,6 +58,12 @@ func _ready() -> void:
 		combat_feedback = CombatFeedbackScript.new()
 		combat_feedback.name = "CombatFeedback"
 		add_child(combat_feedback)
+
+	# ComboEffectResolver — tracks combo triggers and emits discovery signals
+	combo_effect_resolver = ComboEffectResolver.new()
+	combo_effect_resolver.name = "ComboEffectResolver"
+	combo_effect_resolver.combat_manager = self
+	add_child(combo_effect_resolver)
 
 	# DebugDraw — targeting/hitbox visualization (disabled by default)
 	debug_draw = DebugDraw.new()

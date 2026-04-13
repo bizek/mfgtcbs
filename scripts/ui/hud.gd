@@ -1,7 +1,7 @@
 extends CanvasLayer
 
 ## HUD — Health bar, XP bar, level display, loot counter, instability vignette,
-## extraction window countdown, and LOOT AT RISK warning.
+## extraction window countdown, LOOT AT RISK warning, and combo discovery popups.
 
 @onready var health_bar: ProgressBar = $TopLeft/HPRow/HealthBar
 @onready var health_label: Label = $TopLeft/HPRow/HealthLabel
@@ -63,6 +63,7 @@ func _ready() -> void:
 	_build_phase_label()
 	_build_phase_flash_label()
 	_build_extraction_warning_label()
+	_build_combo_discovery_popup()
 	GameManager.phase_started.connect(_on_phase_started)
 
 func setup(player: Node2D) -> void:
@@ -349,6 +350,15 @@ func _on_phase_started(phase: int) -> void:
 	## Hide the warning label immediately — new phase timer starts fresh
 	if _extraction_warning_label:
 		_extraction_warning_label.visible = false
+
+
+## ── Combo discovery popup ─────────────────────────────────────────────────────
+
+func _build_combo_discovery_popup() -> void:
+	## Instantiate the combo discovery popup as a child of this HUD
+	var popup = ComboDiscoveryPopup.new()
+	popup.name = "ComboDiscoveryPopup"
+	add_child(popup)
 
 func _update_extraction_arrow() -> void:
 	if ExtractionManager.extraction_point == null or not is_instance_valid(ExtractionManager.extraction_point):

@@ -7,6 +7,10 @@ signal close_requested
 
 @onready var _base: HubPanelBase = $PanelBase
 
+## Codex overlay (built in _ready, added to parent CanvasLayer so it sits on top)
+var _codex_panel: CodexGridPanel = null
+var _codex_btn: Button = null
+
 ## ── ArmoryView nodes ─────────────────────────────────────────────────────────
 @onready var _armory_view:        Control   = $ArmoryView
 @onready var _slot1_tab:          Button    = $ArmoryView/ArmoryMargin/ArmoryVBox/TabRow/Slot1Tab
@@ -93,7 +97,57 @@ func _ready() -> void:
 
 	if Engine.is_editor_hint():
 		return
+
+	## Build and attach the codex overlay.
+	_build_codex_overlay()
+
 	populate(ProgressionManager)
+
+
+func _build_codex_overlay() -> void:
+	## Codex toggle button — added to ArmoryView so it's part of the armory chrome.
+	_codex_btn = Button.new()
+	_codex_btn.text = "\u25c6 CODEX"
+	_codex_btn.position = Vector2(192, 218)
+	_codex_btn.size = Vector2(86, 14)
+	_codex_btn.add_theme_font_override("font", HubPanelBase.PIXEL_FONT)
+	_codex_btn.add_theme_font_size_override("font_size", 10)
+	_codex_btn.add_theme_color_override("font_color", Color(0.60, 0.42, 0.88))
+	_codex_btn.focus_mode = Control.FOCUS_NONE
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = (Color(0.22, 0.12, 0.40, 0.65)
+			if state in ["hover", "pressed"] else Color(0.10, 0.06, 0.20, 0.50))
+		sb.set_border_width_all(1)
+		sb.border_color = Color(0.45, 0.25, 0.78, 0.60)
+		sb.set_content_margin_all(2)
+		_codex_btn.add_theme_stylebox_override(state, sb)
+	_codex_btn.pressed.connect(_on_codex_btn_pressed)
+	$ArmoryView.add_child(_codex_btn)
+
+	## Codex panel — lives as a sibling on the same CanvasLayer so it covers
+	## the full 480×270 viewport on top of the armory panel.
+	_codex_panel = CodexGridPanel.new()
+	_codex_panel.position = Vector2(10.0, 4.0)
+	_codex_panel.size     = Vector2(460.0, 262.0)
+	_codex_panel.visible  = false
+	_codex_panel.close_requested.connect(func():
+		_codex_panel.visible = false
+		_codex_btn.add_theme_color_override("font_color", Color(0.60, 0.42, 0.88))
+	)
+	_codex_panel.entry_hovered.connect(_on_codex_entry_hovered)
+	get_parent().add_child(_codex_panel)
+
+
+func _on_codex_btn_pressed() -> void:
+	_codex_panel.visible = not _codex_panel.visible
+	var active_col := Color(0.82, 0.62, 1.0) if _codex_panel.visible else Color(0.60, 0.42, 0.88)
+	_codex_btn.add_theme_color_override("font_color", active_col)
+
+
+func _on_codex_entry_hovered(_combo_id: StringName) -> void:
+	## Entry hover is informational; reactive preview is driven by mod-picker hover.
+	pass
 
 func populate(pm: Node) -> void:
 	_pm = pm
@@ -261,8 +315,33 @@ func _build_mod_picker() -> void:
 			var cap_slot := _mod_target_slot
 			_picker_mod_btns[i].pressed.connect(func():
 				_pm.set_weapon_mod(cap_wid, cap_slot, cap_mid)
+				_discover_combos_for_weapon(cap_wid)
+				if _codex_panel != null:
+					_codex_panel.set_hover_highlight("")
 				_mod_picking = false
 				populate(_pm)
+			)
+			## Reactive preview: highlight relevant codex cell on hover.
+			_disconnect_all(_picker_mod_btns[i].mouse_entered)
+			_disconnect_all(_picker_mod_btns[i].mouse_exited)
+			var cap_equipped: Array = _pm.get_weapon_mods(weapon_id).duplicate()
+			_picker_mod_btns[i].mouse_entered.connect(func():
+				if _codex_panel == null or not _codex_panel.visible:
+					return
+				var highlight: StringName = ""
+				for eq_mod in cap_equipped:
+					if eq_mod == cap_mid:
+						continue
+					var pairs := CodexManager.get_combos_for_mod_pair(
+						StringName(cap_mid), StringName(eq_mod))
+					if not pairs.is_empty():
+						highlight = pairs[0].combo.combo_id
+						break
+				_codex_panel.set_hover_highlight(highlight)
+			)
+			_picker_mod_btns[i].mouse_exited.connect(func():
+				if _codex_panel != null:
+					_codex_panel.set_hover_highlight("")
 			)
 
 			if not desc.is_empty():
@@ -291,3 +370,34 @@ func _style_tab(btn: Button, is_active: bool) -> void:
 func _disconnect_all(sig: Signal) -> void:
 	for conn in sig.get_connections():
 		sig.disconnect(conn.callable)
+
+
+## Discover all valid combos for the mods currently on a weapon.
+## Called after any mod equip so CodexManager stays in sync.
+func _discover_combos_for_weapon(weapon_id: String) -> void:
+	var equipped: Array = _pm.get_weapon_mods(weapon_id)
+	if equipped.size() < 2:
+		return
+
+	## Check all 2-mod pairs.
+	for i in equipped.size():
+		for j in range(i + 1, equipped.size()):
+			var pairs := CodexManager.get_combos_for_mod_pair(
+				StringName(equipped[i]), StringName(equipped[j]))
+			for entry: CodexEntry in pairs:
+				CodexManager.discover_combo(entry.combo.combo_id)
+
+	## Check all 3-mod triples when 3 mods are equipped.
+	if equipped.size() >= 3:
+		var equipped_set: Array[StringName] = []
+		for m in equipped:
+			equipped_set.append(StringName(m))
+		for entry: CodexEntry in CodexManager.entries.values():
+			if entry.combo.required_mods.size() != 3:
+				continue
+			var hits := 0
+			for req: StringName in entry.combo.required_mods:
+				if req in equipped_set:
+					hits += 1
+			if hits == 3:
+				CodexManager.discover_combo(entry.combo.combo_id)
