@@ -519,7 +519,7 @@ func _refresh_detail() -> void:
 func _refresh_filter_styles() -> void:
 	for key in _filter_btns:
 		var btn: Button = _filter_btns[key]
-		var active := key == _filter
+		var active: bool = key == _filter
 		btn.add_theme_color_override("font_color", COL_TITLE if active else COL_DIM)
 		_style_btn_flat(
 			btn,
@@ -531,7 +531,7 @@ func _refresh_filter_styles() -> void:
 func _refresh_sort_styles() -> void:
 	for key in _sort_btns:
 		var btn: Button = _sort_btns[key]
-		var active := key == _sort
+		var active: bool = key == _sort
 		btn.add_theme_color_override("font_color", COL_TITLE if active else COL_DIM)
 
 

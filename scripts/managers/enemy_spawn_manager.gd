@@ -4,10 +4,12 @@ extends Node
 ## All enemy types are spawned from their .tscn scene (for sprites/collision) and
 ## configured via EnemyDefinition data factories (for stats/behavior).
 ##
-## New enemy types are gated by GameManager.phase_number:
-##   Phase 1  →  Fodder + Swarmers
-##   Phase 2+ →  + Brutes (rare) + Casters (pairs)
-##   Phase 3+ →  + Carriers (solo) + Stalkers + Heralds
+## Phase composition (WAVE_COMPOSITION drives _spawn_single_enemy):
+##   Phase 1  →  80% Fodder, 20% Swarmer
+##   Phase 2  →  50% Fodder, 40% Swarmer, 6% Brute, 4% Caster
+##   Phase 3  →  25% each: Fodder, Swarmer, Brute, Caster
+##   Phase 4  →  13% Fodder, 27% Swarmer, 33% Stalker, 27% Guardian  (+Carrier via timer)
+##   Phase 5  →  20% Swarmer, 80% Anchor  (+Carrier+Herald via timers)
 ##
 ## Per-phase HP/damage/spawn multipliers stack on top of time-based difficulty scaling.
 ## Elite modifier: any basic enemy has a time+phase-scaling chance to spawn as an Elite
@@ -24,15 +26,29 @@ signal enemy_spawned(enemy: Node)
 @export var stalker_scene:  PackedScene
 @export var herald_scene:   PackedScene
 @export var guardian_scene:  PackedScene
+@export var anchor_scene:    PackedScene
 
 ## ── Phase stat multipliers (index = phase_number - 1) ────────────────────────
 const PHASE_HP_MULT: Array    = [1.0, 1.5, 2.5, 4.0, 6.0]
 const PHASE_DMG_MULT: Array   = [1.0, 1.3, 1.6, 2.0, 2.5]
 const PHASE_SPAWN_MULT: Array = [1.0, 1.2, 1.5, 1.8, 2.2]
 
-## Roll ramp rates — seconds of elapsed time for probability to scale from base to cap
-const BRUTE_ROLL_RAMP: float = 600.0   ## Brute spawn chance ramps over 10 min
-const CASTER_ROLL_RAMP: float = 500.0  ## Caster spawn chance ramps over ~8 min
+## ── Per-phase wave composition weights (index = phase_number - 1) ────────────
+## Carrier and Herald have dedicated timers that supplement these weights.
+## "swarmer" entries spawn as packs of 3–5 (see _spawn_single_enemy).
+## All weights per phase must sum to 1.0.
+const WAVE_COMPOSITION: Array = [
+	## Phase 1 — pure swarm, teach movement
+	{"fodder": 0.80, "swarmer": 0.20},
+	## Phase 2 — first variety introduced
+	{"fodder": 0.50, "swarmer": 0.40, "brute": 0.06, "caster": 0.04},
+	## Phase 3 — tanky + ranged threats
+	{"fodder": 0.25, "swarmer": 0.25, "brute": 0.25, "caster": 0.25},
+	## Phase 4 — specialist-dominant; carrier timer adds ~25% threat on top
+	{"fodder": 0.13, "swarmer": 0.27, "stalker": 0.33, "guardian": 0.27},
+	## Phase 5 — boss-tier density; herald+carrier timers active; phase-warped redistributed to anchor
+	{"swarmer": 0.20, "anchor": 0.80},
+]
 
 ## ── Carrier pacing — 1 per interval early, 2 per interval late ───────────────
 const CARRIER_INTERVAL: float = 55.0  ## Seconds between carrier spawns
@@ -161,56 +177,42 @@ func _spawn_wave() -> void:
 			break
 		_spawn_single_enemy()
 
-	## Phase 2+: occasional Brute (1–2 per wave, rare roll)
-	if GameManager.phase_number >= 2 and brute_scene != null:
-		var brute_roll: float = clampf(0.12 + GameManager.run_time / BRUTE_ROLL_RAMP, 0.12, 0.35)
-		if randf() < brute_roll:
-			var brute_count: int = randi_range(1, 2)
-			var effective_diff: float = _get_effective_difficulty()
-			for _b in range(brute_count):
-				if active_enemies < max_enemies:
-					_spawn_from_def("brute", brute_scene, _get_spawn_position(),
-						effective_diff, true)
-
-	## Phase 2+: occasional Caster pair
-	if GameManager.phase_number >= 2 and caster_scene != null:
-		var caster_roll: float = clampf(0.15 + GameManager.run_time / CASTER_ROLL_RAMP, 0.15, 0.40)
-		if randf() < caster_roll:
-			var effective_diff: float = _get_effective_difficulty()
-			for _c in range(2):
-				if active_enemies < max_enemies:
-					_spawn_from_def("caster", caster_scene, _get_spawn_position(),
-						effective_diff, false)
-
-	## Phase 3+: Stalker (solo, slow roll)
-	if GameManager.phase_number >= 3 and stalker_scene != null:
-		var stalker_roll: float = clampf(0.10 + GameManager.run_time / 400.0, 0.10, 0.28)
-		if randf() < stalker_roll:
-			if active_enemies < max_enemies:
-				var effective_diff: float = _get_effective_difficulty()
-				_spawn_from_def("stalker", stalker_scene, _get_spawn_position(),
-					effective_diff, false)
+func _pick_enemy_type() -> String:
+	var phase_idx: int = clampi(GameManager.phase_number - 1, 0, 4)
+	var weights: Dictionary = WAVE_COMPOSITION[phase_idx]
+	var roll: float = randf()
+	var cumulative: float = 0.0
+	for enemy_id: String in weights:
+		cumulative += weights[enemy_id]
+		if roll < cumulative:
+			return enemy_id
+	return weights.keys()[-1]
 
 func _spawn_single_enemy() -> void:
 	if player_ref == null:
 		return
 
-	var swarmer_chance: float = clampf(0.1 + (GameManager.difficulty_multiplier - 1.0) * 0.15, 0.1, 0.5)
 	var spawn_pos: Vector2 = _get_spawn_position()
 	var effective_difficulty: float = _get_effective_difficulty()
+	var enemy_id: String = _pick_enemy_type()
+	var scene: PackedScene = _get_scene_for_id(enemy_id)
 
-	if randf() < swarmer_chance and swarmer_scene != null:
-		## Pack of 3–5 swarmers
+	if scene == null:
+		## Scene not yet assigned in editor — fall back to fodder
+		if fodder_scene != null:
+			_spawn_from_def("fodder", fodder_scene, spawn_pos, effective_difficulty, true)
+		return
+
+	if enemy_id == "swarmer":
 		var pack_size: int = randi_range(3, 5)
 		for _j in range(pack_size):
 			if active_enemies >= max_enemies:
 				break
 			var offset := Vector2(randf_range(-22.0, 22.0), randf_range(-22.0, 22.0))
-			_spawn_from_def("swarmer", swarmer_scene, spawn_pos + offset,
-				effective_difficulty, true)
-	elif fodder_scene != null:
-		_spawn_from_def("fodder", fodder_scene, spawn_pos,
-			effective_difficulty, true)
+			_spawn_from_def(enemy_id, scene, spawn_pos + offset, effective_difficulty, true)
+	else:
+		var can_elite: bool = enemy_id in ["fodder", "brute", "guardian"]
+		_spawn_from_def(enemy_id, scene, spawn_pos, effective_difficulty, can_elite)
 
 
 func _spawn_enemy_at_edge(enemy_id: String, scene: PackedScene, can_be_elite: bool) -> void:
@@ -283,6 +285,7 @@ func _get_scene_for_id(enemy_id: String) -> PackedScene:
 		"stalker": return stalker_scene
 		"herald": return herald_scene
 		"guardian": return guardian_scene
+		"anchor": return anchor_scene
 	return null
 
 

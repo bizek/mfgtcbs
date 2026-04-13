@@ -263,6 +263,50 @@ func get_active_weapon_id() -> String:
 	return _weapon_id
 
 
+## Swap to a different weapon mid-run (called when a weapon upgrade is chosen at level-up).
+## Carries over any stat upgrades already applied; mods are cleared (new weapon has none).
+func switch_weapon(weapon_id: String) -> void:
+	if weapon_id == _weapon_id:
+		return
+	## Clean up current weapon
+	_cleanup_orbit_orbs()
+	if behavior_component.auto_attack_requested.is_connected(_on_auto_attack):
+		behavior_component.auto_attack_requested.disconnect(_on_auto_attack)
+
+	## Remove old weapon base-stat modifiers so new ones don't stack
+	_set_base_stat("damage",         0.0)
+	_set_base_stat("attack_speed",   0.0)
+	_set_base_stat("projectile_count", 0.0)
+
+	## Remove mod modifiers from old weapon
+	for mod in modifier_component.get_all_modifiers().duplicate():
+		if mod.source_name.begins_with("mod_") or mod.source_name.begins_with("combo_"):
+			modifier_component.remove_modifier(mod)
+	for passive_id in ["combo_static_strike"]:
+		if status_effect_component.has_status(passive_id):
+			status_effect_component.force_remove_status(passive_id, self)
+
+	## Load new weapon data
+	_weapon_id   = weapon_id
+	_weapon_data = WeaponData.ALL.get(weapon_id, WeaponData.ALL["Standard Sidearm"])
+	_set_base_stat("damage",          _weapon_data.get("damage", 18.0))
+	_set_base_stat("attack_speed",    _weapon_data.get("attack_speed", 1.0))
+	_set_base_stat("projectile_count", _weapon_data.get("projectile_count", 1))
+
+	## Build new weapon ability (no mods — the player didn't bring a loadout for this weapon)
+	_active_mods   = []
+	_weapon_ability = WeaponFactory.build_weapon_ability(_weapon_id, _weapon_data, _active_mods)
+
+	## Re-wire behavior and ability components
+	var attack_interval: float = _weapon_ability.cooldown_base
+	behavior_component.setup(modifier_component, attack_interval)
+	behavior_component.auto_attack_requested.connect(_on_auto_attack)
+	ability_component.setup_abilities(_weapon_ability, [], 1)
+
+	if _weapon_data.get("behavior") == "orbit":
+		call_deferred("_setup_orbit_orbs")
+
+
 func _on_auto_attack(ability: AbilityDefinition, targets: Array) -> void:
 	## Engine callback: BehaviorComponent resolved targets, fire the weapon.
 	if not is_alive or targets.is_empty():
@@ -423,7 +467,9 @@ func _on_dodge_received(_source, target, _hit_data) -> void:
 
 
 func _trigger_dodge() -> void:
-	## Shade invisibility on dodge via engine StatusEffectDefinition
+	## Shade invisibility on dodge via engine StatusEffectDefinition — Shade only
+	if _passive_id != "shade_passive":
+		return
 	StatusFactory.build_all()
 	status_effect_component.apply_status(StatusFactory.shade_invisible, self)
 	sprite.modulate = Color(0.72, 0.52, 1.0, 0.35)

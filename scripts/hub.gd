@@ -18,18 +18,25 @@ const _PANEL_SCENES := {
 	"roster":   "res://scenes/ui/hub_roster_panel.tscn",
 }
 
+## Script paths for panels that build their UI entirely in code (no .tscn needed).
+const _PANEL_SCRIPTS := {
+	"research": "res://scripts/ui/hub_research_panel.gd",
+}
+
 ## Station definitions: id, display name, accent color, world position, visual size, tagline.
 const STATIONS: Array[Dictionary] = [
-	{"id": "launch",   "name": "LAUNCH PAD", "color": Color(0.20, 0.90, 0.40),
-	 "pos": Vector2(240, 88), "size": Vector2(110, 44), "desc": "begin descent"},
-	{"id": "armory",   "name": "ARMORY",     "color": Color(0.90, 0.60, 0.12),
-	 "pos": Vector2(82, 158), "size": Vector2(96, 42), "desc": "equip loadout"},
-	{"id": "workshop", "name": "WORKSHOP",   "color": Color(0.68, 0.24, 0.88),
+	{"id": "launch",    "name": "LAUNCH PAD", "color": Color(0.20, 0.90, 0.40),
+	 "pos": Vector2(240, 88),  "size": Vector2(110, 44), "desc": "begin descent"},
+	{"id": "armory",    "name": "ARMORY",     "color": Color(0.90, 0.60, 0.12),
+	 "pos": Vector2(82, 158),  "size": Vector2(96, 42),  "desc": "equip loadout"},
+	{"id": "workshop",  "name": "WORKSHOP",   "color": Color(0.68, 0.24, 0.88),
 	 "pos": Vector2(398, 158), "size": Vector2(100, 42), "desc": "hub upgrades"},
-	{"id": "records",  "name": "RECORDS",    "color": Color(0.65, 0.65, 0.72),
-	 "pos": Vector2(140, 228), "size": Vector2(100, 42), "desc": "view stats"},
-	{"id": "roster",   "name": "ROSTER",     "color": Color(0.45, 0.52, 0.95),
-	 "pos": Vector2(330, 228), "size": Vector2(130, 42), "desc": "select character"},
+	{"id": "research",  "name": "RESEARCH",   "color": Color(0.20, 0.85, 0.55),
+	 "pos": Vector2(240, 195), "size": Vector2(110, 38), "desc": "blueprints"},
+	{"id": "records",   "name": "RECORDS",    "color": Color(0.65, 0.65, 0.72),
+	 "pos": Vector2(110, 242), "size": Vector2(100, 38), "desc": "view stats"},
+	{"id": "roster",    "name": "ROSTER",     "color": Color(0.45, 0.52, 0.95),
+	 "pos": Vector2(368, 242), "size": Vector2(130, 38), "desc": "select character"},
 ]
 
 var _player_body: CharacterBody2D
@@ -397,7 +404,13 @@ func _handle_interact() -> void:
 func _open_panel(station_id: String) -> void:
 	if _active_panel != null:
 		return
-	var panel: Control = load(_PANEL_SCENES[station_id]).instantiate()
+	var panel: Control
+	if _PANEL_SCENES.has(station_id):
+		panel = load(_PANEL_SCENES[station_id]).instantiate()
+	elif _PANEL_SCRIPTS.has(station_id):
+		panel = load(_PANEL_SCRIPTS[station_id]).new()
+	else:
+		return
 	_panel_layer.add_child(panel)   ## fires _ready() on panel, sets @onready vars
 	panel.populate(ProgressionManager)
 	panel.close_requested.connect(_close_panel)

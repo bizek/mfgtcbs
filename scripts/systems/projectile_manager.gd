@@ -350,6 +350,17 @@ func _check_hits(i: int) -> void:
 		if not is_instance_valid(tgt):
 			continue
 		if pos.distance_squared_to(tgt.global_position) <= hit_radius_sq:
+			## Reflecting elite: reverse projectile back toward player faction
+			if _factions[i] == 0:
+				var se_comp = tgt.get("status_effect_component")
+				if se_comp != null and se_comp.has_status("elite_reflecting"):
+					_velocities[i] = -_velocities[i].normalized() * _speeds[i]
+					_rotations[i] = _velocities[i].angle()
+					_target_factions[i] = 0
+					_factions[i] = 1
+					_sources[i] = tgt
+					_hit_lists[i].clear()
+					return
 			_on_hit(i, tgt)
 			if not _alive[i]:
 				return
@@ -379,7 +390,10 @@ func _execute_effects(i: int, target_entity: Node2D) -> void:
 	if not config:
 		return
 	var ability = _abilities[i]
-	var source: Node2D = _sources[i]
+	var raw_source = _sources[i]
+	if not is_instance_valid(raw_source):
+		return
+	var source: Node2D = raw_source
 	for effect in config.on_hit_effects:
 		EffectDispatcher.execute_effect(effect, source, target_entity, ability, combat_manager)
 
@@ -391,7 +405,10 @@ func _execute_impact_aoe(i: int, primary_target: Node2D) -> void:
 	if not spatial_grid:
 		return
 	var ability = _abilities[i]
-	var source: Node2D = _sources[i]
+	var raw_source = _sources[i]
+	if not is_instance_valid(raw_source):
+		return
+	var source: Node2D = raw_source
 	var pos: Vector2 = _positions[i]
 	var radius_sq: float = config.impact_aoe_radius * config.impact_aoe_radius
 	var splash_targets: Array = spatial_grid.get_nearby_in_range(pos, _target_factions[i], radius_sq)

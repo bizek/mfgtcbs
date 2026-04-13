@@ -67,6 +67,11 @@ var collected_mods: Array = []
 ## Committed on extraction, rolled back on death.
 var run_equipped_mods: Dictionary = {}
 
+## Insurance — per-run only, cleared at run start. Requires insurance_license upgrade.
+var insured_item: String = ""
+
+signal insured_item_changed(item_id: String)
+
 ## Keystone state — reset each run. One keystone held at a time.
 var player_has_keystone: bool = false
 var guardian_killed_this_phase: bool = false  ## Tracks first guardian kill per phase
@@ -118,6 +123,7 @@ func start_run() -> void:
 	collected_weapons.clear()
 	collected_mods.clear()
 	run_equipped_mods.clear()
+	insured_item = ""
 	player_has_keystone = false
 	guardian_killed_this_phase = false
 	active_extraction_type = "timed"
@@ -159,16 +165,42 @@ func exit_level_up() -> void:
 	current_state = GameState.RUN_ACTIVE
 	set_paused(false)
 
+func set_insured_item(item_id: String) -> void:
+	insured_item = item_id
+	insured_item_changed.emit(item_id)
+
 func on_player_died() -> void:
 	if phase_number > ProgressionManager.run_stats.get("deepest_phase", 0):
 		ProgressionManager.run_stats["deepest_phase"] = phase_number
 	current_state = GameState.GAME_OVER
-	## Rollback mid-run equipped mods — death means lose everything
+
+	var _insured := insured_item
+	var has_insurance: bool = not _insured.is_empty() \
+			and ProgressionManager.has_upgrade("insurance_license")
+
+	## Rollback mid-run equipped mods — death loses everything except the insured item
 	for weapon_id in run_equipped_mods:
 		for slot in run_equipped_mods[weapon_id]:
-			if ProgressionManager.weapon_mods.has(weapon_id):
-				if slot < ProgressionManager.weapon_mods[weapon_id].size():
-					ProgressionManager.weapon_mods[weapon_id][slot] = ""
+			var mid_mod: String = run_equipped_mods[weapon_id][slot]
+			if has_insurance and mid_mod == _insured:
+				## Commit the insured slot so it survives death
+				if not ProgressionManager.weapon_mods.has(weapon_id):
+					ProgressionManager.weapon_mods[weapon_id] = []
+				while ProgressionManager.weapon_mods[weapon_id].size() <= slot:
+					ProgressionManager.weapon_mods[weapon_id].append("")
+				ProgressionManager.weapon_mods[weapon_id][slot] = mid_mod
+			else:
+				if ProgressionManager.weapon_mods.has(weapon_id):
+					if slot < ProgressionManager.weapon_mods[weapon_id].size():
+						ProgressionManager.weapon_mods[weapon_id][slot] = ""
+
+	## Preserve insured collected weapon or mod
+	if has_insurance:
+		if _insured in collected_weapons:
+			ProgressionManager.add_weapon(_insured)
+		elif _insured in collected_mods:
+			ProgressionManager.add_mod(_insured)
+
 	run_equipped_mods.clear()
 	ProgressionManager.save_data()
 	player_died.emit()

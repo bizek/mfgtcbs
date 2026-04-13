@@ -196,6 +196,30 @@ func add_weapon(weapon_id: String) -> void:
 		unlocked_weapons.append(weapon_id)
 		save_data()
 
+## Attempt to purchase a weapon blueprint. Returns true on success.
+## Cost and eligibility are read from WeaponData (unlock_id must be non-empty).
+func purchase_weapon_blueprint(weapon_id: String) -> bool:
+	if weapon_id in unlocked_weapons:
+		return false
+	var weapon_data: Dictionary = WeaponData.ALL.get(weapon_id, {})
+	if weapon_data.get("unlock_id", "").is_empty():
+		return false  ## Starter / character-exclusive — not blueprint-purchasable
+	var cost: int = weapon_data.get("blueprint_cost", 0)
+	if cost <= 0 or resources < cost:
+		return false
+	resources -= cost
+	total_resources_spent += cost
+	add_weapon(weapon_id)  ## also calls save_data()
+	resources_changed.emit(resources)
+	return true
+
+## Returns true if the weapon is available this run (no unlock required, or blueprint owned).
+func is_weapon_available(weapon_id: String) -> bool:
+	var weapon_data: Dictionary = WeaponData.ALL.get(weapon_id, {})
+	if weapon_data.get("unlock_id", "").is_empty():
+		return true  ## Always-available starters
+	return weapon_id in unlocked_weapons
+
 # ─── Mod management ────────────────────────────────────────────────────────────
 
 ## Add a mod to the player's collection (called on successful extraction).

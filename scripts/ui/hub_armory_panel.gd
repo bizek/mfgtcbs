@@ -228,6 +228,13 @@ func _build_armory() -> void:
 	var max_slots: int = weapon_data.get("mod_slots", 1)
 	var equipped: Array = pm.get_weapon_mods(active_weapon_id)
 
+	## Count how many slots are actually filled (non-empty) within the allowed range.
+	var filled_count: int = 0
+	for k in range(max_slots):
+		if k < equipped.size() and not (equipped[k] as String).is_empty():
+			filled_count += 1
+	var weapon_full: bool = filled_count >= max_slots
+
 	for i in range(_mod_slot_btns.size()):
 		var visible_slot := i < max_slots
 		_mod_slot_labels[i].visible      = visible_slot
@@ -249,6 +256,9 @@ func _build_armory() -> void:
 		_mod_slot_btns[i].text = mod_name
 		_mod_slot_btns[i].add_theme_color_override("font_color", mod_col)
 
+		## Disable empty-slot buttons when the weapon is already at mod capacity.
+		_mod_slot_btns[i].disabled = mod_id.is_empty() and weapon_full
+
 		_disconnect_all(_mod_slot_btns[i].pressed)
 		var cap_i   := i
 		_mod_slot_btns[i].pressed.connect(func():
@@ -268,8 +278,10 @@ func _build_armory() -> void:
 				populate(_pm)
 			)
 
-	## Status label.
-	if multi_slots:
+	## Status label — show capacity when full, otherwise show selection info.
+	if weapon_full:
+		_status_label.text = "Mod slots full  (%d/%d)" % [filled_count, max_slots]
+	elif multi_slots:
 		var sel_display := active_weapon_id if not active_weapon_id.is_empty() else "\u2014 none \u2014"
 		_status_label.text = "Slot %d: %s" % [_active_slot, sel_display]
 	else:
@@ -285,6 +297,18 @@ func _build_mod_picker() -> void:
 		2: weapon_id = pm.selected_weapon_2
 		3: weapon_id = pm.selected_weapon_3
 		_: weapon_id = pm.selected_weapon
+
+	## Guard: refuse if the target slot exceeds this weapon's mod capacity.
+	var max_slots: int = WeaponData.ALL.get(weapon_id, {}).get("mod_slots", 1)
+	if _mod_target_slot >= max_slots:
+		_picker_header.text = "NO MOD SLOTS  (%s)" % weapon_id
+		_picker_empty_label.visible = true
+		_picker_empty_label.text    = "This weapon has no more mod slots."
+		for btn in _picker_mod_btns:
+			btn.visible = false
+		for desc in _picker_mod_descs:
+			desc.visible = false
+		return
 
 	_picker_header.text = "SELECT MOD  for slot %d  (%s)" % [_mod_target_slot + 1, weapon_id]
 

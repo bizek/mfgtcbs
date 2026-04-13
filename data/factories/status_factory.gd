@@ -39,6 +39,10 @@ static var burning_extended: StatusEffectDefinition  ## Comet: 4.5s Burning for 
 static var elite_hasting: StatusEffectDefinition
 static var elite_exploding: StatusEffectDefinition
 static var elite_shielded: StatusEffectDefinition
+static var elite_reflecting: StatusEffectDefinition
+static var elite_regenerating: StatusEffectDefinition
+static var elite_armored: StatusEffectDefinition
+static var elite_vampiric: StatusEffectDefinition
 
 static var _built: bool = false
 
@@ -79,6 +83,10 @@ static func build_all() -> void:
 	elite_hasting = _build_elite_hasting()
 	elite_exploding = _build_elite_exploding()
 	elite_shielded = _build_elite_shielded()
+	elite_reflecting = _build_elite_reflecting()
+	elite_regenerating = _build_elite_regenerating()
+	elite_armored = _build_elite_armored()
+	elite_vampiric = _build_elite_vampiric()
 
 
 static func get_by_id(status_id: String) -> StatusEffectDefinition:
@@ -122,6 +130,14 @@ static func get_by_id(status_id: String) -> StatusEffectDefinition:
 			return elite_exploding
 		"elite_shielded":
 			return elite_shielded
+		"elite_reflecting":
+			return elite_reflecting
+		"elite_regenerating":
+			return elite_regenerating
+		"elite_armored":
+			return elite_armored
+		"elite_vampiric":
+			return elite_vampiric
 		"searing_wound":
 			return searing_wound
 		"galvanized_shocked":
@@ -802,6 +818,71 @@ static func _build_elite_shielded() -> StatusEffectDefinition:
 	## ApplyShieldEffect scales from modifier sums, not raw max_hp.
 	var def := StatusEffectDefinition.new()
 	def.status_id = "elite_shielded"
+	def.tags = ["Elite"]
+	def.is_positive = true
+	def.max_stacks = 1
+	def.base_duration = -1.0
+
+	return def
+
+
+static func _build_elite_reflecting() -> StatusEffectDefinition:
+	## Elite: marker status. Projectile reflection is handled in ProjectileManager._check_hits().
+	## When a player projectile hits this enemy, velocity is reversed and faction targeting flipped.
+	var def := StatusEffectDefinition.new()
+	def.status_id = "elite_reflecting"
+	def.tags = ["Elite"]
+	def.is_positive = true
+	def.max_stacks = 1
+	def.base_duration = -1.0
+
+	return def
+
+
+static func _build_elite_regenerating() -> StatusEffectDefinition:
+	## Elite: heals 3% max HP every second permanently.
+	var def := StatusEffectDefinition.new()
+	def.status_id = "elite_regenerating"
+	def.tags = ["Elite"]
+	def.is_positive = true
+	def.max_stacks = 1
+	def.base_duration = -1.0
+	def.tick_interval = 1.0
+
+	var heal := HealEffect.new()
+	heal.percent_max_hp = 0.03
+	def.tick_effects = [heal]
+
+	return def
+
+
+static func _build_elite_armored() -> StatusEffectDefinition:
+	## Elite: +30 Physical resist, +12 resist to Fire/Cryo/Shock/Void while alive.
+	var def := StatusEffectDefinition.new()
+	def.status_id = "elite_armored"
+	def.tags = ["Elite"]
+	def.is_positive = true
+	def.max_stacks = 1
+	def.base_duration = -1.0
+
+	var mods: Array[Resource] = []
+	for dmg_type in ["Physical", "Fire", "Cryo", "Shock", "Void"]:
+		var m := ModifierDefinition.new()
+		m.target_tag = dmg_type
+		m.operation = "resist"
+		m.value = 30.0 if dmg_type == "Physical" else 12.0
+		m.source_name = "elite_armored"
+		mods.append(m)
+	def.modifiers = mods
+
+	return def
+
+
+static func _build_elite_vampiric() -> StatusEffectDefinition:
+	## Elite: marker status. Self-heal on contact hit is handled directly in enemy.gd.
+	## Heals 40% of contact_damage dealt when a hit connects.
+	var def := StatusEffectDefinition.new()
+	def.status_id = "elite_vampiric"
 	def.tags = ["Elite"]
 	def.is_positive = true
 	def.max_stacks = 1

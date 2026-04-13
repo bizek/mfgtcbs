@@ -99,6 +99,11 @@ func _ready() -> void:
 	var pause_menu: CanvasLayer = PauseMenuScript.new()
 	add_child(pause_menu)
 
+	# Insurance panel ([I] key — requires insurance_license Workshop upgrade)
+	var InsurancePanelScript := preload("res://scripts/ui/insurance_panel.gd")
+	var insurance_panel: CanvasLayer = InsurancePanelScript.new()
+	add_child(insurance_panel)
+
 	# Debug panel + entity inspector
 	if GameManager.debug_mode:
 		var DebugPanelScript := preload("res://scripts/ui/debug_panel.gd")

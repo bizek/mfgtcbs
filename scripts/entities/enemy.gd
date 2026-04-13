@@ -34,7 +34,7 @@ var combat_role: String = "MELEE"
 
 ## Elite system
 var is_elite: bool = false
-enum EliteModifier { NONE, HASTING, EXPLODING, SHIELDED }
+enum EliteModifier { NONE, HASTING, EXPLODING, SHIELDED, REFLECTING, REGENERATING, ARMORED, VAMPIRIC }
 var elite_modifier: int = EliteModifier.NONE
 
 var player_ref: Node2D = null
@@ -362,6 +362,8 @@ func _physics_process(delta: float) -> void:
 				if not hit.is_dodged:
 					body.take_damage(hit)
 					_apply_contact_knockback(body)
+					if elite_modifier == EliteModifier.VAMPIRIC:
+						health.apply_healing(contact_damage * 0.4)
 				_contact_damage_timer = CONTACT_DAMAGE_INTERVAL
 				break
 
@@ -811,7 +813,11 @@ func apply_elite_modifier() -> void:
 	elite_armor.source_name = "elite"
 	modifier_component.add_modifier(elite_armor)
 
-	var modifiers: Array = [EliteModifier.HASTING, EliteModifier.EXPLODING, EliteModifier.SHIELDED]
+	var modifiers: Array = [
+		EliteModifier.HASTING, EliteModifier.EXPLODING, EliteModifier.SHIELDED,
+		EliteModifier.REFLECTING, EliteModifier.REGENERATING, EliteModifier.ARMORED,
+		EliteModifier.VAMPIRIC,
+	]
 	elite_modifier = modifiers[randi() % modifiers.size()]
 
 	match elite_modifier:
@@ -828,6 +834,22 @@ func apply_elite_modifier() -> void:
 				status_effect_component.apply_status(StatusFactory.get_by_id("elite_shielded"), self)
 			health.add_shield(max_hp * 0.4, "elite_shield")
 			_base_modulate = Color(0.3, 0.5, 1.0, 1.0)
+		EliteModifier.REFLECTING:
+			if status_effect_component:
+				status_effect_component.apply_status(StatusFactory.get_by_id("elite_reflecting"), self)
+			_base_modulate = Color(0.0, 0.9, 0.9, 1.0)
+		EliteModifier.REGENERATING:
+			if status_effect_component:
+				status_effect_component.apply_status(StatusFactory.get_by_id("elite_regenerating"), self)
+			_base_modulate = Color(0.3, 1.0, 0.5, 1.0)
+		EliteModifier.ARMORED:
+			if status_effect_component:
+				status_effect_component.apply_status(StatusFactory.get_by_id("elite_armored"), self)
+			_base_modulate = Color(0.7, 0.7, 0.75, 1.0)
+		EliteModifier.VAMPIRIC:
+			if status_effect_component:
+				status_effect_component.apply_status(StatusFactory.get_by_id("elite_vampiric"), self)
+			_base_modulate = Color(0.7, 0.05, 0.3, 1.0)
 
 	if sprite:
 		sprite.modulate = _base_modulate
@@ -956,4 +978,6 @@ func _on_hurtbox_body_entered(body: Node2D) -> void:
 		if not hit.is_dodged:
 			body.take_damage(hit)
 			_apply_contact_knockback(body)
+			if elite_modifier == EliteModifier.VAMPIRIC:
+				health.apply_healing(contact_damage * 0.4)
 		_contact_damage_timer = CONTACT_DAMAGE_INTERVAL

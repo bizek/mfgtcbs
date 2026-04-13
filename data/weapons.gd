@@ -30,6 +30,7 @@ const ALL: Dictionary = {
 		"tint":            Color.WHITE,
 		"drop_weight":     0,       ## 0 = never drops; always available as default
 		"mod_slots":       2,       ## mod slots available for this weapon
+		"unlock_id":       "",      ## empty = always available, no blueprint required
 	},
 
 	## ─── Frost Scattergun ─────────────────────────────────────────────────────
@@ -49,6 +50,8 @@ const ALL: Dictionary = {
 		"tint":            Color(0.55, 0.88, 1.0),   ## icy blue-white
 		"drop_weight":     10,
 		"mod_slots":       2,
+		"unlock_id":       "Frost Scattergun",
+		"blueprint_cost":  300,
 	},
 
 	## ─── Ember Beam ───────────────────────────────────────────────────────────
@@ -66,6 +69,8 @@ const ALL: Dictionary = {
 		"tint":            Color(1.0, 0.42, 0.08),   ## deep orange-red
 		"drop_weight":     10,
 		"mod_slots":       1,
+		"unlock_id":       "Ember Beam",
+		"blueprint_cost":  300,
 	},
 
 	## ─── Lightning Orb ────────────────────────────────────────────────────────
@@ -85,6 +90,8 @@ const ALL: Dictionary = {
 		"tint":            Color(0.78, 0.95, 1.0),   ## electric white-blue
 		"drop_weight":     10,
 		"mod_slots":       1,
+		"unlock_id":       "Lightning Orb",
+		"blueprint_cost":  400,
 	},
 
 	## ─── Void Mortar ──────────────────────────────────────────────────────────
@@ -104,6 +111,8 @@ const ALL: Dictionary = {
 		"tint":            Color(0.38, 0.08, 0.62),  ## dark purple-void
 		"drop_weight":     10,
 		"mod_slots":       2,
+		"unlock_id":       "Void Mortar",
+		"blueprint_cost":  500,
 	},
 
 	## ─── Plasma Blade ─────────────────────────────────────────────────────────
@@ -122,6 +131,8 @@ const ALL: Dictionary = {
 		"tint":            Color(0.48, 0.80, 1.0),   ## plasma cyan-blue
 		"drop_weight":     10,
 		"mod_slots":       2,
+		"unlock_id":       "Plasma Blade",
+		"blueprint_cost":  400,
 	},
 
 	## ─── Character-exclusive starting weapons (drop_weight: 0 — never drop) ───
@@ -143,6 +154,7 @@ const ALL: Dictionary = {
 		"tint":            Color(0.82, 0.64, 0.28),  ## iron bronze
 		"drop_weight":     0,
 		"mod_slots":       2,
+		"unlock_id":       "",
 	},
 
 	## ─── Spark's Pistol ────────────────────────────────────────────────────
@@ -162,6 +174,7 @@ const ALL: Dictionary = {
 		"tint":            Color(1.0, 0.95, 0.30),   ## electric yellow
 		"drop_weight":     0,
 		"mod_slots":       1,
+		"unlock_id":       "",
 	},
 
 	## ─── Herald's Beacon ───────────────────────────────────────────────────
@@ -181,6 +194,7 @@ const ALL: Dictionary = {
 		"tint":            Color(0.30, 0.86, 0.96),  ## signal teal
 		"drop_weight":     0,
 		"mod_slots":       1,
+		"unlock_id":       "",
 	},
 }
 
