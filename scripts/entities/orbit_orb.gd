@@ -10,9 +10,13 @@ class_name OrbitOrb
 ## Set by player before add_child
 var player_ref: Node2D = null
 var orbit_radius: float = 64.0
-var orbit_speed: float = 1.8     ## full rotations per second
-var orbit_offset: float = 0.0   ## starting angle in radians (spread orbs evenly)
+var orbit_speed: float = 1.8       ## full rotations per second
+var orbit_offset: float = 0.0     ## starting angle in radians (spread orbs evenly)
 var tint: Color = Color(0.78, 0.95, 1.0)
+var hit_radius: float = 7.0       ## base collision radius before size scaling
+var size_mult: float = 1.0        ## from size mod; scales hitbox and visuals
+var on_hit_effects: Array = []    ## built by WeaponFactory; applied after each hit
+var combat_manager_ref: Node2D = null
 
 ## Per-enemy hit cooldown — prevents frame-spam damage on the same enemy
 const HIT_COOLDOWN: float = 0.45
@@ -28,10 +32,10 @@ func _ready() -> void:
 
 	_angle = orbit_offset
 
-	## Collision shape — small circle
+	## Collision shape — scaled by size mod
 	var shape := CollisionShape2D.new()
 	var circle := CircleShape2D.new()
-	circle.radius = 7.0
+	circle.radius = hit_radius * size_mult
 	shape.shape = circle
 	add_child(shape)
 
@@ -40,25 +44,26 @@ func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 
 func _build_visual() -> void:
+	var s: float = size_mult
 	## Soft outer glow
 	var glow := ColorRect.new()
 	glow.color = Color(tint.r, tint.g, tint.b, 0.28)
-	glow.size = Vector2(20.0, 20.0)
-	glow.position = Vector2(-10.0, -10.0)
+	glow.size = Vector2(20.0, 20.0) * s
+	glow.position = Vector2(-10.0, -10.0) * s
 	add_child(glow)
 
 	## Core orb
 	var core := ColorRect.new()
 	core.color = tint
-	core.size = Vector2(9.0, 9.0)
-	core.position = Vector2(-4.5, -4.5)
+	core.size = Vector2(9.0, 9.0) * s
+	core.position = Vector2(-4.5, -4.5) * s
 	add_child(core)
 
 	## Bright white center spark
 	var spark := ColorRect.new()
 	spark.color = Color(1.0, 1.0, 1.0, 0.90)
-	spark.size = Vector2(3.0, 3.0)
-	spark.position = Vector2(-1.5, -1.5)
+	spark.size = Vector2(3.0, 3.0) * s
+	spark.position = Vector2(-1.5, -1.5) * s
 	add_child(spark)
 
 	## Pulse animation — orb breathes in and out gently
@@ -108,6 +113,9 @@ func _on_body_entered(body: Node2D) -> void:
 			kb_dir = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)).normalized()
 		if body.has_method("apply_knockback"):
 			body.apply_knockback(kb_dir * 120.0)
+		# Mod on-hit effects (elemental, dot, chain, explosive)
+		if not on_hit_effects.is_empty() and is_instance_valid(combat_manager_ref):
+			EffectDispatcher.execute_effects(on_hit_effects, attacker, [body], null, combat_manager_ref)
 
 	## Small electric flash on the orb
 	modulate = Color(2.2, 2.2, 2.8, 1.0)

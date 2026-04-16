@@ -35,6 +35,15 @@ func remove_modifiers_by_source(source: String) -> void:
 		i -= 1
 
 
+func remove_by_source_prefix(prefix: String) -> void:
+	var i := _modifiers.size() - 1
+	while i >= 0:
+		if _modifiers[i].source_name.begins_with(prefix):
+			_modifiers.remove_at(i)
+			_cache_dirty = true
+		i -= 1
+
+
 func add_conversion(conv: ConversionDefinition) -> void:
 	_conversions.append(conv)
 

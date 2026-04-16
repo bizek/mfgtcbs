@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "powershell",
+            "statusMessage": "Checking GDScript syntax...",
+            "command": "$j = $input | ConvertFrom-Json; $f = $j.tool_input.file_path; if ($f -match '\\.gd$') { $out = & 'E:/Godot/Godot_v4.6.1-stable_win64.exe' --headless --check-only --script $f 2>&1; if ($out) { Write-Host $out } }"
+          }
+        ]
+      }
+    ]
+  }
+}

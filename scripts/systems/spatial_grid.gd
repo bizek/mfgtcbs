@@ -91,6 +91,8 @@ func get_nearby_in_range(pos: Vector2, faction: int, range_sq: float) -> Array:
 				continue
 			var cell: Array = cells[ny * COLS + nx]
 			for e in cell:
+				if not is_instance_valid(e):
+					continue
 				if pos.distance_squared_to(e.global_position) <= range_sq:
 					results.append(e)
 	return results
@@ -117,6 +119,8 @@ func find_nearest(pos: Vector2, faction: int) -> Node2D:
 					continue
 				var cell: Array = cells[ny * COLS + nx]
 				for e in cell:
+					if not is_instance_valid(e):
+						continue
 					var d_sq := pos.distance_squared_to(e.global_position)
 					if d_sq < best_dist_sq:
 						best_dist_sq = d_sq
@@ -140,6 +144,8 @@ func find_furthest(pos: Vector2, faction: int) -> Node2D:
 	var best: Node2D = null
 	var best_dist_sq := -1.0
 	for e in _all[faction]:
+		if not is_instance_valid(e):
+			continue
 		var d_sq := pos.distance_squared_to(e.global_position)
 		if d_sq > best_dist_sq:
 			best_dist_sq = d_sq

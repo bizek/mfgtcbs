@@ -107,7 +107,16 @@ static func _build_beam_weapon(weapon_id: String, data: Dictionary,
 	dmg.base_damage = data.get("damage", 6.0)
 	ability.effects = [dmg]
 
-	# Add mod on-hit effects (elemental, lifesteal, etc.)
+	# Mod: size → wider reach
+	for mod_id in mods:
+		var mod_data: Dictionary = ModData.ALL.get(mod_id, {})
+		if mod_data.get("effect_type", "") == "size":
+			var mult: float = mod_data.get("params", {}).get("size_mult", 1.5)
+			ability.cast_range *= mult
+			ability.targeting.max_range *= mult
+			break
+
+	# Add mod on-hit effects (elemental, dot, chain, explosive)
 	_add_mod_on_hit_effects(ability, mods)
 
 	return ability
@@ -133,6 +142,13 @@ static func _build_melee_weapon(weapon_id: String, data: Dictionary,
 	dmg.damage_type = _get_damage_type(data)
 	dmg.base_damage = data.get("damage", 42.0)
 	ability.effects = [dmg]
+
+	# Mod: size → longer swing reach
+	for mod_id in mods:
+		var mod_data: Dictionary = ModData.ALL.get(mod_id, {})
+		if mod_data.get("effect_type", "") == "size":
+			ability.targeting.max_range *= mod_data.get("params", {}).get("size_mult", 1.5)
+			break
 
 	_add_mod_on_hit_effects(ability, mods)
 
@@ -168,6 +184,43 @@ static func _build_artillery_weapon(weapon_id: String, data: Dictionary,
 	zone_dmg.base_damage = data.get("damage", 52.0)
 	zone.tick_effects = [zone_dmg]
 
+	# Apply mods to the blast zone
+	StatusFactory.build_all()
+	var base_dmg: float = data.get("damage", 52.0)
+	var dmg_type: String = _get_damage_type(data)
+	for mod_id in mods:
+		var mod_data: Dictionary = ModData.ALL.get(mod_id, {})
+		var params: Dictionary = mod_data.get("params", {})
+		match mod_data.get("effect_type", ""):
+			"size":
+				zone.radius *= params.get("size_mult", 1.5)
+			"explosive":
+				## Secondary micro-blast on each blast victim — rewards hitting clusters
+				var splash := AreaDamageEffect.new()
+				splash.damage_type = dmg_type
+				splash.base_damage = base_dmg * params.get("damage_mult", 0.3)
+				splash.aoe_radius  = params.get("radius", 40.0)
+				zone.tick_effects.append(splash)
+			"chain":
+				var chain_dmg := AreaDamageEffect.new()
+				chain_dmg.damage_type = dmg_type
+				chain_dmg.base_damage = base_dmg * params.get("chain_damage_mult", 0.6)
+				chain_dmg.aoe_radius  = params.get("chain_range", 120.0)
+				zone.tick_effects.append(chain_dmg)
+			"elemental":
+				var element: String = params.get("element", "")
+				var status_def: StatusEffectDefinition = StatusFactory.get_by_id(element)
+				if status_def:
+					var apply := ApplyStatusEffectData.new()
+					apply.status = status_def
+					apply.stacks = 1
+					zone.tick_effects.append(apply)
+			"dot_applicator":
+				var apply := ApplyStatusEffectData.new()
+				apply.status = StatusFactory.bleed
+				apply.stacks = 1
+				zone.tick_effects.append(apply)
+
 	ability.effects = [zone]
 
 	return ability
@@ -176,9 +229,9 @@ static func _build_artillery_weapon(weapon_id: String, data: Dictionary,
 # --- Orbit weapon (Lightning Orb) ---
 
 static func _build_orbit_weapon(weapon_id: String, data: Dictionary,
-		_mods: Array) -> AbilityDefinition:
+		mods: Array) -> AbilityDefinition:
 	## Orbit weapons are persistent entities, not projectiles. The AbilityDefinition
-	## serves as metadata; the actual orbit orbs are managed separately.
+	## serves as metadata; ability.effects carries on-hit effects for each orb to apply.
 	var ability := AbilityDefinition.new()
 	ability.ability_id = weapon_id
 	ability.ability_name = data.get("display_name", weapon_id)
@@ -190,8 +243,41 @@ static func _build_orbit_weapon(weapon_id: String, data: Dictionary,
 	targeting.type = "self"
 	ability.targeting = targeting
 
-	# Orbit damage is handled by the orb entities themselves
-	# This ability exists so the engine knows the weapon exists as data
+	# Build on-hit effects from mods; player._setup_orbit_orbs passes these to each orb.
+	# size mod is handled separately (orb visual/hitbox scale) in player._setup_orbit_orbs.
+	StatusFactory.build_all()
+	var base_dmg: float = data.get("damage", 28.0)
+	var dmg_type: String = _get_damage_type(data)
+	for mod_id in mods:
+		var mod_data: Dictionary = ModData.ALL.get(mod_id, {})
+		var params: Dictionary = mod_data.get("params", {})
+		match mod_data.get("effect_type", ""):
+			"elemental":
+				var element: String = params.get("element", "")
+				var status_def: StatusEffectDefinition = StatusFactory.get_by_id(element)
+				if status_def:
+					var apply := ApplyStatusEffectData.new()
+					apply.status = status_def
+					apply.stacks = 1
+					ability.effects.append(apply)
+			"dot_applicator":
+				var apply := ApplyStatusEffectData.new()
+				apply.status = StatusFactory.bleed
+				apply.stacks = 1
+				ability.effects.append(apply)
+			"chain":
+				var chain_dmg := AreaDamageEffect.new()
+				chain_dmg.damage_type = dmg_type
+				chain_dmg.base_damage = base_dmg * params.get("chain_damage_mult", 0.6)
+				chain_dmg.aoe_radius  = params.get("chain_range", 120.0)
+				ability.effects.append(chain_dmg)
+			"explosive":
+				var aoe := AreaDamageEffect.new()
+				aoe.damage_type = dmg_type
+				aoe.base_damage = base_dmg * params.get("damage_mult", 0.3)
+				aoe.aoe_radius  = params.get("radius", 40.0)
+				ability.effects.append(aoe)
+
 	return ability
 
 
@@ -327,7 +413,14 @@ static func _add_projectile_mod_effects(config: ProjectileConfig, mods: Array) -
 
 static func _add_mod_on_hit_effects(ability: AbilityDefinition, mods: Array) -> void:
 	## Add on-hit effects to a direct-damage ability from weapon mods.
+	## Handles: elemental, dot_applicator, chain, explosive.
+	## Reads base_damage and damage_type from ability.effects[0] (DealDamageEffect).
 	StatusFactory.build_all()
+	var base_dmg: float = 10.0
+	var dmg_type: String = "Physical"
+	if not ability.effects.is_empty() and ability.effects[0] is DealDamageEffect:
+		base_dmg = ability.effects[0].base_damage
+		dmg_type  = ability.effects[0].damage_type
 	for mod_id in mods:
 		var mod_data: Dictionary = ModData.ALL.get(mod_id, {})
 		var params: Dictionary = mod_data.get("params", {})
@@ -345,6 +438,18 @@ static func _add_mod_on_hit_effects(ability: AbilityDefinition, mods: Array) -> 
 				apply.status = StatusFactory.bleed
 				apply.stacks = 1
 				ability.effects.append(apply)
+			"chain":
+				var chain_dmg := AreaDamageEffect.new()
+				chain_dmg.damage_type = dmg_type
+				chain_dmg.base_damage = base_dmg * params.get("chain_damage_mult", 0.6)
+				chain_dmg.aoe_radius  = params.get("chain_range", 120.0)
+				ability.effects.append(chain_dmg)
+			"explosive":
+				var aoe := AreaDamageEffect.new()
+				aoe.damage_type = dmg_type
+				aoe.base_damage = base_dmg * params.get("damage_mult", 0.3)
+				aoe.aoe_radius  = params.get("radius", 40.0)
+				ability.effects.append(aoe)
 
 
 static func _get_damage_type(data: Dictionary) -> String:

@@ -54,6 +54,11 @@ var _weapon_ability: AbilityDefinition = null
 var _active_mods: Array = []
 var _has_instability_siphon: bool = false
 
+## Cached base projectile stats (read from built ProjectileConfig, used for live stat sync)
+var _base_proj_pierce: int = 0
+var _base_proj_scale: Vector2 = Vector2.ONE
+var _base_proj_hit_radius: float = 8.0
+
 ## Character passive
 var _passive_id: String = "none"
 
@@ -70,7 +75,8 @@ var knockback_velocity: Vector2 = Vector2.ZERO
 
 ## Orbit orbs (Lightning Orb weapon)
 var _orbit_orbs: Array = []
-const OrbitOrbScript := preload("res://scripts/entities/orbit_orb.gd")
+const OrbitOrbScript     := preload("res://scripts/entities/orbit_orb.gd")
+const WeaponPickupScript := preload("res://scripts/pickups/weapon_pickup.gd")
 
 @onready var sprite: AnimatedSprite2D = $Sprite
 @onready var pickup_area: Area2D = $PickupCollector
@@ -102,6 +108,10 @@ func _ready() -> void:
 
 	if _has_instability_siphon:
 		EventBus.on_kill.connect(_on_kill_siphon)
+
+	# Void instability debuff: auto-apply void_touched at high instability
+	GameManager.instability_changed.connect(_on_instability_changed)
+	GameManager.phase_started.connect(_on_phase_started)
 
 
 func _setup_components() -> void:
@@ -142,26 +152,8 @@ func _load_character_stats() -> void:
 	_base_stats["max_hp"]     = char_data.get("base_hp", 100.0)
 	_base_stats["move_speed"] = char_data.get("base_move_speed", 200.0)
 	_passive_id               = char_data.get("passive_id", "none")
-
-	# Register base stats as "add" modifiers so the engine can query them
-	for stat_name in _base_stats:
-		var mod := ModifierDefinition.new()
-		mod.target_tag = stat_name
-		mod.operation = "add"
-		mod.value = _base_stats[stat_name]
-		mod.source_name = "base"
+	for mod in CharacterFactory.build_base_modifiers(char_id, _base_stats):
 		modifier_component.add_modifier(mod)
-
-	# Base armor
-	var base_armor: float = char_data.get("base_armor", 0.0)
-	if base_armor > 0.0:
-		var armor_mod := ModifierDefinition.new()
-		armor_mod.target_tag = "Physical"
-		armor_mod.operation = "resist"
-		armor_mod.value = base_armor
-		armor_mod.source_name = "base_armor"
-		modifier_component.add_modifier(armor_mod)
-
 	health.setup(_base_stats["max_hp"])
 
 
@@ -193,24 +185,10 @@ func _load_equipped_weapon() -> void:
 # --- Passive application ---
 
 func _apply_passive_mods() -> void:
-	match _passive_id:
-		"scavenger_passive":
-			_add_modifier("pickup_radius", "bonus", 0.25, "passive_scavenger")
-		"spark_passive":
-			_add_modifier("crit_multiplier", "add", 0.75, "passive_spark")
-		"shade_passive":
-			_add_modifier("dodge_chance", "add", 0.15, "passive_shade")
-		"herald_passive":
-			_add_modifier("All", "bonus", 0.30, "passive_herald")
-			_add_modifier("All", "cooldown_reduce", 0.20, "passive_herald")
-		"cursed_passive":
-			_add_modifier("max_hp", "bonus", 0.20, "passive_cursed")
-			_add_modifier("Physical", "resist", 0.20, "passive_cursed")
-			_add_modifier("move_speed", "bonus", 0.20, "passive_cursed")
-			_add_modifier("All", "bonus", 0.20, "passive_cursed")
-			# Re-setup health with modified max
-			var new_max: float = get_stat("max_hp")
-			health.setup(new_max)
+	for mod in CharacterFactory.build_passive_modifiers(_passive_id):
+		modifier_component.add_modifier(mod)
+	if _passive_id == "cursed_passive":
+		health.setup(get_stat("max_hp"))
 
 
 # --- Mod loading ---
@@ -238,17 +216,19 @@ func _load_weapon_mods() -> void:
 		status_effect_component.apply_status(passive_def, self, 1)
 
 	# Wire as auto-attack through engine components
+	# Orbit weapons are passive — orbs handle their own hits, no auto-attack signal needed
 	var attack_interval: float = _weapon_ability.cooldown_base
 	behavior_component.setup(modifier_component, attack_interval)
-	behavior_component.auto_attack_requested.connect(_on_auto_attack)
+	if _weapon_data.get("behavior", "") != "orbit":
+		behavior_component.auto_attack_requested.connect(_on_auto_attack)
 	ability_component.setup_abilities(_weapon_ability, [], 1)
+	_cache_projectile_base_stats()
 
 
 func reload_mods() -> void:
 	# Remove old mod modifiers (sources starting with "mod_" or "combo_")
-	for mod in modifier_component.get_all_modifiers().duplicate():
-		if mod.source_name.begins_with("mod_") or mod.source_name.begins_with("combo_"):
-			modifier_component.remove_modifier(mod)
+	modifier_component.remove_by_source_prefix("mod_")
+	modifier_component.remove_by_source_prefix("combo_")
 	# Remove old combo passive statuses
 	for passive_id in ["combo_static_strike"]:
 		if status_effect_component.has_status(passive_id):
@@ -261,6 +241,16 @@ func reload_mods() -> void:
 
 func get_active_weapon_id() -> String:
 	return _weapon_id
+
+## Spawn the currently-equipped weapon as a pickup at the player's position.
+## Called before switch_weapon so the old weapon can be re-looted.
+func drop_current_weapon() -> void:
+	if _weapon_id.is_empty():
+		return
+	var pickup: Area2D = WeaponPickupScript.new()
+	pickup.weapon_id       = _weapon_id
+	pickup.global_position = global_position
+	get_parent().add_child(pickup)
 
 
 ## Swap to a different weapon mid-run (called when a weapon upgrade is chosen at level-up).
@@ -279,9 +269,8 @@ func switch_weapon(weapon_id: String) -> void:
 	_set_base_stat("projectile_count", 0.0)
 
 	## Remove mod modifiers from old weapon
-	for mod in modifier_component.get_all_modifiers().duplicate():
-		if mod.source_name.begins_with("mod_") or mod.source_name.begins_with("combo_"):
-			modifier_component.remove_modifier(mod)
+	modifier_component.remove_by_source_prefix("mod_")
+	modifier_component.remove_by_source_prefix("combo_")
 	for passive_id in ["combo_static_strike"]:
 		if status_effect_component.has_status(passive_id):
 			status_effect_component.force_remove_status(passive_id, self)
@@ -300,11 +289,29 @@ func switch_weapon(weapon_id: String) -> void:
 	## Re-wire behavior and ability components
 	var attack_interval: float = _weapon_ability.cooldown_base
 	behavior_component.setup(modifier_component, attack_interval)
-	behavior_component.auto_attack_requested.connect(_on_auto_attack)
+	if _weapon_data.get("behavior", "") != "orbit":
+		behavior_component.auto_attack_requested.connect(_on_auto_attack)
 	ability_component.setup_abilities(_weapon_ability, [], 1)
+	_cache_projectile_base_stats()
 
 	if _weapon_data.get("behavior") == "orbit":
 		call_deferred("_setup_orbit_orbs")
+
+
+func _cache_projectile_base_stats() -> void:
+	## Snapshot base pierce/scale/radius from the built ProjectileConfig so
+	## _on_auto_attack can apply player stat upgrades on top without compounding.
+	if _weapon_ability == null:
+		return
+	for effect in _weapon_ability.effects:
+		if effect is SpawnProjectilesEffect:
+			_base_proj_pierce     = effect.projectile.pierce_count
+			_base_proj_scale      = effect.projectile.visual_scale
+			_base_proj_hit_radius = effect.projectile.hit_radius
+			return
+	_base_proj_pierce     = 0
+	_base_proj_scale      = Vector2.ONE
+	_base_proj_hit_radius = 8.0
 
 
 func _on_auto_attack(ability: AbilityDefinition, targets: Array) -> void:
@@ -314,26 +321,31 @@ func _on_auto_attack(ability: AbilityDefinition, targets: Array) -> void:
 	attack_target = targets[0]
 	# Sync live stats into weapon effects before firing
 	var proj_count: int = int(get_stat("projectile_count"))
+	var pierce_bonus: int = int(get_stat("pierce"))
+	var size_mult: float = get_stat("projectile_size")
 	for effect in ability.effects:
 		if effect is SpawnProjectilesEffect:
 			effect.count = proj_count
+			effect.projectile.pierce_count = _base_proj_pierce + pierce_bonus
+			effect.projectile.visual_scale = _base_proj_scale * size_mult
+			effect.projectile.hit_radius   = _base_proj_hit_radius * size_mult
 	EffectDispatcher.execute_effects(ability.effects, self, targets, ability, combat_manager)
 	EventBus.on_ability_used.emit(self, ability)
 
 	# Weapon-specific visual feedback
+	var scene_root: Node = get_tree().current_scene
+	var tint: Color = _weapon_data.get("tint", Color.WHITE)
 	if ability.tags.has("Beam") and is_instance_valid(targets[0]):
-		_spawn_beam_flash(targets[0].global_position)
+		PlayerVfxHelper.spawn_beam_flash(self, scene_root, global_position, targets[0].global_position, tint)
 	elif ability.tags.has("Melee"):
 		var swing_dir: Vector2 = (targets[0].global_position - global_position).normalized() if is_instance_valid(targets[0]) else Vector2.RIGHT
 		var range_px: float = _weapon_data.get("range", 55.0)
-		var arc_deg: float = _weapon_data.get("arc_degrees", 200.0)
-		_spawn_melee_arc(swing_dir.angle(), range_px, deg_to_rad(arc_deg * 0.5))
+		var arc_deg: float  = _weapon_data.get("arc_degrees", 200.0)
+		PlayerVfxHelper.spawn_melee_arc(self, scene_root, global_position, swing_dir.angle(), range_px, deg_to_rad(arc_deg * 0.5), tint)
 	elif ability.tags.has("Artillery") and is_instance_valid(targets[0]):
-		var scatter := Vector2(randf_range(-22.0, 22.0), randf_range(-22.0, 22.0))
+		var scatter    := Vector2(randf_range(-22.0, 22.0), randf_range(-22.0, 22.0))
 		var target_pos: Vector2 = targets[0].global_position + scatter
-		var aoe_radius: float = _weapon_data.get("aoe_radius", 64.0)
-		var fuse_time: float = _weapon_data.get("fuse_time", 1.0)
-		_spawn_artillery_marker(target_pos, aoe_radius, fuse_time)
+		PlayerVfxHelper.spawn_artillery_marker(self, scene_root, target_pos, _weapon_data.get("aoe_radius", 64.0), _weapon_data.get("fuse_time", 1.0), tint)
 
 
 # --- Main loop ---
@@ -574,6 +586,40 @@ func _on_pickup_area_entered(area: Area2D) -> void:
 		area.start_magnet(self)
 
 
+# --- Void instability debuff ---
+## Apply void_touched when instability enters Volatile tier (≥70); remove with a
+## hysteresis band at <60 to prevent flickering. Phase 1 is exempt (tutorial phase).
+
+const VOID_APPLY_THRESHOLD: float = 70.0
+const VOID_REMOVE_THRESHOLD: float = 60.0
+
+func _on_instability_changed(new_value: float) -> void:
+	_check_void_touched(new_value)
+
+
+func _on_phase_started(phase_num: int) -> void:
+	## Re-evaluate in case instability was already above threshold when phase begins.
+	if phase_num >= 2:
+		_check_void_touched(GameManager.instability)
+
+
+func _check_void_touched(instability_value: float) -> void:
+	if not is_alive or not status_effect_component:
+		return
+	if GameManager.phase_number < 2:
+		## Phase 1 exempt — remove debuff if it somehow exists
+		if status_effect_component.has_status("void_touched"):
+			status_effect_component.remove_status("void_touched")
+		return
+	if instability_value >= VOID_APPLY_THRESHOLD \
+			and not status_effect_component.has_status("void_touched"):
+		StatusFactory.build_all()
+		status_effect_component.apply_status(StatusFactory.void_touched, self)
+	elif instability_value < VOID_REMOVE_THRESHOLD \
+			and status_effect_component.has_status("void_touched"):
+		status_effect_component.remove_status("void_touched")
+
+
 # --- Instability Siphon ---
 
 func _on_kill_siphon(killer: Node, victim: Node) -> void:
@@ -589,6 +635,17 @@ func _setup_orbit_orbs() -> void:
 	var radius: float = _weapon_data.get("orbit_radius", 64.0)
 	var spd: float = _weapon_data.get("orbit_speed", 1.8)
 	var tint: Color = _weapon_data.get("tint", Color.WHITE)
+
+	## Read size multiplier from active mods
+	var size_mult: float = 1.0
+	for mod_id in _active_mods:
+		var mod_data: Dictionary = ModData.ALL.get(mod_id, {})
+		if mod_data.get("effect_type", "") == "size":
+			size_mult = mod_data.get("params", {}).get("size_mult", 1.5)
+			break
+
+	var orb_effects: Array = _weapon_ability.effects.duplicate() if _weapon_ability else []
+
 	for i in range(count):
 		var orb: Area2D = OrbitOrbScript.new()
 		orb.player_ref = self
@@ -596,6 +653,10 @@ func _setup_orbit_orbs() -> void:
 		orb.orbit_speed = spd
 		orb.orbit_offset = TAU * float(i) / float(count)
 		orb.tint = tint
+		orb.hit_radius = 7.0
+		orb.size_mult = size_mult
+		orb.on_hit_effects = orb_effects
+		orb.combat_manager_ref = combat_manager
 		get_tree().current_scene.add_child(orb)
 		_orbit_orbs.append(orb)
 
@@ -605,158 +666,6 @@ func _cleanup_orbit_orbs() -> void:
 		if is_instance_valid(orb):
 			orb.queue_free()
 	_orbit_orbs.clear()
-
-
-# --- Weapon visual feedback ---
-
-func _spawn_beam_flash(target_pos: Vector2) -> void:
-	var tint: Color = _weapon_data.get("tint", Color(1.0, 0.42, 0.08))
-	var scene_root: Node = get_tree().current_scene
-
-	var line := Line2D.new()
-	line.top_level = true
-	line.add_point(global_position)
-	line.add_point(target_pos)
-	line.width = 3.5
-	line.default_color = Color(tint.r, tint.g, tint.b, 0.92)
-
-	var glow := Line2D.new()
-	glow.top_level = true
-	glow.add_point(global_position)
-	glow.add_point(target_pos)
-	glow.width = 7.0
-	glow.default_color = Color(tint.r, tint.g, tint.b, 0.22)
-
-	scene_root.add_child(glow)
-	scene_root.add_child(line)
-
-	var t := create_tween()
-	t.tween_property(line, "modulate:a", 0.0, 0.06)
-	t.tween_callback(line.queue_free)
-	var t2 := create_tween()
-	t2.tween_property(glow, "modulate:a", 0.0, 0.06)
-	t2.tween_callback(glow.queue_free)
-
-
-func _spawn_melee_arc(center_angle: float, range_px: float, arc_half: float) -> void:
-	var tint: Color = _weapon_data.get("tint", Color(0.48, 0.80, 1.0))
-	var segments: int = 12
-	var scene_root: Node = get_tree().current_scene
-
-	var points: PackedVector2Array = []
-	points.append(Vector2.ZERO)
-	for i in range(segments + 1):
-		var a: float = center_angle - arc_half + (float(i) / float(segments)) * arc_half * 2.0
-		points.append(Vector2(cos(a), sin(a)) * range_px)
-
-	var poly := Polygon2D.new()
-	poly.polygon = points
-	poly.color = Color(tint.r, tint.g, tint.b, 0.48)
-	scene_root.add_child(poly)
-	poly.global_position = global_position
-
-	var edge_points: PackedVector2Array = []
-	for i in range(segments + 1):
-		var a: float = center_angle - arc_half + (float(i) / float(segments)) * arc_half * 2.0
-		edge_points.append(Vector2(cos(a), sin(a)) * range_px)
-
-	var edge := Line2D.new()
-	edge.top_level = true
-	for p in edge_points:
-		edge.add_point(poly.global_position + p)
-	edge.width = 3.0
-	edge.default_color = Color(tint.r, tint.g, tint.b, 0.85)
-	scene_root.add_child(edge)
-
-	var t := create_tween()
-	t.tween_property(poly, "modulate:a", 0.0, 0.13)
-	t.tween_callback(poly.queue_free)
-	var t2 := create_tween()
-	t2.tween_property(edge, "modulate:a", 0.0, 0.13)
-	t2.tween_callback(edge.queue_free)
-
-
-func _spawn_artillery_marker(pos: Vector2, radius: float, fuse: float) -> void:
-	var tint: Color = _weapon_data.get("tint", Color(0.38, 0.08, 0.62))
-	var scene_root: Node = get_tree().current_scene
-
-	var marker := Node2D.new()
-	marker.global_position = pos
-	scene_root.add_child(marker)
-
-	var preview := ColorRect.new()
-	preview.color = Color(tint.r, tint.g, tint.b, 0.18)
-	preview.size = Vector2(radius * 2.0, radius * 2.0)
-	preview.position = Vector2(-radius, -radius)
-	marker.add_child(preview)
-
-	# Border
-	var bd: float = radius * 2.0
-	var bt: float = 2.0
-	var bc: Color = Color(tint.r, tint.g, tint.b, 0.72)
-	for side in 4:
-		var b := ColorRect.new()
-		b.color = bc
-		match side:
-			0: b.size = Vector2(bd, bt); b.position = Vector2(-radius, -radius)
-			1: b.size = Vector2(bd, bt); b.position = Vector2(-radius, radius - bt)
-			2: b.size = Vector2(bt, bd); b.position = Vector2(-radius, -radius)
-			3: b.size = Vector2(bt, bd); b.position = Vector2(radius - bt, -radius)
-		marker.add_child(b)
-
-	var dot := ColorRect.new()
-	dot.color = Color(tint.r + 0.3, tint.g + 0.1, tint.b + 0.3, 1.0)
-	dot.size = Vector2(7.0, 7.0)
-	dot.position = Vector2(-3.5, -3.5)
-	marker.add_child(dot)
-
-	# Warning pulse
-	var warn := create_tween().set_loops(int(fuse * 6.0))
-	warn.tween_property(preview, "modulate:a", 0.15, fuse / 12.0)
-	warn.tween_property(preview, "modulate:a", 1.0, fuse / 12.0)
-
-	# Detonation burst visual on timer expiry
-	get_tree().create_timer(fuse).timeout.connect(
-		func():
-			if is_instance_valid(marker):
-				_spawn_artillery_burst(pos, radius, tint)
-				marker.queue_free()
-	)
-
-
-func _spawn_artillery_burst(pos: Vector2, radius: float, tint: Color) -> void:
-	var scene_root: Node = get_tree().current_scene
-
-	var ring := ColorRect.new()
-	ring.color = Color(tint.r, tint.g, tint.b, 0.55)
-	ring.size = Vector2(radius * 2.0, radius * 2.0)
-	ring.position = pos - Vector2(radius, radius)
-	scene_root.add_child(ring)
-
-	var rt := create_tween()
-	rt.tween_property(ring, "scale", Vector2(1.5, 1.5), 0.22).set_trans(Tween.TRANS_EXPO)
-	rt.parallel().tween_property(ring, "modulate:a", 0.0, 0.22)
-	rt.tween_callback(ring.queue_free)
-
-	var particles := CPUParticles2D.new()
-	particles.global_position = pos
-	particles.amount = 20
-	particles.lifetime = 0.6
-	particles.one_shot = true
-	particles.explosiveness = 0.95
-	particles.direction = Vector2.ZERO
-	particles.spread = 180.0
-	particles.initial_velocity_min = 80.0
-	particles.initial_velocity_max = 200.0
-	particles.gravity = Vector2.ZERO
-	particles.scale_amount_min = 3.0
-	particles.scale_amount_max = 8.0
-	particles.color = tint
-	scene_root.add_child(particles)
-	particles.emitting = true
-	get_tree().create_timer(1.2).timeout.connect(
-		func(): if is_instance_valid(particles): particles.queue_free()
-	)
 
 
 # --- Death ---
@@ -781,9 +690,7 @@ func _on_health_died(_entity: Node2D) -> void:
 func reset_stats() -> void:
 	## Called on run restart — clear all temporary modifiers.
 	modifier_component.remove_modifiers_by_source("upgrade")
-	for mod in modifier_component.get_all_modifiers().duplicate():
-		if mod.source_name.begins_with("mod_"):
-			modifier_component.remove_modifier(mod)
+	modifier_component.remove_by_source_prefix("mod_")
 	xp = 0.0
 	level = 1
 	_active_mods.clear()
@@ -808,6 +715,25 @@ func _add_modifier(tag: String, op: String, value: float, source: String) -> voi
 	mod.value = value
 	mod.source_name = source
 	modifier_component.add_modifier(mod)
+
+
+## Debug: swap in a new mod list and rebuild the weapon ability in place.
+## Removes old mod/combo modifiers, applies the new set, rebuilds _weapon_ability.
+## Does NOT touch stat upgrades, health, or the behavior signal connection.
+func debug_reload_mods(mod_ids: Array) -> void:
+	modifier_component.remove_by_source_prefix("mod_")
+	modifier_component.remove_by_source_prefix("combo_")
+	_active_mods = mod_ids
+	_has_instability_siphon = "instability_siphon" in _active_mods
+	for m in WeaponFactory.build_mod_modifiers(_active_mods):
+		modifier_component.add_modifier(m)
+	for m in WeaponFactory.build_combo_modifiers(_active_mods):
+		modifier_component.add_modifier(m)
+	_weapon_ability = WeaponFactory.build_weapon_ability(_weapon_id, _weapon_data, _active_mods)
+	var combo_passives: Array[StatusEffectDefinition] = WeaponFactory.build_combo_passives(_active_mods)
+	for passive_def in combo_passives:
+		status_effect_component.apply_status(passive_def, self, 1)
+	behavior_component.setup(modifier_component, _weapon_ability.cooldown_base)
 
 
 func _set_base_stat(stat_name: String, value: float) -> void:

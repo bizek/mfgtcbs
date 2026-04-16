@@ -2,16 +2,11 @@
   "mcpServers": {
     "godot-mcp-pro": {
       "command": "node",
-      "args": ["E:/Projects/godot-pro-mcp/server/build/index.js"],
+      "args": [
+        "E:/Projects/godot-pro-mcp/server/build/index.js"
+      ],
       "env": {
         "GODOT_MCP_PORT": "6505"
-      }
-    },
-    "godot-doc-mcp": {
-      "command": "node",
-      "args": ["E:/Projects/godot-doc-mcp/server/dist/index.js"],
-      "env": {
-        "GODOT_DOC_DIR": "E:/Projects/godot-doc-mcp/doc"
       }
     }
   }

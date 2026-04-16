@@ -161,12 +161,13 @@ func _tick_ground_zones(delta: float) -> void:
 
 func _apply_ground_zone_tick(zone: Dictionary) -> void:
 	var effect: GroundZoneEffect = zone.effect
+	var source: Node2D = zone.source if is_instance_valid(zone.source) else null
 	var target_faction: int
 	match effect.target_faction:
 		"enemy":
-			target_faction = 1 if is_instance_valid(zone.source) and int(zone.source.faction) == 0 else 0
+			target_faction = 1 if source != null and int(source.faction) == 0 else 0
 		"ally":
-			target_faction = int(zone.source.faction) if is_instance_valid(zone.source) else 0
+			target_faction = int(source.faction) if source != null else 0
 		_:
 			return
 	var range_sq: float = effect.radius * effect.radius
@@ -175,7 +176,7 @@ func _apply_ground_zone_tick(zone: Dictionary) -> void:
 		if not target.is_alive:
 			continue
 		for tick_effect in effect.tick_effects:
-			EffectDispatcher.execute_effect(tick_effect, zone.source, target, null, self, zone.source)
+			EffectDispatcher.execute_effect(tick_effect, source, target, null, self, source)
 
 
 func spawn_summon(source: Node2D, ability, effect: SummonEffect) -> void:

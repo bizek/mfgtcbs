@@ -171,10 +171,6 @@ func generate_choices(count: int = 3) -> Array[Dictionary]:
 			continue
 		pool_copy.append(entry)
 
-	## Add unlocked weapon blueprints as possible choices (excluding already-acquired ones)
-	for weapon_entry in _get_available_weapon_choices(owned_ids):
-		pool_copy.append(weapon_entry)
-
 	pool_copy.shuffle()
 	var choices: Array[Dictionary] = []
 	for i in range(mini(count, pool_copy.size())):
@@ -187,25 +183,6 @@ func generate_choices(count: int = 3) -> Array[Dictionary]:
 		choices[choices.size() - 1] = available_evo
 
 	return choices
-
-## Returns weapon upgrade entries for all unlocked blueprint weapons not yet acquired this run.
-func _get_available_weapon_choices(owned_ids: Array[String]) -> Array[Dictionary]:
-	var result: Array[Dictionary] = []
-	for weapon_id in ProgressionManager.unlocked_weapons:
-		var weapon_data: Dictionary = WeaponData.ALL.get(weapon_id, {})
-		if weapon_data.get("unlock_id", "").is_empty():
-			continue  ## Starter weapons never appear as upgrade choices
-		var choice_id: String = "weapon_" + weapon_id
-		if choice_id in owned_ids:
-			continue  ## Already acquired this run
-		result.append({
-			"id":          choice_id,
-			"name":        weapon_data.get("display_name", weapon_id),
-			"description": weapon_data.get("description", ""),
-			"type":        "weapon",
-			"weapon_id":   weapon_id,
-		})
-	return result
 
 func _get_available_evolution() -> Dictionary:
 	var owned_ids: Array[String] = []
@@ -231,10 +208,6 @@ func _get_available_evolution() -> Dictionary:
 func apply_upgrade(upgrade: Dictionary, player: Node) -> void:
 	if upgrade.get("is_evolution", false):
 		_apply_evolution(upgrade, player)
-	elif upgrade.get("type") == "weapon":
-		player_upgrades.append(upgrade)
-		if player.has_method("switch_weapon"):
-			player.switch_weapon(upgrade["weapon_id"])
 	else:
 		player_upgrades.append(upgrade)
 		if player.has_method("apply_stat_upgrade"):
@@ -247,7 +220,7 @@ func _apply_evolution(evo: Dictionary, player: Node) -> void:
 		for i in range(player_upgrades.size() - 1, -1, -1):
 			if player_upgrades[i]["id"] == req_id:
 				var old := player_upgrades[i]
-				if old.get("type") != "weapon" and player.has_method("remove_stat_upgrade"):
+				if player.has_method("remove_stat_upgrade"):
 					player.remove_stat_upgrade(old)
 				player_upgrades.remove_at(i)
 				break

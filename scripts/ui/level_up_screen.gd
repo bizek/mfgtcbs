@@ -7,6 +7,8 @@ signal upgrade_selected(upgrade: Dictionary)
 @onready var title_label: Label = $Panel/VBox/TitleLabel
 @onready var choices_container: VBoxContainer = $Panel/VBox/ChoicesContainer
 
+const WEAPON_SWAP_COST: float = 30.0
+
 var player_ref: Node2D = null
 var _choices: Array[Dictionary] = []
 var _rerolls_remaining: int = 0
@@ -61,6 +63,59 @@ func _show_choices() -> void:
 	reroll_btn.text = "Reroll  [%d left]" % _rerolls_remaining
 	reroll_btn.pressed.connect(_on_reroll_pressed)
 	choices_container.add_child(reroll_btn)
+
+	_build_weapon_cache(pixel_font)
+
+func _build_weapon_cache(pixel_font: FontFile) -> void:
+	var current_weapon: String = player_ref.get_active_weapon_id()
+	var available: Array[String] = []
+	for weapon_id in ProgressionManager.unlocked_weapons:
+		if weapon_id == current_weapon:
+			continue
+		var wdata: Dictionary = WeaponData.ALL.get(weapon_id, {})
+		if wdata.get("unlock_id", "").is_empty():
+			continue  ## Skip starters — they're always available, not a mid-run prize
+		available.append(weapon_id)
+
+	if available.is_empty():
+		return
+
+	## Pick one random weapon to offer — you don't get to browse the full cache
+	var offered: String = available[randi() % available.size()]
+	var wdata: Dictionary = WeaponData.ALL[offered]
+
+	var sep := HSeparator.new()
+	choices_container.add_child(sep)
+
+	var header := Label.new()
+	header.text = "— WEAPON CACHE  [%.0f / %.0f loot] —" % [GameManager.loot_carried, WEAPON_SWAP_COST]
+	if pixel_font:
+		header.add_theme_font_override("font", pixel_font)
+	header.add_theme_font_size_override("font_size", 14)
+	header.add_theme_color_override("font_color", Color(0.55, 0.85, 1.0))
+	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	choices_container.add_child(header)
+
+	var display: String = wdata.get("display_name", offered)
+	var desc: String    = wdata.get("description", "")
+	var btn := Button.new()
+	btn.text = "%s\n%s\n[Cost: 30 loot — drops current weapon]" % [display, desc]
+	btn.custom_minimum_size = Vector2(210, 52)
+	btn.disabled = GameManager.loot_carried < WEAPON_SWAP_COST
+	if pixel_font:
+		btn.add_theme_font_override("font", pixel_font)
+	btn.add_theme_font_size_override("font_size", 13)
+	btn.add_theme_color_override("font_color", Color(0.55, 0.85, 1.0))
+	btn.pressed.connect(_on_weapon_swap_pressed.bind(offered))
+	choices_container.add_child(btn)
+
+func _on_weapon_swap_pressed(weapon_id: String) -> void:
+	if not GameManager.spend_loot(WEAPON_SWAP_COST):
+		return
+	player_ref.drop_current_weapon()
+	player_ref.switch_weapon(weapon_id)
+	visible = false
+	GameManager.exit_level_up()
 
 func _on_reroll_pressed() -> void:
 	if _rerolls_remaining <= 0:

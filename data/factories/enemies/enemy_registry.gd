@@ -18,6 +18,11 @@ static func build_all() -> void:
 	_definitions["caster"] = CasterData.create()
 	_definitions["guardian"] = GuardianData.create()
 	_definitions["herald"] = HeraldData.create()
+	## Phase 5 Phase-Warped variants
+	_definitions["warped_fodder"] = WarpedEnemyData.create_warped_fodder()
+	_definitions["warped_swarmer"] = WarpedEnemyData.create_warped_swarmer()
+	_definitions["warped_brute"] = WarpedEnemyData.create_warped_brute()
+	_definitions["warped_caster"] = WarpedEnemyData.create_warped_caster()
 
 
 static func get_def(enemy_id: String) -> EnemyDefinition:

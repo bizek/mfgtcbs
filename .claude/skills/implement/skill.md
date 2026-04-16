@@ -118,24 +118,65 @@ On the content path, proceed directly. On the infrastructure path, present appro
 
 **GDScript `:=` rule:** Never use `:=` when the expression involves Resource property access. Always use explicit `var x: float =`.
 
-**No self-verification via MCP.** Don't use play_scene/screenshot tools. Ben will test.
+---
+
+## Step 7: Verify with MCP — constructed scenarios, not organic combat.
+
+**`execute_game_script` runs arbitrary GDScript inside the live game process.** Full access to the scene tree, every node, every component, every method. This is a scenario construction tool, not a state snapshot tool. Use it to build the exact conditions your code needs and call the exact function under test. Don't wait for organic combat to roll the dice.
+
+### Instrumentation first.
+
+Before verifying, bake debug prints into the code you just wrote — aimed at **terminal state**, not intermediate steps. One question: *what does the effect this code ultimately produces look like in the log?* Damage actually dealt, modifier actually applied, status actually expired, trigger actually fired AND its downstream effect resolved.
+
+Design your tag scheme for `get_output_log(filter=...)` efficiency. Short prefix, rich payload. Example: `print("[IMPL_BURN] status applied to %s, stacks=%d" % [entity.name, stack_count])`. A single filter substring should pull exactly the lines you care about.
+
+### The verification loop.
+
+1. `clear_output`
+2. `play_scene` (main scene)
+3. `execute_game_script` → `Engine.time_scale = 0.0` — freeze game-time so buff durations don't decay between MCP calls and live combat doesn't pollute the state you're reading. Use `0.5` only if your test requires the sim to advance (e.g. a DoT tick). Use `8.0` only as a last resort for organic-combat fallback.
+4. **State inspection:** verify your feature's components are wired correctly before constructing scenarios. Find the player (`/root/MainArena/.../Player`), find relevant components (`HealthComponent`, `StatusEffectComponent`, `ModifierComponent`, `TriggerComponent`), confirm listeners are registered and modifiers are in the right state. If the component isn't there, no scenario will exercise it.
+5. **Construct the scenario:** force the exact precondition and call the function under test. Strip leftover state first (remove existing statuses, confirm baseline modifier sum), then apply. Each edge case gets its own script — don't test five things in one call.
+6. `get_output_log(filter="<your tag>", max_lines=<tight>)` — targeted, never blob-dumped.
+7. **Stop after the golden path** unless your code contains a branch the golden path didn't reach — an explicit `if/else`, a dead-source fallback, a recursion guard. If it does, construct one more scenario for that branch. Otherwise stop. Don't test engine primitives, EventBus fan-out, or anything your code doesn't directly produce.
+8. `stop_scene`
+
+### Constructed scenario shape for this engine.
+
+```gdscript
+# 1. Find live nodes — walk the tree or use known autoload paths
+var arena = get_tree().root.get_node_or_null("/root/MainArena")
+var player = arena.get_node_or_null("Player") if arena else null
+
+# 2. Find or spawn an enemy to use as source/target
+var enemies = get_tree().get_nodes_in_group("enemies")
+var target = enemies[0] if enemies.size() > 0 else null
+
+# 3. Build the data resource on the fly from existing factories
+var status_def = StatusFactory.create_burn(3)  # or load and instantiate
+
+# 4. Strip leftover state — confirm clean baseline
+if target:
+	target.status_effect_component.clear_all()
+	_mcp_print("[IMPL_TAG] baseline hp: " + str(target.health_component.current_health))
+
+# 5. Force the precondition
+target.status_effect_component.apply_status(status_def, player, 1)
+
+# 6. Fire the function under test (or let time advance if timing-dependent)
+target.status_effect_component._tick(1.0)
+
+# 7. Read terminal state — your baked-in prints capture the chain
+_mcp_print("[IMPL_TAG] result hp: " + str(target.health_component.current_health))
+```
+
+The trigger fires, the EventBus signal propagates, EffectDispatcher runs, damage lands — exactly as in organic combat, driven deterministically. No mocks. The thing being tested is the actual production code in the actual production environment.
 
 ---
 
-## Step 7: After implementation — stop and let Ben test.
+## Step 8: After verification passes — update docs, gentle github reminder.
 
-State what was built and what to look for. Then stop. Do NOT:
-- Use MCP tools to self-verify
-- Update documentation
-- Suggest next steps
-
-Wait for Ben to test and report back.
-
----
-
-## Step 8: After Ben confirms — update docs, gentle github reminder.
-
-Write doc changes yourself in the main context. Update:
+Write doc changes yourself in the main context. After Ben has also tested (or confirmed the logs look right), update:
 - `docs/engine_reference.md` if new systems/capabilities were added
 - CLAUDE.md if architecture changed
 - Relevant design docs if values changed

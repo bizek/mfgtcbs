@@ -47,7 +47,14 @@
       "Bash(find E:Projectsextraction-survivorsassets -type f \\\\\\(-iname *projectile* -o -iname *bullet* -o -iname *shot* -o -iname *bolt* -o -iname *arrow* -o -iname *orb* -o -iname *beam* -o -iname *spell* -o -iname *magic* \\\\\\) ! -iname *.import ! -iname *.aseprite)",
       "mcp__godot-mcp-pro__reload_project",
       "Bash(grep -E \"\\\\.\\(gd|tscn\\)$\")",
-      "Bash(where godot:*)"
+      "Bash(where godot:*)",
+      "Bash(claude mcp:*)",
+      "Bash(node E:/Projects/godot-doc-mcp/server/dist/index.js)",
+      "Read(//e/Projects/godot-doc-mcp/**)",
+      "Bash(node -e ':*)",
+      "mcp__mcp-registry__search_mcp_registry",
+      "mcp__godot-mcp-pro__simulate_mouse_click",
+      "mcp__godot-mcp-pro__clear_output"
     ]
   }
 }

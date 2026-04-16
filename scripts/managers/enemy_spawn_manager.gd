@@ -9,7 +9,7 @@ extends Node
 ##   Phase 2  →  50% Fodder, 40% Swarmer, 6% Brute, 4% Caster
 ##   Phase 3  →  25% each: Fodder, Swarmer, Brute, Caster
 ##   Phase 4  →  13% Fodder, 27% Swarmer, 33% Stalker, 27% Guardian  (+Carrier via timer)
-##   Phase 5  →  20% Swarmer, 80% Anchor  (+Carrier+Herald via timers)
+##   Phase 5  →  12% Swarmer, 48% Anchor, 10% each of 4 Warped variants  (+Carrier+Herald via timers)
 ##
 ## Per-phase HP/damage/spawn multipliers stack on top of time-based difficulty scaling.
 ## Elite modifier: any basic enemy has a time+phase-scaling chance to spawn as an Elite
@@ -46,8 +46,8 @@ const WAVE_COMPOSITION: Array = [
 	{"fodder": 0.25, "swarmer": 0.25, "brute": 0.25, "caster": 0.25},
 	## Phase 4 — specialist-dominant; carrier timer adds ~25% threat on top
 	{"fodder": 0.13, "swarmer": 0.27, "stalker": 0.33, "guardian": 0.27},
-	## Phase 5 — boss-tier density; herald+carrier timers active; phase-warped redistributed to anchor
-	{"swarmer": 0.20, "anchor": 0.80},
+	## Phase 5 — boss-tier density; herald+carrier timers active; 40% warped variants
+	{"swarmer": 0.12, "anchor": 0.48, "warped_fodder": 0.10, "warped_swarmer": 0.10, "warped_brute": 0.10, "warped_caster": 0.10},
 ]
 
 ## ── Carrier pacing — 1 per interval early, 2 per interval late ───────────────
@@ -286,6 +286,11 @@ func _get_scene_for_id(enemy_id: String) -> PackedScene:
 		"herald": return herald_scene
 		"guardian": return guardian_scene
 		"anchor": return anchor_scene
+		## Phase-Warped: reuse base scenes; stats/behavior come from EnemyDefinition
+		"warped_fodder": return fodder_scene
+		"warped_swarmer": return swarmer_scene
+		"warped_brute": return brute_scene
+		"warped_caster": return caster_scene
 	return null
 
 

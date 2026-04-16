@@ -88,9 +88,9 @@ func _ready() -> void:
 	EventBus.on_kill.connect(_on_entity_killed_eb)
 
 func _process(delta: float) -> void:
-	if current_state != GameState.RUN_ACTIVE:
+	if current_state != GameState.RUN_ACTIVE or is_paused:
 		return
-	
+
 	run_time += delta
 	phase_timer += delta
 	phase_timer_updated.emit(phase_duration - phase_timer)
@@ -253,6 +253,16 @@ func add_loot(value: float) -> void:
 	instability = loot_carried  ## Simplified: instability tracks total loot value carried
 	loot_changed.emit(loot_carried)
 	instability_changed.emit(instability)
+
+## Spend loot for an in-run purchase (e.g. weapon swap). Returns false if insufficient.
+func spend_loot(amount: float) -> bool:
+	if loot_carried < amount:
+		return false
+	loot_carried = maxf(loot_carried - amount, 0.0)
+	instability  = maxf(instability  - amount, 0.0)
+	loot_changed.emit(loot_carried)
+	instability_changed.emit(instability)
+	return true
 
 ## Adjusts instability by delta (can be negative — e.g. Instability Siphon on kill).
 ## Clamps to zero minimum so the meter never goes below Stable.

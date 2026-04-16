@@ -1,5 +1,9 @@
 # CLAUDE.md — Extraction Survivors
 
+## Project Context
+
+This is a Godot 4 game project (extraction survivors). There are NO web servers, dev servers, or Node/npm tooling. Do not attempt to detect or start dev servers.
+
 Top-down 2D arena survivor / extraction hybrid. WASD movement, auto-firing weapons, horde combat, 5-phase extraction loop. Built on a ported component-based combat engine with data-driven content creation.
 
 **Developer:** Solo dev (Ben) + Claude. Ben provides creative direction. Claude handles all code.
@@ -78,6 +82,21 @@ All content follows the data factory pattern: `static func create() -> Resource`
 - **Never hand-edit `.tscn` files.** Use MCP tools or the Godot editor.
 - **4x viewport scaling.** All UI text sizes must account for this.
 - After implementing spatial/positioning features, verify coordinates are within arena bounds (±800 x ±600).
+
+## Godot Scene Files (.tscn)
+
+- Do NOT hand-edit .tscn files to add/remove nodes on instanced sub-scenes — Godot silently strips unowned nodes on save.
+- Always use the Godot MCP editor tools for scene structure changes.
+- When changing UI, account for the 4x viewport scaling (text/font sizes must be large enough to remain readable).
+
+## Commit Workflow
+
+Before declaring a commit done, run `git status` and `git diff` to verify zero unstaged or untracked files remain. Stage project.godot and any status/docs files explicitly.
+
+## Gameplay Implementation Rules
+
+- Knockback and similar forces must be gated on i-frames to avoid pinball effects.
+- New status effects must defensively handle missing keys (e.g., 'timer') on existing status entries.
 
 ## Key Technical Details
 
