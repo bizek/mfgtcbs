@@ -31,6 +31,7 @@ var talent_picks: Array[String] = []
 var combat_manager: Node2D = null
 var spatial_grid: SpatialGrid = null
 var combat_role: String = "MELEE"
+var enemy_id: String = "fodder"
 
 ## Elite system
 var is_elite: bool = false
@@ -137,6 +138,7 @@ func setup_from_enemy_def(def: EnemyDefinition) -> void:
 	xp_value = def.xp_value
 	health_drop_chance = def.health_drop_chance
 	combat_role = def.combat_role
+	enemy_id = def.enemy_id
 
 	# Re-setup health with correct max_hp
 	health.setup(max_hp)

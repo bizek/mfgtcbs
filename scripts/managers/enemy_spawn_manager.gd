@@ -338,7 +338,9 @@ func _get_edge_spawn_position() -> Vector2:
 			y = randf_range(arena_bounds.position.y + 20.0, arena_bounds.end.y - 20.0)
 	return Vector2(x, y)
 
-## Elite chance: 5% base, +0.4% every 30 seconds, +3% per phase beyond phase 1, soft cap 35%
+## Elite chance: 5% base, +0.4% every 30 seconds, +3% per phase beyond phase 1,
+## +instability tier bonus (up to +20% at Critical), soft cap 50%
 func _get_elite_chance() -> float:
 	var phase_bonus: float = (GameManager.phase_number - 1) * 0.03
-	return clampf(0.05 + (GameManager.run_time / 30.0) * 0.004 + phase_bonus, 0.05, 0.35)
+	var instability_bonus: float = GameManager.get_instability_elite_bonus()
+	return clampf(0.05 + (GameManager.run_time / 30.0) * 0.004 + phase_bonus + instability_bonus, 0.05, 0.50)

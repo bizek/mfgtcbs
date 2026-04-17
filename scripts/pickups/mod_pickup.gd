@@ -8,6 +8,7 @@ extends Area2D
 ## Visual: purple-tinted beam + hexagonal orb to distinguish from weapon/loot drops.
 
 var mod_id: String = ""
+var rarity: String = "common"  ## Set by spawner — affects instability cost and visuals
 
 var _magnetized: bool = false
 var _target: Node2D = null
@@ -42,9 +43,10 @@ func _build_label() -> void:
 	if mod_id.is_empty():
 		return
 	var display: String = ModData.ALL.get(mod_id, {}).get("name", mod_id)
+	var rarity_color: Color = LootTables.RARITY_COLORS.get(rarity, Color.WHITE)
 	var lbl := Label.new()
-	lbl.text = "MOD: " + display
-	lbl.position = Vector2(-52.0, -30.0)
+	lbl.text = "[" + rarity.to_upper() + "] " + display
+	lbl.position = Vector2(-60.0, -30.0)
 
 	var settings := LabelSettings.new()
 	var font = load("res://assets/fonts/m5x7.ttf")
@@ -53,7 +55,7 @@ func _build_label() -> void:
 		settings.font_size = 10
 	settings.outline_size  = 1
 	settings.outline_color = Color(0.0, 0.0, 0.0, 0.9)
-	settings.font_color    = _tint
+	settings.font_color    = rarity_color
 	lbl.label_settings     = settings
 	add_child(lbl)
 
@@ -69,15 +71,18 @@ func _process(delta: float) -> void:
 			_collect()
 
 func _draw() -> void:
-	## Vertical beam of light (purple-tinted, fades with age)
+	## Vertical beam of light — tinted by rarity color, brightness scales with rarity
+	var rarity_color: Color = LootTables.RARITY_COLORS.get(rarity, Color.WHITE)
+	var beam_w: float = 2.0 + float(["common","uncommon","rare","epic","legendary"].find(rarity)) * 0.8
+	var beam_bright: float = 0.55 + float(["common","uncommon","rare","epic","legendary"].find(rarity)) * 0.09
 	if _beam_alpha > 0.01:
 		draw_rect(
-			Rect2(-2.0, -64.0, 4.0, 62.0),
-			Color(_tint.r, _tint.g, _tint.b, _beam_alpha * 0.70)
+			Rect2(-beam_w, -64.0, beam_w * 2.0, 62.0),
+			Color(rarity_color.r, rarity_color.g, rarity_color.b, _beam_alpha * beam_bright)
 		)
 		draw_rect(
-			Rect2(-5.0, -64.0, 10.0, 62.0),
-			Color(_tint.r, _tint.g, _tint.b, _beam_alpha * 0.22)
+			Rect2(-beam_w * 2.5, -64.0, beam_w * 5.0, 62.0),
+			Color(rarity_color.r, rarity_color.g, rarity_color.b, _beam_alpha * 0.18)
 		)
 
 	## Hexagonal core orb (cross + diamond shape)
@@ -110,9 +115,10 @@ func _collect() -> void:
 		return
 
 	## No open slot — goes into the loot bag (extractable)
-	GameManager.add_collected_mod(mod_id)
+	GameManager.add_collected_mod(mod_id, rarity)
 	var mod_name: String = ModData.ALL.get(mod_id, {}).get("name", mod_id)
-	_show_notification("BAGGED: " + mod_name, Color(0.85, 0.55, 1.0))
+	var rarity_color: Color = LootTables.RARITY_COLORS.get(rarity, Color(0.85, 0.55, 1.0))
+	_show_notification("BAGGED: " + mod_name, rarity_color)
 	queue_free()
 
 func _try_auto_equip() -> bool:

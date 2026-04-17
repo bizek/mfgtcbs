@@ -72,6 +72,13 @@ func _ready() -> void:
 	hud.setup(player)
 	level_up_screen.setup(player)
 
+	# Instability aura VFX — child of player so it follows movement
+	var aura_script = load("res://scripts/entities/instability_aura.gd")
+	if aura_script:
+		var aura := Node2D.new()
+		aura.set_script(aura_script)
+		player.add_child(aura)
+
 	# Extraction signals
 	GameManager.extraction_window_opened.connect(_on_extraction_window_opened)
 	GameManager.extraction_window_closed.connect(_on_extraction_window_closed)
@@ -291,26 +298,39 @@ func debug_activate_all_extractions() -> void:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 func _on_entity_killed(killer: Node, victim: Node) -> void:
-	if victim.is_in_group("enemies"):
-		_shake_camera(3.0, 0.12)
+	if not victim.is_in_group("enemies"):
+		return
+	_shake_camera(3.0, 0.12)
 
-		var is_carrier: bool = victim.is_in_group("carriers")
-		var is_elite: bool   = victim.get("is_elite") == true
+	var pos: Vector2 = victim.global_position
+	var etype: String = victim.get("enemy_id") if victim.get("enemy_id") else "fodder"
+	var is_elite: bool = victim.get("is_elite") == true
+	var phase: int = GameManager.phase_number
 
-		if is_elite and not GameManager.player_has_keystone and randf() < 0.05:
-			_spawn_keystone_drop(victim.global_position)
+	## Keystone drop — elite only, independent roll
+	if is_elite and not GameManager.player_has_keystone and randf() < LootTables.KEYSTONE_ELITE_CHANCE:
+		_spawn_keystone_drop(pos)
 
-		if is_carrier and randf() < 0.30:
-			_spawn_mod_drop(victim.global_position)
-			return
-		if is_elite and randf() < 0.20:
-			_spawn_mod_drop(victim.global_position)
-			return
+	## Loot Find bonus from player modifiers
+	var loot_find_mult: float = 1.0
+	if is_instance_valid(player) and player.modifier_component:
+		loot_find_mult = 1.0 + player.modifier_component.sum_modifiers("loot_find", "bonus")
 
-		if randf() < 0.08:
-			_spawn_loot_drop(victim.global_position)
-		elif randf() < 0.02:
-			_spawn_weapon_drop(victim.global_position)
+	## Roll against enemy loot table
+	var rates: Dictionary = LootTables.get_drop_table(etype)
+	var resource_chance: float = rates.get("resource", 0.0) * loot_find_mult
+	var weapon_mod_chance: float = rates.get("weapon_mod", 0.0) * loot_find_mult
+
+	var roll: float = randf()
+	if roll < weapon_mod_chance:
+		## 50/50 weapon vs mod
+		var rarity: String = LootTables.roll_rarity(phase)
+		if randf() < 0.5:
+			_spawn_weapon_drop(pos, rarity)
+		else:
+			_spawn_mod_drop(pos, rarity)
+	elif roll < weapon_mod_chance + resource_chance:
+		_spawn_loot_drop(pos, phase)
 
 
 func _spawn_keystone_drop(pos: Vector2) -> void:
@@ -321,29 +341,33 @@ func _spawn_keystone_drop(pos: Vector2) -> void:
 	pickup.global_position = pos
 	add_child(pickup)
 
-func _spawn_loot_drop(pos: Vector2) -> void:
+func _spawn_loot_drop(pos: Vector2, phase: int) -> void:
 	var drop: Area2D = LootDropScene.instantiate()
 	drop.global_position = pos
-	drop.value = randf_range(6.0, 18.0)
+	var size: String = LootTables.roll_resource_size(phase)
+	drop.value = LootTables.get_resource_value(phase)
+	drop.size = size
 	add_child(drop)
 
-func _spawn_mod_drop(pos: Vector2) -> void:
+func _spawn_mod_drop(pos: Vector2, rarity: String = "common") -> void:
 	var mod_ids: Array = ModData.ORDER
 	if mod_ids.is_empty():
 		return
 	var mod_id: String = mod_ids[randi() % mod_ids.size()]
 	var pickup: Area2D = ModPickupScript.new()
 	pickup.mod_id          = mod_id
+	pickup.rarity          = rarity
 	pickup.global_position = pos
 	add_child(pickup)
 
-func _spawn_weapon_drop(pos: Vector2) -> void:
+func _spawn_weapon_drop(pos: Vector2, rarity: String = "common") -> void:
 	var droppable: Array = WeaponData.get_droppable_ids()
 	if droppable.is_empty():
 		return
 	var weapon_id: String = droppable[randi() % droppable.size()]
 	var pickup: Area2D = WeaponPickupScript.new()
 	pickup.weapon_id       = weapon_id
+	pickup.rarity          = rarity
 	pickup.global_position = pos
 	add_child(pickup)
 

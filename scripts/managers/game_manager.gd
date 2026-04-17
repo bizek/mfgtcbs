@@ -50,9 +50,10 @@ const DIFFICULTY_SCALE_PERIOD: float = 30.0
 const DIFFICULTY_SCALE_RATE: float = 0.15
 var difficulty_multiplier: float = 1.0
 
-## Loot and instability
+## Loot and instability (decoupled — instability tracks per-item weights, not raw loot value)
 var loot_carried: float = 0.0
 var instability: float = 0.0
+var peak_instability: float = 0.0  ## High-water mark for results screen
 var last_run_loot: float = 0.0  ## Preserved after extraction clears loot_carried
 
 ## Weapons picked up during this run. Cleared on new run; unlocked in ProgressionManager
@@ -66,6 +67,10 @@ var collected_mods: Array = []
 ## Mods equipped to weapons mid-run. { weapon_id: { slot_index: mod_id } }
 ## Committed on extraction, rolled back on death.
 var run_equipped_mods: Dictionary = {}
+
+## Loot manifest — itemized log of everything collected this run for results screen.
+## Each entry: { "type": "resource"/"weapon"/"mod", "name": String, "value": float, "rarity": String }
+var run_loot_manifest: Array = []
 
 ## Insurance — per-run only, cleared at run start. Requires insurance_license upgrade.
 var insured_item: String = ""
@@ -120,9 +125,11 @@ func start_run() -> void:
 	is_paused = false
 	loot_carried = 0.0
 	instability = 0.0
+	peak_instability = 0.0
 	collected_weapons.clear()
 	collected_mods.clear()
 	run_equipped_mods.clear()
+	run_loot_manifest.clear()
 	insured_item = ""
 	player_has_keystone = false
 	guardian_killed_this_phase = false
@@ -132,8 +139,8 @@ func start_run() -> void:
 	var char_id: String = ProgressionManager.selected_character
 	if CharacterData.ALL.has(char_id):
 		if CharacterData.ALL[char_id].get("passive_id", "none") == "cursed_passive":
-			loot_carried = 31.0
-			instability  = 31.0
+			instability = 31.0
+			peak_instability = 31.0
 
 	run_started.emit()
 	phase_started.emit(phase_number)
@@ -217,6 +224,7 @@ func on_extraction_complete() -> void:
 		var phase_bonuses: Array = [0.0, 0.0, 0.0, 0.25, 0.50, 1.00]
 		var bonus: float = phase_bonuses[clampi(phase_number, 0, 5)]
 		last_run_loot *= (1.0 + bonus)
+	## Note: run_loot_manifest is NOT cleared here — results screen reads it
 	loot_carried = 0.0
 	instability = 0.0
 	loot_changed.emit(loot_carried)
@@ -250,8 +258,11 @@ func equip_mod_mid_run(weapon_id: String, slot: int, mod_id: String) -> void:
 
 func add_loot(value: float) -> void:
 	loot_carried += value
-	instability = loot_carried  ## Simplified: instability tracks total loot value carried
 	loot_changed.emit(loot_carried)
+
+func add_instability(amount: float) -> void:
+	instability += amount
+	peak_instability = maxf(peak_instability, instability)
 	instability_changed.emit(instability)
 
 ## Spend loot for an in-run purchase (e.g. weapon swap). Returns false if insufficient.
@@ -259,43 +270,45 @@ func spend_loot(amount: float) -> bool:
 	if loot_carried < amount:
 		return false
 	loot_carried = maxf(loot_carried - amount, 0.0)
-	instability  = maxf(instability  - amount, 0.0)
 	loot_changed.emit(loot_carried)
-	instability_changed.emit(instability)
 	return true
 
 ## Adjusts instability by delta (can be negative — e.g. Instability Siphon on kill).
 ## Clamps to zero minimum so the meter never goes below Stable.
 func modify_instability(delta: int) -> void:
 	instability = maxf(instability + float(delta), 0.0)
-	loot_changed.emit(loot_carried)
 	instability_changed.emit(instability)
 
 ## Called when a bagged mod pickup is collected during a run.
 ## Mod is at risk until extraction — lost on death, unlocked on success.
-func add_collected_mod(mod_id: String) -> void:
+func add_collected_mod(mod_id: String, rarity: String = "common") -> void:
 	collected_mods.append(mod_id)
-	add_loot(15.0)  ## Mods contribute 15 instability weight
+	var inst_cost: float = float(LootTables.RARITY_INSTABILITY.get(rarity, 5))
+	add_instability(inst_cost)
+	var mod_name: String = ModData.ALL[mod_id].get("name", mod_id) if ModData.ALL.has(mod_id) else mod_id
+	run_loot_manifest.append({ "type": "mod", "name": mod_name, "value": inst_cost, "rarity": rarity })
 
 ## Called when the player picks up a weapon drop during a run.
 ## Weapon is at risk until extraction — lost on death, unlocked on success.
-func add_collected_weapon(weapon_id: String) -> void:
+func add_collected_weapon(weapon_id: String, rarity: String = "common") -> void:
 	if weapon_id not in collected_weapons:
 		collected_weapons.append(weapon_id)
-	## Weapon pickups contribute 30 instability (meaningful risk weight)
-	add_loot(30.0)
+	var inst_cost: float = float(LootTables.RARITY_INSTABILITY.get(rarity, 5))
+	add_instability(inst_cost)
+	var display_name: String = WeaponData.ALL[weapon_id].get("display_name", weapon_id) if WeaponData.ALL.has(weapon_id) else weapon_id
+	run_loot_manifest.append({ "type": "weapon", "name": display_name, "value": inst_cost, "rarity": rarity })
+
+## Returns the current instability tier dictionary from LootTables.
+func get_instability_tier() -> Dictionary:
+	return LootTables.get_instability_tier(instability)
 
 ## Returns enemy HP/damage multiplier based on instability tier.
-## Tiers: Stable(0-30)=×1.0, Unsettled(31-70)=×1.15, Volatile(71-120)=×1.3, Critical(121+)=×1.5
 func get_instability_multiplier() -> float:
-	if instability <= 30.0:
-		return 1.0
-	elif instability <= 70.0:
-		return 1.15
-	elif instability <= 120.0:
-		return 1.3
-	else:
-		return 1.5
+	return 1.0 + get_instability_tier().stat_bonus
+
+## Returns bonus elite spawn rate from instability.
+func get_instability_elite_bonus() -> float:
+	return get_instability_tier().elite_bonus
 
 func _open_extraction_window() -> void:
 	extraction_window_active = true
@@ -330,9 +343,9 @@ func sacrifice_weapon(weapon_id: String) -> bool:
 	if idx < 0:
 		return false
 	collected_weapons.remove_at(idx)
-	loot_carried = maxf(loot_carried - 30.0, 0.0)
-	instability = maxf(instability - 30.0, 0.0)
-	loot_changed.emit(loot_carried)
+	## Look up instability cost from manifest, fall back to uncommon cost
+	var inst_refund: float = _find_manifest_instability("weapon", weapon_id)
+	instability = maxf(instability - inst_refund, 0.0)
 	instability_changed.emit(instability)
 	return true
 
@@ -342,15 +355,31 @@ func sacrifice_mod(mod_id: String) -> bool:
 	if idx < 0:
 		return false
 	collected_mods.remove_at(idx)
-	loot_carried = maxf(loot_carried - 15.0, 0.0)
-	instability = maxf(instability - 15.0, 0.0)
-	loot_changed.emit(loot_carried)
+	var inst_refund: float = _find_manifest_instability("mod", mod_id)
+	instability = maxf(instability - inst_refund, 0.0)
 	instability_changed.emit(instability)
 	return true
 
-## Sacrifice all generic loot (zeroes instability/loot value).
+## Sacrifice all generic loot (zeroes loot and instability).
 func sacrifice_all_loot() -> void:
 	loot_carried = 0.0
 	instability = 0.0
 	loot_changed.emit(loot_carried)
 	instability_changed.emit(instability)
+
+## Find the instability cost of a manifest entry by type and name for refund on sacrifice.
+func _find_manifest_instability(type: String, item_id: String) -> float:
+	for i in range(run_loot_manifest.size() - 1, -1, -1):
+		var entry: Dictionary = run_loot_manifest[i]
+		if entry.type == type:
+			## Match by name (display name for weapons, mod name for mods)
+			var match_name: String = ""
+			if type == "weapon":
+				match_name = WeaponData.ALL[item_id].get("display_name", item_id) if WeaponData.ALL.has(item_id) else item_id
+			elif type == "mod":
+				match_name = ModData.ALL[item_id].get("name", item_id) if ModData.ALL.has(item_id) else item_id
+			if entry.name == match_name:
+				var cost: float = entry.value
+				run_loot_manifest.remove_at(i)
+				return cost
+	return float(LootTables.RARITY_INSTABILITY.get("uncommon", 8))

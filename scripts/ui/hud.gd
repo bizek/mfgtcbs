@@ -36,6 +36,10 @@ var _guardian_hp_label: Label = null
 var _phase_label: Label = null
 var _phase_flash_label: Label = null
 var _extraction_warning_label: Label = null
+## ── Instability meter (below loot label in TopLeft area) ─────────────────────
+var _instability_bar_fill: ColorRect = null
+var _instability_tier_label: Label = null
+var _instability_bg_ext: ColorRect = null  ## Extension of TopLeftBG for extra height
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -63,6 +67,7 @@ func _ready() -> void:
 	_build_phase_label()
 	_build_phase_flash_label()
 	_build_extraction_warning_label()
+	_build_instability_meter()
 	_build_combo_discovery_popup()
 	GameManager.phase_started.connect(_on_phase_started)
 
@@ -138,8 +143,31 @@ func _on_leveled_up(new_level: int) -> void:
 func _on_loot_changed(new_value: float) -> void:
 	loot_label.text = "LOOT: %d" % int(new_value)
 
-func _on_instability_changed(_new_value: float) -> void:
-	pass  ## Vignette / LOOT AT RISK removed — instability is tracked silently via loot counter
+func _on_instability_changed(new_value: float) -> void:
+	if _instability_bar_fill == null:
+		return
+	var tier: Dictionary = LootTables.get_instability_tier(new_value)
+	var col: Color = tier.color
+
+	## Fill bar — clamped to max visual width of 140px at instability 200
+	var fill_frac: float = clampf(new_value / 200.0, 0.0, 1.0)
+	_instability_bar_fill.size.x = fill_frac * 140.0
+	_instability_bar_fill.color = col
+
+	## Tier label
+	_instability_tier_label.text = tier.name
+	_instability_tier_label.add_theme_color_override("font_color", col)
+
+	## Vignette overlays — visible at Volatile+ (stat_bonus >= 0.28)
+	var vig_alpha: float = clampf((new_value - 70.0) / 80.0, 0.0, 1.0) * 0.30
+	var vig_col := Color(col.r * 0.7, col.g * 0.1, col.b * 0.1, vig_alpha)
+	vig_top.color    = vig_col
+	vig_bottom.color = vig_col
+	vig_left.color   = vig_col
+	vig_right.color  = vig_col
+
+	## LOOT AT RISK label — visible at Volatile+ (71+)
+	loot_at_risk_label.visible = new_value >= 71.0
 
 func _on_extraction_started() -> void:
 	extraction_container.visible = true
@@ -335,6 +363,55 @@ func _build_extraction_warning_label() -> void:
 		lbl.add_theme_font_override("font", load("res://assets/fonts/m5x7.ttf"))
 	add_child(lbl)
 	_extraction_warning_label = lbl
+
+## ── Instability meter (below loot label) ────────────────────────────────────
+
+func _build_instability_meter() -> void:
+	## Extends the TopLeftBG downward by 18px, then adds a thin bar + tier label.
+	## Bar is 140px wide × 3px tall at y=62, tier label at y=66.
+	const BAR_Y: float = 62.0
+	const BAR_W: float = 140.0
+	const BAR_H: float = 3.0
+	const FONT_PATH: String = "res://assets/fonts/m5x7.ttf"
+
+	## Extend the background panel to cover the new row
+	var bg_ext := ColorRect.new()
+	bg_ext.name = "InstabilityBGExt"
+	bg_ext.color = Color(0.0, 0.0, 0.0, 0.55)
+	bg_ext.position = Vector2(2.0, 60.0)
+	bg_ext.size = Vector2(146.0, 18.0)
+	bg_ext.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(bg_ext)
+	_instability_bg_ext = bg_ext
+
+	## Bar track (dark background)
+	var track := ColorRect.new()
+	track.color = Color(0.08, 0.08, 0.08, 0.85)
+	track.position = Vector2(4.0, BAR_Y)
+	track.size = Vector2(BAR_W, BAR_H)
+	track.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(track)
+
+	## Bar fill (starts at 0 width, colored by tier)
+	var fill := ColorRect.new()
+	fill.color = LootTables.INSTABILITY_TIERS[0].color
+	fill.position = Vector2(4.0, BAR_Y)
+	fill.size = Vector2(0.0, BAR_H)
+	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(fill)
+	_instability_bar_fill = fill
+
+	## Tier name label — right of bar
+	var tier_lbl := Label.new()
+	tier_lbl.name = "InstabilityTierLabel"
+	tier_lbl.text = "STABLE"
+	tier_lbl.position = Vector2(4.0, BAR_Y + BAR_H + 1.0)
+	tier_lbl.add_theme_font_size_override("font_size", 8)
+	tier_lbl.add_theme_color_override("font_color", LootTables.INSTABILITY_TIERS[0].color)
+	if ResourceLoader.exists(FONT_PATH):
+		tier_lbl.add_theme_font_override("font", load(FONT_PATH))
+	add_child(tier_lbl)
+	_instability_tier_label = tier_lbl
 
 func _on_phase_started(phase: int) -> void:
 	## Update the persistent phase strip

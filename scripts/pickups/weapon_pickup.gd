@@ -7,6 +7,7 @@ extends Area2D
 ## If you die, you lose it — same risk as any other extractable loot.
 
 var weapon_id: String = ""
+var rarity: String = "common"  ## Set by spawner — affects instability cost and visuals
 
 var _magnetized: bool = false
 var _target: Node2D = null
@@ -43,9 +44,10 @@ func _build_label() -> void:
 	if weapon_id.is_empty():
 		return
 	var display: String = WeaponData.ALL.get(weapon_id, {}).get("display_name", weapon_id)
+	var rarity_color: Color = LootTables.RARITY_COLORS.get(rarity, Color.WHITE)
 	var lbl := Label.new()
-	lbl.text = display
-	lbl.position = Vector2(-44.0, -30.0)
+	lbl.text = "[" + rarity.to_upper() + "] " + display
+	lbl.position = Vector2(-52.0, -30.0)
 
 	var settings := LabelSettings.new()
 	var font = load("res://assets/fonts/m5x7.ttf")
@@ -54,7 +56,7 @@ func _build_label() -> void:
 		settings.font_size = 10
 	settings.outline_size  = 1
 	settings.outline_color = Color(0.0, 0.0, 0.0, 0.9)
-	settings.font_color    = _tint
+	settings.font_color    = rarity_color
 	lbl.label_settings     = settings
 	add_child(lbl)
 
@@ -75,15 +77,19 @@ func _process(delta: float) -> void:
 			_collect()
 
 func _draw() -> void:
-	## Beam of light — weapon-tinted instead of gold so players can tell it apart
+	## Beam of light — tinted by rarity color, brightness scales with rarity
+	var rarity_color: Color = LootTables.RARITY_COLORS.get(rarity, _tint)
+	var rarity_idx: float = float(["common","uncommon","rare","epic","legendary"].find(rarity))
+	var beam_w: float = 2.0 + rarity_idx * 0.8
+	var beam_bright: float = 0.55 + rarity_idx * 0.09
 	if _beam_alpha > 0.01:
 		draw_rect(
-			Rect2(-2.0, -64.0, 4.0, 62.0),
-			Color(_tint.r, _tint.g, _tint.b, _beam_alpha * 0.70)
+			Rect2(-beam_w, -64.0, beam_w * 2.0, 62.0),
+			Color(rarity_color.r, rarity_color.g, rarity_color.b, _beam_alpha * beam_bright)
 		)
 		draw_rect(
-			Rect2(-5.0, -64.0, 10.0, 62.0),
-			Color(_tint.r, _tint.g, _tint.b, _beam_alpha * 0.22)
+			Rect2(-beam_w * 2.5, -64.0, beam_w * 5.0, 62.0),
+			Color(rarity_color.r, rarity_color.g, rarity_color.b, _beam_alpha * 0.18)
 		)
 
 	## Core orb — diamond shape (two overlapping rects rotated)
@@ -109,5 +115,5 @@ func _collect() -> void:
 	if _collected or weapon_id.is_empty():
 		return
 	_collected = true
-	GameManager.add_collected_weapon(weapon_id)
+	GameManager.add_collected_weapon(weapon_id, rarity)
 	queue_free()
