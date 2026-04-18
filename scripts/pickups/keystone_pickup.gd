@@ -58,12 +58,12 @@ func _build_visuals() -> void:
 	if ResourceLoader.exists(PIXEL_FONT_PATH):
 		var ls := LabelSettings.new()
 		ls.font = load(PIXEL_FONT_PATH)
-		ls.font_size = 10
+		ls.font_size = 13
 		ls.outline_size = 1
 		ls.outline_color = Color(0.0, 0.0, 0.0, 0.9)
 		lbl.label_settings = ls
 	else:
-		lbl.add_theme_font_size_override("font_size", 10)
+		lbl.add_theme_font_size_override("font_size", 13)
 	add_child(lbl)
 
 	## Gem spin

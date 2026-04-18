@@ -28,7 +28,11 @@ var _blink_timer: float = 0.0
 
 ## ── Keystone indicator (top-right area, shown when player holds a keystone) ──
 var _keystone_indicator: Control = null
-## ── Guardian health bar (shown prominently when guardian is nearby) ──────────
+## ── Boss health bars (guardian + bosses share this system) ───────────────────
+## Keyed by boss id. Entry: { root: Control, bar: ProgressBar, label: Label,
+##                            color: Color, display_name: String, y_offset: float }
+var _boss_bars: Dictionary = {}
+## Legacy guardian refs (now resolve into _boss_bars["guardian"]).
 var _guardian_bar_root: Control = null
 var _guardian_hp_bar: ProgressBar = null
 var _guardian_hp_label: Label = null
@@ -36,6 +40,8 @@ var _guardian_hp_label: Label = null
 var _phase_label: Label = null
 var _phase_flash_label: Label = null
 var _extraction_warning_label: Label = null
+var _extraction_locked_label: Label = null
+var _extraction_locked_blink_t: float = 0.0
 ## ── Instability meter (below loot label in TopLeft area) ─────────────────────
 var _instability_bar_fill: ColorRect = null
 var _instability_tier_label: Label = null
@@ -61,12 +67,16 @@ func _ready() -> void:
 	ExtractionManager.extraction_complete.connect(_on_extraction_complete)
 	GameManager.keystone_picked_up.connect(_on_keystone_picked_up)
 	GameManager.guardian_state_changed.connect(_on_guardian_state_changed)
+	GameManager.boss_state_changed.connect(_on_boss_state_changed)
+	GameManager.final_boss_spawned.connect(_on_final_boss_spawned)
+	GameManager.final_boss_defeated.connect(_on_final_boss_defeated)
 
 	_build_keystone_indicator()
 	_build_guardian_health_bar()
 	_build_phase_label()
 	_build_phase_flash_label()
 	_build_extraction_warning_label()
+	_build_extraction_locked_label()
 	_build_instability_meter()
 	_build_combo_discovery_popup()
 	GameManager.phase_started.connect(_on_phase_started)
@@ -111,6 +121,11 @@ func _process(delta: float) -> void:
 	if _keystone_indicator:
 		_keystone_indicator.visible = GameManager.player_has_keystone
 
+	## Extraction locked banner (final boss alive) — blink red-orange
+	if _extraction_locked_label != null and _extraction_locked_label.visible:
+		_extraction_locked_blink_t += delta
+		_extraction_locked_label.modulate.a = 0.55 + 0.45 * sin(_extraction_locked_blink_t * 6.0)
+
 	## Phase countdown warning / Core phase notice
 	if _extraction_warning_label != null:
 		var time_remaining: float = GameManager.phase_duration - GameManager.phase_timer
@@ -151,7 +166,7 @@ func _on_instability_changed(new_value: float) -> void:
 
 	## Fill bar — clamped to max visual width of 140px at instability 200
 	var fill_frac: float = clampf(new_value / 200.0, 0.0, 1.0)
-	_instability_bar_fill.size.x = fill_frac * 140.0
+	_instability_bar_fill.size.x = fill_frac * 187.0
 	_instability_bar_fill.color = col
 
 	## Tier label
@@ -208,7 +223,7 @@ func _build_keystone_indicator() -> void:
 	## Positioned at x=360, y=2 (just left of kills counter area)
 	var root := Control.new()
 	root.name = "KeystoneIndicator"
-	root.position = Vector2(360.0, 2.0)
+	root.position = Vector2(480.0, 2.0)
 	root.visible = false
 	_keystone_indicator = root
 	add_child(root)
@@ -232,7 +247,7 @@ func _build_keystone_indicator() -> void:
 	var lbl := Label.new()
 	lbl.text = "KEYSTONE"
 	lbl.position = Vector2(14.0, 2.0)
-	lbl.add_theme_font_size_override("font_size", 9)
+	lbl.add_theme_font_size_override("font_size", 12)
 	lbl.add_theme_color_override("font_color", Color(1.0, 0.90, 0.22))
 	if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
 		lbl.add_theme_font_override("font", load("res://assets/fonts/m5x7.ttf"))
@@ -250,20 +265,30 @@ func _on_keystone_picked_up() -> void:
 		t.tween_property(_keystone_indicator, "modulate:a", 0.2, 0.05)
 		t.tween_property(_keystone_indicator, "modulate:a", 1.0, 0.20)
 
-## ── Guardian health bar ───────────────────────────────────────────────────────
+## ── Boss / Guardian health bars ───────────────────────────────────────────────
+## Shared system. Guardian uses id="guardian" at y=40. Minibosses, bosses, and
+## the final boss register on first show via _on_boss_state_changed.
 
 func _build_guardian_health_bar() -> void:
-	## Prominent health bar shown below center-screen when guardian is nearby.
-	## Styled in dark red to match the guardian's ominous theme.
+	## Pre-register the guardian bar so its layout is stable across runs.
+	var entry := _build_boss_bar(
+			"guardian", "GUARDIAN", Color(0.80, 0.12, 0.12), 53.0)
+	_guardian_bar_root = entry.root
+	_guardian_hp_bar = entry.bar
+	_guardian_hp_label = entry.label
+
+func _build_boss_bar(id: String, display_name: String, color: Color,
+		y_offset: float) -> Dictionary:
+	## Build a prominent health bar (240×10 with a label above it) and register
+	## it in _boss_bars keyed by id. Returns the registration entry.
 	var root := Control.new()
-	root.name = "GuardianHealthBar"
-	root.position = Vector2(120.0, 40.0)   ## Below the main HUD rows
+	root.name = "BossBar_" + id
+	root.position = Vector2(160.0, y_offset)
 	root.visible = false
-	_guardian_bar_root = root
 	add_child(root)
 
-	const BAR_W: float = 240.0
-	const BAR_H: float = 10.0
+	const BAR_W: float = 320.0
+	const BAR_H: float = 13.0
 
 	var bg := ColorRect.new()
 	bg.color = Color(0.08, 0.04, 0.04, 0.92)
@@ -272,46 +297,95 @@ func _build_guardian_health_bar() -> void:
 	root.add_child(bg)
 
 	var label := Label.new()
-	label.name = "GuardianLabel"
-	label.text = "GUARDIAN"
+	label.name = "BossLabel"
+	label.text = display_name
 	label.position = Vector2(0.0, 0.0)
-	label.add_theme_font_size_override("font_size", 9)
-	label.add_theme_color_override("font_color", Color(0.90, 0.28, 0.22))
+	label.add_theme_font_size_override("font_size", 12)
+	label.add_theme_color_override("font_color", color)
 	if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
 		label.add_theme_font_override("font", load("res://assets/fonts/m5x7.ttf"))
 	root.add_child(label)
-	_guardian_hp_label = label
 
 	var bar := ProgressBar.new()
-	bar.name = "GuardianHPBar"
+	bar.name = "BossHPBar"
 	bar.size = Vector2(BAR_W, BAR_H)
-	bar.position = Vector2(0.0, 12.0)
+	bar.position = Vector2(0.0, 16.0)
 	bar.min_value = 0.0
 	bar.max_value = 100.0
 	bar.value = 100.0
 	bar.show_percentage = false
 
 	var bar_bg := StyleBoxFlat.new()
-	bar_bg.bg_color = Color(0.18, 0.06, 0.06)
+	bar_bg.bg_color = Color(color.r * 0.2, color.g * 0.2, color.b * 0.2)
 	bar.add_theme_stylebox_override("background", bar_bg)
 
 	var bar_fill := StyleBoxFlat.new()
-	bar_fill.bg_color = Color(0.80, 0.12, 0.12)
+	bar_fill.bg_color = color
 	bar.add_theme_stylebox_override("fill", bar_fill)
 
 	root.add_child(bar)
-	_guardian_hp_bar = bar
+
+	var entry := {
+		"root": root,
+		"bar": bar,
+		"label": label,
+		"color": color,
+		"display_name": display_name,
+		"y_offset": y_offset,
+	}
+	_boss_bars[id] = entry
+	return entry
+
+func _update_boss_bar(id: String, hp: float, max_hp: float) -> void:
+	var entry: Dictionary = _boss_bars.get(id, {})
+	if entry.is_empty():
+		return
+	entry.bar.max_value = max_hp
+	entry.bar.value = hp
+	var hp_pct: int = int(round(hp / max_hp * 100.0))
+	if entry.label:
+		entry.label.text = "%s  %d / %d  (%d%%)" % [
+				entry.display_name, int(hp), int(max_hp), hp_pct]
 
 func _on_guardian_state_changed(hp: float, max_hp: float, show_bar: bool) -> void:
-	if _guardian_bar_root == null:
+	## Legacy signal for the guardian — routes through the shared bar system.
+	var entry: Dictionary = _boss_bars.get("guardian", {})
+	if entry.is_empty():
 		return
-	_guardian_bar_root.visible = show_bar
+	entry.root.visible = show_bar
 	if show_bar and max_hp > 0.0:
-		_guardian_hp_bar.max_value = max_hp
-		_guardian_hp_bar.value = hp
-		var hp_pct: int = int(round(hp / max_hp * 100.0))
-		if _guardian_hp_label:
-			_guardian_hp_label.text = "GUARDIAN  %d / %d  (%d%%)" % [int(hp), int(max_hp), hp_pct]
+		_update_boss_bar("guardian", hp, max_hp)
+
+func _on_boss_state_changed(id: String, hp: float, max_hp: float, show_bar: bool,
+		display_name: String, color: Color) -> void:
+	## Unified signal for any boss (minibosses, final boss, etc). Creates the
+	## bar on first show if not registered. id is the key used to update later.
+	if id == "":
+		return
+	if not _boss_bars.has(id):
+		if not show_bar:
+			return
+		var y_offset: float = _next_boss_bar_y_offset(id)
+		_build_boss_bar(id, display_name, color, y_offset)
+	var entry: Dictionary = _boss_bars[id]
+	entry.root.visible = show_bar
+	if show_bar and max_hp > 0.0:
+		_update_boss_bar(id, hp, max_hp)
+
+func _next_boss_bar_y_offset(id: String) -> float:
+	## Slot policy: final boss pinned to top (y=24, above guardian). All other
+	## bosses fall below guardian at y=56 and stack downward in 18px rows.
+	if id == "final_boss":
+		return 32.0
+	var used: Dictionary = {}
+	for key in _boss_bars.keys():
+		var entry: Dictionary = _boss_bars[key]
+		if entry.root and entry.root.visible:
+			used[entry.y_offset] = true
+	var candidate: float = 75.0
+	while used.has(candidate):
+		candidate += 24.0
+	return candidate
 
 ## ── Phase label + flash ──────────────────────────────────────────────────────
 
@@ -320,10 +394,10 @@ func _build_phase_label() -> void:
 	var lbl := Label.new()
 	lbl.name = "PhaseLabel"
 	lbl.text = "PHASE 1: THE THRESHOLD"
-	lbl.position = Vector2(140.0, 2.0)
+	lbl.position = Vector2(220.0, 2.0)
 	lbl.size = Vector2(200.0, 14.0)
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.add_theme_font_size_override("font_size", 12)
+	lbl.add_theme_font_size_override("font_size", 16)
 	lbl.modulate = Color(1.0, 1.0, 1.0, 0.75)
 	if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
 		lbl.add_theme_font_override("font", load("res://assets/fonts/m5x7.ttf"))
@@ -336,10 +410,10 @@ func _build_phase_flash_label() -> void:
 	var lbl := Label.new()
 	lbl.name = "PhaseFlashLabel"
 	lbl.text = ""
-	lbl.position = Vector2(40.0, 110.0)
+	lbl.position = Vector2(120.0, 147.0)
 	lbl.size = Vector2(400.0, 40.0)
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.add_theme_font_size_override("font_size", 20)
+	lbl.add_theme_font_size_override("font_size", 27)
 	lbl.add_theme_color_override("font_color", Color(1.0, 0.9, 0.7))
 	lbl.modulate.a = 0.0
 	if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
@@ -353,10 +427,10 @@ func _build_extraction_warning_label() -> void:
 	var lbl := Label.new()
 	lbl.name = "ExtractionWarningLabel"
 	lbl.text = ""
-	lbl.position = Vector2(140.0, 15.0)
+	lbl.position = Vector2(220.0, 20.0)
 	lbl.size = Vector2(200.0, 12.0)
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.add_theme_font_size_override("font_size", 10)
+	lbl.add_theme_font_size_override("font_size", 13)
 	lbl.add_theme_color_override("font_color", Color(1.0, 0.9, 0.1))
 	lbl.visible = false
 	if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
@@ -364,13 +438,54 @@ func _build_extraction_warning_label() -> void:
 	add_child(lbl)
 	_extraction_warning_label = lbl
 
+func _build_extraction_locked_label() -> void:
+	## Persistent blinking banner shown while the final boss is alive.
+	## Sits below the phase countdown row (y=28). Red-orange.
+	var lbl := Label.new()
+	lbl.name = "ExtractionLockedLabel"
+	lbl.text = "EXTRACTION LOCKED — DEFEAT THE HEART"
+	lbl.position = Vector2(120.0, 37.0)
+	lbl.size = Vector2(400.0, 12.0)
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.add_theme_font_size_override("font_size", 15)
+	lbl.add_theme_color_override("font_color", Color(1.0, 0.35, 0.12))
+	lbl.visible = false
+	if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
+		lbl.add_theme_font_override("font", load("res://assets/fonts/m5x7.ttf"))
+	add_child(lbl)
+	_extraction_locked_label = lbl
+
+func flash_text(text: String, color: Color = Color(1.0, 0.9, 0.7),
+		duration: float = 1.5) -> void:
+	## Public helper: reuse the phase flash label for any centered announcement.
+	## Cancels whatever was animating there and runs a new fade.
+	if _phase_flash_label == null:
+		return
+	_phase_flash_label.text = text
+	_phase_flash_label.add_theme_color_override("font_color", color)
+	_phase_flash_label.modulate.a = 1.0
+	var tween := create_tween()
+	tween.tween_interval(0.5)
+	tween.tween_property(_phase_flash_label, "modulate:a", 0.0, duration)
+
+func _on_final_boss_spawned(display_name: String) -> void:
+	if _extraction_locked_label:
+		_extraction_locked_label.visible = true
+	flash_text("BOSS INCOMING — %s" % display_name.to_upper(),
+			Color(1.0, 0.3, 0.25), 1.8)
+
+func _on_final_boss_defeated() -> void:
+	if _extraction_locked_label:
+		_extraction_locked_label.visible = false
+	flash_text("EXTRACTION UNLOCKED", Color(0.3, 1.0, 0.55), 1.5)
+
 ## ── Instability meter (below loot label) ────────────────────────────────────
 
 func _build_instability_meter() -> void:
 	## Extends the TopLeftBG downward by 18px, then adds a thin bar + tier label.
 	## Bar is 140px wide × 3px tall at y=62, tier label at y=66.
 	const BAR_Y: float = 62.0
-	const BAR_W: float = 140.0
+	const BAR_W: float = 187.0
 	const BAR_H: float = 3.0
 	const FONT_PATH: String = "res://assets/fonts/m5x7.ttf"
 
@@ -379,7 +494,7 @@ func _build_instability_meter() -> void:
 	bg_ext.name = "InstabilityBGExt"
 	bg_ext.color = Color(0.0, 0.0, 0.0, 0.55)
 	bg_ext.position = Vector2(2.0, 60.0)
-	bg_ext.size = Vector2(146.0, 18.0)
+	bg_ext.size = Vector2(195.0, 24.0)
 	bg_ext.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg_ext)
 	_instability_bg_ext = bg_ext
@@ -406,7 +521,7 @@ func _build_instability_meter() -> void:
 	tier_lbl.name = "InstabilityTierLabel"
 	tier_lbl.text = "STABLE"
 	tier_lbl.position = Vector2(4.0, BAR_Y + BAR_H + 1.0)
-	tier_lbl.add_theme_font_size_override("font_size", 8)
+	tier_lbl.add_theme_font_size_override("font_size", 11)
 	tier_lbl.add_theme_color_override("font_color", LootTables.INSTABILITY_TIERS[0].color)
 	if ResourceLoader.exists(FONT_PATH):
 		tier_lbl.add_theme_font_override("font", load(FONT_PATH))

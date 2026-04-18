@@ -44,6 +44,8 @@ func try_start_channel(player_pos: Vector2) -> bool:
 		return false
 	if GameManager.current_state != GameManager.GameState.RUN_ACTIVE:
 		return false
+	if not GameManager.is_extraction_allowed():
+		return false
 
 	_channeling = true
 	GameManager.player_has_keystone = false

@@ -180,6 +180,12 @@ static func execute_effect(effect: Resource, source: Node2D, target: Node2D,
 			return
 		combat_manager.displacement_system.execute(source, ability, effect, [target] if target else [])
 
+	elif effect is SpawnTelegraphEffect:
+		if not combat_manager or not combat_manager.get("telegraph_manager"):
+			return
+		var tel_target: Node2D = target if is_instance_valid(target) else source
+		combat_manager.telegraph_manager.spawn(effect, source, tel_target)
+
 
 static func execute_effects(effects: Array, source: Node2D, targets: Array,
 		ability, combat_manager: Node2D,
@@ -196,6 +202,9 @@ static func execute_effects(effects: Array, source: Node2D, targets: Array,
 		elif effect is GroundZoneEffect:
 			var zone_target: Node2D = targets[0] if not targets.is_empty() and is_instance_valid(targets[0]) else null
 			execute_effect(effect, source, zone_target, ability, combat_manager, fallback_source)
+		elif effect is SpawnTelegraphEffect:
+			var tel_target: Node2D = targets[0] if not targets.is_empty() and is_instance_valid(targets[0]) else null
+			execute_effect(effect, source, tel_target, ability, combat_manager, fallback_source)
 		elif effect is DisplacementEffect:
 			if combat_manager and combat_manager.get("displacement_system"):
 				combat_manager.displacement_system.execute(source, ability, effect, targets)

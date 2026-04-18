@@ -3,11 +3,11 @@ extends Node2D
 ## Hub — Safe room between runs. Player walks to interactive stations and presses E.
 
 const PIXEL_FONT := preload("res://assets/fonts/m5x7.ttf")
-const PLAYER_SPEED := 85.0
-const INTERACT_RADIUS := 40.0
-const ROOM_W := 480
-const ROOM_H := 270
-const WALL_T := 14
+const PLAYER_SPEED := 113.0
+const INTERACT_RADIUS := 53.0
+const ROOM_W := 640
+const ROOM_H := 360
+const WALL_T := 19
 
 ## Scene paths for each hub overlay panel.
 const _PANEL_SCENES := {
@@ -26,17 +26,17 @@ const _PANEL_SCRIPTS := {
 ## Station definitions: id, display name, accent color, world position, visual size, tagline.
 const STATIONS: Array[Dictionary] = [
 	{"id": "launch",    "name": "LAUNCH PAD", "color": Color(0.20, 0.90, 0.40),
-	 "pos": Vector2(240, 88),  "size": Vector2(110, 44), "desc": "begin descent"},
+	 "pos": Vector2(320, 117), "size": Vector2(147, 59), "desc": "begin descent"},
 	{"id": "armory",    "name": "ARMORY",     "color": Color(0.90, 0.60, 0.12),
-	 "pos": Vector2(82, 158),  "size": Vector2(96, 42),  "desc": "equip loadout"},
+	 "pos": Vector2(109, 211), "size": Vector2(128, 56), "desc": "equip loadout"},
 	{"id": "workshop",  "name": "WORKSHOP",   "color": Color(0.68, 0.24, 0.88),
-	 "pos": Vector2(398, 158), "size": Vector2(100, 42), "desc": "hub upgrades"},
+	 "pos": Vector2(531, 211), "size": Vector2(133, 56), "desc": "hub upgrades"},
 	{"id": "research",  "name": "RESEARCH",   "color": Color(0.20, 0.85, 0.55),
-	 "pos": Vector2(240, 195), "size": Vector2(110, 38), "desc": "blueprints"},
+	 "pos": Vector2(320, 260), "size": Vector2(147, 51), "desc": "blueprints"},
 	{"id": "records",   "name": "RECORDS",    "color": Color(0.65, 0.65, 0.72),
-	 "pos": Vector2(110, 242), "size": Vector2(100, 38), "desc": "view stats"},
+	 "pos": Vector2(147, 323), "size": Vector2(133, 51), "desc": "view stats"},
 	{"id": "roster",    "name": "ROSTER",     "color": Color(0.45, 0.52, 0.95),
-	 "pos": Vector2(368, 242), "size": Vector2(130, 38), "desc": "select character"},
+	 "pos": Vector2(491, 323), "size": Vector2(173, 51), "desc": "select character"},
 ]
 
 var _player_body: CharacterBody2D
@@ -91,7 +91,7 @@ func _build_room() -> void:
 	var title := Label.new()
 	title.text = "BASE CAMP"
 	title.add_theme_font_override("font", PIXEL_FONT)
-	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_font_size_override("font_size", 21)
 	title.add_theme_color_override("font_color", Color(0.52, 0.56, 0.66))
 	title.position = Vector2(ROOM_W * 0.5 - 44, -1)
 	add_child(title)
@@ -227,7 +227,7 @@ func _build_stations() -> void:
 		var name_lbl := Label.new()
 		name_lbl.text = s["name"]
 		name_lbl.add_theme_font_override("font", PIXEL_FONT)
-		name_lbl.add_theme_font_size_override("font_size", 16)
+		name_lbl.add_theme_font_size_override("font_size", 21)
 		name_lbl.add_theme_color_override("font_color", col)
 		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		name_lbl.clip_contents = true
@@ -239,7 +239,7 @@ func _build_stations() -> void:
 		var desc_lbl := Label.new()
 		desc_lbl.text = s["desc"]
 		desc_lbl.add_theme_font_override("font", PIXEL_FONT)
-		desc_lbl.add_theme_font_size_override("font_size", 14)
+		desc_lbl.add_theme_font_size_override("font_size", 19)
 		desc_lbl.add_theme_color_override("font_color", Color(0.75, 0.75, 0.82))
 		desc_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		desc_lbl.clip_contents = true
@@ -257,7 +257,7 @@ func _build_player() -> void:
 	_player_body.name = "HubPlayer"
 	_player_body.collision_layer = 2
 	_player_body.collision_mask = 1
-	_player_body.position = Vector2(240, 212)
+	_player_body.position = Vector2(320, 283)
 
 	var cs := CollisionShape2D.new()
 	var rs := RectangleShape2D.new()
@@ -303,31 +303,31 @@ func _build_ui() -> void:
 	_interact_prompt = Label.new()
 	_interact_prompt.text = "[ E ]  interact"
 	_interact_prompt.add_theme_font_override("font", PIXEL_FONT)
-	_interact_prompt.add_theme_font_size_override("font_size", 12)
+	_interact_prompt.add_theme_font_size_override("font_size", 16)
 	_interact_prompt.add_theme_color_override("font_color", Color(0.95, 0.92, 0.50))
 	_interact_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_interact_prompt.size = Vector2(130, 16)
+	_interact_prompt.size = Vector2(173, 21)
 	_interact_prompt.visible = false
 	_panel_layer.add_child(_interact_prompt)
 
 	## Resource counter (top-right) — prominent HUD element
 	var res_bg := ColorRect.new()
 	res_bg.color = Color(0.055, 0.065, 0.085, 0.92)
-	res_bg.size = Vector2(148, 20)
-	res_bg.position = Vector2(328, 2)
+	res_bg.size = Vector2(197, 27)
+	res_bg.position = Vector2(437, 2)
 	_panel_layer.add_child(res_bg)
 
 	var res_accent := ColorRect.new()
 	res_accent.color = Color(0.90, 0.80, 0.30)
-	res_accent.size = Vector2(148, 1)
-	res_accent.position = Vector2(328, 2)
+	res_accent.size = Vector2(197, 1)
+	res_accent.position = Vector2(437, 2)
 	_panel_layer.add_child(res_accent)
 
 	_resource_label = Label.new()
 	_resource_label.add_theme_font_override("font", PIXEL_FONT)
-	_resource_label.add_theme_font_size_override("font_size", 14)
+	_resource_label.add_theme_font_size_override("font_size", 19)
 	_resource_label.add_theme_color_override("font_color", Color(0.98, 0.88, 0.32))
-	_resource_label.position = Vector2(332, 4)
+	_resource_label.position = Vector2(441, 5)
 	_resource_label.text = "RESOURCES: %d" % ProgressionManager.resources
 	_panel_layer.add_child(_resource_label)
 

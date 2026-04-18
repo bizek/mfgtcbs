@@ -249,7 +249,7 @@ func _place_extraction_marker() -> void:
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.position = Vector2(-32.0, -68.0)
 	lbl.modulate = Color(0.0, 0.85, 0.38, 0.5)
-	lbl.add_theme_font_size_override("font_size", 9)
+	lbl.add_theme_font_size_override("font_size", 12)
 	marker.add_child(lbl)
 
 	add_child(marker)
@@ -289,7 +289,7 @@ func _place_guarded_marker() -> void:
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.position = Vector2(-32.0, -68.0)
 	lbl.modulate = Color(0.80, 0.20, 0.15, 0.45)
-	lbl.add_theme_font_size_override("font_size", 9)
+	lbl.add_theme_font_size_override("font_size", 12)
 	marker.add_child(lbl)
 
 	add_child(marker)
@@ -338,7 +338,7 @@ func _place_locked_marker() -> void:
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.position = Vector2(-28.0, -68.0)
 	lbl.modulate = Color(0.70, 0.30, 0.95, 0.50)
-	lbl.add_theme_font_size_override("font_size", 9)
+	lbl.add_theme_font_size_override("font_size", 12)
 	marker.add_child(lbl)
 
 	var key_lbl := Label.new()
@@ -346,7 +346,7 @@ func _place_locked_marker() -> void:
 	key_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	key_lbl.position = Vector2(-20.0, -58.0)
 	key_lbl.modulate = Color(0.75, 0.60, 0.90, 0.40)
-	key_lbl.add_theme_font_size_override("font_size", 8)
+	key_lbl.add_theme_font_size_override("font_size", 11)
 	marker.add_child(key_lbl)
 
 	add_child(marker)
@@ -386,7 +386,7 @@ func _place_sacrifice_marker() -> void:
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.position = Vector2(-32.0, -68.0)
 	lbl.modulate = Color(0.85, 0.12, 0.12, 0.45)
-	lbl.add_theme_font_size_override("font_size", 9)
+	lbl.add_theme_font_size_override("font_size", 12)
 	marker.add_child(lbl)
 
 	add_child(marker)

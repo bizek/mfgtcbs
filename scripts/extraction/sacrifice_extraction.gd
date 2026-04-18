@@ -76,6 +76,8 @@ func try_open_ui(player_pos: Vector2) -> bool:
 		return false
 	if not _has_sacrifice_items():
 		return false
+	if not GameManager.is_extraction_allowed():
+		return false
 	_open_ui()
 	return true
 
@@ -129,8 +131,8 @@ func _on_item_selected(item_key: String) -> void:
 
 func _build_panel() -> Control:
 	const PIXEL_FONT_PATH := "res://assets/fonts/m5x7.ttf"
-	const PANEL_W: float = 270.0
-	const PANEL_H: float = 220.0
+	const PANEL_W: float = 360.0
+	const PANEL_H: float = 293.0
 	const VW: float = 480.0
 	const VH: float = 270.0
 
@@ -164,7 +166,7 @@ func _build_panel() -> Control:
 	title_lbl.position = Vector2(8.0, 4.0)
 	if pixel_font:
 		title_lbl.add_theme_font_override("font", pixel_font)
-	title_lbl.add_theme_font_size_override("font_size", 13)
+	title_lbl.add_theme_font_size_override("font_size", 17)
 	title_lbl.add_theme_color_override("font_color", Color(0.95, 0.28, 0.28))
 	panel.add_child(title_lbl)
 
@@ -173,7 +175,7 @@ func _build_panel() -> Control:
 	sub_lbl.position = Vector2(8.0, 26.0)
 	if pixel_font:
 		sub_lbl.add_theme_font_override("font", pixel_font)
-	sub_lbl.add_theme_font_size_override("font_size", 10)
+	sub_lbl.add_theme_font_size_override("font_size", 13)
 	sub_lbl.add_theme_color_override("font_color", Color(0.65, 0.55, 0.55))
 	sub_lbl.size = Vector2(PANEL_W - 16.0, 16.0)
 	panel.add_child(sub_lbl)
@@ -213,7 +215,7 @@ func _build_panel() -> Control:
 		empty.text = "Nothing to sacrifice."
 		if pixel_font:
 			empty.add_theme_font_override("font", pixel_font)
-		empty.add_theme_font_size_override("font_size", 12)
+		empty.add_theme_font_size_override("font_size", 16)
 		empty.add_theme_color_override("font_color", Color(0.50, 0.50, 0.55))
 		vbox.add_child(empty)
 
@@ -231,7 +233,7 @@ func _build_panel() -> Control:
 	cancel_btn.process_mode = Node.PROCESS_MODE_ALWAYS
 	if pixel_font:
 		cancel_btn.add_theme_font_override("font", pixel_font)
-	cancel_btn.add_theme_font_size_override("font_size", 11)
+	cancel_btn.add_theme_font_size_override("font_size", 15)
 	cancel_btn.add_theme_color_override("font_color", Color(0.60, 0.55, 0.55))
 	cancel_btn.pressed.connect(close_ui)
 	panel.add_child(cancel_btn)
@@ -248,7 +250,7 @@ func _build_row(display_text: String, item_key: String, pixel_font: Font) -> HBo
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if pixel_font:
 		name_lbl.add_theme_font_override("font", pixel_font)
-	name_lbl.add_theme_font_size_override("font_size", 12)
+	name_lbl.add_theme_font_size_override("font_size", 16)
 	name_lbl.add_theme_color_override("font_color", Color(0.85, 0.78, 0.78))
 	row.add_child(name_lbl)
 
@@ -258,7 +260,7 @@ func _build_row(display_text: String, item_key: String, pixel_font: Font) -> HBo
 	btn.process_mode = Node.PROCESS_MODE_ALWAYS
 	if pixel_font:
 		btn.add_theme_font_override("font", pixel_font)
-	btn.add_theme_font_size_override("font_size", 10)
+	btn.add_theme_font_size_override("font_size", 13)
 	btn.add_theme_color_override("font_color", Color(0.95, 0.28, 0.28))
 	var cap_key: String = item_key
 	btn.pressed.connect(func(): _on_item_selected(cap_key))

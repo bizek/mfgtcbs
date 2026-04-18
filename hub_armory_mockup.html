@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EXTRACTION HUB // ARMORY</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Oswald:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --void:          #060605;
+  --panel:         #0c0b09;
+  --card:          #0f0e0c;
+  --card-hi:       #151310;
+  --plate:         #0a0908;
+
+  --b0: #181512;
+  --b1: #2a2520;
+  --b2: #3a342c;
+  --b-hot: #7a420e;
+  --b-active: #b05a14;
+
+  --amber:    #d4721a;
+  --amber-hi: #f09040;
+  --amber-lo: #5a2c08;
+  --ag: rgba(212,114,26,0.30);
+
+  --red:    #a81e10;
+  --red-hi: #d02808;
+  --red-lo: #400a04;
+  --rg: rgba(168,30,16,0.35);
+
+  --green:    #2a6818;
+  --green-hi: #50a030;
+
+  --purple:    #5828a0;
+  --purple-hi: #8050d0;
+
+  --arc: #2878b8;
+  --arc-hi: #50a8e8;
+
+  --t0: #ccb090;
+  --t1: #8a6848;
+  --t2: #503c28;
+  --t3: #2a1e12;
+  --mono: #b09060;
+
+  --fh: 'Oswald', sans-serif;
+  --fb: 'Rajdhani', sans-serif;
+  --fm: 'Share Tech Mono', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { min-width: 960px; }
+
+body {
+  background: var(--void);
+  background-image:
+    radial-gradient(ellipse 60% 40% at 20% 20%, rgba(40,28,16,0.18) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 60% at 80% 80%, rgba(20,10,5,0.12) 0%, transparent 70%);
+  color: var(--t0);
+  font-family: var(--fb);
+  font-size: 14px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px 60px;
+  position: relative;
+}
+
+/* Scanlines */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px, transparent 3px,
+    rgba(0,0,0,0.10) 3px, rgba(0,0,0,0.10) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Vignette */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background: radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.65) 100%);
+  pointer-events: none;
+  z-index: 9998;
+}
+
+/* ── FRAME ── */
+.frame {
+  width: 100%;
+  max-width: 940px;
+  position: relative;
+}
+
+/* ── HAZARD STRIPE ── */
+.hazard {
+  height: 5px;
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--amber-lo) 0px, var(--amber-lo) 5px,
+    var(--b0)       5px, var(--b0)       10px
+  );
+  opacity: 0.7;
+}
+
+/* ── HEADER ── */
+.hub-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 14px 0 12px;
+  border-bottom: 1px solid var(--b1);
+  position: relative;
+}
+.hub-header::after {
+  content: '';
+  position: absolute;
+  bottom: -2px; left: 0;
+  width: 35%;
+  height: 2px;
+  background: linear-gradient(90deg, var(--amber), transparent);
+  box-shadow: 0 0 10px var(--ag);
+}
+
+.hub-ident {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.hub-sub {
+  font-family: var(--fm);
+  font-size: 9px;
+  color: var(--t2);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+.hub-name {
+  font-family: var(--fh);
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--t0);
+  line-height: 1;
+}
+.hub-name em {
+  font-style: normal;
+  color: var(--amber);
+}
+
+.hub-status {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-family: var(--fm);
+  font-size: 9px;
+  color: var(--t2);
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+.sitem { display: flex; align-items: center; gap: 5px; }
+
+.sdot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+}
+.sdot.ok   { background: var(--green-hi); box-shadow: 0 0 6px var(--green); animation: pulse 2.4s ease-in-out infinite; }
+.sdot.warn { background: var(--amber);    box-shadow: 0 0 6px var(--ag);    animation: pulse 1.8s ease-in-out infinite; }
+.sdot.err  { background: var(--red-hi);   box-shadow: 0 0 6px var(--rg);    animation: blink 0.9s step-end infinite; }
+
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+#clock { font-family: var(--fm); font-size: 10px; color: var(--t2); letter-spacing: 0.08em; }
+
+/* ── TABS ── */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--b1);
+  margin-top: 0;
+}
+.tab {
+  background: none;
+  border: none;
+  border-right: 1px solid var(--b0);
+  cursor: pointer;
+  font-family: var(--fh);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--t2);
+  padding: 11px 26px 9px;
+  position: relative;
+  transition: color 0.18s, background 0.18s;
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
+}
+.tab:hover { color: var(--t1); background: rgba(255,255,255,0.015); }
+.tab.on {
+  color: var(--amber);
+  background: var(--card);
+}
+.tab.on::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; left: 0; right: 0;
+  height: 2px;
+  background: var(--amber);
+  box-shadow: 0 0 8px var(--ag);
+}
+.tab-idx {
+  font-family: var(--fm);
+  font-size: 8px;
+  opacity: 0.45;
+  margin-right: 7px;
+}
+
+/* ── PANELS ── */
+.panel { display: none; }
+.panel.on { display: block; }
+
+/* ── ARMORY ── */
+.armory { padding: 18px 0 0; }
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--b0);
+  margin-bottom: 14px;
+}
+.section-label {
+  font-family: var(--fm);
+  font-size: 9px;
+  color: var(--t2);
+  letter-spacing: 0.20em;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+.section-title {
+  font-family: var(--fh);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--t1);
+}
+.section-meta {
+  font-family: var(--fm);
+  font-size: 9px;
+  color: var(--t2);
+  letter-spacing: 0.08em;
+}
+
+.blink-cursor {
+  display: inline-block;
+  width: 8px; height: 2px;
+  background: var(--amber);
+  vertical-align: middle;
+  margin-left: 5px;
+  animation: blink 1s step-end infinite;
+}
+
+/* ── WEAPON CARDS ── */
+.weapon-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Wrapper for clip-path "border" technique */
+.wcard-wrap {
+  background: var(--b1);
+  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
+  padding: 1px;
+  cursor: pointer;
+  transition: background 0.18s;
+}
+.wcard-wrap:hover   { background: var(--b-hot); }
+.wcard-wrap.on      { background: var(--b-active); }
+
+.wcard {
+  clip-path: polygon(0 0, calc(100% - 17px) 0, 100% 17px, 100% 100%, 17px 100%, 0 calc(100% - 17px));
+  background: var(--card);
+  display: grid;
+  grid-template-columns: 5px 96px 1fr 230px;
+  min-height: 124px;
+  transition: background 0.18s;
+  position: relative;
+}
+.wcard-wrap:hover .wcard { background: var(--card-hi); }
+.wcard-wrap.on    .wcard { background: var(--card-hi); }
+
+/* Left color strip */
+.wstrip {
+  background: var(--b1);
+  transition: background 0.18s, box-shadow 0.18s;
+}
+.wcard-wrap.on .wstrip {
+  background: var(--amber);
+  box-shadow: 0 0 14px var(--ag);
+}
+
+/* ── ICON AREA ── */
+.wicon-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 8px;
+  border-right: 1px solid var(--b0);
+  gap: 6px;
+}
+.wslot-num {
+  font-family: var(--fm);
+  font-size: 9px;
+  color: var(--t2);
+  letter-spacing: 0.14em;
+}
+.wicon-box {
+  width: 58px; height: 58px;
+  background: var(--plate);
+  border: 1px solid var(--b1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+/* Grid overlay on icon */
+.wicon-box::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    repeating-linear-gradient(0deg,   transparent, transparent 8px, rgba(255,255,255,0.025) 8px, rgba(255,255,255,0.025) 9px),
+    repeating-linear-gradient(90deg,  transparent, transparent 8px, rgba(255,255,255,0.025) 8px, rgba(255,255,255,0.025) 9px);
+  pointer-events: none;
+}
+.wicon-box svg { width: 38px; height: 38px; }
+
+.wtier {
+  font-family: var(--fm);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  color: var(--amber);
+}
+
+/* ── WEAPON INFO ── */
+.winfo {
+  padding: 14px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  border-right: 1px solid var(--b0);
+}
+.wname-row {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+.wname {
+  font-family: var(--fh);
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--t0);
+  line-height: 1;
+}
+.wclass {
+  font-family: var(--fm);
+  font-size: 9px;
+  color: var(--t2);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border: 1px solid var(--b1);
+  padding: 1px 5px;
+}
+.wserial {
+  font-family: var(--fm);
+  font-size: 8px;
+  color: var(--t3);
+  letter-spacing: 0.10em;
+  margin-top: auto;
+}
+
+/* Stat bars */
+.stats { display: flex; flex-direction: column; gap: 5px; }
+.srow  { display: flex; align-items: center; gap: 8px; }
+.slbl {
+  font-family: var(--fm);
+  font-size: 9px;
+  color: var(--t2);
+  letter-spacing: 0.10em;
+  width: 28px;
+  flex-shrink: 0;
+}
+.sbar {
+  flex: 1;
+  height: 3px;
+  background: var(--b0);
+  max-width: 130px;
+  position: relative;
+}
+.sfill {
+  height: 100%;
+  background: var(--amber-lo);
+  position: relative;
+  transition: width 0.4s ease;
+}
+.sfill::after {
+  content: '';
+  position: absolute;
+  right: 0; top: 0; bottom: 0;
+  width: 2px;
+  background: var(--amber);
+  box-shadow: 0 0 5px var(--ag);
+}
+.sfill.hi { background: linear-gradient(90deg, var(--amber-lo), var(--amber)); }
+.sfill.hi::after { background: var(--amber-hi); box-shadow: 0 0 7px var(--ag); }
+.sfill.lo { background: var(--red-lo); }
+.sfill.lo::after { background: var(--red-hi); box-shadow: 0 0 5px var(--rg); }
+.sval {
+  font-family: var(--fm);
+  font-size: 9px;
+  color: var(--t2);
+  width: 14px;
+  text-align: right;
+}
+
+/* ── MOD SLOTS ── */
+.mods-area {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: center;
+}
+.mods-lbl {
+  font-family: var(--fm);
+  font-size: 9px;
+  color: var(--t2);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin-bottom: 1px;
+}
+
+.mslot {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 9px;
+  border: 1px solid var(--b1);
+  background: var(--plate);
+  cursor: pointer;
+  transition: border-color 0.18s, background 0.18s;
+  clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 0 100%);
+  position: relative;
+}
+.mslot:hover { border-color: var(--b2); background: var(--card); }
+.mslot.filled:hover { border-color: var(--b-hot); }
+.mslot.empty {
+  border-style: dashed;
+  border-color: var(--b0);
+  opacity: 0.55;
+}
+.mslot.empty:hover { opacity: 0.80; border-color: var(--b1); }
+
+.mnum {
+  font-family: var(--fm);
+  font-size: 8px;
+  color: var(--t2);
+  flex-shrink: 0;
+  width: 14px;
+}
+.mpip {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.mpip.fire     { background: var(--red-hi);    box-shadow: 0 0 5px var(--rg); }
+.mpip.phys     { background: var(--amber);     box-shadow: 0 0 5px var(--ag); }
+.mpip.void     { background: var(--purple-hi); box-shadow: 0 0 5px rgba(128,80,208,.4); }
+.mpip.arc      { background: var(--arc-hi);    box-shadow: 0 0 5px rgba(80,168,232,.4); }
+.mpip.none     { background: transparent; border: 1px solid var(--b1); }
+
+.mname {
+  font-family: var(--fh);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--t1);
+  flex: 1;
+}
+.mslot.filled .mname { color: var(--t0); }
+.mslot.empty  .mname { color: var(--t2); font-weight: 400; }
+.mtag {
+  font-family: var(--fm);
+  font-size: 8px;
+  color: var(--t2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Tooltip */
+.mslot .tip {
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 10px);
+  transform: translateY(-50%);
+  background: #12100e;
+  border: 1px solid var(--b2);
+  padding: 7px 10px;
+  width: 190px;
+  font-family: var(--fb);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--t1);
+  line-height: 1.55;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s;
+  z-index: 100;
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
+  white-space: normal;
+}
+.mslot:hover .tip { opacity: 1; }
+
+/* ── FOOTER ── */
+.hub-footer {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--b0);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.foot-stats {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+.fstat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 18px;
+}
+.fstat:first-child { padding-left: 0; }
+.fstat-lbl {
+  font-family: var(--fm);
+  font-size: 8px;
+  color: var(--t2);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.fstat-val {
+  font-family: var(--fh);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--amber);
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+.fdivider {
+  width: 1px;
+  height: 32px;
+  background: var(--b0);
+  flex-shrink: 0;
+}
+.foot-right {
+  font-family: var(--fm);
+  font-size: 9px;
+  color: var(--t2);
+  text-align: right;
+  letter-spacing: 0.07em;
+  line-height: 1.7;
+}
+
+/* ── PLACEHOLDER TABS ── */
+.ph {
+  padding: 80px 20px;
+  text-align: center;
+}
+.ph-title {
+  font-family: var(--fh);
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: 0.20em;
+  text-transform: uppercase;
+  color: var(--b2);
+  margin-bottom: 10px;
+}
+.ph-sub {
+  font-family: var(--fm);
+  font-size: 10px;
+  color: var(--t2);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+/* Active synergy tag */
+.syn-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--fm);
+  font-size: 8px;
+  color: var(--red-hi);
+  border: 1px solid var(--red-lo);
+  padding: 1px 5px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+.syn-tag::before {
+  content: '▲';
+  font-size: 7px;
+}
+</style>
+</head>
+<body>
+
+<div class="frame">
+
+  <div class="hazard"></div>
+
+  <!-- HEADER -->
+  <header class="hub-header">
+    <div class="hub-ident">
+      <div class="hub-sub">UNIT-07 // FORWARD OPERATING BASE // LOADOUT SYSTEM v2.4</div>
+      <div class="hub-name">EXTRACTION <em>HUB</em></div>
+    </div>
+    <div class="hub-status">
+      <div class="sitem"><div class="sdot ok"></div>SYSTEMS ONLINE</div>
+      <div class="sitem"><div class="sdot warn"></div>THREAT: ELEVATED</div>
+      <div class="sitem"><div class="sdot err"></div>ZONE: HOT</div>
+      <div id="clock">00:00:00</div>
+    </div>
+  </header>
+
+  <!-- TABS -->
+  <nav class="tabs">
+    <button class="tab on" data-tab="armory">
+      <span class="tab-idx">01</span>ARMORY
+    </button>
+    <button class="tab" data-tab="workshop">
+      <span class="tab-idx">02</span>WORKSHOP
+    </button>
+    <button class="tab" data-tab="roster">
+      <span class="tab-idx">03</span>ROSTER
+    </button>
+  </nav>
+
+  <!-- ═══════════════════ ARMORY ═══════════════════ -->
+  <div class="panel on" id="tab-armory">
+    <div class="armory">
+
+      <div class="section-head">
+        <div>
+          <div class="section-label">LOADOUT CONFIGURATION</div>
+          <div class="section-title">EQUIPPED WEAPONS — 3/3 SLOTS ACTIVE<span class="blink-cursor"></span></div>
+        </div>
+        <div class="section-meta">SER// EX-07-A &nbsp;|&nbsp; LAST SYNC: <span id="sync-time">14:32:07</span></div>
+      </div>
+
+      <div class="weapon-list">
+
+        <!-- ─── SLOT 01: VIPER SMG ─── -->
+        <div class="wcard-wrap on" data-slot="0">
+          <div class="wcard">
+            <div class="wstrip"></div>
+
+            <div class="wicon-area">
+              <div class="wslot-num">SLOT 01</div>
+              <div class="wicon-box">
+                <!-- SMG silhouette -->
+                <svg viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="3" y="14" width="22" height="9" rx="1.5" fill="#c8a86a" opacity=".75"/>
+                  <rect x="25" y="15" width="10" height="7" rx="1" fill="#a08050" opacity=".65"/>
+                  <rect x="7" y="23" width="5" height="8" rx="1" fill="#806040" opacity=".6"/>
+                  <rect x="13" y="11" width="7" height="4" rx="1" fill="#987858" opacity=".5"/>
+                  <rect x="2"  y="16" width="3" height="5" rx=".5" fill="#d0b070" opacity=".55"/>
+                  <rect x="16" y="15" width="6" height="2" rx=".5" fill="#e0c080" opacity=".35"/>
+                </svg>
+              </div>
+              <div class="wtier">◆ TIER II</div>
+            </div>
+
+            <div class="winfo">
+              <div class="wname-row">
+                <div class="wname">VIPER SMG</div>
+                <div class="wclass">AUTOMATIC</div>
+              </div>
+              <div class="stats">
+                <div class="srow">
+                  <span class="slbl">DMG</span>
+                  <div class="sbar"><div class="sfill"    style="width:50%"></div></div>
+                  <span class="sval">5</span>
+                </div>
+                <div class="srow">
+                  <span class="slbl">SPD</span>
+                  <div class="sbar"><div class="sfill hi" style="width:90%"></div></div>
+                  <span class="sval">9</span>
+                </div>
+                <div class="srow">
+                  <span class="slbl">RNG</span>
+                  <div class="sbar"><div class="sfill lo" style="width:40%"></div></div>
+                  <span class="sval">4</span>
+                </div>
+              </div>
+              <div class="syn-tag">FIRE+VOID COMBO ACTIVE</div>
+              <div class="wserial">SER// V-SMG-0047-EX</div>
+            </div>
+
+            <div class="mods-area">
+              <div class="mods-lbl">MOD SLOTS — 3/3</div>
+              <div class="mslot filled">
+                <span class="mnum">M1</span>
+                <span class="mpip fire"></span>
+                <span class="mname">INCENDIARY ROUND</span>
+                <span class="mtag">FIRE</span>
+                <div class="tip">Adds 8 fire dmg on hit. 15% chance to apply BURNING (3 stacks).</div>
+              </div>
+              <div class="mslot filled">
+                <span class="mnum">M2</span>
+                <span class="mpip phys"></span>
+                <span class="mname">HOLLOW POINT</span>
+                <span class="mtag">PHYS</span>
+                <div class="tip">+22% damage vs unarmored. Procs on direct hit. Increases bleed severity.</div>
+              </div>
+              <div class="mslot filled">
+                <span class="mnum">M3</span>
+                <span class="mpip void"></span>
+                <span class="mname">VOID LENS</span>
+                <span class="mtag">VOID</span>
+                <div class="tip">Converts 30% damage to Void type. Bypasses physical resistance entirely.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ─── SLOT 02: BREACH SHOTGUN ─── -->
+        <div class="wcard-wrap" data-slot="1">
+          <div class="wcard">
+            <div class="wstrip"></div>
+
+            <div class="wicon-area">
+              <div class="wslot-num">SLOT 02</div>
+              <div class="wicon-box">
+                <!-- Shotgun silhouette -->
+                <svg viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="2"  y="15" width="26" height="8" rx="1.5" fill="#a88050" opacity=".75"/>
+                  <rect x="28" y="14" width="7"  height="10" rx="1" fill="#c8a060" opacity=".65"/>
+                  <rect x="4"  y="23" width="8"  height="7"  rx="1" fill="#706040" opacity=".6"/>
+                  <rect x="10" y="12" width="5"  height="4"  rx="1" fill="#907050" opacity=".5"/>
+                  <rect x="2"  y="17" width="2"  height="4"  rx=".5" fill="#c09858" opacity=".55"/>
+                  <circle cx="7" cy="19" r="2" fill="#d0b070" opacity=".3"/>
+                </svg>
+              </div>
+              <div class="wtier" style="color:#c0a870">◆◆ TIER III</div>
+            </div>
+
+            <div class="winfo">
+              <div class="wname-row">
+                <div class="wname">BREACH SHOTGUN</div>
+                <div class="wclass">BURST</div>
+              </div>
+              <div class="stats">
+                <div class="srow">
+                  <span class="slbl">DMG</span>
+                  <div class="sbar"><div class="sfill hi" style="width:80%"></div></div>
+                  <span class="sval">8</span>
+                </div>
+                <div class="srow">
+                  <span class="slbl">SPD</span>
+                  <div class="sbar"><div class="sfill lo" style="width:30%"></div></div>
+                  <span class="sval">3</span>
+                </div>
+                <div class="srow">
+                  <span class="slbl">RNG</span>
+                  <div class="sbar"><div class="sfill lo" style="width:20%"></div></div>
+                  <span class="sval">2</span>
+                </div>
+              </div>
+              <div class="syn-tag">CHAIN REACTION ACTIVE</div>
+              <div class="wserial">SER// SG-BREACH-0091-EX</div>
+            </div>
+
+            <div class="mods-area">
+              <div class="mods-lbl">MOD SLOTS — 2/3</div>
+              <div class="mslot filled">
+                <span class="mnum">M1</span>
+                <span class="mpip phys"></span>
+                <span class="mname">SERRATED EDGE</span>
+                <span class="mtag">PHYS</span>
+                <div class="tip">+28% bleed chance on hit. Stacks up to 3 times. Slows on max stack.</div>
+              </div>
+              <div class="mslot filled">
+                <span class="mnum">M2</span>
+                <span class="mpip arc"></span>
+                <span class="mname">CHAIN REACTION</span>
+                <span class="mtag">ARC</span>
+                <div class="tip">On kill: arc to nearest 2 enemies within 140px dealing 18 dmg. 0.8s ICD.</div>
+              </div>
+              <div class="mslot empty">
+                <span class="mnum">M3</span>
+                <span class="mpip none"></span>
+                <span class="mname">[ INSTALL MOD ]</span>
+                <span class="mtag">——</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ─── SLOT 03: PULSE CANNON ─── -->
+        <div class="wcard-wrap" data-slot="2">
+          <div class="wcard">
+            <div class="wstrip"></div>
+
+            <div class="wicon-area">
+              <div class="wslot-num">SLOT 03</div>
+              <div class="wicon-box">
+                <!-- Energy cannon silhouette -->
+                <svg viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="5"  y="15" width="20" height="8" rx="2"   fill="#6040a0" opacity=".7"/>
+                  <rect x="25" y="14" width="10" height="10" rx="1.5" fill="#5030c0" opacity=".75"/>
+                  <rect x="9"  y="12" width="10" height="4"  rx="1.5" fill="#8060b0" opacity=".45"/>
+                  <circle cx="10" cy="19" r="2.5" fill="#c090ff" opacity=".55"/>
+                  <circle cx="10" cy="19" r="1.2" fill="#e8c0ff" opacity=".8"/>
+                  <rect x="4"  y="16" width="3"  height="6"  rx=".5" fill="#7050b8" opacity=".6"/>
+                  <rect x="16" y="16" width="5"  height="2"  rx=".5" fill="#a080d0" opacity=".3"/>
+                </svg>
+              </div>
+              <div class="wtier" style="color:var(--purple-hi)">◆ TIER I</div>
+            </div>
+
+            <div class="winfo">
+              <div class="wname-row">
+                <div class="wname">PULSE CANNON</div>
+                <div class="wclass">ENERGY</div>
+              </div>
+              <div class="stats">
+                <div class="srow">
+                  <span class="slbl">DMG</span>
+                  <div class="sbar"><div class="sfill"    style="width:70%"></div></div>
+                  <span class="sval">7</span>
+                </div>
+                <div class="srow">
+                  <span class="slbl">SPD</span>
+                  <div class="sbar"><div class="sfill"    style="width:50%"></div></div>
+                  <span class="sval">5</span>
+                </div>
+                <div class="srow">
+                  <span class="slbl">RNG</span>
+                  <div class="sbar"><div class="sfill hi" style="width:80%"></div></div>
+                  <span class="sval">8</span>
+                </div>
+              </div>
+              <div class="wserial" style="margin-top:auto">SER// EN-PLS-0012-EX</div>
+            </div>
+
+            <div class="mods-area">
+              <div class="mods-lbl">MOD SLOTS — 1/3</div>
+              <div class="mslot filled">
+                <span class="mnum">M1</span>
+                <span class="mpip void"></span>
+                <span class="mname">VOID LENS</span>
+                <span class="mtag">VOID</span>
+                <div class="tip">Converts 30% damage to Void type. Bypasses physical resistance entirely.</div>
+              </div>
+              <div class="mslot empty">
+                <span class="mnum">M2</span>
+                <span class="mpip none"></span>
+                <span class="mname">[ INSTALL MOD ]</span>
+                <span class="mtag">——</span>
+              </div>
+              <div class="mslot empty">
+                <span class="mnum">M3</span>
+                <span class="mpip none"></span>
+                <span class="mname">[ INSTALL MOD ]</span>
+                <span class="mtag">——</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /.weapon-list -->
+
+      <!-- FOOTER ROW -->
+      <div class="hub-footer">
+        <div class="foot-stats">
+          <div class="fstat">
+            <div class="fstat-lbl">TOTAL MODS</div>
+            <div class="fstat-val">6 / 9</div>
+          </div>
+          <div class="fdivider"></div>
+          <div class="fstat">
+            <div class="fstat-lbl">ACTIVE SYNERGIES</div>
+            <div class="fstat-val" style="color:var(--red-hi)">2</div>
+          </div>
+          <div class="fdivider"></div>
+          <div class="fstat">
+            <div class="fstat-lbl">VOID INSTABILITY</div>
+            <div class="fstat-val" style="color:var(--purple-hi)">34%</div>
+          </div>
+          <div class="fdivider"></div>
+          <div class="fstat">
+            <div class="fstat-lbl">LOADOUT RATING</div>
+            <div class="fstat-val">B+</div>
+          </div>
+        </div>
+        <div class="foot-right">
+          LOADOUT HASH: 7F3A-C901-2B4E<br>
+          MODIFICATION CERT: VALID &nbsp;|&nbsp; NEXT DEPLOY: READY
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /#tab-armory -->
+
+  <!-- ═══════ WORKSHOP ═══════ -->
+  <div class="panel" id="tab-workshop">
+    <div class="ph">
+      <div class="ph-title">WORKSHOP</div>
+      <div class="ph-sub">CRAFTING TERMINAL — OFFLINE<span class="blink-cursor"></span></div>
+    </div>
+  </div>
+
+  <!-- ═══════ ROSTER ═══════ -->
+  <div class="panel" id="tab-roster">
+    <div class="ph">
+      <div class="ph-title">ROSTER</div>
+      <div class="ph-sub">OPERATIVE DATABASE — LOADING<span class="blink-cursor"></span></div>
+    </div>
+  </div>
+
+  <div class="hazard" style="margin-top:6px"></div>
+
+</div><!-- /.frame -->
+
+<script>
+// Tab switching
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('on'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
+    btn.classList.add('on');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('on');
+  });
+});
+
+// Weapon card selection
+document.querySelectorAll('.wcard-wrap').forEach(card => {
+  card.addEventListener('click', e => {
+    if (e.target.closest('.mslot')) return;
+    document.querySelectorAll('.wcard-wrap').forEach(c => c.classList.remove('on'));
+    card.classList.add('on');
+  });
+});
+
+// Live clock
+function tick() {
+  const n = new Date();
+  const pad = v => String(v).padStart(2, '0');
+  document.getElementById('clock').textContent =
+    pad(n.getHours()) + ':' + pad(n.getMinutes()) + ':' + pad(n.getSeconds());
+}
+setInterval(tick, 1000);
+tick();
+</script>
+
+</body>
+</html>

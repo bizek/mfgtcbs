@@ -69,7 +69,7 @@ All content follows the data factory pattern: `static func create() -> Resource`
 
 - GDScript, typed variables: `var speed: float = 200.0`
 - Godot 4.6.1, Compatibility renderer
-- 480x270 viewport, 4x integer scaling to 1920x1080
+- 640x360 viewport, 3x integer scaling to 1920x1080
 - Collision layers: 1=player, 2=enemies, 3=walls, 4=player_projectiles, 5=pickups, 6=extraction
 - Signals for inter-system communication, autoloads for managers
 - Entity scenes: CharacterBody2D for player/enemies, Area2D for pickups/projectiles
@@ -80,14 +80,14 @@ All content follows the data factory pattern: `static func create() -> Resource`
 ## Godot Rules
 
 - **Never hand-edit `.tscn` files.** Use MCP tools or the Godot editor.
-- **4x viewport scaling.** All UI text sizes must account for this.
+- **3x viewport scaling.** All UI text sizes must account for this.
 - After implementing spatial/positioning features, verify coordinates are within arena bounds (±800 x ±600).
 
 ## Godot Scene Files (.tscn)
 
 - Do NOT hand-edit .tscn files to add/remove nodes on instanced sub-scenes — Godot silently strips unowned nodes on save.
 - Always use the Godot MCP editor tools for scene structure changes.
-- When changing UI, account for the 4x viewport scaling (text/font sizes must be large enough to remain readable).
+- When changing UI, account for the 3x viewport scaling (text/font sizes must be large enough to remain readable).
 
 ## Commit Workflow
 

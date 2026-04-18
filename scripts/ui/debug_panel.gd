@@ -7,6 +7,9 @@ extends CanvasLayer
 ## F2  — Toggle god mode (no damage)
 ## F3  — Instant level-up (one upgrade screen)
 ## F4  — Open extraction portal immediately
+## F5  — Spawn a test telegraph at cursor (telegraph VFX check)
+## F6  — Spawn Phase 3 miniboss (Warped Colossus)
+## F7  — Spawn Phase 5 final boss (Heart of the Deep) + flip extraction gate
 
 var player_ref: Node2D = null
 
@@ -34,6 +37,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_F2: _cmd_god_mode()
 		KEY_F3: _cmd_level_up_one()
 		KEY_F4: _cmd_skip_extraction()
+		KEY_F5: _cmd_spawn_test_telegraph()
+		KEY_F6: _cmd_spawn_miniboss()
+		KEY_F7: _cmd_spawn_final_boss()
 
 func _toggle_panel() -> void:
 	_panel.visible = not _panel.visible
@@ -72,7 +78,7 @@ func _build_panel() -> void:
 	## Title row
 	var title := Label.new()
 	title.text = "DEBUG  [F1]"
-	title.add_theme_font_size_override("font_size", 8)
+	title.add_theme_font_size_override("font_size", 11)
 	title.modulate = Color(1.0, 0.85, 0.2)
 	vbox.add_child(title)
 
@@ -82,7 +88,7 @@ func _build_panel() -> void:
 	## Power Up — highlighted entry at the top
 	var power_btn := Button.new()
 	power_btn.text = "Power Up (proj+dmg+mods)"
-	power_btn.add_theme_font_size_override("font_size", 8)
+	power_btn.add_theme_font_size_override("font_size", 11)
 	power_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	power_btn.modulate = Color(1.0, 0.9, 0.3)
 	power_btn.pressed.connect(_cmd_power_up)
@@ -101,7 +107,7 @@ func _build_panel() -> void:
 	for d in defs:
 		var btn := Button.new()
 		btn.text = d[0]
-		btn.add_theme_font_size_override("font_size", 8)
+		btn.add_theme_font_size_override("font_size", 11)
 		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		btn.pressed.connect(d[1])
 		vbox.add_child(btn)
@@ -116,7 +122,7 @@ func _build_panel() -> void:
 
 	var spawn_label := Label.new()
 	spawn_label.text = "SPAWN ENEMIES"
-	spawn_label.add_theme_font_size_override("font_size", 7)
+	spawn_label.add_theme_font_size_override("font_size", 9)
 	spawn_label.modulate = Color(1.0, 0.5, 0.5)
 	vbox.add_child(spawn_label)
 
@@ -127,12 +133,14 @@ func _build_panel() -> void:
 		["Spawn Stalker", func(): _cmd_spawn_enemy("stalker")],
 		["Spawn Herald",  func(): _cmd_spawn_enemy("herald")],
 		["Spawn Elite",   func(): _cmd_spawn_elite()],
+		["Spawn Miniboss (F6)",   func(): _cmd_spawn_miniboss()],
+		["Spawn Final Boss (F7)", func(): _cmd_spawn_final_boss()],
 	]
 
 	for d in spawn_defs:
 		var btn := Button.new()
 		btn.text = d[0]
-		btn.add_theme_font_size_override("font_size", 8)
+		btn.add_theme_font_size_override("font_size", 11)
 		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		btn.pressed.connect(d[1])
 		vbox.add_child(btn)
@@ -140,7 +148,7 @@ func _build_panel() -> void:
 	## Hotkey hint strip
 	var hints := Label.new()
 	hints.text = "F2=God  F3=Lvl  F4=Extract"
-	hints.add_theme_font_size_override("font_size", 7)
+	hints.add_theme_font_size_override("font_size", 9)
 	hints.modulate = Color(0.55, 0.55, 0.55)
 	vbox.add_child(hints)
 
@@ -246,3 +254,45 @@ func _cmd_spawn_elite() -> void:
 		return
 	var scene: PackedScene = load(path)
 	EnemySpawnManager.debug_spawn(scene, true)
+
+func _cmd_spawn_test_telegraph() -> void:
+	## Debug: spawn a circle telegraph at mouse position to sanity-check
+	## the telegraph VFX pipeline.
+	if not is_instance_valid(player_ref):
+		return
+	var arena: Node = player_ref.get_parent()
+	if not arena or not arena.get("combat_manager"):
+		return
+	var cm: Node = arena.combat_manager
+	if not cm.get("telegraph_manager"):
+		return
+	var effect := SpawnTelegraphEffect.new()
+	effect.shape = "circle"
+	effect.anchor = "target_position"
+	effect.radius = 80.0
+	effect.duration = 1.0
+	effect.color = Color(1.0, 0.25, 0.2, 0.55)
+	var marker := Node2D.new()
+	arena.add_child(marker)
+	marker.global_position = player_ref.get_global_mouse_position()
+	cm.telegraph_manager.spawn(effect, player_ref, marker)
+	var t := get_tree().create_timer(1.2)
+	t.timeout.connect(func():
+		if is_instance_valid(marker):
+			marker.queue_free())
+
+func _cmd_spawn_miniboss() -> void:
+	## Debug: spawn the Phase 3 miniboss (Warped Colossus) near the player.
+	EnemySpawnManager.debug_spawn_by_id("warped_colossus", false)
+
+func _cmd_spawn_final_boss() -> void:
+	## Debug: spawn the Phase 5 final boss near the player AND flip the
+	## extraction gate so the HUD lock label + blocked channeling are testable
+	## without waiting for Phase 5. Also fires the announcement flash.
+	GameManager.final_boss_alive = true
+	var disp_name: String = "The Heart of the Deep"
+	var def: EnemyDefinition = EnemyRegistry.get_def("heart_of_the_deep")
+	if def != null and def.enemy_name != "":
+		disp_name = def.enemy_name
+	GameManager.final_boss_spawned.emit(disp_name)
+	EnemySpawnManager.debug_spawn_by_id("heart_of_the_deep", false)

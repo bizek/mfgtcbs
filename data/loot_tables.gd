@@ -1,5 +1,4 @@
 extends Node
-class_name LootTables
 
 ## LootTables — Static data for drop rates, rarity weights, instability values.
 ## All loot/economy tuning lives here. No logic in this file — just data + lookups.
@@ -19,6 +18,8 @@ const ENEMY_DROP_RATES: Dictionary = {
 	"herald":   { "resource": 0.25,  "weapon_mod": 0.25,  },
 	"guardian":  { "resource": 0.30,  "weapon_mod": 0.40,  },
 	"anchor":   { "resource": 0.15,  "weapon_mod": 0.08,  },
+	"warped_colossus":    { "resource": 1.0,  "weapon_mod": 0.90, },
+	"heart_of_the_deep":  { "resource": 1.0,  "weapon_mod": 1.00, },
 }
 
 ## Fallback for unknown enemy types

@@ -58,6 +58,14 @@ var _carrier_timer: float = CARRIER_INTERVAL * 0.8  ## First carrier slightly ea
 const HERALD_INTERVAL: float = 65.0
 var _herald_timer: float = HERALD_INTERVAL
 
+## ── Boss spawn delays (one-shot per phase) ───────────────────────────────────
+const MINIBOSS_SPAWN_DELAY: float = 10.0   ## seconds after phase 3 start
+const FINAL_BOSS_SPAWN_DELAY: float = 7.0  ## seconds after phase 5 start
+var _miniboss_spawn_delay: float = -1.0
+var _miniboss_spawned_this_phase: bool = false
+var _final_boss_spawn_delay: float = -1.0
+var _final_boss_spawned_this_phase: bool = false
+
 ## ── Core spawn loop ──────────────────────────────────────────────────────────
 var spawn_timer: float = 0.0
 var base_spawn_interval: float = 2.5
@@ -107,6 +115,20 @@ func _process(delta: float) -> void:
 			_spawn_herald_pack()
 			_herald_timer = HERALD_INTERVAL
 
+	## ── Phase 3 miniboss (one-shot per run-of-phase-3) ───────────────────────
+	if _miniboss_spawn_delay > 0.0 and not _miniboss_spawned_this_phase:
+		_miniboss_spawn_delay -= delta
+		if _miniboss_spawn_delay <= 0.0:
+			_spawn_miniboss()
+			_miniboss_spawned_this_phase = true
+
+	## ── Phase 5 final boss (one-shot) ────────────────────────────────────────
+	if _final_boss_spawn_delay > 0.0 and not _final_boss_spawned_this_phase:
+		_final_boss_spawn_delay -= delta
+		if _final_boss_spawn_delay <= 0.0:
+			_spawn_final_boss()
+			_final_boss_spawned_this_phase = true
+
 func start_spawning(player: Node2D, bounds: Rect2) -> void:
 	player_ref = player
 	arena_bounds = bounds
@@ -125,14 +147,29 @@ func start_spawning(player: Node2D, bounds: Rect2) -> void:
 func stop_spawning() -> void:
 	spawn_enabled = false
 
-func _on_phase_started(_phase: int) -> void:
+func _on_phase_started(phase: int) -> void:
 	_carrier_timer = CARRIER_INTERVAL * 0.8
 	_herald_timer = HERALD_INTERVAL
+	## Arm miniboss on Phase 3 entry
+	if phase == 3:
+		_miniboss_spawn_delay = MINIBOSS_SPAWN_DELAY
+		_miniboss_spawned_this_phase = false
+	elif phase != 3:
+		_miniboss_spawn_delay = -1.0
+	## Arm final boss on Phase 5 entry
+	if phase == 5:
+		_final_boss_spawn_delay = FINAL_BOSS_SPAWN_DELAY
+		_final_boss_spawned_this_phase = false
+	elif phase != 5:
+		_final_boss_spawn_delay = -1.0
 
 func _on_entity_killed_eb(killer: Node, victim: Node) -> void:
 	## EventBus.on_kill signature: (killer, victim) — no position
 	if victim.is_in_group("enemies"):
 		active_enemies -= 1
+	if victim.is_in_group("final_boss"):
+		GameManager.final_boss_alive = false
+		GameManager.final_boss_defeated.emit()
 
 ## For non-combat despawns (e.g. carrier escaping arena bounds)
 func on_enemy_despawned() -> void:
@@ -223,6 +260,50 @@ func _spawn_enemy_at_edge(enemy_id: String, scene: PackedScene, can_be_elite: bo
 	_spawn_from_def(enemy_id, scene, spawn_pos, effective_difficulty, can_be_elite)
 
 
+## ── Boss spawn helpers ───────────────────────────────────────────────────────
+
+func _spawn_boss_bypass_cap(enemy_id: String, scene: PackedScene, pos: Vector2) -> Node2D:
+	## Bosses are one-shot spawns — bypass max_enemies so a saturated arena
+	## doesn't silently swallow them. All other wiring mirrors _spawn_from_def.
+	if scene == null:
+		return null
+	var def: EnemyDefinition = _defs.get(enemy_id)
+	var enemy: Node2D = scene.instantiate()
+	if def:
+		enemy.setup_from_enemy_def(def)
+	enemy.global_position = pos
+	var difficulty: float = _get_effective_difficulty()
+	if enemy.has_method("apply_difficulty_scaling"):
+		enemy.apply_difficulty_scaling(difficulty)
+	get_tree().current_scene.add_child(enemy)
+	active_enemies += 1
+	enemy_spawned.emit(enemy)
+	return enemy
+
+func _spawn_miniboss() -> void:
+	## Phase 3 miniboss — Warped Colossus. Spawns at an arena edge.
+	## Reuses brute_scene; the EnemyDefinition provides 2.4× sprite scale and boss tint.
+	var scene: PackedScene = brute_scene
+	if scene == null:
+		return
+	_spawn_boss_bypass_cap("warped_colossus", scene, _get_edge_spawn_position())
+
+func _spawn_final_boss() -> void:
+	## Phase 5 final boss — The Heart of the Deep. Spawns at arena center for drama.
+	## Reuses brute_scene; flips GameManager.final_boss_alive so extraction gates.
+	var scene: PackedScene = brute_scene
+	if scene == null:
+		return
+	GameManager.final_boss_alive = true
+	var boss: Node2D = _spawn_boss_bypass_cap("heart_of_the_deep", scene, Vector2.ZERO)
+	if boss != null:
+		var disp_name: String = "The Heart of the Deep"
+		var def: EnemyDefinition = _defs.get("heart_of_the_deep")
+		if def != null and def.enemy_name != "":
+			disp_name = def.enemy_name
+		GameManager.final_boss_spawned.emit(disp_name)
+
+
 ## Herald always spawns with a small pack of fodder or swarmers
 func _spawn_herald_pack() -> void:
 	if active_enemies >= max_enemies or herald_scene == null:
@@ -291,6 +372,9 @@ func _get_scene_for_id(enemy_id: String) -> PackedScene:
 		"warped_swarmer": return swarmer_scene
 		"warped_brute": return brute_scene
 		"warped_caster": return caster_scene
+		## Bosses reuse brute_scene; scale comes from EnemyDefinition.sprite_scale
+		"warped_colossus": return brute_scene
+		"heart_of_the_deep": return brute_scene
 	return null
 
 

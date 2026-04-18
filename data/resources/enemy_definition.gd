@@ -20,6 +20,7 @@ extends Resource
 @export var xp_value: float = 10.0
 @export var is_elite: bool = false
 @export var is_boss: bool = false
+@export var boss_bar_color: Color = Color(0.80, 0.12, 0.12)  ## Boss health-bar tint (only used when is_boss)
 
 ## Arena survivor extensions
 @export var contact_damage: float = 10.0

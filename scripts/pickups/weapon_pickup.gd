@@ -53,7 +53,7 @@ func _build_label() -> void:
 	var font = load("res://assets/fonts/m5x7.ttf")
 	if font:
 		settings.font      = font
-		settings.font_size = 10
+		settings.font_size = 13
 	settings.outline_size  = 1
 	settings.outline_color = Color(0.0, 0.0, 0.0, 0.9)
 	settings.font_color    = rarity_color

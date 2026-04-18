@@ -18,6 +18,7 @@ extends Node2D
 var spatial_grid: SpatialGrid = SpatialGrid.new()
 var projectile_manager: ProjectileManager = null
 var vfx_manager: VfxManager = null
+var telegraph_manager: TelegraphManager = null
 var displacement_system: DisplacementSystem = null
 var combat_feedback: Node2D = null  ## CombatFeedbackManager
 var combo_effect_resolver: ComboEffectResolver = null
@@ -47,6 +48,10 @@ func _ready() -> void:
 	vfx_manager = VfxManager.new()
 	vfx_manager.name = "VfxManager"
 	add_child(vfx_manager)
+
+	telegraph_manager = TelegraphManager.new()
+	telegraph_manager.name = "TelegraphManager"
+	add_child(telegraph_manager)
 
 	displacement_system = DisplacementSystem.new()
 	displacement_system.name = "DisplacementSystem"

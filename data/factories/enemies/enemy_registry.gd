@@ -18,6 +18,10 @@ static func build_all() -> void:
 	_definitions["caster"] = CasterData.create()
 	_definitions["guardian"] = GuardianData.create()
 	_definitions["herald"] = HeraldData.create()
+	## Phase 3 miniboss
+	_definitions["warped_colossus"] = WarpedColossusData.create()
+	## Phase 5 final boss
+	_definitions["heart_of_the_deep"] = HeartOfTheDeepData.create()
 	## Phase 5 Phase-Warped variants
 	_definitions["warped_fodder"] = WarpedEnemyData.create_warped_fodder()
 	_definitions["warped_swarmer"] = WarpedEnemyData.create_warped_swarmer()

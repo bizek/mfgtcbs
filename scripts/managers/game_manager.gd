@@ -19,6 +19,9 @@ signal loot_changed(new_value: float)
 signal instability_changed(new_value: float)
 signal keystone_picked_up
 signal guardian_state_changed(hp: float, max_hp: float, show_bar: bool)
+signal boss_state_changed(id: String, hp: float, max_hp: float, show_bar: bool, display_name: String, color: Color)
+signal final_boss_spawned(display_name: String)
+signal final_boss_defeated
 
 enum GameState {
 	MENU,
@@ -81,6 +84,10 @@ signal insured_item_changed(item_id: String)
 var player_has_keystone: bool = false
 var guardian_killed_this_phase: bool = false  ## Tracks first guardian kill per phase
 
+## Final boss gate — when true, Phase 5 extraction channel is locked.
+## Flipped true when the boss spawns, false when it dies.
+var final_boss_alive: bool = false
+
 ## Which extraction type completed — used for phase bonus calculations.
 ## Values: "timed", "guarded", "locked", "sacrifice"
 var active_extraction_type: String = "timed"
@@ -133,6 +140,7 @@ func start_run() -> void:
 	insured_item = ""
 	player_has_keystone = false
 	guardian_killed_this_phase = false
+	final_boss_alive = false
 	active_extraction_type = "timed"
 
 	## Cursed passive: start every run in the Unsettled instability tier
@@ -328,7 +336,15 @@ func _advance_phase() -> void:
 	phase_duration = PHASE_DURATIONS[clampi(phase_number - 1, 0, PHASE_DURATIONS.size() - 1)]
 	guardian_killed_this_phase = false
 	player_has_keystone = false
+	if phase_number < MAX_PHASES:
+		final_boss_alive = false
 	phase_started.emit(phase_number)
+
+func is_extraction_allowed() -> bool:
+	## Gate extraction attempts on the final boss. Lower phases are unaffected.
+	if phase_number >= MAX_PHASES and final_boss_alive:
+		return false
+	return true
 
 ## Debug helpers — only called from DebugPanel when debug_mode is true.
 func debug_open_extraction() -> void:

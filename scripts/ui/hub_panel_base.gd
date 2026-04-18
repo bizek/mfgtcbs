@@ -8,16 +8,16 @@ extends Panel
 ## accesses ContentContainer to add rows, and forwards the close_requested signal.
 
 const PIXEL_FONT  := preload("res://assets/fonts/m5x7.ttf")
-const FONT_TITLE  := 16
-const FONT_BODY   := 14
-const FONT_DIM    := 12
-const ROW_GAP     := 17
-const LABEL_W     := 272
-const LABEL_H     := 20
-const PANEL_W     := 300
-const PANEL_H     := 200
-const TITLE_H     := 22
-const CONTENT_H   := 178   ## PANEL_H - TITLE_H
+const FONT_TITLE  := 21
+const FONT_BODY   := 19
+const FONT_DIM    := 16
+const ROW_GAP     := 23
+const LABEL_W     := 363
+const LABEL_H     := 27
+const PANEL_W     := 400
+const PANEL_H     := 267
+const TITLE_H     := 29
+const CONTENT_H   := 238   ## PANEL_H - TITLE_H
 
 ## Set these exports in each panel's scene file (Inspector) for per-panel identity.
 @export var title_text: String  = "PANEL"
@@ -36,10 +36,41 @@ func _ready() -> void:
 	)
 	$TitleBar/TitleLabel.text = title_text
 	$TitleBar/TitleLabel.add_theme_color_override("font_color", accent_color)
+	$TitleBar/TitleLabel.add_theme_font_size_override("font_size", FONT_TITLE)
 	var style := get_theme_stylebox("panel").duplicate() as StyleBoxFlat
 	style.border_color = accent_color
 	add_theme_stylebox_override("panel", style)
 	$TitleBar/CloseButton.pressed.connect(func(): close_requested.emit())
+
+	## Amber accent rule — 2px strip at the bottom edge of the title bar.
+	var accent_rule := ColorRect.new()
+	accent_rule.anchor_left   = 0.0
+	accent_rule.anchor_right  = 1.0
+	accent_rule.anchor_top    = 1.0
+	accent_rule.anchor_bottom = 1.0
+	accent_rule.offset_top    = -2.0
+	accent_rule.offset_bottom = 0.0
+	accent_rule.color         = Color(accent_color.r, accent_color.g, accent_color.b, 0.5)
+	accent_rule.mouse_filter  = Control.MOUSE_FILTER_IGNORE
+	$TitleBar.add_child(accent_rule)
+
+	## Soften close button hover from harsh red to dark red.
+	var close_hover_sb := StyleBoxFlat.new()
+	close_hover_sb.bg_color = Color(0.55, 0.18, 0.12, 0.80)
+	close_hover_sb.set_border_width_all(0)
+	$TitleBar/CloseButton.add_theme_stylebox_override("hover",   close_hover_sb)
+	$TitleBar/CloseButton.add_theme_stylebox_override("pressed", close_hover_sb)
+
+	## Left-edge accent strip — 2px glow on the content area's left side.
+	var left_strip := ColorRect.new()
+	left_strip.anchor_left   = 0.0
+	left_strip.anchor_right  = 0.0
+	left_strip.anchor_top    = 0.0
+	left_strip.anchor_bottom = 1.0
+	left_strip.offset_right  = 2.0
+	left_strip.color         = Color(accent_color.r, accent_color.g, accent_color.b, 0.18)
+	left_strip.mouse_filter  = Control.MOUSE_FILTER_IGNORE
+	$ContentContainer.add_child(left_strip)
 
 ## Returns the Content area Control where panels add their dynamic rows.
 func get_content() -> Control:

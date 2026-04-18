@@ -300,12 +300,31 @@ func debug_activate_all_extractions() -> void:
 func _on_entity_killed(killer: Node, victim: Node) -> void:
 	if not victim.is_in_group("enemies"):
 		return
-	_shake_camera(3.0, 0.12)
+	## Boss kills get a heavier shake + a few bonus drops so it feels like a payoff.
+	if victim.is_in_group("final_boss"):
+		_shake_camera(12.0, 1.0)
+	elif victim.is_in_group("bosses"):
+		_shake_camera(8.0, 0.6)
+	else:
+		_shake_camera(3.0, 0.12)
 
 	var pos: Vector2 = victim.global_position
 	var etype: String = victim.get("enemy_id") if victim.get("enemy_id") else "fodder"
 	var is_elite: bool = victim.get("is_elite") == true
 	var phase: int = GameManager.phase_number
+
+	## Bonus drops for bosses — two extras, spread in a small arc around the body.
+	if victim.is_in_group("bosses"):
+		var bonus_count: int = 3 if victim.is_in_group("final_boss") else 2
+		for i in range(bonus_count):
+			var ang: float = TAU * float(i) / float(bonus_count) + randf() * 0.4
+			var offset := Vector2(cos(ang), sin(ang)) * 24.0
+			var rarity_phase: int = clampi(phase + 1, 1, 5)
+			var rarity: String = LootTables.roll_rarity(rarity_phase)
+			if randf() < 0.5:
+				_spawn_weapon_drop(pos + offset, rarity)
+			else:
+				_spawn_mod_drop(pos + offset, rarity)
 
 	## Keystone drop — elite only, independent roll
 	if is_elite and not GameManager.player_has_keystone and randf() < LootTables.KEYSTONE_ELITE_CHANCE:

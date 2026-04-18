@@ -82,7 +82,7 @@ func _build_menu() -> void:
 	## Title
 	var title := Label.new()
 	title.text = "PAUSED"
-	title.add_theme_font_size_override("font_size", 12)
+	title.add_theme_font_size_override("font_size", 16)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.modulate = Color(1.0, 1.0, 1.0)
 	vbox.add_child(title)
@@ -93,7 +93,7 @@ func _build_menu() -> void:
 	## Resume button
 	var resume_btn := Button.new()
 	resume_btn.text = "Resume"
-	resume_btn.add_theme_font_size_override("font_size", 10)
+	resume_btn.add_theme_font_size_override("font_size", 13)
 	resume_btn.pressed.connect(_close)
 	vbox.add_child(resume_btn)
 
@@ -101,14 +101,14 @@ func _build_menu() -> void:
 	if GameManager.debug_mode:
 		var debug_btn := Button.new()
 		debug_btn.text = "Debug Panel"
-		debug_btn.add_theme_font_size_override("font_size", 10)
+		debug_btn.add_theme_font_size_override("font_size", 13)
 		debug_btn.pressed.connect(_toggle_debug_panel)
 		vbox.add_child(debug_btn)
 
 	## ESC hint
 	var hint := Label.new()
 	hint.text = "[ESC] to close"
-	hint.add_theme_font_size_override("font_size", 8)
+	hint.add_theme_font_size_override("font_size", 11)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.modulate = Color(0.5, 0.5, 0.5)
 	vbox.add_child(hint)

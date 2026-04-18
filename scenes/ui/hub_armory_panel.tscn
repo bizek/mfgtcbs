@@ -29,16 +29,15 @@ bg_color = Color(0.18, 0.16, 0.12, 0.55)
 [node name="HubArmoryPanel" type="Control" unique_id=100800008]
 layout_mode = 3
 anchors_preset = 0
-offset_left = 90.0
-offset_top = 10.0
-offset_right = 390.0
-offset_bottom = 260.0
+offset_left = 120.0
+offset_top = 14.0
+offset_right = 520.0
+offset_bottom = 347.0
 script = ExtResource("1_script")
 
 [node name="PanelBase" parent="." unique_id=651479519 instance=ExtResource("2_base")]
 layout_mode = 0
-offset_right = 300.0
-offset_bottom = 250.0
+offset_bottom = 333.0
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_vxasb")
 title_text = "ARMORY"
@@ -52,287 +51,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-
-[node name="ArmoryMargin" type="MarginContainer" parent="ArmoryView" unique_id=337053010]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-theme_override_constants/margin_left = 8
-theme_override_constants/margin_top = 24
-theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 8
-
-[node name="ArmoryVBox" type="VBoxContainer" parent="ArmoryView/ArmoryMargin" unique_id=1622152135]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-theme_override_constants/separation = 2
-
-[node name="TabRow" type="HBoxContainer" parent="ArmoryView/ArmoryMargin/ArmoryVBox" unique_id=385580156]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 4
-
-[node name="Slot1Tab" type="Button" parent="ArmoryView/ArmoryMargin/ArmoryVBox/TabRow" unique_id=1554109310]
-custom_minimum_size = Vector2(80, 18)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 14
-theme_override_styles/normal = SubResource("StyleBoxFlat_57ivy")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/hover = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/focus = SubResource("StyleBoxFlat_57ivy")
-text = "[ SLOT 1 ]"
-
-[node name="Slot2Tab" type="Button" parent="ArmoryView/ArmoryMargin/ArmoryVBox/TabRow" unique_id=1746482450]
-custom_minimum_size = Vector2(80, 18)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 14
-theme_override_styles/normal = SubResource("StyleBoxFlat_57ivy")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/hover = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/focus = SubResource("StyleBoxFlat_57ivy")
-text = "  SLOT 2  "
-
-[node name="Slot3Tab" type="Button" parent="ArmoryView/ArmoryMargin/ArmoryVBox/TabRow" unique_id=1746482451]
-custom_minimum_size = Vector2(80, 18)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 14
-theme_override_styles/normal = SubResource("StyleBoxFlat_57ivy")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/hover = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/focus = SubResource("StyleBoxFlat_57ivy")
-text = "  SLOT 3  "
-
-[node name="TabSeparator" type="ColorRect" parent="ArmoryView/ArmoryMargin/ArmoryVBox/TabRow" unique_id=1071543064]
-custom_minimum_size = Vector2(0, 1)
-layout_mode = 2
-size_flags_horizontal = 3
-mouse_filter = 2
-color = Color(0.9, 0.6, 0.12, 0.5)
-
-[node name="SingleSlotHeader" type="Label" parent="ArmoryView/ArmoryMargin/ArmoryVBox/TabRow" unique_id=1488068846]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.72, 0.72, 0.78, 1)
-theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 14
-text = "SELECT WEAPON"
-
-[node name="WeaponList" type="VBoxContainer" parent="ArmoryView/ArmoryMargin/ArmoryVBox" unique_id=445773754]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 1
-
-[node name="NoWeaponsLabel" type="Label" parent="ArmoryView/ArmoryMargin/ArmoryVBox/WeaponList" unique_id=946922337]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.45, 0.45, 0.5, 1)
-theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 14
-text = "No weapons unlocked"
-
-[node name="WeaponBtn0" type="Button" parent="ArmoryView/ArmoryMargin/ArmoryVBox/WeaponList" unique_id=1150109465]
-custom_minimum_size = Vector2(260, 20)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 14
-theme_override_styles/normal = SubResource("StyleBoxFlat_57ivy")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/hover = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/focus = SubResource("StyleBoxFlat_57ivy")
-text = "  weapon slot  "
-alignment = 0
-
-[node name="WeaponBtn1" type="Button" parent="ArmoryView/ArmoryMargin/ArmoryVBox/WeaponList" unique_id=480523381]
-custom_minimum_size = Vector2(260, 20)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 14
-theme_override_styles/normal = SubResource("StyleBoxFlat_57ivy")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/hover = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/focus = SubResource("StyleBoxFlat_57ivy")
-text = "  weapon slot  "
-alignment = 0
-
-[node name="WeaponBtn2" type="Button" parent="ArmoryView/ArmoryMargin/ArmoryVBox/WeaponList" unique_id=384430866]
-custom_minimum_size = Vector2(260, 20)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 14
-theme_override_styles/normal = SubResource("StyleBoxFlat_57ivy")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/hover = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/focus = SubResource("StyleBoxFlat_57ivy")
-text = "  weapon slot  "
-alignment = 0
-
-[node name="WeaponBtn3" type="Button" parent="ArmoryView/ArmoryMargin/ArmoryVBox/WeaponList" unique_id=1742450569]
-custom_minimum_size = Vector2(260, 20)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 14
-theme_override_styles/normal = SubResource("StyleBoxFlat_57ivy")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/hover = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/focus = SubResource("StyleBoxFlat_57ivy")
-text = "  weapon slot  "
-alignment = 0
-
-[node name="ModsHeader" type="Label" parent="ArmoryView/ArmoryMargin/ArmoryVBox" unique_id=555575936]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.72, 0.72, 0.78, 1)
-theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 14
-text = "MODS (weapon)"
-
-[node name="ModSlotList" type="VBoxContainer" parent="ArmoryView/ArmoryMargin/ArmoryVBox" unique_id=1091206480]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 1
-
-[node name="ModSlotRow0" type="HBoxContainer" parent="ArmoryView/ArmoryMargin/ArmoryVBox/ModSlotList" unique_id=369627528]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 4
-
-[node name="ModSlot1Label" type="Label" parent="ArmoryView/ArmoryMargin/ArmoryVBox/ModSlotList/ModSlotRow0" unique_id=73434110]
-custom_minimum_size = Vector2(44, 18)
-layout_mode = 2
-size_flags_horizontal = 0
-theme_override_colors/font_color = Color(0.72, 0.72, 0.78, 1)
-theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 14
-text = "Slot 1:"
-
-[node name="ModSlot1Btn" type="Button" parent="ArmoryView/ArmoryMargin/ArmoryVBox/ModSlotList/ModSlotRow0" unique_id=1884889475]
-custom_minimum_size = Vector2(140, 18)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 14
-theme_override_styles/normal = SubResource("StyleBoxFlat_57ivy")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/hover = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/focus = SubResource("StyleBoxFlat_57ivy")
-text = "--- EMPTY ---"
-alignment = 0
-
-[node name="ModSlot1RemoveBtn" type="Button" parent="ArmoryView/ArmoryMargin/ArmoryVBox/ModSlotList/ModSlotRow0" unique_id=811287824]
-custom_minimum_size = Vector2(24, 18)
-layout_mode = 2
-size_flags_horizontal = 8
-theme_override_colors/font_color = Color(0.72, 0.25, 0.25, 1)
-theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 12
-theme_override_styles/normal = SubResource("StyleBoxFlat_57ivy")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/hover = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/focus = SubResource("StyleBoxFlat_57ivy")
-text = "x"
-
-[node name="ModSlotRow1" type="HBoxContainer" parent="ArmoryView/ArmoryMargin/ArmoryVBox/ModSlotList" unique_id=1071423664]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 4
-
-[node name="ModSlot2Label" type="Label" parent="ArmoryView/ArmoryMargin/ArmoryVBox/ModSlotList/ModSlotRow1" unique_id=465380913]
-custom_minimum_size = Vector2(44, 18)
-layout_mode = 2
-size_flags_horizontal = 0
-theme_override_colors/font_color = Color(0.72, 0.72, 0.78, 1)
-theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 14
-text = "Slot 2:"
-
-[node name="ModSlot2Btn" type="Button" parent="ArmoryView/ArmoryMargin/ArmoryVBox/ModSlotList/ModSlotRow1" unique_id=699333975]
-custom_minimum_size = Vector2(140, 18)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 14
-theme_override_styles/normal = SubResource("StyleBoxFlat_57ivy")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/hover = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/focus = SubResource("StyleBoxFlat_57ivy")
-text = "--- EMPTY ---"
-alignment = 0
-
-[node name="ModSlot2RemoveBtn" type="Button" parent="ArmoryView/ArmoryMargin/ArmoryVBox/ModSlotList/ModSlotRow1" unique_id=2050994030]
-custom_minimum_size = Vector2(24, 18)
-layout_mode = 2
-size_flags_horizontal = 8
-theme_override_colors/font_color = Color(0.72, 0.25, 0.25, 1)
-theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 12
-theme_override_styles/normal = SubResource("StyleBoxFlat_57ivy")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/hover = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/focus = SubResource("StyleBoxFlat_57ivy")
-text = "x"
-
-[node name="ModSlotRow2" type="HBoxContainer" parent="ArmoryView/ArmoryMargin/ArmoryVBox/ModSlotList" unique_id=1263640010]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 4
-
-[node name="ModSlot3Label" type="Label" parent="ArmoryView/ArmoryMargin/ArmoryVBox/ModSlotList/ModSlotRow2" unique_id=1901961985]
-custom_minimum_size = Vector2(44, 18)
-layout_mode = 2
-size_flags_horizontal = 0
-theme_override_colors/font_color = Color(0.72, 0.72, 0.78, 1)
-theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 14
-text = "Slot 3:"
-
-[node name="ModSlot3Btn" type="Button" parent="ArmoryView/ArmoryMargin/ArmoryVBox/ModSlotList/ModSlotRow2" unique_id=1434328926]
-custom_minimum_size = Vector2(140, 18)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 14
-theme_override_styles/normal = SubResource("StyleBoxFlat_57ivy")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/hover = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/focus = SubResource("StyleBoxFlat_57ivy")
-text = "--- EMPTY ---"
-alignment = 0
-
-[node name="ModSlot3RemoveBtn" type="Button" parent="ArmoryView/ArmoryMargin/ArmoryVBox/ModSlotList/ModSlotRow2" unique_id=2004445627]
-custom_minimum_size = Vector2(24, 18)
-layout_mode = 2
-size_flags_horizontal = 8
-theme_override_colors/font_color = Color(0.72, 0.25, 0.25, 1)
-theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 12
-theme_override_styles/normal = SubResource("StyleBoxFlat_57ivy")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/hover = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/focus = SubResource("StyleBoxFlat_57ivy")
-text = "x"
-
-[node name="StatusLabel" type="Label" parent="ArmoryView/ArmoryMargin/ArmoryVBox" unique_id=2044928942]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.55, 0.55, 0.6, 1)
-theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 12
-text = "Selected:  "
 
 [node name="ModPickerView" type="Control" parent="." unique_id=1496855292]
 visible = false
@@ -352,23 +70,23 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_constants/margin_left = 8
-theme_override_constants/margin_top = 24
-theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 8
+theme_override_constants/margin_left = 11
+theme_override_constants/margin_top = 32
+theme_override_constants/margin_right = 11
+theme_override_constants/margin_bottom = 11
 
 [node name="PickerVBox" type="VBoxContainer" parent="ModPickerView/PickerMargin" unique_id=2044053514]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/separation = 2
+theme_override_constants/separation = 3
 
 [node name="PickerHeader" type="Label" parent="ModPickerView/PickerMargin/PickerVBox" unique_id=277558074]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.95, 0.78, 0.22, 1)
 theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 19
 text = "SELECT MOD for slot 1"
 
 [node name="PickerEmptyLabel" type="Label" parent="ModPickerView/PickerMargin/PickerVBox" unique_id=257496316]
@@ -376,20 +94,20 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.45, 0.45, 0.5, 1)
 theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 19
 text = "No mods available"
 
 [node name="ModPickerRow0" type="VBoxContainer" parent="ModPickerView/PickerMargin/PickerVBox" unique_id=1441646439]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 4
+theme_override_constants/separation = 5
 
 [node name="ModPickerBtn0" type="Button" parent="ModPickerView/PickerMargin/PickerVBox/ModPickerRow0" unique_id=445751139]
-custom_minimum_size = Vector2(0, 20)
+custom_minimum_size = Vector2(0, 27)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 19
 theme_override_styles/normal = SubResource("StyleBoxFlat_57ivy")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_68wte")
 theme_override_styles/hover = SubResource("StyleBoxFlat_68wte")
@@ -402,21 +120,21 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.5, 0.5, 0.55, 1)
 theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 16
 text = "mod description"
 clip_text = true
 
 [node name="ModPickerRow1" type="VBoxContainer" parent="ModPickerView/PickerMargin/PickerVBox" unique_id=432790417]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 4
+theme_override_constants/separation = 5
 
 [node name="ModPickerBtn1" type="Button" parent="ModPickerView/PickerMargin/PickerVBox/ModPickerRow1" unique_id=2002688419]
-custom_minimum_size = Vector2(0, 20)
+custom_minimum_size = Vector2(0, 27)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 19
 theme_override_styles/normal = SubResource("StyleBoxFlat_57ivy")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_68wte")
 theme_override_styles/hover = SubResource("StyleBoxFlat_68wte")
@@ -429,21 +147,21 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.5, 0.5, 0.55, 1)
 theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 16
 text = "mod description"
 clip_text = true
 
 [node name="ModPickerRow2" type="VBoxContainer" parent="ModPickerView/PickerMargin/PickerVBox" unique_id=1675021669]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 4
+theme_override_constants/separation = 5
 
 [node name="ModPickerBtn2" type="Button" parent="ModPickerView/PickerMargin/PickerVBox/ModPickerRow2" unique_id=1569500555]
-custom_minimum_size = Vector2(0, 20)
+custom_minimum_size = Vector2(0, 27)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 19
 theme_override_styles/normal = SubResource("StyleBoxFlat_57ivy")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_68wte")
 theme_override_styles/hover = SubResource("StyleBoxFlat_68wte")
@@ -456,21 +174,21 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.5, 0.5, 0.55, 1)
 theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 16
 text = "mod description"
 clip_text = true
 
 [node name="ModPickerRow3" type="VBoxContainer" parent="ModPickerView/PickerMargin/PickerVBox" unique_id=623922605]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 4
+theme_override_constants/separation = 5
 
 [node name="ModPickerBtn3" type="Button" parent="ModPickerView/PickerMargin/PickerVBox/ModPickerRow3" unique_id=522264266]
-custom_minimum_size = Vector2(0, 20)
+custom_minimum_size = Vector2(0, 27)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 19
 theme_override_styles/normal = SubResource("StyleBoxFlat_57ivy")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_68wte")
 theme_override_styles/hover = SubResource("StyleBoxFlat_68wte")
@@ -483,17 +201,17 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.5, 0.5, 0.55, 1)
 theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 16
 text = "mod description"
 clip_text = true
 
 [node name="PickerCancelBtn" type="Button" parent="ModPickerView/PickerMargin/PickerVBox" unique_id=1422897081]
-custom_minimum_size = Vector2(260, 20)
+custom_minimum_size = Vector2(347, 27)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.72, 0.72, 0.78, 1)
 theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 19
 theme_override_styles/normal = SubResource("StyleBoxFlat_57ivy")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_68wte")
 theme_override_styles/hover = SubResource("StyleBoxFlat_68wte")

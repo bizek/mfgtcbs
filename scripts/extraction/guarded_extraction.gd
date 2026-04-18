@@ -92,6 +92,8 @@ func try_start_channel(player_pos: Vector2) -> bool:
 		return false
 	if ExtractionManager.is_channeling:
 		return false
+	if not GameManager.is_extraction_allowed():
+		return false
 	GameManager.active_extraction_type = "guarded"
 	ExtractionManager.channel_duration = ProgressionManager.get_channel_duration()
 	ExtractionManager.start_channel(1.0)

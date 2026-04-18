@@ -19,10 +19,10 @@ border_color = Color(0.65, 0.65, 0.72, 1)
 [node name="HubRecordsPanel" type="Control" unique_id=817144467]
 layout_mode = 3
 anchors_preset = 0
-offset_left = 90.0
-offset_top = 35.0
-offset_right = 390.0
-offset_bottom = 235.0
+offset_left = 120.0
+offset_top = 47.0
+offset_right = 520.0
+offset_bottom = 314.0
 script = ExtResource("1_script")
 
 [node name="PanelBase" parent="." unique_id=1134690836 instance=ExtResource("2_base")]
@@ -32,81 +32,81 @@ title_text = "RECORDS"
 accent_color = Color(0.65, 0.65, 0.72, 1)
 
 [node name="TotalRunsLabel" type="Label" parent="PanelBase/ContentContainer"]
-offset_left = 12.0
-offset_top = 8.0
-offset_right = 288.0
-offset_bottom = 22.0
+offset_left = 16.0
+offset_top = 11.0
+offset_right = 384.0
+offset_bottom = 29.0
 theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 19
 theme_override_colors/font_color = Color(0.82, 0.82, 0.87, 1)
 text = "Total Runs:          0"
 
 [node name="ExtractionsLabel" type="Label" parent="PanelBase/ContentContainer"]
-offset_left = 12.0
-offset_top = 26.0
-offset_right = 288.0
-offset_bottom = 40.0
+offset_left = 16.0
+offset_top = 35.0
+offset_right = 384.0
+offset_bottom = 53.0
 theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 19
 theme_override_colors/font_color = Color(0.82, 0.82, 0.87, 1)
 text = "Extractions:         0"
 
 [node name="DeathsLabel" type="Label" parent="PanelBase/ContentContainer"]
-offset_left = 12.0
-offset_top = 44.0
-offset_right = 288.0
-offset_bottom = 58.0
+offset_left = 16.0
+offset_top = 59.0
+offset_right = 384.0
+offset_bottom = 77.0
 theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 19
 theme_override_colors/font_color = Color(0.82, 0.82, 0.87, 1)
 text = "Deaths:              0"
 
 [node name="KillsLabel" type="Label" parent="PanelBase/ContentContainer"]
-offset_left = 12.0
-offset_top = 62.0
-offset_right = 288.0
-offset_bottom = 76.0
+offset_left = 16.0
+offset_top = 83.0
+offset_right = 384.0
+offset_bottom = 101.0
 theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 19
 theme_override_colors/font_color = Color(0.82, 0.82, 0.87, 1)
 text = "Total Kills:         0"
 
 [node name="DeepestPhaseLabel" type="Label" parent="PanelBase/ContentContainer"]
-offset_left = 12.0
-offset_top = 80.0
-offset_right = 288.0
-offset_bottom = 94.0
+offset_left = 16.0
+offset_top = 107.0
+offset_right = 384.0
+offset_bottom = 125.0
 theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 19
 theme_override_colors/font_color = Color(0.82, 0.82, 0.87, 1)
 text = "Deepest Phase:       0"
 
 [node name="MostLootLabel" type="Label" parent="PanelBase/ContentContainer"]
-offset_left = 12.0
-offset_top = 98.0
-offset_right = 288.0
-offset_bottom = 112.0
+offset_left = 16.0
+offset_top = 131.0
+offset_right = 384.0
+offset_bottom = 149.0
 theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 19
 theme_override_colors/font_color = Color(0.82, 0.82, 0.87, 1)
 text = "Most Loot (run):     0"
 
 [node name="DividerLabel" type="Label" parent="PanelBase/ContentContainer"]
-offset_left = 12.0
-offset_top = 118.0
-offset_right = 288.0
-offset_bottom = 130.0
+offset_left = 16.0
+offset_top = 157.0
+offset_right = 384.0
+offset_bottom = 173.0
 theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 16
 theme_override_colors/font_color = Color(0.35, 0.35, 0.40, 1)
 text = "──────────────────────"
 
 [node name="ExtractionRateLabel" type="Label" parent="PanelBase/ContentContainer"]
-offset_left = 12.0
-offset_top = 136.0
-offset_right = 288.0
-offset_bottom = 150.0
+offset_left = 16.0
+offset_top = 181.0
+offset_right = 384.0
+offset_bottom = 200.0
 theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 19
 theme_override_colors/font_color = Color(0.82, 0.82, 0.87, 1)
 text = "Extraction Rate:     —"

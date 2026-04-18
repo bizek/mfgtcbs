@@ -52,7 +52,7 @@ func _build_label() -> void:
 	var font = load("res://assets/fonts/m5x7.ttf")
 	if font:
 		settings.font      = font
-		settings.font_size = 10
+		settings.font_size = 13
 	settings.outline_size  = 1
 	settings.outline_color = Color(0.0, 0.0, 0.0, 0.9)
 	settings.font_color    = rarity_color
@@ -169,7 +169,7 @@ func _show_notification(msg: String, col: Color) -> void:
 	var font = load("res://assets/fonts/m5x7.ttf")
 	if font:
 		settings.font      = font
-		settings.font_size = 11
+		settings.font_size = 15
 	settings.outline_size  = 1
 	settings.outline_color = Color(0.0, 0.0, 0.0, 0.9)
 	settings.font_color    = col

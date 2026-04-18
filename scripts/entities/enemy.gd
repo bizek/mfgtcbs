@@ -192,6 +192,23 @@ func setup_from_enemy_def(def: EnemyDefinition) -> void:
 			_aura_radius = status_def.aura_radius
 			break
 
+	# Boss health bar wiring — bosses push state to the HUD on spawn + damage + death.
+	if def.is_boss:
+		var boss_id: String = def.enemy_id
+		var boss_name: String = def.enemy_name if def.enemy_name != "" else def.enemy_id.to_upper()
+		var boss_color: Color = def.boss_bar_color
+		health.health_changed.connect(
+				func(hp: float, max_hp_: float):
+					GameManager.boss_state_changed.emit(
+							boss_id, hp, max_hp_, true, boss_name, boss_color))
+		health.died.connect(
+				func(_entity: Node2D):
+					GameManager.boss_state_changed.emit(
+							boss_id, 0.0, max_hp, false, boss_name, boss_color))
+		## Push initial state so the bar appears immediately on spawn.
+		GameManager.boss_state_changed.emit(
+				boss_id, health.current_hp, health.max_hp, true, boss_name, boss_color)
+
 
 func _apply_def_visuals() -> void:
 	## Apply definition's visual settings to the scene's sprite. Called in _ready().
@@ -658,11 +675,15 @@ func _evaluate_choreography_branch(branch: ChoreographyBranch) -> bool:
 	var condition: Resource = branch.condition
 	if condition is ConditionEntityCount:
 		return ability_component._check_entity_count(condition, self)
+	if condition is ConditionHpThreshold:
+		return ability_component._check_hp_threshold(condition, self)
 	return false
 
 
 func _end_choreography() -> void:
 	## Clean up all choreography state and return to normal behavior.
+	if combat_manager and combat_manager.get("telegraph_manager"):
+		combat_manager.telegraph_manager.cleanup_entity(self)
 	_choreography = null
 	_choreography_ability = null
 	_choreography_phase_index = -1

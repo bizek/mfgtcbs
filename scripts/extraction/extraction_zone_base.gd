@@ -60,7 +60,7 @@ func _build_state_label(parent: Node2D, text: String, label_color: Color, x_offs
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.position = Vector2(x_offset, -80.0)
 	lbl.modulate = label_color
-	lbl.add_theme_font_size_override("font_size", 9)
+	lbl.add_theme_font_size_override("font_size", 12)
 	parent.add_child(lbl)
 	_state_label = lbl
 	return lbl

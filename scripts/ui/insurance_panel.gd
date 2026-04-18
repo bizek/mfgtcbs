@@ -76,7 +76,7 @@ func _build_ui() -> void:
 
 	var title := Label.new()
 	title.text = "INSURANCE"
-	title.add_theme_font_size_override("font_size", 12)
+	title.add_theme_font_size_override("font_size", 16)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	outer.add_child(title)
 
@@ -85,7 +85,7 @@ func _build_ui() -> void:
 
 	var sub_lbl := Label.new()
 	sub_lbl.text = "Insure one item — it survives on death."
-	sub_lbl.add_theme_font_size_override("font_size", 8)
+	sub_lbl.add_theme_font_size_override("font_size", 11)
 	sub_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub_lbl.modulate = Color(0.65, 0.65, 0.72)
 	outer.add_child(sub_lbl)
@@ -96,7 +96,7 @@ func _build_ui() -> void:
 
 	var hint := Label.new()
 	hint.text = "[I] or [ESC] to close"
-	hint.add_theme_font_size_override("font_size", 8)
+	hint.add_theme_font_size_override("font_size", 11)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.modulate = Color(0.5, 0.5, 0.5)
 	outer.add_child(hint)
@@ -131,7 +131,7 @@ func _rebuild_rows() -> void:
 	if items.is_empty():
 		var empty := Label.new()
 		empty.text = "No items at risk this run."
-		empty.add_theme_font_size_override("font_size", 9)
+		empty.add_theme_font_size_override("font_size", 12)
 		empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		empty.modulate = Color(0.55, 0.55, 0.62)
 		_item_vbox.add_child(empty)
@@ -143,12 +143,12 @@ func _rebuild_rows() -> void:
 		_item_vbox.add_child(hbox)
 
 		var lbl := Label.new()
-		lbl.add_theme_font_size_override("font_size", 9)
+		lbl.add_theme_font_size_override("font_size", 12)
 		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		hbox.add_child(lbl)
 
 		var btn := Button.new()
-		btn.add_theme_font_size_override("font_size", 9)
+		btn.add_theme_font_size_override("font_size", 12)
 		btn.custom_minimum_size = Vector2(64.0, 0.0)
 		hbox.add_child(btn)
 

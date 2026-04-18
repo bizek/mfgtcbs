@@ -34,6 +34,8 @@ func _process(delta: float) -> void:
 func start_channel(speed_multiplier: float = 1.0) -> void:
 	if is_channeling:
 		return
+	if not GameManager.is_extraction_allowed():
+		return
 	is_channeling = true
 	channel_timer = 0.0
 	extraction_speed_multiplier = speed_multiplier

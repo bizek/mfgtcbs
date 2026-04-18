@@ -54,7 +54,12 @@
       "Bash(node -e ':*)",
       "mcp__mcp-registry__search_mcp_registry",
       "mcp__godot-mcp-pro__simulate_mouse_click",
-      "mcp__godot-mcp-pro__clear_output"
+      "mcp__godot-mcp-pro__clear_output",
+      "mcp__godot-mcp-pro__validate_script",
+      "Bash(git -C E:/Projects/extraction-survivors status --short)",
+      "Bash(sort -t, -k2 -n)",
+      "mcp__godot-mcp-pro__get_node_properties",
+      "mcp__godot-mcp-pro__delete_node"
     ]
   }
 }
