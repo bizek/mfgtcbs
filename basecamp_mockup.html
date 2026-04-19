@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>BASE CAMP — Extraction Survivors</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+body{background:#000;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+#wrapper{position:relative;width:960px;height:600px;}
+canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges;}
+
+#scanlines{
+  position:absolute;inset:0;pointer-events:none;z-index:15;
+  background:repeating-linear-gradient(to bottom,transparent 0px,transparent 3px,rgba(0,0,0,0.13) 3px,rgba(0,0,0,0.13) 4px);
+  animation:scanShift 12s linear infinite;
+}
+@keyframes scanShift{0%{background-position:0 0;}100%{background-position:0 200px;}}
+
+#vignette{
+  position:absolute;inset:0;pointer-events:none;z-index:14;
+  background:radial-gradient(ellipse 92% 88% at center,transparent 38%,rgba(0,0,0,0.75) 100%);
+}
+
+#zone-panel{
+  position:absolute;top:50%;right:14px;width:245px;
+  transform:translateY(-50%) translateX(290px);
+  transition:transform 0.17s ease-out,opacity 0.17s ease-out;
+  opacity:0;pointer-events:none;z-index:40;
+  font-family:'Press Start 2P',monospace;
+}
+#zone-panel.panel-left{right:auto;left:14px;transform:translateY(-50%) translateX(-290px);}
+#zone-panel.visible{transform:translateY(-50%) translateX(0);opacity:1;pointer-events:auto;}
+
+.zp-wrap{
+  background:rgba(3,5,14,0.97);
+  border:1px solid var(--zc,#444);
+  box-shadow:0 0 22px var(--zc,#444),0 0 80px rgba(0,0,0,0.92);
+  overflow:hidden;
+}
+.zp-head{display:flex;align-items:center;gap:10px;padding:11px 13px;border-bottom:1px solid rgba(255,255,255,0.06);}
+.zp-head-ic{font-size:26px;line-height:1;color:var(--zc,#fff);filter:drop-shadow(0 0 8px var(--zc,#fff));flex-shrink:0;}
+.zp-head-tx{flex:1;}
+.zp-head-nm{font-size:7px;color:var(--zc,#fff);text-shadow:0 0 7px var(--zc,#fff);margin-bottom:5px;letter-spacing:.4px;}
+.zp-head-sb{font-size:5px;color:var(--zcd,#555);letter-spacing:.3px;}
+.zp-dot{width:6px;height:6px;border-radius:50%;background:var(--zc,#fff);box-shadow:0 0 8px var(--zc,#fff);flex-shrink:0;animation:dotblink 1.4s step-end infinite;}
+@keyframes dotblink{0%,100%{opacity:1;}50%{opacity:.08;}}
+.zp-stat{padding:6px 13px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:5px;color:var(--zcd,#555);letter-spacing:.4px;}
+.zp-acts{padding:5px 0;}
+.zp-act{display:flex;align-items:center;gap:8px;padding:5px 13px;cursor:pointer;transition:background .1s;}
+.zp-act:hover{background:rgba(255,255,255,0.035);}
+.zp-ak{font-size:5px;padding:2px 5px;min-width:24px;text-align:center;flex-shrink:0;font-family:'Press Start 2P',monospace;}
+.zp-al{font-size:5.5px;color:#5a6a7a;letter-spacing:.3px;}
+.zp-act.pri .zp-al{color:var(--zc,#fff);}
+.zp-foot{padding:7px 13px;border-top:1px solid rgba(255,255,255,0.04);font-size:5px;color:#252e3a;text-align:center;letter-spacing:.4px;}
+</style>
+</head>
+<body>
+<div id="wrapper">
+  <canvas id="canvas" width="960" height="600"></canvas>
+  <div id="scanlines"></div>
+  <div id="vignette"></div>
+  <div id="zone-panel">
+    <div class="zp-wrap" id="zp-wrap">
+      <div class="zp-head">
+        <div class="zp-head-ic" id="zp-ic">▲</div>
+        <div class="zp-head-tx">
+          <div class="zp-head-nm" id="zp-nm"></div>
+          <div class="zp-head-sb" id="zp-sb"></div>
+        </div>
+        <div class="zp-dot" id="zp-dot"></div>
+      </div>
+      <div class="zp-stat" id="zp-stat"></div>
+      <div class="zp-acts" id="zp-acts"></div>
+      <div class="zp-foot">[ E ] ENTER TERMINAL &nbsp;·&nbsp; [ ESC ] CLOSE</div>
+    </div>
+  </div>
+</div>
+<script>
+// ── Canvas ────────────────────────────────────────────────────
+const canvas = document.getElementById('canvas');
+const ctx    = canvas.getContext('2d');
+const W = 960, H = 600;
+
+const wrapper = document.getElementById('wrapper');
+function resize(){
+  const s = Math.min(window.innerWidth/W, window.innerHeight/H);
+  wrapper.style.transform = `scale(${s})`;
+}
+window.addEventListener('resize', resize); resize();
+
+// ── Zone data ─────────────────────────────────────────────────
+const ZONES = [
+  {
+    id:'launch', name:'LAUNCH PAD', sub:'DEPLOYMENT TERMINAL', stat:'STATUS: MISSION READY',
+    rect:{x:388,y:50,w:184,h:88}, color:'#00ff41', dark:'#011a07', dim:'#004d15',
+    rgb:[0,255,65], icon:'▲', panelLeft:false,
+    actions:[
+      {k:'ENTER',l:'DEPLOY TO ZONE',p:true},{k:'1',l:'SELECT MISSION'},
+      {k:'2',l:'REVIEW OBJECTIVES'},{k:'3',l:'DIFFICULTY SETTINGS'},
+    ],
+  },
+  {
+    id:'roster', name:'ROSTER', sub:'OPERATIVE ROSTER', stat:'OPERATIVES: 3 / 7 UNLOCKED',
+    rect:{x:708,y:50,w:157,h:88}, color:'#38bdf8', dark:'#00091c', dim:'#0a3060',
+    rgb:[56,189,248], icon:'●', panelLeft:true,
+    actions:[
+      {k:'1',l:'SELECT OPERATIVE',p:true},{k:'2',l:'VIEW PASSIVES'},
+      {k:'3',l:'COMMENDATIONS'},
+    ],
+  },
+  {
+    id:'armory', name:'ARMORY', sub:'EQUIPMENT LOADOUT', stat:'OPERATIVE: GHOST-7',
+    rect:{x:30,y:228,w:140,h:100}, color:'#d4864a', dark:'#1c0800', dim:'#5a3010',
+    rgb:[212,134,74], icon:'◆', panelLeft:false,
+    actions:[
+      {k:'1',l:'PRIMARY WEAPON',p:true},{k:'2',l:'WEAPON MODS'},
+      {k:'3',l:'CONSUMABLES'},{k:'4',l:'INSPECT KIT'},
+    ],
+  },
+  {
+    id:'research', name:'RESEARCH', sub:'RESEARCH ARCHIVE', stat:'DOCUMENTS: 23 INDEXED',
+    rect:{x:790,y:228,w:140,h:100}, color:'#22d3a0', dark:'#001510', dim:'#005540',
+    rgb:[34,211,160], icon:'★', panelLeft:true,
+    actions:[
+      {k:'1',l:'VIEW BLUEPRINTS',p:true},{k:'2',l:'MOD COMBOS'},
+      {k:'3',l:'THREAT DATA'},{k:'4',l:'ANALYZE SAMPLE'},
+    ],
+  },
+  {
+    id:'workshop', name:'WORKSHOP', sub:'FABRICATION UNIT', stat:'POWER: 87%',
+    rect:{x:98,y:466,w:152,h:84}, color:'#a855f7', dark:'#0d0018', dim:'#4a1a70',
+    rgb:[168,85,247], icon:'⊕', panelLeft:false,
+    actions:[
+      {k:'1',l:'UPGRADE FACILITY',p:true},{k:'2',l:'CRAFT GEAR'},
+      {k:'3',l:'REPAIR EQUIPMENT'},{k:'4',l:'RECYCLE SCRAP'},
+    ],
+  },
+  {
+    id:'records', name:'RECORDS', sub:'DATA ARCHIVE', stat:'RUNS LOGGED: 47',
+    rect:{x:708,y:466,w:148,h:84}, color:'#94a3b8', dark:'#090b0f', dim:'#2a3545',
+    rgb:[148,163,184], icon:'■', panelLeft:true,
+    actions:[
+      {k:'1',l:'RUN HISTORY',p:true},{k:'2',l:'STATISTICS'},
+      {k:'3',l:'ACHIEVEMENTS'},
+    ],
+  },
+];
+
+// ── State ─────────────────────────────────────────────────────
+const player = {x:470,y:290,w:12,h:16,dir:'down',speed:175};
+const keys   = {};
+let nearZone = null, lastTime = 0;
+let footprints = [], particles = [];
+
+// ── Input ─────────────────────────────────────────────────────
+document.addEventListener('keydown', e=>{
+  keys[e.key]=true;
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+});
+document.addEventListener('keyup', e=>{ keys[e.key]=false; });
+
+// ── Update ────────────────────────────────────────────────────
+function update(ts, dt){
+  const spd = player.speed * dt;
+  const px0 = player.x, py0 = player.y;
+  let moved = false;
+
+  if(keys['w']||keys['W']||keys['ArrowUp'])   {player.y-=spd;player.dir='up';   moved=true;}
+  if(keys['s']||keys['S']||keys['ArrowDown']) {player.y+=spd;player.dir='down'; moved=true;}
+  if(keys['a']||keys['A']||keys['ArrowLeft']) {player.x-=spd;player.dir='left'; moved=true;}
+  if(keys['d']||keys['D']||keys['ArrowRight']){player.x+=spd;player.dir='right';moved=true;}
+
+  player.x = Math.max(34, Math.min(W-34-player.w, player.x));
+  player.y = Math.max(46, Math.min(H-36-player.h, player.y));
+
+  // Zone collision (solid)
+  for(const z of ZONES){
+    const r=z.rect;
+    if(player.x<r.x+r.w && player.x+player.w>r.x && player.y<r.y+r.h && player.y+player.h>r.y){
+      const oL=player.x+player.w-r.x, oR=r.x+r.w-player.x;
+      const oT=player.y+player.h-r.y, oB=r.y+r.h-player.y;
+      if(Math.min(oL,oR)<Math.min(oT,oB)){player.x+=oL<oR?-oL:oR;}
+      else{player.y+=oT<oB?-oT:oB;}
+    }
+  }
+
+  // Footprints
+  if(moved){
+    const last=footprints[footprints.length-1];
+    if(!last||Math.hypot(player.x-last.x,player.y-last.y)>10){
+      footprints.push({x:player.x+player.w/2,y:player.y+player.h-1,life:1});
+      if(footprints.length>18) footprints.shift();
+    }
+  }
+  footprints.forEach(f=>f.life-=0.012);
+  footprints=footprints.filter(f=>f.life>0);
+
+  // Ambient particles (bias color toward zones)
+  if(particles.length<60 && Math.random()<0.14){
+    const z=ZONES[Math.floor(Math.random()*ZONES.length)];
+    particles.push({
+      x:Math.random()*860+50, y:Math.random()*500+50,
+      vx:(Math.random()-.5)*14, vy:-Math.random()*20-4,
+      life:1, size:Math.random()*1.2+0.3,
+      r:z.rgb[0], g:z.rgb[1], b:z.rgb[2],
+    });
+  }
+  particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=0.38*dt;});
+  particles=particles.filter(p=>p.life>0);
+
+  // Zone proximity (center-to-center)
+  const pcx=player.x+player.w/2, pcy=player.y+player.h/2;
+  nearZone=null; let minD=105;
+  for(const z of ZONES){
+    const d=Math.hypot(pcx-(z.rect.x+z.rect.w/2), pcy-(z.rect.y+z.rect.h/2));
+    if(d<minD){minD=d;nearZone=z;}
+  }
+}
+
+// ── Draw helpers ──────────────────────────────────────────────
+function brackets(x,y,w,h,color,sz=10){
+  ctx.strokeStyle=color; ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(x,y+sz);ctx.lineTo(x,y);ctx.lineTo(x+sz,y);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x+w-sz,y);ctx.lineTo(x+w,y);ctx.lineTo(x+w,y+sz);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x,y+h-sz);ctx.lineTo(x,y+h);ctx.lineTo(x+sz,y+h);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x+w-sz,y+h);ctx.lineTo(x+w,y+h);ctx.lineTo(x+w,y+h-sz);ctx.stroke();
+}
+
+// ── Draw: floor ───────────────────────────────────────────────
+function drawFloor(){
+  ctx.fillStyle='#040609';
+  ctx.fillRect(30,42,900,526);
+  ctx.strokeStyle='#090e18'; ctx.lineWidth=1;
+  for(let gx=30;gx<=930;gx+=20){ctx.beginPath();ctx.moveTo(gx,42);ctx.lineTo(gx,568);ctx.stroke();}
+  for(let gy=42;gy<=568;gy+=20){ctx.beginPath();ctx.moveTo(30,gy);ctx.lineTo(930,gy);ctx.stroke();}
+  // Grid accent dots
+  ctx.fillStyle='#0d1626';
+  for(let gx=30;gx<=930;gx+=100) for(let gy=42;gy<=568;gy+=80) ctx.fillRect(gx-1,gy-1,2,2);
+  // Center marker
+  ctx.save();ctx.strokeStyle='#0d1828';ctx.lineWidth=1;ctx.setLineDash([3,7]);
+  ctx.beginPath();ctx.arc(480,305,38,0,Math.PI*2);ctx.stroke();
+  ctx.setLineDash([]);ctx.restore();
+}
+
+// ── Draw: walls ───────────────────────────────────────────────
+function drawWalls(){
+  ctx.fillStyle='#070c18';
+  ctx.fillRect(0,0,W,42); ctx.fillRect(0,568,W,32);
+  ctx.fillRect(0,42,30,526); ctx.fillRect(930,42,30,526);
+  ctx.strokeStyle='#101e30'; ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(30,42);ctx.lineTo(930,42);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(30,568);ctx.lineTo(930,568);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(30,42);ctx.lineTo(30,568);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(930,42);ctx.lineTo(930,568);ctx.stroke();
+  // Corner sensor nodes
+  const corners=[{x:46,y:57},{x:914,y:57},{x:46,y:553},{x:914,y:553}];
+  for(const c of corners){
+    ctx.save();ctx.shadowColor='#1a3860';ctx.shadowBlur=5;
+    ctx.fillStyle='#0a1e35';ctx.fillRect(c.x-5,c.y-5,10,10);
+    ctx.strokeStyle='#1a3860';ctx.lineWidth=1;ctx.strokeRect(c.x-5,c.y-5,10,10);
+    ctx.fillStyle='#3a6880';ctx.beginPath();ctx.arc(c.x,c.y,2,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  }
+  ctx.save();ctx.shadowColor='#1a3050';ctx.shadowBlur=5;
+  brackets(22,36,916,542,'#162840',18); ctx.restore();
+}
+
+// ── Draw: zone glows ──────────────────────────────────────────
+function drawZoneGlows(ts){
+  for(const z of ZONES){
+    const r=z.rect, cx=r.x+r.w/2, cy=r.y+r.h/2;
+    const isNear=nearZone===z;
+    const pulse=Math.sin(ts*.0013+(r.x*.01))*.5+.5;
+    const rad=Math.max(r.w,r.h)*.75;
+    const a=isNear?.13+pulse*.07:.04+pulse*.02;
+    const g=ctx.createRadialGradient(cx,cy,0,cx,cy,rad);
+    g.addColorStop(0,`rgba(${z.rgb[0]},${z.rgb[1]},${z.rgb[2]},${a*2})`);
+    g.addColorStop(.6,`rgba(${z.rgb[0]},${z.rgb[1]},${z.rgb[2]},${a})`);
+    g.addColorStop(1,`rgba(${z.rgb[0]},${z.rgb[1]},${z.rgb[2]},0)`);
+    ctx.fillStyle=g;
+    ctx.beginPath();ctx.ellipse(cx,cy,rad*1.4,rad*1.1,0,0,Math.PI*2);ctx.fill();
+  }
+}
+
+// ── Draw: zone terminals ──────────────────────────────────────
+function drawZone(z,ts){
+  const r=z.rect, isNear=nearZone===z;
+  const pulse=Math.sin(ts*.0013+(r.x*.01))*.5+.5;
+  const glow=isNear?28+pulse*18:10+pulse*7;
+
+  ctx.save();
+  ctx.shadowColor=z.color; ctx.shadowBlur=glow;
+
+  ctx.fillStyle=z.dark; ctx.fillRect(r.x,r.y,r.w,r.h);
+  ctx.strokeStyle=z.color; ctx.lineWidth=isNear?2:1;
+  ctx.strokeRect(r.x+.5,r.y+.5,r.w-1,r.h-1);
+  ctx.shadowBlur=0;
+
+  // Header
+  const hh=19;
+  ctx.fillStyle=z.dim; ctx.fillRect(r.x+1,r.y+1,r.w-2,hh);
+  ctx.fillStyle=z.color;
+  ctx.font='6px "Press Start 2P",monospace';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(z.name, r.x+r.w/2, r.y+1+hh/2);
+
+  // Icon
+  const icy=r.y+hh+(r.h-hh)*.50;
+  ctx.globalAlpha=.55+pulse*.45;
+  ctx.fillStyle=z.color;
+  ctx.font='24px monospace';
+  ctx.fillText(z.icon, r.x+r.w/2, icy+2);
+  ctx.globalAlpha=1;
+
+  // Subtitle word
+  ctx.fillStyle=z.color; ctx.globalAlpha=.36;
+  ctx.font='5px "Press Start 2P",monospace';
+  ctx.fillText(z.sub.split(' ')[0], r.x+r.w/2, r.y+r.h-7);
+  ctx.globalAlpha=1;
+
+  // Scan line
+  const sy=((ts*.04)%(r.h+20))-10;
+  if(sy>0&&sy<r.h){
+    const sg=ctx.createLinearGradient(r.x,r.y+sy-5,r.x,r.y+sy+5);
+    sg.addColorStop(0,'transparent');
+    sg.addColorStop(.5,`rgba(${z.rgb[0]},${z.rgb[1]},${z.rgb[2]},.18)`);
+    sg.addColorStop(1,'transparent');
+    ctx.fillStyle=sg; ctx.fillRect(r.x+1,r.y+sy-5,r.w-2,10);
+  }
+
+  // Corner brackets (proud of border)
+  ctx.save();ctx.shadowColor=z.color;ctx.shadowBlur=6;
+  brackets(r.x-3,r.y-3,r.w+6,r.h+6,z.color,9);ctx.restore();
+
+  // Status blink dot
+  const blink=Math.sin(ts*.0048)>0;
+  ctx.beginPath();ctx.arc(r.x+r.w-8,r.y+10,3,0,Math.PI*2);
+  ctx.fillStyle=blink?z.color:z.dim;
+  ctx.shadowColor=z.color; ctx.shadowBlur=blink?8:0;
+  ctx.fill();
+
+  ctx.restore();
+}
+
+// ── Draw: approach line ───────────────────────────────────────
+function drawApproach(ts){
+  if(!nearZone) return;
+  const z=nearZone;
+  const px=player.x+player.w/2, py=player.y+player.h/2;
+  const cx=z.rect.x+z.rect.w/2, cy=z.rect.y+z.rect.h/2;
+  if(Math.hypot(px-cx,py-cy)<8) return;
+  ctx.save();
+  ctx.globalAlpha=.07;ctx.strokeStyle=z.color;ctx.lineWidth=1;
+  ctx.setLineDash([3,9]);ctx.lineDashOffset=-(ts*.05)%12;
+  ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(cx,cy);ctx.stroke();
+  ctx.setLineDash([]);ctx.restore();
+}
+
+// ── Draw: interact prompts ────────────────────────────────────
+function drawPrompts(ts){
+  if(!nearZone) return;
+  const z=nearZone, r=z.rect;
+  const a=.45+Math.sin(ts*.007)*.45;
+  if(a<.1) return;
+  ctx.save();
+  ctx.globalAlpha=a;ctx.fillStyle=z.color;
+  ctx.font='6px "Press Start 2P",monospace';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.shadowColor=z.color;ctx.shadowBlur=10;
+  const py2=r.y>H/2?r.y-14:r.y+r.h+15;
+  ctx.fillText('[ E ]',r.x+r.w/2,py2);
+  ctx.restore();
+}
+
+// ── Draw: footprints ──────────────────────────────────────────
+function drawFootprints(){
+  for(const f of footprints){
+    ctx.save();ctx.globalAlpha=f.life*.26;
+    ctx.fillStyle='#3399cc';ctx.fillRect(f.x-1,f.y-1,2,2);
+    ctx.restore();
+  }
+}
+
+// ── Draw: particles ───────────────────────────────────────────
+function drawParticles(){
+  for(const p of particles){
+    ctx.save();ctx.globalAlpha=p.life*.22;
+    ctx.fillStyle=`rgb(${p.r},${p.g},${p.b})`;
+    ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  }
+}
+
+// ── Draw: player ──────────────────────────────────────────────
+function drawPlayer(ts){
+  const p=player, breathe=Math.sin(ts*.003)*.5+.5;
+  ctx.save();
+  // Shadow
+  ctx.globalAlpha=.18;ctx.fillStyle='#0088ff';
+  ctx.beginPath();ctx.ellipse(p.x+p.w/2,p.y+p.h+2,p.w*.65,3,0,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=1;
+  // Glow + body
+  ctx.shadowColor='#00aaff';ctx.shadowBlur=10+breathe*6;
+  ctx.fillStyle='#7bbcee';ctx.fillRect(p.x,p.y,p.w,p.h);
+  ctx.shadowBlur=0;
+  // Pixel detail
+  ctx.fillStyle='#b8deff';ctx.fillRect(p.x+2,p.y+2,p.w-4,4);
+  ctx.fillStyle='#5599cc';ctx.fillRect(p.x+2,p.y+8,p.w-4,2);
+  ctx.fillStyle='#3377aa';ctx.fillRect(p.x+2,p.y+12,p.w-4,2);
+  // Direction pip
+  ctx.fillStyle='#fff';ctx.shadowColor='#fff';ctx.shadowBlur=4;
+  if(p.dir==='up')    ctx.fillRect(p.x+4,p.y-4,4,4);
+  if(p.dir==='down')  ctx.fillRect(p.x+4,p.y+p.h,4,4);
+  if(p.dir==='left')  ctx.fillRect(p.x-4,p.y+5,4,4);
+  if(p.dir==='right') ctx.fillRect(p.x+p.w,p.y+5,4,4);
+  ctx.restore();
+}
+
+// ── Draw: HUD ─────────────────────────────────────────────────
+function drawHUD(ts){
+  // Top bar
+  ctx.fillStyle='#030609';ctx.fillRect(0,0,W,42);
+  ctx.strokeStyle='#0c1a2a';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,41.5);ctx.lineTo(W,41.5);ctx.stroke();
+
+  ctx.fillStyle='#6688aa';
+  ctx.font='9px "Press Start 2P",monospace';
+  ctx.textAlign='left';ctx.textBaseline='middle';
+  ctx.fillText('\u25C8 BASE CAMP',20,21);
+
+  ctx.strokeStyle='#0f1e30';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(214,8);ctx.lineTo(214,34);ctx.stroke();
+
+  if(nearZone){
+    ctx.save();ctx.fillStyle=nearZone.color;
+    ctx.font='7px "Press Start 2P",monospace';
+    ctx.textAlign='left';ctx.shadowColor=nearZone.color;ctx.shadowBlur=8;
+    ctx.fillText('\u25C9 '+nearZone.name,228,21);ctx.restore();
+  }else{
+    ctx.fillStyle='#1a2a3a';ctx.font='7px "Press Start 2P",monospace';
+    ctx.textAlign='left';ctx.fillText('NAVIGATING...',228,21);
+  }
+
+  // Resources
+  const res=[
+    {l:'2,847 CR',c:'#00ff41'},{l:'156 SC',c:'#d4864a'},{l:'23 DC',c:'#38bdf8'},
+  ];
+  ctx.font='7px "Press Start 2P",monospace';
+  let rx=W-18;
+  for(let i=res.length-1;i>=0;i--){
+    ctx.textAlign='right';ctx.textBaseline='middle';
+    ctx.fillStyle=res[i].c;ctx.fillText(res[i].l,rx,21);
+    rx-=ctx.measureText(res[i].l).width+14;
+    ctx.strokeStyle='#0f1e30';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(rx,8);ctx.lineTo(rx,34);ctx.stroke();
+    rx-=12;
+  }
+  ctx.fillStyle='#1a2a3a';ctx.font='5px "Press Start 2P",monospace';
+  ctx.textAlign='right';ctx.fillText('RESOURCES',rx-2,21);
+
+  // Bottom bar
+  ctx.fillStyle='#030609';ctx.fillRect(0,568,W,32);
+  ctx.strokeStyle='#0c1a2a';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,568.5);ctx.lineTo(W,568.5);ctx.stroke();
+
+  ctx.fillStyle='#1e2e40';ctx.font='5px "Press Start 2P",monospace';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('WASD / ARROWS \u2014 MOVE     E \u2014 INTERACT     ESC \u2014 CLOSE',W/2,583);
+  ctx.fillStyle='#00ff41';ctx.textAlign='left';ctx.fillText('SESSION 07',18,583);
+  ctx.fillStyle='#2a3a4a';ctx.textAlign='right';ctx.fillText('PRE-DEPLOYMENT PHASE',W-18,583);
+}
+
+// ── Main draw ─────────────────────────────────────────────────
+function draw(ts){
+  ctx.fillStyle='#030508';ctx.fillRect(0,0,W,H);
+  drawFloor(); drawWalls(); drawZoneGlows(ts);
+  drawParticles();
+  for(const z of ZONES) drawZone(z,ts);
+  drawApproach(ts); drawPrompts(ts); drawFootprints();
+  drawPlayer(ts); drawHUD(ts);
+}
+
+// ── Zone panel (DOM) ──────────────────────────────────────────
+const panel  = document.getElementById('zone-panel');
+const zpWrap = document.getElementById('zp-wrap');
+const zpIc   = document.getElementById('zp-ic');
+const zpNm   = document.getElementById('zp-nm');
+const zpSb   = document.getElementById('zp-sb');
+const zpStat = document.getElementById('zp-stat');
+const zpActs = document.getElementById('zp-acts');
+const zpDot  = document.getElementById('zp-dot');
+let lastNear = null;
+
+function populatePanel(z){
+  zpWrap.style.setProperty('--zc',z.color);
+  zpWrap.style.setProperty('--zcd',z.dim);
+  zpWrap.style.borderColor=z.color;
+  zpWrap.style.boxShadow=`0 0 22px ${z.color},0 0 80px rgba(0,0,0,.93)`;
+  zpIc.textContent=z.icon; zpIc.style.color=z.color;
+  zpIc.style.filter=`drop-shadow(0 0 8px ${z.color})`;
+  zpNm.textContent=z.name; zpNm.style.color=z.color;
+  zpNm.style.textShadow=`0 0 7px ${z.color}`;
+  zpSb.textContent=z.sub; zpSb.style.color=z.dim;
+  zpStat.textContent=z.stat; zpStat.style.color=z.dim;
+  zpDot.style.background=z.color; zpDot.style.boxShadow=`0 0 8px ${z.color}`;
+  zpActs.innerHTML='';
+  for(const a of z.actions){
+    const d=document.createElement('div');
+    d.className='zp-act'+(a.p?' pri':'');
+    const ks=a.p?`background:${z.color};color:#000`:`background:${z.dim};color:#999;border:1px solid ${z.color}44`;
+    d.innerHTML=`<span class="zp-ak" style="${ks}">${a.k}</span><span class="zp-al">${a.l}</span>`;
+    zpActs.appendChild(d);
+  }
+  panel.style.transition='none';
+  if(z.panelLeft){panel.style.right='auto';panel.style.left='14px';panel.classList.add('panel-left');}
+  else{panel.style.left='auto';panel.style.right='14px';panel.classList.remove('panel-left');}
+  void panel.offsetHeight;
+  panel.style.transition='';
+}
+
+function syncPanel(){
+  if(nearZone===lastNear) return;
+  lastNear=nearZone;
+  if(!nearZone){panel.classList.remove('visible');return;}
+  populatePanel(nearZone);
+  panel.classList.remove('visible');
+  void panel.offsetHeight;
+  panel.classList.add('visible');
+}
+
+// ── Loop ──────────────────────────────────────────────────────
+function loop(ts){
+  const dt=Math.min((ts-lastTime)/1000,.05);
+  lastTime=ts; update(ts,dt); draw(ts); syncPanel();
+  requestAnimationFrame(loop);
+}
+document.fonts.ready.then(()=>{
+  requestAnimationFrame(ts=>{lastTime=ts;requestAnimationFrame(loop);});
+});
+</script>
+</body>
+</html>

@@ -9,6 +9,34 @@ const ROOM_W := 640
 const ROOM_H := 360
 const WALL_T := 19
 
+## Prop sprite data for each station. hframes splits an animation sheet; omit for single-image props.
+const _STATION_SPRITES := {
+	"launch": {
+		"path": "res://assets/minifantasy/Minifantasy_CraftingAndProfessions_v1.0/Minifantasy_CraftingAndProfessions_Assets/Crafting_Professions/Blacksmith/Foundry/Minifantasy_CraftingAndProfessionsFoundryMelting.png",
+		"scale": 2.4, "hframes": 8, "frame": 0,
+	},
+	"armory": {
+		"path": "res://assets/minifantasy/Minifantasy_CraftingAndProfessions_v1.0/Minifantasy_CraftingAndProfessions_Assets/Crafting_Professions/Blacksmith/Minifantasy_CraftingAndProfessionsBlacksmithProps.png",
+		"scale": 0.68,
+	},
+	"workshop": {
+		"path": "res://assets/minifantasy/Minifantasy_CraftingAndProfessions_v1.0/Minifantasy_CraftingAndProfessions_Assets/Crafting_Professions/Blacksmith/Furnace/Minifantasy_CraftingAndProfessionsFurnaceWorking.png",
+		"scale": 1.15, "hframes": 8, "frame": 0,
+	},
+	"research": {
+		"path": "res://assets/minifantasy/Minifantasy_CraftingAndProfessions_v1.0/Minifantasy_CraftingAndProfessions_Assets/Crafting_Professions/Alchemy/Minifantasy_CraftingAndProfessionsLaboratoryProp.png",
+		"scale": 1.25,
+	},
+	"records": {
+		"path": "res://assets/minifantasy/Minifantasy_CraftingAndProfessions_v1.0/Minifantasy_CraftingAndProfessions_Assets/Crafting_Professions/Woodwork/Minifantasy_CraftingAndProfessionsWoodworkProps.png",
+		"scale": 0.44,
+	},
+	"roster": {
+		"path": "res://assets/minifantasy/Minifantasy_CraftingAndProfessions2_v1.0/Minifantasy_CraftingAndProfessions2_Assets/Crafting_Professions/Leatherwork/Minifantasy_CraftingAndProfessions2LeatherWorkbenchProp.png",
+		"scale": 1.3,
+	},
+}
+
 ## Scene paths for each hub overlay panel.
 const _PANEL_SCENES := {
 	"launch":   "res://scenes/ui/hub_launch_panel.tscn",
@@ -24,24 +52,26 @@ const _PANEL_SCRIPTS := {
 }
 
 ## Station definitions: id, display name, accent color, world position, visual size, tagline.
+## Positions derived from SpriteFusion tile coords * 8px/tile.
 const STATIONS: Array[Dictionary] = [
-	{"id": "launch",    "name": "LAUNCH PAD", "color": Color(0.20, 0.90, 0.40),
-	 "pos": Vector2(320, 117), "size": Vector2(147, 59), "desc": "begin descent"},
+	{"id": "launch",    "name": "DESCEND",    "color": Color(0.20, 0.90, 0.40),
+	 "pos": Vector2(380, 96),  "size": Vector2(32, 48), "desc": "begin descent"},
 	{"id": "armory",    "name": "ARMORY",     "color": Color(0.90, 0.60, 0.12),
-	 "pos": Vector2(109, 211), "size": Vector2(128, 56), "desc": "equip loadout"},
+	 "pos": Vector2(560, 268), "size": Vector2(20, 20), "desc": "equip loadout"},
 	{"id": "workshop",  "name": "WORKSHOP",   "color": Color(0.68, 0.24, 0.88),
-	 "pos": Vector2(531, 211), "size": Vector2(133, 56), "desc": "hub upgrades"},
+	 "pos": Vector2(616, 276), "size": Vector2(32, 24), "desc": "hub upgrades"},
 	{"id": "research",  "name": "RESEARCH",   "color": Color(0.20, 0.85, 0.55),
-	 "pos": Vector2(320, 260), "size": Vector2(147, 51), "desc": "blueprints"},
+	 "pos": Vector2(280, 272), "size": Vector2(32, 16), "desc": "blueprints"},
 	{"id": "records",   "name": "RECORDS",    "color": Color(0.65, 0.65, 0.72),
-	 "pos": Vector2(147, 323), "size": Vector2(133, 51), "desc": "view stats"},
+	 "pos": Vector2(472, 264), "size": Vector2(56, 48), "desc": "view stats"},
 	{"id": "roster",    "name": "ROSTER",     "color": Color(0.45, 0.52, 0.95),
-	 "pos": Vector2(491, 323), "size": Vector2(173, 51), "desc": "select character"},
+	 "pos": Vector2(408, 160), "size": Vector2(24, 24), "desc": "select character"},
 ]
 
 var _player_body: CharacterBody2D
 var _station_nodes: Array[Node2D] = []
 var _station_bg_rects: Array[ColorRect] = []  ## parallel to _station_nodes, for proximity glow
+var _map_offset: Vector2 = Vector2.ZERO
 var _interact_prompt: Label
 var _resource_label: Label
 var _active_station_id: String = ""
@@ -53,7 +83,6 @@ var _flicker_timer: float = 0.0
 
 func _ready() -> void:
 	_build_room()
-	_apply_visual_tier()
 	_build_stations()
 	_build_player()
 	_build_ui()
@@ -61,49 +90,22 @@ func _ready() -> void:
 # ── Room ──────────────────────────────────────────────────────────────────────
 
 func _build_room() -> void:
-	## Floor base
-	var floor_rect := ColorRect.new()
-	floor_rect.color = Color(0.11, 0.12, 0.14)
-	floor_rect.size = Vector2(ROOM_W, ROOM_H)
-	add_child(floor_rect)
+	## Tilemap background — loaded first so it sits behind all overlays
+	var map_scene := load("res://assets/Maps/Base Camp/Map.tscn") as PackedScene
+	if map_scene:
+		var map_inst := map_scene.instantiate()
+		add_child(map_inst)
+		_map_offset = map_inst.position
+		## Interior wall tiles are visual only — hub.gd's StaticBody2D walls handle bounds
+		var walls_layer := map_inst.get_node_or_null("WALLS_2")
+		if walls_layer:
+			walls_layer.collision_enabled = false
 
-	## Subtle pixel grid
-	for x in range(0, ROOM_W, 16):
-		var line := ColorRect.new()
-		line.color = Color(0.135, 0.148, 0.165)
-		line.position = Vector2(x, 0)
-		line.size = Vector2(1, ROOM_H)
-		add_child(line)
-	for y in range(0, ROOM_H, 16):
-		var line := ColorRect.new()
-		line.color = Color(0.135, 0.148, 0.165)
-		line.position = Vector2(0, y)
-		line.size = Vector2(ROOM_W, 1)
-		add_child(line)
-
-	## Walls (static collision + dark visual)
-	_add_wall(Vector2(0, 0),                Vector2(ROOM_W, WALL_T))          ## top
-	_add_wall(Vector2(0, ROOM_H - WALL_T),  Vector2(ROOM_W, WALL_T))          ## bottom
-	_add_wall(Vector2(0, 0),                Vector2(WALL_T, ROOM_H))          ## left
-	_add_wall(Vector2(ROOM_W - WALL_T, 0),  Vector2(WALL_T, ROOM_H))          ## right
-
-	## Room title (top-center)
-	var title := Label.new()
-	title.text = "BASE CAMP"
-	title.add_theme_font_override("font", PIXEL_FONT)
-	title.add_theme_font_size_override("font_size", 21)
-	title.add_theme_color_override("font_color", Color(0.52, 0.56, 0.66))
-	title.position = Vector2(ROOM_W * 0.5 - 44, -1)
-	add_child(title)
-
-	## Thin accent beneath title
-	var t_accent := ColorRect.new()
-	t_accent.color = Color(0.30, 0.34, 0.50, 0.50)
-	t_accent.size = Vector2(88, 1)
-	t_accent.position = Vector2(ROOM_W * 0.5 - 44, 16)
-	add_child(t_accent)
-
-	_add_vignette()
+	## Invisible collision walls keep the player inside the viewport
+	_add_wall(Vector2(0, 0),                Vector2(ROOM_W, WALL_T))
+	_add_wall(Vector2(0, ROOM_H - WALL_T),  Vector2(ROOM_W, WALL_T))
+	_add_wall(Vector2(0, 0),                Vector2(WALL_T, ROOM_H))
+	_add_wall(Vector2(ROOM_W - WALL_T, 0),  Vector2(WALL_T, ROOM_H))
 
 func _add_wall(pos: Vector2, sz: Vector2) -> void:
 	var body := StaticBody2D.new()
@@ -116,10 +118,6 @@ func _add_wall(pos: Vector2, sz: Vector2) -> void:
 	cs.shape = rs
 	cs.position = sz * 0.5
 	body.add_child(cs)
-	var vis := ColorRect.new()
-	vis.color = Color(0.065, 0.075, 0.09)
-	vis.size = sz
-	body.add_child(vis)
 	add_child(body)
 
 func _add_vignette() -> void:
@@ -198,57 +196,47 @@ func _build_stations() -> void:
 		root.position = s["pos"]
 		root.set_meta("station_id", s["id"])
 
+		root.position += _map_offset
 		var sz: Vector2 = s["size"]
 		var col: Color = s["color"]
 
-		## Dark backing panel
+		## Proximity glow overlay — invisible by default, tints on approach
 		var bg := ColorRect.new()
-		bg.color = Color(col.r * 0.20, col.g * 0.20, col.b * 0.20)
+		bg.color = Color(0, 0, 0, 0)
 		bg.size = sz
 		bg.position = -sz * 0.5
 		root.add_child(bg)
 		_station_bg_rects.append(bg)
 
-		## Top accent bar
-		var bar_t := ColorRect.new()
-		bar_t.color = col
-		bar_t.size = Vector2(sz.x, 2)
-		bar_t.position = Vector2(-sz.x * 0.5, -sz.y * 0.5)
-		root.add_child(bar_t)
-
-		## Bottom dim bar
-		var bar_b := ColorRect.new()
-		bar_b.color = Color(col.r * 0.4, col.g * 0.4, col.b * 0.4)
-		bar_b.size = Vector2(sz.x, 1)
-		bar_b.position = Vector2(-sz.x * 0.5, sz.y * 0.5 - 1)
-		root.add_child(bar_b)
-
-		## Station name
-		var name_lbl := Label.new()
-		name_lbl.text = s["name"]
-		name_lbl.add_theme_font_override("font", PIXEL_FONT)
-		name_lbl.add_theme_font_size_override("font_size", 21)
-		name_lbl.add_theme_color_override("font_color", col)
-		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		name_lbl.clip_contents = true
-		name_lbl.size = sz
-		name_lbl.position = -sz * 0.5 + Vector2(0, 5)
-		root.add_child(name_lbl)
-
-		## Description tagline
-		var desc_lbl := Label.new()
-		desc_lbl.text = s["desc"]
-		desc_lbl.add_theme_font_override("font", PIXEL_FONT)
-		desc_lbl.add_theme_font_size_override("font_size", 19)
-		desc_lbl.add_theme_color_override("font_color", Color(0.75, 0.75, 0.82))
-		desc_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		desc_lbl.clip_contents = true
-		desc_lbl.size = sz
-		desc_lbl.position = -sz * 0.5 + Vector2(0, 24)
-		root.add_child(desc_lbl)
-
 		add_child(root)
 		_station_nodes.append(root)
+
+func _add_corner_brackets(root: Node2D, sz: Vector2, col: Color) -> void:
+	const ARM := 7   ## bracket arm length in px
+	const THK := 1   ## bracket line thickness
+	var dim_col := Color(col.r * 0.55, col.g * 0.55, col.b * 0.55)
+	## Each corner: [top-left of bracket box, flip_x, flip_y]
+	var corners: Array = [
+		[Vector2(-sz.x * 0.5 - 2, -sz.y * 0.5 - 2), false, false],
+		[Vector2( sz.x * 0.5 - ARM + 2, -sz.y * 0.5 - 2), true,  false],
+		[Vector2(-sz.x * 0.5 - 2,  sz.y * 0.5 - ARM + 2), false, true ],
+		[Vector2( sz.x * 0.5 - ARM + 2,  sz.y * 0.5 - ARM + 2), true,  true ],
+	]
+	for c in corners:
+		var cx: float = c[0].x
+		var cy: float = c[0].y
+		## Horizontal arm
+		var h := ColorRect.new()
+		h.color = dim_col
+		h.size = Vector2(ARM, THK)
+		h.position = Vector2(cx, cy if not c[2] else cy + ARM - THK)
+		root.add_child(h)
+		## Vertical arm
+		var v := ColorRect.new()
+		v.color = dim_col
+		v.size = Vector2(THK, ARM)
+		v.position = Vector2(cx if not c[1] else cx + ARM - THK, cy)
+		root.add_child(v)
 
 # ── Player ────────────────────────────────────────────────────────────────────
 
@@ -310,31 +298,10 @@ func _build_ui() -> void:
 	_interact_prompt.visible = false
 	_panel_layer.add_child(_interact_prompt)
 
-	## Resource counter (top-right) — prominent HUD element
-	var res_bg := ColorRect.new()
-	res_bg.color = Color(0.055, 0.065, 0.085, 0.92)
-	res_bg.size = Vector2(197, 27)
-	res_bg.position = Vector2(437, 2)
-	_panel_layer.add_child(res_bg)
-
-	var res_accent := ColorRect.new()
-	res_accent.color = Color(0.90, 0.80, 0.30)
-	res_accent.size = Vector2(197, 1)
-	res_accent.position = Vector2(437, 2)
-	_panel_layer.add_child(res_accent)
-
-	_resource_label = Label.new()
-	_resource_label.add_theme_font_override("font", PIXEL_FONT)
-	_resource_label.add_theme_font_size_override("font_size", 19)
-	_resource_label.add_theme_color_override("font_color", Color(0.98, 0.88, 0.32))
-	_resource_label.position = Vector2(441, 5)
-	_resource_label.text = "RESOURCES: %d" % ProgressionManager.resources
-	_panel_layer.add_child(_resource_label)
-
 	ProgressionManager.resources_changed.connect(_on_resources_changed)
 
-func _on_resources_changed(amount: int) -> void:
-	_resource_label.text = "RESOURCES: %d" % amount
+func _on_resources_changed(_amount: int) -> void:
+	pass
 
 # ── Main loop ─────────────────────────────────────────────────────────────────
 
@@ -391,9 +358,9 @@ func _update_proximity() -> void:
 		var s_id: String = _station_nodes[i].get_meta("station_id")
 		var col: Color = STATIONS[i]["color"]
 		if s_id == nearest_id:
-			_station_bg_rects[i].color = Color(col.r * 0.34, col.g * 0.34, col.b * 0.34)
+			_station_bg_rects[i].color = Color(col.r, col.g, col.b, 0.22)
 		else:
-			_station_bg_rects[i].color = Color(col.r * 0.20, col.g * 0.20, col.b * 0.20)
+			_station_bg_rects[i].color = Color(0, 0, 0, 0)
 
 func _handle_interact() -> void:
 	if Input.is_action_just_pressed("interact") and not _active_station_id.is_empty():

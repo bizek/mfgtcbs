@@ -59,7 +59,9 @@
       "Bash(git -C E:/Projects/extraction-survivors status --short)",
       "Bash(sort -t, -k2 -n)",
       "mcp__godot-mcp-pro__get_node_properties",
-      "mcp__godot-mcp-pro__delete_node"
+      "mcp__godot-mcp-pro__delete_node",
+      "mcp__godot-mcp-pro__get_resource_preview",
+      "Bash(python3 -c ' *)"
     ]
   }
 }

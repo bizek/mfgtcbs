@@ -1,0 +1,31 @@
+[gd_scene format=3 uid="uid://map"]
+
+[ext_resource type="PackedScene" path="res://assets/Maps/Base Camp/TABLE_DETS_0.tscn" id="0_id"]
+[ext_resource type="PackedScene" path="res://assets/Maps/Base Camp/TABLES_1.tscn" id="1_id"]
+[ext_resource type="PackedScene" path="res://assets/Maps/Base Camp/WALLS_2.tscn" id="2_id"]
+[ext_resource type="PackedScene" path="res://assets/Maps/Base Camp/stairs_3.tscn" id="3_id"]
+[ext_resource type="PackedScene" path="res://assets/Maps/Base Camp/insidefloor_4.tscn" id="4_id"]
+[ext_resource type="PackedScene" path="res://assets/Maps/Base Camp/Trees_5.tscn" id="5_id"]
+[ext_resource type="PackedScene" path="res://assets/Maps/Base Camp/GroundDet_6.tscn" id="6_id"]
+[ext_resource type="PackedScene" path="res://assets/Maps/Base Camp/Ground_7.tscn" id="7_id"]
+
+[node name="map" type="Node2D" unique_id=1622333775]
+position = Vector2(-51, -31)
+
+[node name="Ground_7" parent="." unique_id=2090916388 instance=ExtResource("7_id")]
+
+[node name="GroundDet_6" parent="." unique_id=1107414571 instance=ExtResource("6_id")]
+
+[node name="Trees_5" parent="." unique_id=825949387 instance=ExtResource("5_id")]
+
+[node name="insidefloor_4" parent="." unique_id=1657467465 instance=ExtResource("4_id")]
+
+[node name="stairs_3" parent="." unique_id=874607105 instance=ExtResource("3_id")]
+
+[node name="WALLS_2" parent="." unique_id=1334752504 instance=ExtResource("2_id")]
+
+[node name="TABLES_1" parent="." unique_id=923359746 instance=ExtResource("1_id")]
+position = Vector2(1, 1)
+
+[node name="TABLE_DETS_0" parent="." unique_id=1524491277 instance=ExtResource("0_id")]
+position = Vector2(1, 1)
