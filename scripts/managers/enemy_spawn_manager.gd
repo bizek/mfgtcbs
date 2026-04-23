@@ -50,6 +50,13 @@ const WAVE_COMPOSITION: Array = [
 	{"swarmer": 0.12, "anchor": 0.48, "warped_fodder": 0.10, "warped_swarmer": 0.10, "warped_brute": 0.10, "warped_caster": 0.10},
 ]
 
+## ── Level-specific overrides (set by configure_level) ────────────────────────
+## When non-empty, _pick_enemy_type uses these instead of WAVE_COMPOSITION.
+## _level_scene_map is checked first in _get_scene_for_id before base scenes.
+var _level_wave_composition: Array = []
+var _level_scene_map: Dictionary = {}
+var _level_scene_cache: Dictionary = {}  ## Lazy-loaded PackedScene cache
+
 ## ── Carrier pacing — 1 per interval early, 2 per interval late ───────────────
 const CARRIER_INTERVAL: float = 55.0  ## Seconds between carrier spawns
 var _carrier_timer: float = CARRIER_INTERVAL * 0.8  ## First carrier slightly early
@@ -128,6 +135,19 @@ func _process(delta: float) -> void:
 		if _final_boss_spawn_delay <= 0.0:
 			_spawn_final_boss()
 			_final_boss_spawned_this_phase = true
+
+## Called by main_arena before start_spawning. Loads level-specific wave
+## composition and scene map from LevelData. Safe to call with any level_id;
+## unconfigured levels fall back to the generic WAVE_COMPOSITION.
+func configure_level(level_id: int) -> void:
+	_level_scene_cache.clear()
+	if LevelData.is_configured(level_id):
+		_level_wave_composition = LevelData.get_wave_composition(level_id)
+		_level_scene_map = LevelData.get_scene_map(level_id)
+	else:
+		_level_wave_composition = []
+		_level_scene_map = {}
+
 
 func start_spawning(player: Node2D, bounds: Rect2) -> void:
 	player_ref = player
@@ -216,7 +236,10 @@ func _spawn_wave() -> void:
 
 func _pick_enemy_type() -> String:
 	var phase_idx: int = clampi(GameManager.phase_number - 1, 0, 4)
-	var weights: Dictionary = WAVE_COMPOSITION[phase_idx]
+	## Use level-specific composition when available; fall back to generic.
+	var composition: Array = _level_wave_composition if not _level_wave_composition.is_empty() \
+			else WAVE_COMPOSITION
+	var weights: Dictionary = composition[clampi(phase_idx, 0, composition.size() - 1)]
 	var roll: float = randf()
 	var cumulative: float = 0.0
 	for enemy_id: String in weights:
@@ -240,7 +263,9 @@ func _spawn_single_enemy() -> void:
 			_spawn_from_def("fodder", fodder_scene, spawn_pos, effective_difficulty, true)
 		return
 
-	if enemy_id == "swarmer":
+	## Swarmer-role IDs always spawn as packs of 3–5.
+	var is_swarmer_role: bool = enemy_id.ends_with("swarmer")
+	if is_swarmer_role:
 		var pack_size: int = randi_range(3, 5)
 		for _j in range(pack_size):
 			if active_enemies >= max_enemies:
@@ -248,7 +273,7 @@ func _spawn_single_enemy() -> void:
 			var offset := Vector2(randf_range(-22.0, 22.0), randf_range(-22.0, 22.0))
 			_spawn_from_def(enemy_id, scene, spawn_pos + offset, effective_difficulty, true)
 	else:
-		var can_elite: bool = enemy_id in ["fodder", "brute", "guardian"]
+		var can_elite: bool = enemy_id in ["fodder", "brute", "guardian", "cave_fodder", "cave_brute"]
 		_spawn_from_def(enemy_id, scene, spawn_pos, effective_difficulty, can_elite)
 
 
@@ -357,6 +382,17 @@ func debug_spawn_by_id(enemy_id: String, as_elite: bool = false) -> void:
 
 
 func _get_scene_for_id(enemy_id: String) -> PackedScene:
+	## Level-specific scene map takes priority over base scenes.
+	if _level_scene_map.has(enemy_id):
+		if _level_scene_cache.has(enemy_id):
+			return _level_scene_cache[enemy_id]
+		var path: String = _level_scene_map[enemy_id]
+		if ResourceLoader.exists(path):
+			var scene: PackedScene = load(path)
+			_level_scene_cache[enemy_id] = scene
+			return scene
+
+	## Base scene fallback — shared across all levels.
 	match enemy_id:
 		"fodder": return fodder_scene
 		"swarmer": return swarmer_scene

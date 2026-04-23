@@ -96,10 +96,9 @@ func _build_room() -> void:
 		var map_inst := map_scene.instantiate()
 		add_child(map_inst)
 		_map_offset = map_inst.position
-		## Interior wall tiles are visual only — hub.gd's StaticBody2D walls handle bounds
-		var walls_layer := map_inst.get_node_or_null("WALLS_2")
-		if walls_layer:
-			walls_layer.collision_enabled = false
+		var arch_layer := map_inst.get_node_or_null("Layer_8_2")
+		if arch_layer:
+			arch_layer.z_index = 1
 
 	## Invisible collision walls keep the player inside the viewport
 	_add_wall(Vector2(0, 0),                Vector2(ROOM_W, WALL_T))

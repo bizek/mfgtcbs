@@ -33,6 +33,7 @@ enum GameState {
 }
 
 var current_state: GameState = GameState.MENU
+var current_level: int = 1  ## Which circle (1–5). Set from hub before start_run().
 var phase_number: int = 1
 var phase_timer: float = 0.0
 var phase_duration: float = PHASE_DURATIONS[0]
@@ -119,6 +120,10 @@ func _process(delta: float) -> void:
 		extraction_window_timer -= delta
 		if extraction_window_timer <= 0.0:
 			_close_extraction_window()
+
+## Call before start_run() to set which circle the player is entering.
+func set_level(level_id: int) -> void:
+	current_level = clampi(level_id, 1, 5)
 
 func start_run() -> void:
 	current_state = GameState.RUN_ACTIVE

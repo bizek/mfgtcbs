@@ -61,7 +61,12 @@
       "mcp__godot-mcp-pro__get_node_properties",
       "mcp__godot-mcp-pro__delete_node",
       "mcp__godot-mcp-pro__get_resource_preview",
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "Bash(dir \"E:\\\\Projects\\\\extraction-survivors\\\\assets\\\\minifantasy\\\\Minifantasy_Creatures_v3.3_Commercial_Version\\\\Minifantasy_Creatures_Assets\" /s /b /a:d)",
+      "Bash(grep -E '\\\\.\\(png|txt|gif\\)$')",
+      "Bash(gh pr *)",
+      "Bash(git pull *)",
+      "Bash(xargs grep *)"
     ]
   }
 }

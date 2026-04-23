@@ -329,14 +329,24 @@ func _on_auto_attack(ability: AbilityDefinition, targets: Array) -> void:
 			effect.projectile.pierce_count = _base_proj_pierce + pierce_bonus
 			effect.projectile.visual_scale = _base_proj_scale * size_mult
 			effect.projectile.hit_radius   = _base_proj_hit_radius * size_mult
+	## Beam: sync live projectile_count → targeting so next resolve picks up multi-beam
+	if ability.tags.has("Beam") and ability.targeting != null:
+		ability.targeting.max_targets = proj_count
 	EffectDispatcher.execute_effects(ability.effects, self, targets, ability, combat_manager)
 	EventBus.on_ability_used.emit(self, ability)
 
 	# Weapon-specific visual feedback
 	var scene_root: Node = get_tree().current_scene
 	var tint: Color = _weapon_data.get("tint", Color.WHITE)
-	if ability.tags.has("Beam") and is_instance_valid(targets[0]):
-		PlayerVfxHelper.spawn_beam_flash(self, scene_root, global_position, targets[0].global_position, tint)
+	if ability.tags.has("Beam"):
+		var active_beams: int = 0
+		for i in targets.size():
+			if is_instance_valid(targets[i]):
+				PlayerVfxHelper.spawn_beam_flash(self, scene_root, global_position, targets[i].global_position, tint, ability.ability_id, i)
+				active_beams += 1
+				if "napalm" in _active_mods:
+					_spawn_scorched_earth_patches(global_position, targets[i].global_position, scene_root)
+		PlayerVfxHelper.cleanup_stale_beam_containers(self, active_beams)
 	elif ability.tags.has("Melee"):
 		var swing_dir: Vector2 = (targets[0].global_position - global_position).normalized() if is_instance_valid(targets[0]) else Vector2.RIGHT
 		var range_px: float = _weapon_data.get("range", 55.0)
@@ -734,6 +744,89 @@ func debug_reload_mods(mod_ids: Array) -> void:
 	for passive_def in combo_passives:
 		status_effect_component.apply_status(passive_def, self, 1)
 	behavior_component.setup(modifier_component, _weapon_ability.cooldown_base)
+
+
+func _spawn_scorched_earth_patches(from: Vector2, to: Vector2, scene_root: Node) -> void:
+	var mod_params: Dictionary = ModData.ALL.get("napalm", {}).get("params", {})
+	var patch_count: int  = int(mod_params.get("patch_count",   5))
+	var patch_dmg: float  = mod_params.get("patch_damage",   5.0)
+	var patch_dur: float  = mod_params.get("patch_duration", 10.0)
+	var patch_rad: float  = mod_params.get("patch_radius",   30.0)
+	for p in patch_count:
+		var t: float     = (float(p) + 0.5) / float(patch_count)
+		var pos: Vector2 = from.lerp(to, t)
+		_spawn_burn_patch(pos, patch_dmg, patch_rad, patch_dur, scene_root)
+
+
+func _spawn_burn_patch(pos: Vector2, dmg_per_sec: float, radius: float, duration: float, scene_root: Node) -> void:
+	var area := Area2D.new()
+	area.top_level        = true
+	area.global_position  = pos
+	area.collision_layer  = 0
+	area.collision_mask   = 2  # enemies
+	area.monitoring       = true
+	area.monitorable      = false
+	scene_root.add_child(area)
+
+	var shape  := CollisionShape2D.new()
+	var circle := CircleShape2D.new()
+	circle.radius = radius
+	shape.shape   = circle
+	area.add_child(shape)
+
+	# Ground glow: approximated circle via Polygon2D
+	var poly   := Polygon2D.new()
+	var pts    := PackedVector2Array()
+	for i in 20:
+		var a: float = (float(i) / 20.0) * TAU
+		pts.append(Vector2(cos(a), sin(a)) * radius)
+	poly.polygon = pts
+	poly.color   = Color(1.0, 0.30, 0.0, 0.22)
+	area.add_child(poly)
+
+	# Fire particles
+	var particles := CPUParticles2D.new()
+	particles.amount               = 14
+	particles.lifetime             = 1.0
+	particles.one_shot             = false
+	particles.explosiveness        = 0.0
+	particles.direction            = Vector2(0.0, -1.0)
+	particles.spread               = 40.0
+	particles.initial_velocity_min = 15.0
+	particles.initial_velocity_max = 50.0
+	particles.gravity              = Vector2.ZERO
+	particles.scale_amount_min     = 2.0
+	particles.scale_amount_max     = 5.0
+	particles.color                = Color(1.0, 0.45, 0.05)
+	area.add_child(particles)
+	particles.emitting = true
+
+	# Track bodies entering / exiting the patch
+	var bodies_in_area: Array = []
+	area.body_entered.connect(func(b: Node2D): bodies_in_area.append(b))
+	area.body_exited.connect(func(b: Node2D): bodies_in_area.erase(b))
+
+	# Damage timer — auto-stops when area is freed
+	var player_ref: Node2D = self
+	var timer := Timer.new()
+	timer.wait_time = 1.0
+	timer.one_shot  = false
+	area.add_child(timer)
+	timer.timeout.connect(func() -> void:
+		for body in bodies_in_area.duplicate():
+			if is_instance_valid(body) and body.has_method("take_damage") and is_instance_valid(player_ref):
+				body.take_damage(HitData.create(dmg_per_sec, "fire", player_ref, body, null))
+	)
+	timer.start()
+
+	# Fade out then free
+	area.get_tree().create_timer(duration - 0.5).timeout.connect(func() -> void:
+		if is_instance_valid(area):
+			particles.emitting = false
+			var t := area.create_tween()
+			t.tween_property(area, "modulate:a", 0.0, 0.5)
+			t.tween_callback(area.queue_free)
+	)
 
 
 func _set_base_stat(stat_name: String, value: float) -> void:

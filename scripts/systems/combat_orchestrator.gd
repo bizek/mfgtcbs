@@ -153,13 +153,12 @@ func _tick_ground_zones(delta: float) -> void:
 	var expired: Array = []
 	for zone in _ground_zones:
 		zone.time_remaining -= delta
-		if zone.time_remaining <= 0.0:
-			expired.append(zone)
-			continue
 		zone.tick_timer -= delta
 		if zone.tick_timer <= 0.0:
 			zone.tick_timer += zone.effect.tick_interval
 			_apply_ground_zone_tick(zone)
+		if zone.time_remaining <= 0.0:
+			expired.append(zone)
 	for zone in expired:
 		_ground_zones.erase(zone)
 

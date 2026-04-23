@@ -131,6 +131,22 @@ const ALL: Dictionary = {
 		"effect_type": "dot_applicator",
 		"params": { "dot_damage": 2.0, "dot_duration": 4.0 },
 	},
+	"multishot": {
+		"id": "multishot",
+		"name": "MULTISHOT",
+		"desc": "Fire at 2 targets simultaneously. Beams: split into 2 parallel beams.",
+		"color": Color(1.0, 0.78, 0.20),
+		"effect_type": "multishot",
+		"params": { "count_bonus": 1 },
+	},
+	"napalm": {
+		"id": "napalm",
+		"name": "NAPALM",
+		"desc": "Ember Beam scorches the ground along its path. Patches deal 5 fire dmg/sec for 10s.",
+		"color": Color(1.0, 0.40, 0.0),
+		"effect_type": "napalm",
+		"params": { "patch_damage": 5.0, "patch_duration": 10.0, "patch_radius": 30.0, "patch_count": 5 },
+	},
 }
 
 ## Stable display order for armory / debug panels
@@ -138,5 +154,5 @@ const ORDER: Array = [
 	"pierce", "chain", "explosive",
 	"fire", "cryo", "shock",
 	"lifesteal", "size", "crit_amp", "instability_siphon", "split", "gravity", "ricochet",
-	"accelerating", "dot_applicator",
+	"accelerating", "dot_applicator", "multishot", "napalm",
 ]

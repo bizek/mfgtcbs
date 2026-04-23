@@ -1,8 +1,8 @@
-[gd_resource type="TileSet" format=3 uid="uid://dvoojrr4atw51"]
+[gd_resource type="TileSet" format=3 uid="uid://roli26i6kpwe"]
 
-[ext_resource type="Texture2D" uid="uid://1k7xykjhif74" path="res://assets/Maps/Base Camp/tileset.png" id="1"]
+[ext_resource type="Texture2D" uid="uid://dtbw7cuud7kgx" path="res://assets/Maps/Base Camp/tileset.png" id="1"]
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_cDeVMiVyUQL"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_cyJRyLx6aRv"]
 texture = ExtResource("1")
 texture_region_size = Vector2i(8, 8)
 0:0/0 = 0
@@ -864,20 +864,6 @@ texture_region_size = Vector2i(8, 8)
 1:55/0/physics_layer_0/polygon_0/points = PackedVector2Array(-4, -4, 4, -4, 4, 4, -4, 4)
 2:55/0 = 0
 2:55/0/physics_layer_0/polygon_0/points = PackedVector2Array(-4, -4, 4, -4, 4, 4, -4, 4)
-3:55/0 = 0
-3:55/0/physics_layer_0/polygon_0/points = PackedVector2Array(-4, -4, 4, -4, 4, 4, -4, 4)
-4:55/0 = 0
-4:55/0/physics_layer_0/polygon_0/points = PackedVector2Array(-4, -4, 4, -4, 4, 4, -4, 4)
-5:55/0 = 0
-5:55/0/physics_layer_0/polygon_0/points = PackedVector2Array(-4, -4, 4, -4, 4, 4, -4, 4)
-6:55/0 = 0
-6:55/0/physics_layer_0/polygon_0/points = PackedVector2Array(-4, -4, 4, -4, 4, 4, -4, 4)
-7:55/0 = 0
-7:55/0/physics_layer_0/polygon_0/points = PackedVector2Array(-4, -4, 4, -4, 4, 4, -4, 4)
-0:56/0 = 0
-0:56/0/physics_layer_0/polygon_0/points = PackedVector2Array(-4, -4, 4, -4, 4, 4, -4, 4)
-1:56/0 = 0
-1:56/0/physics_layer_0/polygon_0/points = PackedVector2Array(-4, -4, 4, -4, 4, 4, -4, 4)
 2:56/0 = 0
 2:56/0/physics_layer_0/polygon_0/points = PackedVector2Array(-4, -4, 4, -4, 4, 4, -4, 4)
 3:56/0 = 0
@@ -1079,9 +1065,11 @@ texture_region_size = Vector2i(8, 8)
 2:69/0 = 0
 3:69/0 = 0
 4:69/0 = 0
+5:69/0 = 0
+6:69/0 = 0
 
 [resource]
 tile_size = Vector2i(8, 8)
 physics_layer_0/collision_layer = 1
 physics_layer_0/collision_mask = 2
-sources/0 = SubResource("TileSetAtlasSource_cDeVMiVyUQL")
+sources/0 = SubResource("TileSetAtlasSource_cyJRyLx6aRv")

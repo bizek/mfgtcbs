@@ -55,6 +55,9 @@ func _ready() -> void:
 	EnemySpawnManager.stalker_scene  = preload("res://scenes/enemies/stalker.tscn")
 	EnemySpawnManager.herald_scene   = preload("res://scenes/enemies/herald.tscn")
 
+	# Configure level-specific spawn pool (must happen before start_spawning)
+	EnemySpawnManager.configure_level(GameManager.current_level)
+
 	# Camera
 	_camera = Camera2D.new()
 	_camera.zoom = Vector2(1, 1)
@@ -404,10 +407,14 @@ func _shake_camera(intensity: float = 3.0, duration: float = 0.12) -> void:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 func _setup_floor() -> void:
-	const FLOOR_PATH: String = "res://assets/minifantasy/Minifantasy_Hellscape_v1.0/Minifantasy_Hellscape_Assets/_Premade Scene/Separate Layers/Premade_l-ground.png"
-	var source := Image.load_from_file(FLOOR_PATH)
+	var floor_path: String = LevelData.get_floor_path(GameManager.current_level)
+	if floor_path.is_empty():
+		## Fallback: Hellscape ground (used until each level has its own floor)
+		floor_path = "res://assets/minifantasy/Minifantasy_Hellscape_v1.0/Minifantasy_Hellscape_Assets/_Premade Scene/Separate Layers/Premade_l-ground.png"
+	var source := Image.load_from_file(ProjectSettings.globalize_path(floor_path))
 	if source == null:
-		push_warning("ArenaFloor: Hellscape ground not found — floor will be blank.")
+		push_warning("ArenaFloor: floor texture not found for level %d (%s) — floor will be blank." \
+				% [GameManager.current_level, floor_path])
 		return
 	arena_floor.texture = ImageTexture.create_from_image(source)
 	arena_floor.stretch_mode = TextureRect.STRETCH_SCALE

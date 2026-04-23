@@ -17,27 +17,198 @@ border_width_bottom = 1
 border_color = Color(0.9, 0.6, 0.12, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_57ivy"]
-content_margin_left = 4.0
-content_margin_right = 4.0
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
 bg_color = Color(0, 0, 0, 0)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_68wte"]
-content_margin_left = 4.0
-content_margin_right = 4.0
-bg_color = Color(0.18, 0.16, 0.12, 0.55)
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0.353, 0.173, 0.031, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_08eqk"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0.353, 0.173, 0.031, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tahsb"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0, 0, 0, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pj76q"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0, 0, 0, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4relw"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0, 0, 0, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_f8glc"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0.353, 0.173, 0.031, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mlejy"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0.353, 0.173, 0.031, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qpx63"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0, 0, 0, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_s2mh5"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0, 0, 0, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_s4k67"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0, 0, 0, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ylfei"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0.353, 0.173, 0.031, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4pobe"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0.353, 0.173, 0.031, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_g5757"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0, 0, 0, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rp6cm"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0, 0, 0, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_d52nm"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0, 0, 0, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5fhgj"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0.353, 0.173, 0.031, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ttrkx"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0.353, 0.173, 0.031, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fr4kf"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0, 0, 0, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_viq62"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0, 0, 0, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ewln5"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0, 0, 0, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_b5dqa"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0.18, 0.14, 0.1, 0.6)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_aqw8s"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0.18, 0.14, 0.1, 0.6)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_w73aj"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0, 0, 0, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_jsfl7"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0, 0, 0, 0)
 
 [node name="HubArmoryPanel" type="Control" unique_id=100800008]
 layout_mode = 3
 anchors_preset = 0
-offset_left = 120.0
-offset_top = 14.0
-offset_right = 520.0
-offset_bottom = 347.0
+offset_left = 60.0
+offset_top = 4.0
+offset_right = 580.0
+offset_bottom = 356.0
 script = ExtResource("1_script")
 
 [node name="PanelBase" parent="." unique_id=651479519 instance=ExtResource("2_base")]
-layout_mode = 0
-offset_bottom = 333.0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 0.0
+offset_bottom = 0.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_vxasb")
 title_text = "ARMORY"
@@ -84,7 +255,7 @@ theme_override_constants/separation = 3
 [node name="PickerHeader" type="Label" parent="ModPickerView/PickerMargin/PickerVBox" unique_id=277558074]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.95, 0.78, 0.22, 1)
+theme_override_colors/font_color = Color(0.831, 0.447, 0.102, 1)
 theme_override_fonts/font = ExtResource("3_font")
 theme_override_font_sizes/font_size = 19
 text = "SELECT MOD for slot 1"
@@ -92,7 +263,7 @@ text = "SELECT MOD for slot 1"
 [node name="PickerEmptyLabel" type="Label" parent="ModPickerView/PickerMargin/PickerVBox" unique_id=257496316]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.45, 0.45, 0.5, 1)
+theme_override_colors/font_color = Color(0.314, 0.235, 0.157, 1)
 theme_override_fonts/font = ExtResource("3_font")
 theme_override_font_sizes/font_size = 19
 text = "No mods available"
@@ -110,17 +281,18 @@ theme_override_fonts/font = ExtResource("3_font")
 theme_override_font_sizes/font_size = 19
 theme_override_styles/normal = SubResource("StyleBoxFlat_57ivy")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/hover = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/focus = SubResource("StyleBoxFlat_57ivy")
+theme_override_styles/hover = SubResource("StyleBoxFlat_08eqk")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_tahsb")
+theme_override_styles/focus = SubResource("StyleBoxFlat_pj76q")
 text = "  mod slot  "
 alignment = 0
 
 [node name="ModPickerDesc0" type="Label" parent="ModPickerView/PickerMargin/PickerVBox/ModPickerRow0" unique_id=1311801035]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.5, 0.5, 0.55, 1)
+theme_override_colors/font_color = Color(0.314, 0.235, 0.157, 1)
 theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 13
 text = "mod description"
 clip_text = true
 
@@ -135,19 +307,20 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_fonts/font = ExtResource("3_font")
 theme_override_font_sizes/font_size = 19
-theme_override_styles/normal = SubResource("StyleBoxFlat_57ivy")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/hover = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/focus = SubResource("StyleBoxFlat_57ivy")
+theme_override_styles/normal = SubResource("StyleBoxFlat_4relw")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_f8glc")
+theme_override_styles/hover = SubResource("StyleBoxFlat_mlejy")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_qpx63")
+theme_override_styles/focus = SubResource("StyleBoxFlat_s2mh5")
 text = "  mod slot  "
 alignment = 0
 
 [node name="ModPickerDesc1" type="Label" parent="ModPickerView/PickerMargin/PickerVBox/ModPickerRow1" unique_id=1536113418]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.5, 0.5, 0.55, 1)
+theme_override_colors/font_color = Color(0.314, 0.235, 0.157, 1)
 theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 13
 text = "mod description"
 clip_text = true
 
@@ -162,19 +335,20 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_fonts/font = ExtResource("3_font")
 theme_override_font_sizes/font_size = 19
-theme_override_styles/normal = SubResource("StyleBoxFlat_57ivy")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/hover = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/focus = SubResource("StyleBoxFlat_57ivy")
+theme_override_styles/normal = SubResource("StyleBoxFlat_s4k67")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_ylfei")
+theme_override_styles/hover = SubResource("StyleBoxFlat_4pobe")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_g5757")
+theme_override_styles/focus = SubResource("StyleBoxFlat_rp6cm")
 text = "  mod slot  "
 alignment = 0
 
 [node name="ModPickerDesc2" type="Label" parent="ModPickerView/PickerMargin/PickerVBox/ModPickerRow2" unique_id=2120642997]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.5, 0.5, 0.55, 1)
+theme_override_colors/font_color = Color(0.314, 0.235, 0.157, 1)
 theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 13
 text = "mod description"
 clip_text = true
 
@@ -189,19 +363,20 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_fonts/font = ExtResource("3_font")
 theme_override_font_sizes/font_size = 19
-theme_override_styles/normal = SubResource("StyleBoxFlat_57ivy")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/hover = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/focus = SubResource("StyleBoxFlat_57ivy")
+theme_override_styles/normal = SubResource("StyleBoxFlat_d52nm")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_5fhgj")
+theme_override_styles/hover = SubResource("StyleBoxFlat_ttrkx")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_fr4kf")
+theme_override_styles/focus = SubResource("StyleBoxFlat_viq62")
 text = "  mod slot  "
 alignment = 0
 
 [node name="ModPickerDesc3" type="Label" parent="ModPickerView/PickerMargin/PickerVBox/ModPickerRow3" unique_id=119236997]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.5, 0.5, 0.55, 1)
+theme_override_colors/font_color = Color(0.314, 0.235, 0.157, 1)
 theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 13
 text = "mod description"
 clip_text = true
 
@@ -209,11 +384,14 @@ clip_text = true
 custom_minimum_size = Vector2(347, 27)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.72, 0.72, 0.78, 1)
+theme_override_colors/font_color = Color(0.541, 0.408, 0.282, 1)
+theme_override_colors/font_hover_color = Color(0.8, 0.69, 0.565, 1)
 theme_override_fonts/font = ExtResource("3_font")
 theme_override_font_sizes/font_size = 19
-theme_override_styles/normal = SubResource("StyleBoxFlat_57ivy")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/hover = SubResource("StyleBoxFlat_68wte")
-theme_override_styles/focus = SubResource("StyleBoxFlat_57ivy")
-text = "CANCEL"
+theme_override_styles/normal = SubResource("StyleBoxFlat_ewln5")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_b5dqa")
+theme_override_styles/hover = SubResource("StyleBoxFlat_aqw8s")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_w73aj")
+theme_override_styles/focus = SubResource("StyleBoxFlat_jsfl7")
+text = "← CANCEL"
+alignment = 0

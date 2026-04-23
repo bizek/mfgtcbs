@@ -12,9 +12,10 @@ signal close_requested
 @onready var _picker_view:  Control      = $ModPickerView
 
 ## ── Mod picker nodes (unchanged from original) ───────────────────────────────
-@onready var _picker_header:      Label  = $ModPickerView/PickerMargin/PickerVBox/PickerHeader
-@onready var _picker_empty_label: Label  = $ModPickerView/PickerMargin/PickerVBox/PickerEmptyLabel
-@onready var _picker_cancel_btn:  Button = $ModPickerView/PickerMargin/PickerVBox/PickerCancelBtn
+@onready var _picker_header:      Label        = $ModPickerView/PickerMargin/PickerVBox/PickerHeader
+@onready var _picker_empty_label: Label        = $ModPickerView/PickerMargin/PickerVBox/PickerEmptyLabel
+@onready var _picker_cancel_btn:  Button       = $ModPickerView/PickerMargin/PickerVBox/PickerCancelBtn
+@onready var _picker_vbox:        VBoxContainer = $ModPickerView/PickerMargin/PickerVBox
 @onready var _picker_mod_btns: Array[Button] = [
 	$ModPickerView/PickerMargin/PickerVBox/ModPickerRow0/ModPickerBtn0,
 	$ModPickerView/PickerMargin/PickerVBox/ModPickerRow1/ModPickerBtn1,
@@ -66,6 +67,9 @@ var _weapon_picking:  bool = false
 
 ## Codex overlay
 var _codex_panel: CodexGridPanel = null
+
+## Dynamic mod picker scroll container (rebuilt each open)
+var _picker_scroll: ScrollContainer = null
 
 # ─────────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
@@ -528,13 +532,20 @@ func _build_mod_picker() -> void:
 		3: weapon_id = pm.selected_weapon_3
 		_: weapon_id = pm.selected_weapon
 
+	# Hide the hardcoded static rows — replaced by dynamic scroll list below
+	for btn in _picker_mod_btns: btn.visible = false
+	for d   in _picker_mod_descs: d.visible  = false
+
+	# Free previous scroll container if it exists
+	if _picker_scroll != null and is_instance_valid(_picker_scroll):
+		_picker_scroll.free()
+		_picker_scroll = null
+
 	var max_slots: int = WeaponData.ALL.get(weapon_id, {}).get("mod_slots", 1)
 	if _mod_target_slot >= max_slots:
 		_picker_header.text         = "NO MOD SLOT  (%s)" % weapon_id
 		_picker_empty_label.visible = true
 		_picker_empty_label.text    = "This weapon has no more mod slots."
-		for btn in _picker_mod_btns: btn.visible = false
-		for d   in _picker_mod_descs: d.visible  = false
 		return
 
 	_picker_header.text = "INSTALL MOD  slot %d  /  %s" % [_mod_target_slot + 1, weapon_id]
@@ -544,66 +555,91 @@ func _build_mod_picker() -> void:
 		counts[mid] = counts.get(mid, 0) + 1
 
 	var mod_ids: Array = counts.keys()
+	mod_ids.sort()  # Stable alphabetical order so list never shifts unexpectedly
 	_picker_empty_label.visible = mod_ids.is_empty()
 
-	for i in range(_picker_mod_btns.size()):
-		if i < mod_ids.size():
-			var mod_id: String        = str(mod_ids[i])
-			var mdata: Dictionary     = ModData.ALL.get(mod_id, {})
-			var mod_name: String      = mdata.get("name", mod_id)
-			var mod_col: Color        = mdata.get("color", Color.WHITE)
-			var count: int            = counts[mod_id]
-			var desc: String          = mdata.get("desc", "")
+	if mod_ids.is_empty():
+		return
 
-			_picker_mod_btns[i].visible = true
-			_picker_mod_btns[i].text    = ("■ %s  ×%d" % [mod_name, count]) if count > 1 else ("■ " + mod_name)
-			_picker_mod_btns[i].add_theme_color_override("font_color", mod_col)
-			_picker_mod_btns[i].add_theme_color_override("font_hover_color", mod_col.lightened(0.25))
-			_style_btn_mod(_picker_mod_btns[i], mod_col, true)
+	# Build scrollable list
+	_picker_scroll = ScrollContainer.new()
+	_picker_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_picker_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_picker_scroll.mouse_filter = Control.MOUSE_FILTER_PASS
 
-			_disconnect_all(_picker_mod_btns[i].pressed)
-			var cap_mid  := mod_id
-			var cap_wid  := weapon_id
-			var cap_slot := _mod_target_slot
-			_picker_mod_btns[i].pressed.connect(func():
-				_pm.set_weapon_mod(cap_wid, cap_slot, cap_mid)
-				_discover_combos_for_weapon(cap_wid)
-				if _codex_panel != null:
-					_codex_panel.set_hover_highlight("")
-				_mod_picking = false
-				populate(_pm)
-			)
+	var scroll_vbox := VBoxContainer.new()
+	scroll_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll_vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	scroll_vbox.add_theme_constant_override("separation", 3)
+	_picker_scroll.add_child(scroll_vbox)
 
-			_disconnect_all(_picker_mod_btns[i].mouse_entered)
-			_disconnect_all(_picker_mod_btns[i].mouse_exited)
-			var cap_equipped: Array = _pm.get_weapon_mods(weapon_id).duplicate()
-			_picker_mod_btns[i].mouse_entered.connect(func():
-				if _codex_panel == null or not _codex_panel.visible:
-					return
-				var highlight: StringName = ""
-				for eq_mod in cap_equipped:
-					if eq_mod == cap_mid:
-						continue
-					var pairs := CodexManager.get_combos_for_mod_pair(
-						StringName(cap_mid), StringName(eq_mod))
-					if not pairs.is_empty():
-						highlight = pairs[0].combo.combo_id
-						break
-				_codex_panel.set_hover_highlight(highlight)
-			)
-			_picker_mod_btns[i].mouse_exited.connect(func():
-				if _codex_panel != null:
-					_codex_panel.set_hover_highlight("")
-			)
+	# Insert before the cancel button so it sits between header and cancel
+	_picker_vbox.add_child(_picker_scroll)
+	_picker_vbox.move_child(_picker_scroll, _picker_cancel_btn.get_index())
 
-			if not desc.is_empty():
-				_picker_mod_descs[i].visible = true
-				_picker_mod_descs[i].text    = "  " + desc
-			else:
-				_picker_mod_descs[i].visible = false
-		else:
-			_picker_mod_btns[i].visible  = false
-			_picker_mod_descs[i].visible = false
+	var cap_equipped: Array = _pm.get_weapon_mods(weapon_id).duplicate()
+
+	for mod_id in mod_ids:
+		var mdata: Dictionary = ModData.ALL.get(mod_id, {})
+		var mod_name: String  = mdata.get("name", mod_id)
+		var mod_col: Color    = mdata.get("color", Color.WHITE)
+		var count: int        = counts[mod_id]
+		var desc: String      = mdata.get("desc", "")
+
+		var row := VBoxContainer.new()
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		scroll_vbox.add_child(row)
+
+		var btn := Button.new()
+		btn.text = ("■ %s  ×%d" % [mod_name, count]) if count > 1 else ("■ " + mod_name)
+		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		btn.add_theme_font_override("font", FONT)
+		btn.add_theme_font_size_override("font_size", FS_MD)
+		btn.add_theme_color_override("font_color", mod_col)
+		btn.add_theme_color_override("font_hover_color", mod_col.lightened(0.25))
+		_style_btn_mod(btn, mod_col, true)
+		row.add_child(btn)
+
+		if not desc.is_empty():
+			var desc_lbl := Label.new()
+			desc_lbl.text = "  " + desc
+			desc_lbl.add_theme_font_override("font", FONT)
+			desc_lbl.add_theme_font_size_override("font_size", FS_XS)
+			desc_lbl.add_theme_color_override("font_color", C_T2)
+			desc_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			row.add_child(desc_lbl)
+
+		var cap_mid:  String = mod_id
+		var cap_wid  := weapon_id
+		var cap_slot := _mod_target_slot
+		btn.pressed.connect(func():
+			_pm.set_weapon_mod(cap_wid, cap_slot, cap_mid)
+			_discover_combos_for_weapon(cap_wid)
+			if _codex_panel != null:
+				_codex_panel.set_hover_highlight("")
+			_mod_picking = false
+			populate(_pm)
+		)
+
+		btn.mouse_entered.connect(func():
+			if _codex_panel == null or not _codex_panel.visible:
+				return
+			var highlight: StringName = ""
+			for eq_mod in cap_equipped:
+				if eq_mod == cap_mid:
+					continue
+				var pairs := CodexManager.get_combos_for_mod_pair(
+					StringName(cap_mid), StringName(eq_mod))
+				if not pairs.is_empty():
+					highlight = pairs[0].combo.combo_id
+					break
+			_codex_panel.set_hover_highlight(highlight)
+		)
+		btn.mouse_exited.connect(func():
+			if _codex_panel != null:
+				_codex_panel.set_hover_highlight("")
+		)
 
 
 # ── Codex overlay ─────────────────────────────────────────────────────────────

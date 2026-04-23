@@ -5,8 +5,195 @@ extends RefCounted
 ## owner: any Node (used as tween host and tree accessor).
 ## scene_root: receives the spawned visual nodes.
 
+# --- Ember Beam sprite caches ---
+static var _ember_sting_texture: Texture2D = null
+static var _ember_muzzle_texture: Texture2D = null
+static var _ember_impact_frames: SpriteFrames = null
 
-static func spawn_beam_flash(owner: Node, scene_root: Node, from: Vector2, to: Vector2, tint: Color) -> void:
+static func _get_ember_sting_texture() -> Texture2D:
+	if _ember_sting_texture:
+		return _ember_sting_texture
+	const PATH := "res://assets/minifantasy/Minifantasy_Spell_Effects_II_v1.0/Spell_Effects_II/Shadow_Magic_School/Sting/Sting.png"
+	if not ResourceLoader.exists(PATH):
+		return null
+	var sheet: Texture2D = load(PATH)
+	var atlas := AtlasTexture.new()
+	atlas.atlas = sheet
+	atlas.region = Rect2(0, 0, 512, 32)  ## Row 0: eastward sting beam
+	atlas.filter_clip = true
+	_ember_sting_texture = atlas
+	return atlas
+
+static func _get_ember_muzzle_texture() -> Texture2D:
+	if _ember_muzzle_texture:
+		return _ember_muzzle_texture
+	const PATH := "res://assets/minifantasy/Minifantasy_Spell_Effects_II_v1.0/Spell_Effects_II/Shadow_Magic_School/Missile/_Missile_Projectile.png"
+	if not ResourceLoader.exists(PATH):
+		return null
+	_ember_muzzle_texture = load(PATH)
+	return _ember_muzzle_texture
+
+static func _get_ember_impact_frames() -> SpriteFrames:
+	if _ember_impact_frames:
+		return _ember_impact_frames
+	const PATH := "res://assets/minifantasy/Minifantasy_Spell_Effects_II_v1.0/Spell_Effects_II/Shadow_Magic_School/Missile/Missile_Impact.png"
+	if not ResourceLoader.exists(PATH):
+		return null
+	var sheet: Texture2D = load(PATH)
+	var frames := SpriteFrames.new()
+	frames.add_animation("default")
+	frames.set_animation_loop("default", false)
+	frames.set_animation_speed("default", 16.0)  ## 8 frames at 16fps — snappy impact burst
+	for col in 8:
+		var atlas := AtlasTexture.new()
+		atlas.atlas = sheet
+		atlas.region = Rect2(col * 16, 0, 16, 16)
+		atlas.filter_clip = true
+		frames.add_frame("default", atlas)
+	_ember_impact_frames = frames
+	return frames
+
+static func _spawn_ember_beam_flash(owner: Node, scene_root: Node, from: Vector2, to: Vector2, tint: Color, beam_index: int = 0) -> void:
+	var dir: Vector2   = to - from
+	var dist: float    = dir.length()
+	var angle: float   = dir.angle()
+	var norm: Vector2  = dir / dist
+	## Beam launches 10px ahead of player centre so it reads as emerging, not originating
+	var beam_from: Vector2 = from + norm * 10.0
+	var mid: Vector2       = (beam_from + to) * 0.5
+
+	var key_c: String = "ember_container_" + str(beam_index)
+	var key_t: String = "ember_tween_"     + str(beam_index)
+	var key_p: String = "ember_prev_to_"   + str(beam_index)
+
+	# --- Persistent beam container ---
+	# Reuse the same nodes each tick; only spawn once, then update in place.
+	var container: Node2D = owner.get_meta(key_c, null)
+
+	## Target-switch detection: if the beam endpoint jumped significantly the
+	## previous target died. Orphan the old container so it fades while the
+	## new one builds up, instead of snapping instantly.
+	var prev_to: Vector2 = owner.get_meta(key_p, to)
+	if is_instance_valid(container) and prev_to.distance_to(to) > 55.0:
+		_fade_and_free_container(owner, container, key_t)
+		owner.remove_meta(key_c)
+		container = null
+
+	owner.set_meta(key_p, to)
+
+	if not is_instance_valid(container):
+		container = Node2D.new()
+		container.top_level = true
+		scene_root.add_child(container)
+
+		## Taper curve: zero at player end, full width by ~18% of beam length.
+		## Both glow and core share the same shape.
+		var taper := Curve.new()
+		taper.add_point(Vector2(0.0,  0.0), 0.0, 5.0)
+		taper.add_point(Vector2(0.18, 1.0), 5.0, 0.0)
+		taper.add_point(Vector2(1.0,  1.0), 0.0, 0.0)
+
+		## Wide outer glow
+		var glow := Line2D.new()
+		glow.default_color = Color(tint.r, tint.g, tint.b, 0.45)
+		glow.width         = 18.0
+		glow.width_curve   = taper
+		container.add_child(glow)
+
+		## Sting beam body — additive blend so sprite acts as emitted light
+		var sting_tex := _get_ember_sting_texture()
+		var beam := Sprite2D.new()
+		if sting_tex:
+			var mat := CanvasItemMaterial.new()
+			mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+			beam.material  = mat
+			beam.texture   = sting_tex
+			beam.centered  = true
+			beam.modulate  = Color(tint.r * 1.6, tint.g * 1.6, tint.b * 1.6, 0.9)
+		container.add_child(beam)
+
+		## Bright hot core
+		var core := Line2D.new()
+		core.default_color = Color(1.0, 0.85, 0.45, 0.92)
+		core.width         = 2.5
+		core.width_curve   = taper
+		container.add_child(core)
+
+		owner.set_meta(key_c, container)
+
+	# Update geometry every tick
+	container.modulate.a = 1.0
+
+	var glow: Line2D  = container.get_child(0)
+	var beam: Sprite2D = container.get_child(1)
+	var core: Line2D  = container.get_child(2)
+
+	glow.clear_points()
+	glow.add_point(beam_from)
+	glow.add_point(to)
+
+	beam.position = mid
+	beam.rotation = angle
+	beam.scale    = Vector2(beam_from.distance_to(to) / 512.0, 0.7)
+
+	core.clear_points()
+	core.add_point(beam_from)
+	core.add_point(to)
+
+	# Kill any pending fade tween and restart the grace-period countdown.
+	# (Only kills the tween for the *current* container — orphaned containers
+	#  get their own self-contained tweens via _fade_and_free_container.)
+	var old_tween: Tween = owner.get_meta(key_t, null)
+	if old_tween != null and old_tween.is_valid():
+		old_tween.kill()
+
+	var captured_container := container
+	var fade := owner.create_tween()
+	## Grace period slightly longer than fire interval (1/12 ≈ 0.083s) so
+	## continuous fire never triggers the fade.
+	fade.tween_interval(0.11)
+	fade.tween_property(captured_container, "modulate:a", 0.0, 0.14)
+	fade.tween_callback(func():
+		if is_instance_valid(captured_container):
+			captured_container.queue_free()
+		if is_instance_valid(owner) and owner.has_meta(key_c):
+			owner.remove_meta(key_c)
+	)
+	owner.set_meta(key_t, fade)
+
+	# --- Per-tick endpoints: muzzle flash + impact sparks ---
+	## These are intentionally transient — the flicker at the endpoints
+	## adds life without making the beam body pulse.
+
+	var muzzle_tex := _get_ember_muzzle_texture()
+	if muzzle_tex:
+		var muzzle := Sprite2D.new()
+		muzzle.top_level       = true
+		muzzle.texture         = muzzle_tex
+		muzzle.centered        = true
+		muzzle.global_position = from
+		muzzle.rotation        = angle
+		muzzle.scale           = Vector2(0.45, 0.45)
+		muzzle.modulate        = Color(tint.r, tint.g, tint.b, 0.9)
+		scene_root.add_child(muzzle)
+		var tm := owner.create_tween()
+		tm.tween_property(muzzle, "modulate:a", 0.0, 0.07)
+		tm.tween_callback(muzzle.queue_free)
+
+	var impact_sf := _get_ember_impact_frames()
+	if impact_sf:
+		var fx := VfxEffect.create(impact_sf, "default", false, 1)
+		fx.position = to
+		fx.modulate = Color(tint.r, tint.g, tint.b, 1.0)
+		fx.scale    = Vector2(2.5, 2.5)
+		scene_root.add_child(fx)
+
+
+static func spawn_beam_flash(owner: Node, scene_root: Node, from: Vector2, to: Vector2, tint: Color, beam_id: String = "", beam_index: int = 0) -> void:
+	if beam_id == "Ember Beam":
+		_spawn_ember_beam_flash(owner, scene_root, from, to, tint, beam_index)
+		return
+
 	var line := Line2D.new()
 	line.top_level     = true
 	line.default_color = Color(tint.r, tint.g, tint.b, 0.92)
@@ -140,3 +327,37 @@ static func spawn_artillery_burst(owner: Node, scene_root: Node, pos: Vector2, r
 	owner.get_tree().create_timer(1.2).timeout.connect(func():
 		if is_instance_valid(particles): particles.queue_free()
 	)
+
+
+## Immediately start a self-contained fade on a container and clean its tween
+## meta key, so the caller can detach it without the regular tween-kill block
+## accidentally cancelling the fade.
+static func _fade_and_free_container(owner: Node, container: Node2D, tween_key: String) -> void:
+	var old_tween: Tween = owner.get_meta(tween_key, null)
+	if old_tween != null and old_tween.is_valid():
+		old_tween.kill()
+	if owner.has_meta(tween_key):
+		owner.remove_meta(tween_key)
+	if not is_instance_valid(container):
+		return
+	var fade := owner.create_tween()
+	fade.tween_property(container, "modulate:a", 0.0, 0.25)
+	fade.tween_callback(container.queue_free)
+
+
+## Fade out and free any persistent beam containers for indices >= active_count.
+## Call once per fire tick in player.gd so stale multi-beam containers don't linger.
+static func cleanup_stale_beam_containers(owner: Node, active_count: int) -> void:
+	var idx: int = active_count
+	while true:
+		var key_c: String = "ember_container_" + str(idx)
+		var key_t: String = "ember_tween_"     + str(idx)
+		var key_p: String = "ember_prev_to_"   + str(idx)
+		if not owner.has_meta(key_c):
+			break
+		var container: Node2D = owner.get_meta(key_c)
+		_fade_and_free_container(owner, container, key_t)
+		owner.remove_meta(key_c)
+		if owner.has_meta(key_p):
+			owner.remove_meta(key_p)
+		idx += 1

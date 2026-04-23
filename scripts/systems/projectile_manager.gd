@@ -63,6 +63,10 @@ var _textures: Array = []
 var _visual_scales: PackedVector2Array
 var _rotations: PackedFloat32Array
 
+# --- Animation state ---
+var _anim_frame_idx: PackedInt32Array
+var _anim_frame_timer: PackedFloat32Array
+
 # --- Impact VFX config ---
 var _impact_sprite_frames: Array = []
 var _impact_animations: Array = []
@@ -100,6 +104,8 @@ func _init_pool() -> void:
 	_has_bounced.resize(POOL_SIZE)
 	_visual_scales.resize(POOL_SIZE)
 	_rotations.resize(POOL_SIZE)
+	_anim_frame_idx.resize(POOL_SIZE)
+	_anim_frame_timer.resize(POOL_SIZE)
 
 	_configs.resize(POOL_SIZE)
 	_sources.resize(POOL_SIZE)
@@ -112,6 +118,8 @@ func _init_pool() -> void:
 
 	for i in POOL_SIZE:
 		_alive[i] = 0
+		_anim_frame_idx[i] = 0
+		_anim_frame_timer[i] = 0.0
 		_configs[i] = null
 		_sources[i] = null
 		_abilities[i] = null
@@ -204,6 +212,8 @@ func spawn(source: Node2D, ability, config: ProjectileConfig,
 		_arc_times[i] = 0.0
 
 	_visual_scales[i] = config.visual_scale
+	_anim_frame_idx[i] = 0
+	_anim_frame_timer[i] = 0.0
 	_textures[i] = _resolve_texture(config, direction)
 	_impact_sprite_frames[i] = config.impact_sprite_frames
 	_impact_animations[i] = config.impact_animation if config.impact_animation != "" else ""
@@ -230,12 +240,37 @@ func _resolve_texture(config: ProjectileConfig, direction: Vector2) -> Texture2D
 
 # --- Processing ---
 
+func _advance_animation(i: int, delta: float) -> void:
+	var config: ProjectileConfig = _configs[i]
+	if not config:
+		return
+	var sf: SpriteFrames = config.sprite_frames
+	if not sf:
+		return
+	var anim: String = config.animation
+	if anim == "" or not sf.has_animation(anim):
+		return
+	var frame_count: int = sf.get_frame_count(anim)
+	if frame_count <= 1:
+		return
+	var fps: float = sf.get_animation_speed(anim)
+	if fps <= 0.0:
+		return
+	_anim_frame_timer[i] += delta
+	var spf: float = 1.0 / fps
+	while _anim_frame_timer[i] >= spf:
+		_anim_frame_timer[i] -= spf
+		_anim_frame_idx[i] = (_anim_frame_idx[i] + 1) % frame_count
+		_textures[i] = sf.get_frame_texture(anim, _anim_frame_idx[i])
+
+
 func _process(delta: float) -> void:
 	var any_active := false
 	for i in _count:
 		if not _alive[i]:
 			continue
 		any_active = true
+		_advance_animation(i, delta)
 		if _arc_heights[i] > 0.0:
 			_process_arc(i, delta)
 		else:

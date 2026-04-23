@@ -75,6 +75,8 @@ static func _build_spread_weapon(weapon_id: String, data: Dictionary,
 	ability.targeting = targeting
 
 	var proj_config := _build_projectile_config(data, mods)
+	if weapon_id == "Frost Scattergun":
+		_apply_frost_sprites(proj_config)
 	var spawn := SpawnProjectilesEffect.new()
 	spawn.projectile = proj_config
 	spawn.spawn_pattern = "spread"
@@ -98,8 +100,9 @@ static func _build_beam_weapon(weapon_id: String, data: Dictionary,
 	ability.cast_range = data.get("range", 285.0)
 
 	var targeting := TargetingRule.new()
-	targeting.type = "nearest_enemy"
+	targeting.type = "nearest_enemies"
 	targeting.max_range = data.get("range", 285.0)
+	targeting.max_targets = 1  ## updated at fire time by player projectile_count stat
 	ability.targeting = targeting
 
 	var dmg := DealDamageEffect.new()
@@ -285,6 +288,8 @@ static func _build_orbit_weapon(weapon_id: String, data: Dictionary,
 
 ## Cached projectile SpriteFrames — built once from the scene's texture
 static var _projectile_sprite_frames: SpriteFrames = null
+static var _frost_projectile_sprite_frames: SpriteFrames = null
+static var _frost_impact_sprite_frames: SpriteFrames = null
 
 static func _get_projectile_sprite_frames() -> SpriteFrames:
 	if _projectile_sprite_frames:
@@ -304,6 +309,84 @@ static func _get_projectile_sprite_frames() -> SpriteFrames:
 	frames.add_frame("default", atlas)
 	_projectile_sprite_frames = frames
 	return frames
+
+
+static func _get_frost_projectile_sprite_frames() -> SpriteFrames:
+	if _frost_projectile_sprite_frames:
+		return _frost_projectile_sprite_frames
+	const TEX_PATH := "res://assets/minifantasy/Minifantasy_Spell Effects_v1.0/Minifantasy_Spell_Effects_Assets/Ice/Tileable_Effect/Tileable_Ice.png"
+	if not ResourceLoader.exists(TEX_PATH):
+		return null
+	var sheet: Texture2D = load(TEX_PATH)
+	var frames := SpriteFrames.new()
+	# Shard variation 1 — Loop row at y=8, 8 frames of 8×8
+	frames.add_animation("default")
+	frames.set_animation_loop("default", true)
+	frames.set_animation_speed("default", 10.0)
+	for col in 8:
+		var atlas := AtlasTexture.new()
+		atlas.atlas = sheet
+		atlas.region = Rect2(col * 8, 8, 8, 8)
+		atlas.filter_clip = true
+		frames.add_frame("default", atlas)
+	# Shard variation 2 — Loop row at y=40, 8 frames
+	frames.add_animation("shard2")
+	frames.set_animation_loop("shard2", true)
+	frames.set_animation_speed("shard2", 10.0)
+	for col in 8:
+		var atlas := AtlasTexture.new()
+		atlas.atlas = sheet
+		atlas.region = Rect2(col * 8, 40, 8, 8)
+		atlas.filter_clip = true
+		frames.add_frame("shard2", atlas)
+	# Shard variation 3 — Loop row at y=72, 8 frames
+	frames.add_animation("shard3")
+	frames.set_animation_loop("shard3", true)
+	frames.set_animation_speed("shard3", 10.0)
+	for col in 8:
+		var atlas := AtlasTexture.new()
+		atlas.atlas = sheet
+		atlas.region = Rect2(col * 8, 72, 8, 8)
+		atlas.filter_clip = true
+		frames.add_frame("shard3", atlas)
+	_frost_projectile_sprite_frames = frames
+	return frames
+
+
+static func _get_frost_impact_sprite_frames() -> SpriteFrames:
+	if _frost_impact_sprite_frames:
+		return _frost_impact_sprite_frames
+	const TEX_PATH := "res://assets/minifantasy/Minifantasy_Spell Effects_v1.0/Minifantasy_Spell_Effects_Assets/Ice/Burst/Burst_Ice.png"
+	if not ResourceLoader.exists(TEX_PATH):
+		return null
+	var sheet: Texture2D = load(TEX_PATH)
+	var frames := SpriteFrames.new()
+	frames.add_animation("default")
+	frames.set_animation_loop("default", false)
+	frames.set_animation_speed("default", 15.0)  ## 15 fps — crisp 1-second burst
+	for col in 15:
+		var atlas := AtlasTexture.new()
+		atlas.atlas = sheet
+		atlas.region = Rect2(col * 32, 0, 32, 32)
+		atlas.filter_clip = true
+		frames.add_frame("default", atlas)
+	_frost_impact_sprite_frames = frames
+	return frames
+
+
+static func _apply_frost_sprites(config: ProjectileConfig) -> void:
+	var proj_sf := _get_frost_projectile_sprite_frames()
+	if proj_sf:
+		config.sprite_frames = proj_sf
+		config.animation = "default"
+		config.use_directional_anims = false
+		config.rotation_offset = 0.0
+		config.visual_scale = Vector2(1.5, 1.5)
+		config.fallback_color = Color(0.55, 0.88, 1.0, 0.9)
+	var impact_sf := _get_frost_impact_sprite_frames()
+	if impact_sf:
+		config.impact_sprite_frames = impact_sf
+		config.impact_animation = "default"
 
 
 static func _build_projectile_config(data: Dictionary, mods: Array) -> ProjectileConfig:
@@ -509,4 +592,11 @@ static func build_mod_modifiers(active_mods: Array) -> Array[ModifierDefinition]
 				ls.value = params.get("steal_pct", 0.05)
 				ls.source_name = "mod_" + mod_id
 				result.append(ls)
+			"multishot":
+				var ms := ModifierDefinition.new()
+				ms.target_tag = "projectile_count"
+				ms.operation = "add"
+				ms.value = params.get("count_bonus", 1)
+				ms.source_name = "mod_multishot"
+				result.append(ms)
 	return result
