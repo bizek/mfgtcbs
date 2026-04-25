@@ -75,7 +75,8 @@
       "Bash(dir \"E:\\\\Projects\\\\extraction-survivors\\\\assets\\\\minifantasy\\\\Minifantasy_Magic_Weapons_And_Effects_v1.0\\\\Minifantasy_Magic_Weapons_And_Effects_Assets\" /b /s)",
       "Bash(dir \"E:\\\\Projects\\\\extraction-survivors\\\\assets\\\\minifantasy\\\\Minifantasy_Magic_Weapons_And_Effects_v1.0\\\\Minifantasy_Magic_Weapons_And_Effects_Assets\\\\Standalone Effects\" /b /s)",
       "Bash(dir \"E:\\\\Projects\\\\extraction-survivors\\\\assets\\\\minifantasy\\\\Minifantasy_Magic_Weapons_And_Effects_v1.0\\\\Minifantasy_Magic_Weapons_And_Effects_Assets\\\\Addon Effects \\(Minifantasy - Weapons\\)\" /b)",
-      "mcp__godot-mcp-pro__get_editor_screenshot"
+      "mcp__godot-mcp-pro__get_editor_screenshot",
+      "Bash(python -c ' *)"
     ]
   }
 }

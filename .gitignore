@@ -5,3 +5,7 @@
 # Large asset bundles (source files, not tracked in git)
 *.zip
 assets/minifantasy/
+
+# LDtk auto-backups (per-project backup folders)
+**/backups/
+*.ldtk-bak
