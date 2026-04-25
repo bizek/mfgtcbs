@@ -110,7 +110,7 @@ Every mod pair has a defined interaction. Named combos have unique mechanical ef
 | **Burning + Chilled** | **Frostfire** | Burning applied to a Chilled target | Consume Chilled → 12 Fire AoE (45px) | Existing. Confirmed. |
 | **Burning + Frozen** | **Shatter** | Burning applied to a Frozen target | Consume Frozen → 20 Ice AoE (50px) | Existing. Confirmed. |
 | **Hit while Shocked** | **Conductor** | Any hit received while Shocked | Consume Shocked → 10 Lightning AoE (80px) | Existing. Confirmed. |
-| **Burning + Shocked** | **Plasma** | Burning applied to a Shocked target (or Shocked applied while Burning) | Consume both → 15 Plasma AoE (55px). Deals hybrid Fire+Lightning damage (split evenly). | New. Covers Fire+Shock co-application. |
+| **Burning + Shocked** | **Hellfire** | Burning applied to a Shocked target (or Shocked applied while Burning) | Consume both → 15 Hellfire AoE (55px). Deals hybrid Fire+Lightning damage (split evenly). | New. Covers Fire+Shock co-application. |
 | **Chilled + Shocked** | **Superconductor** | Shocked applied to a Chilled target | Consume Chilled → 18 Cold Lightning AoE (60px). Slow is transferred to nearby enemies as a 50% chain slow (1.5s). | New. Cryo+Shock. |
 | **Burning + Bleeding** | **Searing Wound** | Burning active on a target that is also Bleeding | While both active: Bleed tick rate doubles (2 dmg/s → 4 dmg/s). Neither status is consumed — they amplify each other until one expires. | New. Sustained dual-DoT amplifier. |
 | **Frozen + Bleeding** | **Hemorrhage** | Target is both Frozen and Bleeding when the Frozen stun expires | On Frozen expiry: deal bonus damage equal to (Bleed stacks × 5) as a burst. Bleed continues. | New. Execute mechanic — big burst when freeze breaks. |
@@ -221,7 +221,7 @@ Base: +50% attack speed over 3s ramp-up. Secondary effects:
 | Split | At full ramp, split spawns 4 sub-projectiles instead of 3. More fragments at peak firing rate. |
 | Gravity | At full ramp, homing seek range +60% (240px). Faster projectiles track from further away. |
 | Ricochet | At full ramp, +1 extra bounce (4 total instead of 3). More energy in the shot. |
-| Fire | Faster reapplication closes the Burning stack window. Easier to stack Frostfire / Shatter / Plasma triggers. |
+| Fire | Faster reapplication closes the Burning stack window. Easier to stack Frostfire / Shatter / Hellfire triggers. |
 | Cryo | Faster attacks build Chill stacks faster. Frozen triggers are dramatically faster with full ramp. |
 | Shock | At full ramp, every 3rd hit auto-applies Shocked (no Shock mod required if using this combo). Bonus: Conductor can fire from the auto-shock. |
 | DOT Applicator | At full ramp, each hit applies 2 Bleed stacks (up from 1). DoT buildup accelerates dramatically. |

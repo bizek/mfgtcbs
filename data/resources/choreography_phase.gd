@@ -16,6 +16,7 @@ extends Resource
 ## How this phase ends
 @export var exit_type: String = "anim_finished"       ## "anim_finished", "wait", "displacement_complete"
 @export var wait_duration: float = 0.0                ## For "wait" exit type (max seconds)
+@export var telegraph_speed_scale: float = 1.0        ## Sprite playback speed during telegraph wind-up (reset to 1.0 on exit)
 
 ## What comes next
 @export var default_next: int = -1                    ## Phase index (-1 = end choreography)

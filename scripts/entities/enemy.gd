@@ -99,6 +99,7 @@ var _current_hit_frame: int = 3
 var _hit_frame_fired: bool = false
 var _pending_ability: AbilityDefinition = null
 var _pending_targets: Array = []
+var _is_damage_anim_active: bool = false
 
 
 func _init() -> void:
@@ -441,6 +442,11 @@ func _on_ability_requested(ability: AbilityDefinition, targets: Array) -> void:
 		_start_animated_ability(ability, targets)
 		return
 
+	# Generic attack animation fallback (before instant fire)
+	if sprite and sprite.sprite_frames and sprite.sprite_frames.has_animation("attack"):
+		_start_animated_ability(ability, targets)
+		return
+
 	# Instant ability: fire effects immediately
 	EffectDispatcher.execute_effects(ability.effects, self, targets, ability, combat_manager)
 	EventBus.on_ability_used.emit(self, ability)
@@ -456,7 +462,12 @@ func _on_auto_attack_requested(ability: AbilityDefinition, targets: Array) -> vo
 		_start_animated_ability(ability, targets)
 		return
 
-	# Instant auto-attack
+	# Generic attack animation fallback
+	if sprite and sprite.sprite_frames and sprite.sprite_frames.has_animation("attack"):
+		_start_animated_ability(ability, targets)
+		return
+
+	# Instant auto-attack (no animation)
 	EffectDispatcher.execute_effects(ability.effects, self, targets, ability, combat_manager)
 	EventBus.on_ability_used.emit(self, ability)
 
@@ -540,6 +551,13 @@ func _on_animation_finished() -> void:
 		_on_choreography_animation_finished()
 		return
 
+	# Damage reaction: resume walk after damage anim
+	if _is_damage_anim_active:
+		_is_damage_anim_active = false
+		if sprite and sprite.sprite_frames:
+			sprite.play("walk")
+		return
+
 	# Standard animated ability: done
 	if _ability_anim_active and _pending_ability != null:
 		# If hit frame was never reached (short anim), fire effects now
@@ -597,6 +615,10 @@ func _enter_choreography_phase(index: int) -> void:
 	if phase.hit_frame < 0 and not phase.effects.is_empty():
 		_execute_choreography_phase_effects(phase)
 
+	# Reset speed scale from any previous telegraph phase
+	if sprite:
+		sprite.speed_scale = 1.0
+
 	# Play animation or set up exit monitoring
 	if phase.animation != "":
 		_current_attack_anim = phase.animation
@@ -605,6 +627,8 @@ func _enter_choreography_phase(index: int) -> void:
 
 		if sprite and sprite.sprite_frames and sprite.sprite_frames.has_animation(phase.animation):
 			sprite.play(phase.animation)
+			if phase.telegraph_speed_scale != 1.0:
+				sprite.speed_scale = phase.telegraph_speed_scale
 		elif phase.exit_type == "anim_finished":
 			# No animation available — skip to next
 			_on_choreography_phase_exit()
@@ -682,6 +706,8 @@ func _evaluate_choreography_branch(branch: ChoreographyBranch) -> bool:
 
 func _end_choreography() -> void:
 	## Clean up all choreography state and return to normal behavior.
+	if sprite:
+		sprite.speed_scale = 1.0
 	if combat_manager and combat_manager.get("telegraph_manager"):
 		combat_manager.telegraph_manager.cleanup_entity(self)
 	_choreography = null
@@ -788,13 +814,18 @@ func take_damage(hit_data) -> void:
 
 	CombatUtils.process_incoming_damage(self, hit_data)
 
-	# Enemy-specific: hit flash
+	# Enemy-specific: hit flash + damage reaction
 	if is_alive and sprite:
 		if _hit_tween and _hit_tween.is_valid():
 			_hit_tween.kill()
 		sprite.modulate = Color(5.0, 5.0, 5.0, 1.0)
 		_hit_tween = create_tween()
 		_hit_tween.tween_property(sprite, "modulate", _base_modulate, 0.08)
+		# Damage animation (skip if mid-attack or already playing damage)
+		if not _ability_anim_active and not _is_damage_anim_active:
+			if sprite.sprite_frames and sprite.sprite_frames.has_animation("damage"):
+				_is_damage_anim_active = true
+				sprite.play("damage")
 
 
 func apply_knockback(force: Vector2) -> void:
@@ -887,6 +918,7 @@ func _on_health_died(_entity: Node2D) -> void:
 	if not is_alive:
 		return
 	is_alive = false
+	set_physics_process(false)
 	if trigger_component:
 		trigger_component.cleanup()
 
@@ -910,9 +942,16 @@ func _on_health_died(_entity: Node2D) -> void:
 	if _loot_drop_scene:
 		_drop_carrier_loot()
 
-	_spawn_death_effect()
 	_drop_xp()
 	_drop_health()
+
+	# Death animation (plays before despawn; collision/contact already inert via is_alive=false)
+	if sprite and sprite.sprite_frames and sprite.sprite_frames.has_animation("death"):
+		sprite.play("death")
+		await sprite.animation_finished
+	else:
+		_spawn_death_effect()
+
 	queue_free()
 
 

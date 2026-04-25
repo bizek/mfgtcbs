@@ -9,8 +9,8 @@ static func create() -> EnemyDefinition:
 	def.tags = ["Melee", "Heavy"]
 	def.base_stats = {"max_hp": 80.0}
 	def.combat_role = "MELEE"
-	def.move_speed = 60.0
-	def.contact_damage = 15.0
+	def.move_speed = 36.0
+	def.contact_damage = 9.0
 	def.base_armor = 5.0
 	def.xp_value = 5.0
 	def.health_drop_chance = 0.08

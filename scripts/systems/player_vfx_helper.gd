@@ -10,6 +10,48 @@ static var _ember_sting_texture: Texture2D = null
 static var _ember_muzzle_texture: Texture2D = null
 static var _ember_impact_frames: SpriteFrames = null
 
+# --- SlashL sprite caches (Arcane Blade melee overlay) ---
+## Keyed by variant string: "fire", "ice", "shock" (default/tinted base).
+## SlashL sheet layout: 4 frames × 48px wide × 128px tall, single row.
+## Adjust SLASH_FRAME_W / SLASH_FRAME_COUNT if a different sheet is swapped in.
+const SLASH_FRAME_W:     int   = 48
+const SLASH_FRAME_H:     int   = 128
+const SLASH_FRAME_COUNT: int   = 4
+const SLASH_FPS:         float = 18.0   ## full swing plays in ~0.22 s
+## Visual scale baseline: sprite looks right at range 40 (scale 1.0).
+## Scale = range_px / SLASH_NATIVE_REACH.  Increase to shrink the overlay.
+const SLASH_NATIVE_REACH: float = 40.0
+static var _slash_frames_cache: Dictionary = {}
+
+static func _get_slash_frames(variant: String) -> SpriteFrames:
+	if _slash_frames_cache.has(variant):
+		return _slash_frames_cache[variant]
+	## Note: folder names contain spaces — Godot 4 handles these fine as long as
+	## the files have been imported (*.import files present). Verified in asset_inventory.
+	var path: String = (
+		"res://assets/minifantasy/Minifantasy_Magic_Weapons_And_Effects_v1.0"
+		+ "/Minifantasy_Magic_Weapons_And_Effects_Assets"
+		+ "/Standalone Effects/Attack Effects/SlashL/Front Layer"
+		+ "/SlashL_" + variant + "_f.png"
+	)
+	if not ResourceLoader.exists(path):
+		push_warning("PlayerVfxHelper: SlashL variant '%s' not found at: %s" % [variant, path])
+		_slash_frames_cache[variant] = null  ## cache the miss so we don't spam the check
+		return null
+	var sheet: Texture2D = load(path)
+	var frames := SpriteFrames.new()
+	frames.add_animation("default")
+	frames.set_animation_loop("default", false)
+	frames.set_animation_speed("default", SLASH_FPS)
+	for col in SLASH_FRAME_COUNT:
+		var atlas := AtlasTexture.new()
+		atlas.atlas       = sheet
+		atlas.region      = Rect2(col * SLASH_FRAME_W, 0, SLASH_FRAME_W, SLASH_FRAME_H)
+		atlas.filter_clip = true
+		frames.add_frame("default", atlas)
+	_slash_frames_cache[variant] = frames
+	return frames
+
 static func _get_ember_sting_texture() -> Texture2D:
 	if _ember_sting_texture:
 		return _ember_sting_texture
@@ -219,8 +261,23 @@ static func spawn_beam_flash(owner: Node, scene_root: Node, from: Vector2, to: V
 	t2.tween_callback(glow.queue_free)
 
 
-static func spawn_melee_arc(owner: Node, scene_root: Node, center: Vector2, angle: float, range_px: float, arc_half: float, tint: Color) -> void:
+static func spawn_melee_arc(owner: Node, scene_root: Node, center: Vector2, angle: float, range_px: float, arc_half: float, tint: Color, active_mods: Array = []) -> void:
 	const SEGMENTS: int = 12
+
+	## Pick SlashL variant from equipped mods.
+	var variant: String = "shock"
+	if "fire" in active_mods:
+		variant = "fire"
+	elif "cryo" in active_mods:
+		variant = "ice"
+	elif "shock" in active_mods:
+		variant = "shock"
+
+	var frames := _get_slash_frames(variant)
+	var has_sprite: bool = frames != null
+
+	## Polygon fill is dimmer when the sprite overlay is present (becomes a glow underlay).
+	var fill_alpha: float = 0.22 if has_sprite else 0.48
 
 	var points: PackedVector2Array = []
 	points.append(Vector2.ZERO)
@@ -230,7 +287,7 @@ static func spawn_melee_arc(owner: Node, scene_root: Node, center: Vector2, angl
 
 	var poly := Polygon2D.new()
 	poly.polygon         = points
-	poly.color           = Color(tint.r, tint.g, tint.b, 0.48)
+	poly.color           = Color(tint.r, tint.g, tint.b, fill_alpha)
 	poly.global_position = center
 	scene_root.add_child(poly)
 
@@ -249,6 +306,27 @@ static func spawn_melee_arc(owner: Node, scene_root: Node, center: Vector2, angl
 	var t2 := owner.create_tween()
 	t2.tween_property(edge, "modulate:a", 0.0, 0.13)
 	t2.tween_callback(edge.queue_free)
+
+	## SlashL sprite overlay — centered=true so frame center (24,64) sits at the player.
+	## global_position set after add_child so top_level transform is resolved correctly.
+	if has_sprite:
+		var sc: float = range_px / SLASH_NATIVE_REACH
+		var anim := AnimatedSprite2D.new()
+		anim.top_level     = true
+		anim.sprite_frames = frames
+		anim.centered      = true
+		anim.rotation      = angle + PI / 2.0
+		anim.scale         = Vector2(sc, sc)
+		scene_root.add_child(anim)
+		anim.global_position = center
+		anim.play("default")
+		## Tween-based cleanup: fade over last 30% of animation then free.
+		## More reliable than animation_finished signal for one-shot transient nodes.
+		var total: float = float(SLASH_FRAME_COUNT) / SLASH_FPS
+		var ta := owner.create_tween()
+		ta.tween_interval(total * 0.65)
+		ta.tween_property(anim, "modulate:a", 0.0, total * 0.35)
+		ta.tween_callback(anim.queue_free)
 
 
 static func spawn_artillery_marker(owner: Node, scene_root: Node, pos: Vector2, radius: float, fuse: float, tint: Color) -> void:

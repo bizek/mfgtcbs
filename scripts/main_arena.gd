@@ -54,6 +54,7 @@ func _ready() -> void:
 	EnemySpawnManager.carrier_scene  = preload("res://scenes/enemies/carrier.tscn")
 	EnemySpawnManager.stalker_scene  = preload("res://scenes/enemies/stalker.tscn")
 	EnemySpawnManager.herald_scene   = preload("res://scenes/enemies/herald.tscn")
+	EnemySpawnManager.guardian_scene = preload("res://scenes/enemies/guardian.tscn")
 
 	# Configure level-specific spawn pool (must happen before start_spawning)
 	EnemySpawnManager.configure_level(GameManager.current_level)

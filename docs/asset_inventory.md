@@ -314,6 +314,21 @@ All 74 MiniFantasy packs in `/assets/minifantasy/`:
 
 ---
 
+## Sprite Catalogue
+
+Hans compiled a curated catalogue of all usable characters with their full animation sets, specials, and palette swap recipes: **`docs/sprite_catalogue.md`**
+
+Key sections:
+- **A-List** — Hero & Villain sprites with deep animation sets (True Heroes I-IV, True Villains). Primary player class casting pool.
+- **B-List** — Military/faction units (RTS Humans, Orcs, Dark Brotherhood). Good for enemies and NPCs.
+- **D-List** — Creatures & Monsters, including boss-tier and undead.
+- **Patreon Exclusives** — 100+ additional units from the `All_Exclusives_20260409/` archive.
+- **Palette Swap Recipes** — Executed swaps documented with exact tool parameters (e.g. Demonologist → Witch Doctor).
+
+Already extracted and in use: `ranger/`, `demonologist/`, `witch_doctor/`, `giant/`.
+
+---
+
 ## The Palette-Shift Strategy
 
 Phases 1-4 use MiniFantasy packs as-is — the environmental packs already provide distinct looks. Palette shifting is reserved for edge cases only:
@@ -322,7 +337,16 @@ Phases 1-4 use MiniFantasy packs as-is — the environmental packs already provi
 - Phase 5 enemy variants: take Phase 1-3 enemy sprites (Creatures, Undead) and apply void palette shader (deep purple/black with bioluminescent accents) to create Phase-Warped variants without needing separate sprites
 - Any Phase 4-5 enemy that needs to look "wrong" but doesn't have a dedicated pack equivalent
 
-**Godot tools for palette shifting:**
+**Pre-baked palette swap tool:** `tools/palette_swap.py` — Python script (requires Pillow) for producing recolored PNG variants from source sprites. Workflow: `analyze` to inspect hue ranges, then `swap` with explicit target palette.
+
+```
+python tools/palette_swap.py analyze <image>
+python tools/palette_swap.py swap <image> --hue-range LO HI --palette HEX... -o output.png
+```
+
+Full recipe for the Demonologist → Witch Doctor swap is documented in `docs/sprite_catalogue.md` under "Executed Palette Swaps".
+
+**Godot tools for palette shifting (runtime):**
 - **CanvasModulate** — global color tinting per scene
 - **Shaders** — color replacement, distortion, glow
 - **GPU Particles** — fog, floating particles, atmospheric density

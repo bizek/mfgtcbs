@@ -11,8 +11,8 @@ static func create() -> EnemyDefinition:
 	def.tags = ["Melee", "Heavy", "Boss"]
 	def.base_stats = {"max_hp": 300.0}
 	def.combat_role = "MELEE"
-	def.move_speed = 42.0
-	def.contact_damage = 20.0
+	def.move_speed = 25.0
+	def.contact_damage = 12.0
 	def.base_armor = 10.0
 	def.xp_value = 50.0
 	def.health_drop_chance = 0.25
@@ -35,7 +35,7 @@ static func _create_guardian_slam(base_damage: float) -> AbilityDefinition:
 
 	var zone_tick := DealDamageEffect.new()
 	zone_tick.damage_type = "Void"
-	zone_tick.base_damage = 5.0
+	zone_tick.base_damage = 3.0
 
 	var zone := GroundZoneEffect.new()
 	zone.zone_id = "guardian_slam_zone"

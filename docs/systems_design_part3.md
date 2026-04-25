@@ -64,17 +64,17 @@ Each character has:
 
 | Character | Starting Weapon | Passive Ability | Stat Adjustments | Fantasy |
 |-----------|----------------|-----------------|------------------|---------|
-| The Drifter | Standard Sidearm (balanced ranged) | None — baseline stats, no gimmick | Balanced across the board | The "learn the game" character. Reliable, no surprises. |
-| The Scavenger | Salvage Cutter (short range, wide arc) | +25% Pickup Radius, +15% Loot Find | Lower Damage, Higher Movement Speed | The extraction optimizer. Finds more, fights less efficiently. |
-| The Warden | Heavy Repeater (slow, high damage) | Armor doubles when below 50% HP | High HP, High Armor, Low Movement Speed | The immovable wall. Survives deep phases through sheer toughness. |
-| The Spark | Overcharged Pistol (fast, fragile) | +50% Crit Damage (2.25x total) | High Damage, High Attack Speed, Low HP | The glass cannon. Kills everything fast or dies trying. |
-| The Shade | Phantom Blade (melee, fast) | Dodge grants brief invisibility (0.5s) | High Dodge Chance (15%), High Movement Speed, Low Armor | The untouchable. Weaves through danger. |
+| The Drifter | Hurled Steel (thrown blade, balanced ranged) | None — baseline stats, no gimmick | Balanced across the board | The "learn the game" character. Reliable, no surprises. |
+| The Scavenger | Arcane Blade (melee, wide arc) | +25% Pickup Radius, +15% Loot Find | Lower Damage, Higher Movement Speed | The extraction optimizer. Finds more, fights less efficiently. |
+| The Warden | Warden's Repeater (slow, high damage) | Armor doubles when below 50% HP | High HP, High Armor, Low Movement Speed | The immovable wall. Survives deep phases through sheer toughness. |
+| The Spark | Spark's Pistol (fast, fragile) | +50% Crit Damage (2.25x total) | High Damage, High Attack Speed, Low HP | The glass cannon. Kills everything fast or dies trying. |
+| The Shade | Arcane Blade (melee, wide arc) | Dodge grants brief invisibility (0.5s) | High Dodge Chance (15%), High Movement Speed, Low Armor | The untouchable. Weaves through danger. |
 
 **Post-Launch Characters (2 additions):**
 
 | Character | Starting Weapon | Passive Ability | Stat Adjustments | Fantasy |
 |-----------|----------------|-----------------|------------------|---------|
-| The Herald | Signal Beacon (mediocre weapon) | Active abilities deal +30% damage and have -20% cooldowns | Average stats, extra active ability slot | The ability specialist. Weapon is weak, abilities are everything. |
+| The Herald | Herald's Call (mediocre weapon) | Active abilities deal +30% damage and have -20% cooldowns | Average stats, extra active ability slot | The ability specialist. Weapon is weak, abilities are everything. |
 | The Cursed | Void Siphon (drains enemy HP) | Starts every run at Unsettled Instability (25%) but gains +20% to all base stats | Boosted everything, permanent Instability penalty | The expert character. Maximum risk, maximum power. |
 
 **Unlock Order:** The Drifter is free (starting character). Other characters unlock via resource spending at the Roster station. No forced order — the player picks which character interests them most and saves toward it. The second character should feel achievable within the first few sessions of play. Later characters cost more but by then the player is extracting more efficiently.

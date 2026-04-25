@@ -32,7 +32,7 @@ var _base_stats: Dictionary = {
 	"attack_speed":    1.0,
 	"crit_chance":     0.05,
 	"crit_multiplier": 1.5,
-	"move_speed":      200.0,
+	"move_speed":      120.0,
 	"pickup_radius":   50.0,
 	"projectile_count": 1,
 	"pierce":          0,
@@ -70,6 +70,15 @@ var _iframes_timer: float = 0.0
 const IFRAME_DURATION: float = 0.55
 var _hit_flash_tween: Tween = null
 
+## Animation state flags — prevent walk/idle logic from clobbering one-shot anims
+var _attack_anim_active: bool = false
+var _damage_anim_active: bool = false
+var _is_dying: bool = false
+
+## Pending fire — ability + targets stored at swing-start, executed at swing-end
+var _pending_ability: AbilityDefinition = null
+var _pending_targets: Array = []
+
 ## Knockback
 var knockback_velocity: Vector2 = Vector2.ZERO
 
@@ -102,6 +111,7 @@ func _ready() -> void:
 	_update_pickup_radius()
 	health_changed.emit(health.current_hp, health.max_hp)
 	pickup_area.area_entered.connect(_on_pickup_area_entered)
+	sprite.animation_finished.connect(_on_sprite_animation_finished)
 
 	# Shade passive: dodge triggers invisibility
 	EventBus.on_dodge.connect(_on_dodge_received)
@@ -162,15 +172,15 @@ func _load_character_stats() -> void:
 func _load_equipped_weapon() -> void:
 	var char_id: String = ProgressionManager.selected_character
 	var char_data: Dictionary = CharacterData.ALL.get(char_id, CharacterData.ALL["The Drifter"])
-	var weapon_id: String = char_data.get("starting_weapon", "Standard Sidearm")
+	var weapon_id: String = char_data.get("starting_weapon", "Hurled Steel")
 
 	if char_id == "The Drifter":
 		weapon_id = ProgressionManager.selected_weapon
 		if weapon_id.is_empty():
-			weapon_id = "Standard Sidearm"
+			weapon_id = "Hurled Steel"
 
 	_weapon_id   = weapon_id
-	_weapon_data = WeaponData.ALL.get(weapon_id, WeaponData.ALL["Standard Sidearm"])
+	_weapon_data = WeaponData.ALL.get(weapon_id, WeaponData.ALL["Hurled Steel"])
 
 	# Weapon stats override base damage/attack_speed/projectile_count
 	_set_base_stat("damage", _weapon_data.get("damage", 18.0))
@@ -277,7 +287,7 @@ func switch_weapon(weapon_id: String) -> void:
 
 	## Load new weapon data
 	_weapon_id   = weapon_id
-	_weapon_data = WeaponData.ALL.get(weapon_id, WeaponData.ALL["Standard Sidearm"])
+	_weapon_data = WeaponData.ALL.get(weapon_id, WeaponData.ALL["Hurled Steel"])
 	_set_base_stat("damage",          _weapon_data.get("damage", 18.0))
 	_set_base_stat("attack_speed",    _weapon_data.get("attack_speed", 1.0))
 	_set_base_stat("projectile_count", _weapon_data.get("projectile_count", 1))
@@ -315,11 +325,13 @@ func _cache_projectile_base_stats() -> void:
 
 
 func _on_auto_attack(ability: AbilityDefinition, targets: Array) -> void:
-	## Engine callback: BehaviorComponent resolved targets, fire the weapon.
+	## Engine callback: BehaviorComponent resolved targets.
+	## Stats are synced and locked in NOW (swing-start); projectile fires at swing-end.
 	if not is_alive or targets.is_empty():
 		return
 	attack_target = targets[0]
-	# Sync live stats into weapon effects before firing
+
+	# Sync live stats into weapon effects — locked in at swing-start
 	var proj_count: int = int(get_stat("projectile_count"))
 	var pierce_bonus: int = int(get_stat("pierce"))
 	var size_mult: float = get_stat("projectile_size")
@@ -332,30 +344,71 @@ func _on_auto_attack(ability: AbilityDefinition, targets: Array) -> void:
 	## Beam: sync live projectile_count → targeting so next resolve picks up multi-beam
 	if ability.tags.has("Beam") and ability.targeting != null:
 		ability.targeting.max_targets = proj_count
-	EffectDispatcher.execute_effects(ability.effects, self, targets, ability, combat_manager)
-	EventBus.on_ability_used.emit(self, ability)
+
+	# Store pending shot — will be executed at the end of the attack animation
+	_pending_ability = ability
+	_pending_targets = targets  # Node2D refs; validity checked before firing
+
+	# Play attack animation and schedule firing at the last frame
+	if not _is_dying:
+		_attack_anim_active = true
+		sprite.play("attack")
+	var frame_count: int = sprite.sprite_frames.get_frame_count("attack")
+	var fps: float = sprite.sprite_frames.get_animation_speed("attack")
+	var fire_delay: float = float(frame_count) / fps
+	get_tree().create_timer(fire_delay).timeout.connect(_fire_pending_shot, CONNECT_ONE_SHOT)
+
+
+func _fire_pending_shot() -> void:
+	## Execute the stored projectile/beam/melee at the end of the swing animation.
+	if not is_alive or _pending_ability == null:
+		_pending_ability = null
+		_pending_targets.clear()
+		return
+	# Filter targets that are no longer valid (died during swing)
+	var valid_targets: Array = _pending_targets.filter(func(t: Node) -> bool: return is_instance_valid(t))
+	# If the original target died mid-swing the throw is already committed — re-aim at
+	# the nearest live enemy so the projectile always releases on a completed swing.
+	if valid_targets.is_empty() and spatial_grid != null:
+		var nearest: Node2D = spatial_grid.find_nearest(global_position, 1)
+		if is_instance_valid(nearest):
+			valid_targets.append(nearest)
+	if valid_targets.is_empty():
+		_pending_ability = null
+		_pending_targets.clear()
+		return
+
+	EffectDispatcher.execute_effects(_pending_ability.effects, self, valid_targets, _pending_ability, combat_manager)
+	EventBus.on_ability_used.emit(self, _pending_ability)
 
 	# Weapon-specific visual feedback
 	var scene_root: Node = get_tree().current_scene
 	var tint: Color = _weapon_data.get("tint", Color.WHITE)
-	if ability.tags.has("Beam"):
+	if _pending_ability.tags.has("Beam"):
 		var active_beams: int = 0
-		for i in targets.size():
-			if is_instance_valid(targets[i]):
-				PlayerVfxHelper.spawn_beam_flash(self, scene_root, global_position, targets[i].global_position, tint, ability.ability_id, i)
+		for i in valid_targets.size():
+			if is_instance_valid(valid_targets[i]):
+				PlayerVfxHelper.spawn_beam_flash(self, scene_root, global_position, valid_targets[i].global_position, tint, _pending_ability.ability_id, i)
 				active_beams += 1
 				if "napalm" in _active_mods:
-					_spawn_scorched_earth_patches(global_position, targets[i].global_position, scene_root)
+					_spawn_scorched_earth_patches(global_position, valid_targets[i].global_position, scene_root)
 		PlayerVfxHelper.cleanup_stale_beam_containers(self, active_beams)
-	elif ability.tags.has("Melee"):
-		var swing_dir: Vector2 = (targets[0].global_position - global_position).normalized() if is_instance_valid(targets[0]) else Vector2.RIGHT
-		var range_px: float = _weapon_data.get("range", 55.0)
-		var arc_deg: float  = _weapon_data.get("arc_degrees", 200.0)
-		PlayerVfxHelper.spawn_melee_arc(self, scene_root, global_position, swing_dir.angle(), range_px, deg_to_rad(arc_deg * 0.5), tint)
-	elif ability.tags.has("Artillery") and is_instance_valid(targets[0]):
+	elif _pending_ability.tags.has("Melee"):
+		var swing_dir: Vector2 = (valid_targets[0].global_position - global_position).normalized() if is_instance_valid(valid_targets[0]) else Vector2.RIGHT
+		## Range: read from the processed ability so size mod scaling is included.
+		var range_px: float = _pending_ability.targeting.max_range
+		## Arc: scale with size mod (same mult the factory applies to range).
+		var arc_deg: float = _weapon_data.get("arc_degrees", 200.0)
+		if "size" in _active_mods:
+			arc_deg *= ModData.ALL["size"]["params"].get("size_mult", 1.5)
+		PlayerVfxHelper.spawn_melee_arc(self, scene_root, global_position, swing_dir.angle(), range_px, deg_to_rad(arc_deg * 0.5), tint, _active_mods)
+	elif _pending_ability.tags.has("Artillery") and is_instance_valid(valid_targets[0]):
 		var scatter    := Vector2(randf_range(-22.0, 22.0), randf_range(-22.0, 22.0))
-		var target_pos: Vector2 = targets[0].global_position + scatter
+		var target_pos: Vector2 = valid_targets[0].global_position + scatter
 		PlayerVfxHelper.spawn_artillery_marker(self, scene_root, target_pos, _weapon_data.get("aoe_radius", 64.0), _weapon_data.get("fuse_time", 1.0), tint)
+
+	_pending_ability = null
+	_pending_targets.clear()
 
 
 # --- Main loop ---
@@ -383,19 +436,24 @@ func _physics_process(delta: float) -> void:
 
 	var move_speed_val: float = get_stat("move_speed")
 	var target_velocity: Vector2 = input_dir * move_speed_val
-	velocity = velocity.move_toward(target_velocity, 2600.0 * delta)
+	velocity = velocity.move_toward(target_velocity, 1500.0 * delta)
 	velocity += knockback_velocity
 	move_and_slide()
-	position = position.round()  # pixel-snap: prevents sub-pixel blur on high-Hz monitors
+	# Snap sprite to pixel grid without discarding fractional physics position.
+	# Rounding position itself loses sub-pixel accumulation each frame, cutting
+	# diagonal speed by ~15% vs ~10% cardinal (diagonal per-axis step is smaller).
+	if sprite:
+		sprite.position = position.round() - position
 	knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 1400.0 * delta)
 
 	if sprite:
 		if input_dir.x != 0:
 			sprite.flip_h = input_dir.x < 0
-		if input_dir.length_squared() > 0:
-			sprite.play("walk")
-		else:
-			sprite.play("idle")
+		if not _attack_anim_active and not _damage_anim_active and not _is_dying:
+			if input_dir.length_squared() > 0:
+				sprite.play("walk")
+			else:
+				sprite.play("idle")
 
 	# Auto-fire via engine BehaviorComponent (suppressed during CC)
 	# BehaviorComponent.tick handles auto-attack timer and targeting
@@ -459,9 +517,24 @@ func take_damage(hit_data) -> void:
 	# Player-specific reactions
 	_iframes_timer = IFRAME_DURATION
 	_start_hit_flash()
+	# Damage animation — interrupts attack, does not block movement
+	if not _is_dying:
+		_attack_anim_active = false
+		_damage_anim_active = true
+		sprite.play("damage")
 	var amount: float = hit_data.amount if hit_data is HitData else 0.0
 	if ExtractionManager.is_channeling and amount > 10.0:
 		ExtractionManager.interrupt_channel()
+
+
+func _on_sprite_animation_finished() -> void:
+	## Clear one-shot animation flags so walk/idle logic resumes.
+	## Death is handled by its own await — don't clear _is_dying here.
+	var anim: String = sprite.animation
+	if anim == "attack":
+		_attack_anim_active = false
+	elif anim == "damage":
+		_damage_anim_active = false
 
 
 func _start_hit_flash() -> void:
@@ -684,6 +757,7 @@ func _on_health_died(_entity: Node2D) -> void:
 	if not is_alive:
 		return
 	is_alive = false
+	_is_dying = true
 	if trigger_component:
 		trigger_component.cleanup()
 	if _hit_flash_tween and _hit_flash_tween.is_valid():
@@ -692,6 +766,11 @@ func _on_health_died(_entity: Node2D) -> void:
 	sprite.modulate = Color.WHITE
 	knockback_velocity = Vector2.ZERO
 	_cleanup_orbit_orbs()
+	# Play death animation then trigger game-over flow
+	_attack_anim_active = false
+	_damage_anim_active = false
+	sprite.play("death")
+	await sprite.animation_finished
 	EventBus.on_death.emit(self)
 	died.emit()
 	GameManager.on_player_died()
@@ -705,6 +784,11 @@ func reset_stats() -> void:
 	level = 1
 	_active_mods.clear()
 	is_alive = true
+	_is_dying = false
+	_attack_anim_active = false
+	_damage_anim_active = false
+	_pending_ability = null
+	_pending_targets.clear()
 	_iframes_timer = 0.0
 	knockback_velocity = Vector2.ZERO
 	if _hit_flash_tween and _hit_flash_tween.is_valid():

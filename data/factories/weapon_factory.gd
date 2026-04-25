@@ -33,7 +33,7 @@ static func build_weapon_ability(weapon_id: String, weapon_data: Dictionary,
 	return _build_projectile_weapon(weapon_id, weapon_data, active_mods)
 
 
-# --- Projectile weapon (Standard Sidearm, Warden's Repeater, Spark's Pistol, Herald's Beacon) ---
+# --- Projectile weapon (Hurled Steel, Warden's Repeater, Spark's Pistol, Herald's Call) ---
 
 static func _build_projectile_weapon(weapon_id: String, data: Dictionary,
 		mods: Array) -> AbilityDefinition:
@@ -125,7 +125,7 @@ static func _build_beam_weapon(weapon_id: String, data: Dictionary,
 	return ability
 
 
-# --- Melee weapon (Plasma Blade) ---
+# --- Melee weapon (Arcane Blade) ---
 
 static func _build_melee_weapon(weapon_id: String, data: Dictionary,
 		mods: Array) -> AbilityDefinition:

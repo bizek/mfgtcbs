@@ -19,8 +19,8 @@ static func create_warped_fodder() -> EnemyDefinition:
 	def.tags = ["Melee", "Void", "PhaseWarped"]
 	def.base_stats = {"max_hp": 39.0}       ## 30 × 1.3
 	def.combat_role = "MELEE"
-	def.move_speed = 55.0                    ## Faster than base 42
-	def.contact_damage = 12.0               ## 10 × 1.2
+	def.move_speed = 33.0                    ## Faster than base 25
+	def.contact_damage = 7.0                ## 6 × 1.2
 	def.base_armor = 0.0
 	def.xp_value = 2.0
 	def.health_drop_chance = 0.05
@@ -42,8 +42,8 @@ static func create_warped_swarmer() -> EnemyDefinition:
 	def.tags = ["Melee", "Void", "Swarm", "PhaseWarped"]
 	def.base_stats = {"max_hp": 13.0}       ## 10 × 1.3
 	def.combat_role = "MELEE"
-	def.move_speed = 140.0                  ## Faster than base 120
-	def.contact_damage = 6.0               ## 5 × 1.2
+	def.move_speed = 84.0                   ## Faster than base 72
+	def.contact_damage = 4.0               ## 3 × 1.2
 	def.base_armor = 0.0
 	def.xp_value = 1.0
 	def.health_drop_chance = 0.05
@@ -65,8 +65,8 @@ static func create_warped_brute() -> EnemyDefinition:
 	def.tags = ["Melee", "Heavy", "Void", "PhaseWarped"]
 	def.base_stats = {"max_hp": 104.0}      ## 80 × 1.3
 	def.combat_role = "MELEE"
-	def.move_speed = 60.0
-	def.contact_damage = 18.0              ## 15 × 1.2
+	def.move_speed = 36.0
+	def.contact_damage = 11.0              ## 9 × 1.2
 	def.base_armor = 5.0
 	def.xp_value = 8.0
 	def.health_drop_chance = 0.08
@@ -74,7 +74,7 @@ static func create_warped_brute() -> EnemyDefinition:
 	def.base_modulate = VOID_MODULATE
 	def.sprite_scale = Vector2(1.8, 1.8)
 	## Mechanic: periodic void ground zone dropped at own position
-	def.auto_attack = _create_void_slam(18.0)
+	def.auto_attack = _create_void_slam(11.0)
 	def.skills = [_create_void_trail_skill()]
 	return def
 
@@ -90,8 +90,8 @@ static func create_warped_caster() -> EnemyDefinition:
 	def.tags = ["Ranged", "Void", "PhaseWarped"]
 	def.base_stats = {"max_hp": 26.0}       ## 20 × 1.3
 	def.combat_role = "RANGED"
-	def.move_speed = 40.0
-	def.contact_damage = 10.0              ## 8 × 1.2, rounded up
+	def.move_speed = 24.0
+	def.contact_damage = 6.0               ## 5 × 1.2, rounded up
 	def.base_armor = 0.0
 	def.xp_value = 5.0
 	def.health_drop_chance = 0.05
@@ -157,7 +157,7 @@ static func _create_void_trail_skill() -> SkillDefinition:
 	## Zone deals 5 void damage every 0.5s to the player (enemy of the brute).
 	var tick_dmg := DealDamageEffect.new()
 	tick_dmg.damage_type = "Void"
-	tick_dmg.base_damage = 5.0
+	tick_dmg.base_damage = 3.0
 
 	var zone := GroundZoneEffect.new()
 	zone.zone_id = "warped_brute_void_trail"
@@ -223,7 +223,7 @@ static func _create_void_burst() -> AbilityDefinition:
 
 	var dmg := DealDamageEffect.new()
 	dmg.damage_type = "Void"
-	dmg.base_damage = 10.0
+	dmg.base_damage = 6.0
 	config.on_hit_effects = [dmg]
 
 	var spawn := SpawnProjectilesEffect.new()

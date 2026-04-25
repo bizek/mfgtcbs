@@ -48,8 +48,8 @@ Two primary damage types combine into a secondary type with unique properties. T
 | Combination | Secondary Type | Effect Concept |
 |-------------|---------------|----------------|
 | Fire + Cryo | **Steam** | Blinds/obscures enemies (reduced accuracy, wander behavior) |
-| Fire + Shock | **Plasma** | High single-target burst damage, ignores armor |
-| Fire + Void | **Hellfire** | DOT that scales with Instability level |
+| Fire + Shock | **Hellfire** | High single-target burst damage, ignores armor |
+| Fire + Void | **Inferno** | DOT that scales with Instability level |
 | Cryo + Shock | **Shatter** | Frozen enemies take massive bonus damage from Shock (combo finisher) |
 | Cryo + Void | **Entropy** | Slows AND causes random negative effects (stat drain, disorientation) |
 | Shock + Void | **Surge** | Chain damage that increases Instability per enemy hit but deals massive damage |
@@ -128,7 +128,7 @@ A weapon is defined by combining a behavior with a damage type (and stats). Exam
 | Frost Shotgun | Spread | Cryo | Close-range cone of ice. Applies Chilled rapidly. |
 | Lightning Orb | Orbit | Shock | Orbiting electric spheres. Shocked enemies near you. |
 | Void Mortar | Artillery | Void | Targeted void explosion. Void-Touched on hit. |
-| Plasma Blade | Melee | Shock | Close-range electric slash. High damage, chains on hit. |
+| Arcane Blade | Melee | Physical | Wide arc swing. High damage, get in their face. |
 
 Any behavior can combine with any damage type. This means 10 behaviors × 5 damage types = **50 possible base weapon archetypes** from vocabulary alone, before mods or stat variations.
 
@@ -291,7 +291,7 @@ Every weapon, mod, enemy ability, upgrade, synergy, and corruption upgrade is a 
 | Version | Additions |
 |---------|-----------|
 | v1.5 | Toxic + Radiant damage types, Corroded + Illuminated statuses, Summon weapon behavior |
-| v2 | Secondary (mixed) damage types (Steam, Plasma, Hellfire, Shatter, Entropy, Surge) |
+| v2 | Secondary (mixed) damage types (Steam, Hellfire, Inferno, Shatter, Entropy, Surge) |
 | Post-v2 | New mod effects, new trigger conditions, new targeting types as needed for content variety |
 
 The vocabulary is designed to grow. Each new term expands the possibility space multiplicatively — adding 1 new damage type doesn't add 1 new option, it adds dozens of new combinations across weapons, mods, and synergies.

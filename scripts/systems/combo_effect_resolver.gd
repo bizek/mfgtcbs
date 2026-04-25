@@ -283,11 +283,11 @@ func _on_status_applied(
 			if sec.has_status("frozen"):
 				_fire_combo(&"shatter")
 
-			## Plasma: Burning applied to Shocked → consume both + 15 Plasma AoE (55px)
-			## Effect: shocked.trigger_listeners (_wire_plasma_combo, burning-onto-shocked path)
-			## VFX hint: plasma_burst
+			## Hellfire: Burning applied to Shocked → consume both + 15 Hellfire AoE (55px)
+			## Effect: shocked.trigger_listeners (_wire_hellfire_combo, burning-onto-shocked path)
+			## VFX hint: hellfire_burst
 			if sec.has_status("shocked"):
-				_fire_combo(&"plasma")
+				_fire_combo(&"hellfire")
 
 			## Searing Wound: Burning co-present with Bleed → double Bleed tick rate
 			## Effect: burning.trigger_listeners (_wire_searing_wound_combo, bleed-present path)
@@ -302,10 +302,10 @@ func _on_status_applied(
 			if sec.has_status("chilled"):
 				_fire_combo(&"superconductor")
 
-			## Plasma (reverse direction): Shocked applied to Burning → consume both + Plasma AoE
-			## Effect: burning.trigger_listeners (_wire_plasma_combo, shocked-onto-burning path)
+			## Hellfire (reverse direction): Shocked applied to Burning → consume both + Hellfire AoE
+			## Effect: burning.trigger_listeners (_wire_hellfire_combo, shocked-onto-burning path)
 			if sec.has_status("burning"):
-				_fire_combo(&"plasma")
+				_fire_combo(&"hellfire")
 
 		"bleed":
 			## Searing Wound (reverse direction): Bleed applied to Burning target

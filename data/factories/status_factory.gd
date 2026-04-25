@@ -26,7 +26,7 @@ static var overdrive: StatusEffectDefinition
 static var lightning_reflexes: StatusEffectDefinition
 
 ## Mod interaction combo statuses
-## Plasma (Burning + Shocked): 15 hybrid AoE, consumes both
+## Hellfire (Burning + Shocked): 15 hybrid AoE, consumes both
 ## Superconductor (Chilled + Shocked): 18 cold AoE, consumes Chilled
 ## Searing Wound (Burning + Bleed): double bleed tick rate amplifier
 ## Hemorrhage (Frozen expiry + Bleed): burst damage on Frozen expiry
@@ -76,7 +76,7 @@ static func build_all() -> void:
 	burning_extended = _build_burning_extended()
 
 	## Wire new elemental combos onto existing statuses (must run after all statuses built)
-	_wire_plasma_combo()
+	_wire_hellfire_combo()
 	_wire_superconductor_combo()
 	_wire_searing_wound_combo()
 
@@ -148,38 +148,38 @@ static func get_by_id(status_id: String) -> StatusEffectDefinition:
 
 
 static func _build_burning() -> StatusEffectDefinition:
-	## 3 damage/sec for 3 seconds. Refreshes duration on reapply.
+	## 4 damage/sec for 6 seconds = 24 total. Refreshes duration on reapply.
 	var def := StatusEffectDefinition.new()
 	def.status_id = "burning"
 	def.tags = ["Fire", "DoT"]
 	def.is_positive = false
 	def.max_stacks = 1
-	def.base_duration = 3.0
+	def.base_duration = 6.0
 	def.duration_refresh_mode = "overwrite"
 	def.tick_interval = 1.0
 
 	var tick_dmg := DealDamageEffect.new()
 	tick_dmg.damage_type = "Fire"
-	tick_dmg.base_damage = 3.0
+	tick_dmg.base_damage = 4.0
 	def.tick_effects = [tick_dmg]
 
 	return def
 
 
 static func _build_bleed() -> StatusEffectDefinition:
-	## 2 damage/sec for 4 seconds. Refreshes duration on reapply.
+	## 4 damage/sec for 6 seconds = 24 total. Refreshes duration on reapply.
 	var def := StatusEffectDefinition.new()
 	def.status_id = "bleed"
 	def.tags = ["Physical", "DoT"]
 	def.is_positive = false
 	def.max_stacks = 1
-	def.base_duration = 4.0
+	def.base_duration = 6.0
 	def.duration_refresh_mode = "overwrite"
 	def.tick_interval = 1.0
 
 	var tick_dmg := DealDamageEffect.new()
 	tick_dmg.damage_type = "Physical"
-	tick_dmg.base_damage = 2.0
+	tick_dmg.base_damage = 4.0
 	def.tick_effects = [tick_dmg]
 
 	return def
@@ -589,20 +589,20 @@ static func _build_lightning_reflexes() -> StatusEffectDefinition:
 
 static func _build_searing_wound() -> StatusEffectDefinition:
 	## Searing Wound amplifier: applied to a target that has BOTH Burning and Bleed active.
-	## Deals +2 Fire damage/sec for 3s, stacking on top of existing Bleed tick.
+	## Deals +3 Fire damage/sec for 4s, stacking on top of existing Bleed tick.
 	## Applied by trigger listeners wired in _wire_searing_wound_combo().
 	var def := StatusEffectDefinition.new()
 	def.status_id = "searing_wound"
 	def.tags = ["Fire", "Physical", "DoT"]
 	def.is_positive = false
 	def.max_stacks = 1
-	def.base_duration = 3.0
+	def.base_duration = 4.0
 	def.duration_refresh_mode = "overwrite"
 	def.tick_interval = 1.0
 
 	var tick_dmg := DealDamageEffect.new()
 	tick_dmg.damage_type = "Fire"
-	tick_dmg.base_damage = 2.0
+	tick_dmg.base_damage = 3.0
 	def.tick_effects = [tick_dmg]
 
 	return def
@@ -663,15 +663,15 @@ static func _build_galvanized_shocked() -> StatusEffectDefinition:
 	return def
 
 
-static func _wire_plasma_combo() -> void:
-	## Plasma (Burning + Shocked): either order of application triggers the combo.
+static func _wire_hellfire_combo() -> void:
+	## Hellfire (Burning + Shocked): either order of application triggers the combo.
 	## When Burning is applied to a Shocked target → on Shocked's listener.
 	## When Shocked is applied to a Burning target → on Burning's listener.
 
-	var plasma_aoe := AreaDamageEffect.new()
-	plasma_aoe.damage_type = "Fire"   ## Hybrid: use Fire tag, deal split damage
-	plasma_aoe.base_damage = 15.0
-	plasma_aoe.aoe_radius = 55.0
+	var hellfire_aoe := AreaDamageEffect.new()
+	hellfire_aoe.damage_type = "Fire"   ## Hybrid: use Fire tag, deal split damage
+	hellfire_aoe.base_damage = 15.0
+	hellfire_aoe.aoe_radius = 55.0
 
 	## Shocked listener: fires when burning is applied to Shocked entity
 	var consume_shocked := ConsumeStacksEffect.new()
@@ -686,18 +686,18 @@ static func _wire_plasma_combo() -> void:
 	burning_cond_a.status_id = "burning"
 	var self_cond_a := TriggerConditionTargetIsSelf.new()
 
-	var plasma_on_shocked := TriggerListenerDefinition.new()
-	plasma_on_shocked.event = "on_status_applied"
-	plasma_on_shocked.target_self = true
-	plasma_on_shocked.conditions = [burning_cond_a, self_cond_a]
-	plasma_on_shocked.effects = [plasma_aoe, consume_shocked, consume_burning_a]
-	shocked.trigger_listeners.append(plasma_on_shocked)
+	var hellfire_on_shocked := TriggerListenerDefinition.new()
+	hellfire_on_shocked.event = "on_status_applied"
+	hellfire_on_shocked.target_self = true
+	hellfire_on_shocked.conditions = [burning_cond_a, self_cond_a]
+	hellfire_on_shocked.effects = [hellfire_aoe, consume_shocked, consume_burning_a]
+	shocked.trigger_listeners.append(hellfire_on_shocked)
 
 	## Burning listener: fires when shocked is applied to Burning entity
-	var plasma_aoe_b := AreaDamageEffect.new()
-	plasma_aoe_b.damage_type = "Fire"
-	plasma_aoe_b.base_damage = 15.0
-	plasma_aoe_b.aoe_radius = 55.0
+	var hellfire_aoe_b := AreaDamageEffect.new()
+	hellfire_aoe_b.damage_type = "Fire"
+	hellfire_aoe_b.base_damage = 15.0
+	hellfire_aoe_b.aoe_radius = 55.0
 
 	var consume_burning_b := ConsumeStacksEffect.new()
 	consume_burning_b.status_id = "burning"
@@ -711,12 +711,12 @@ static func _wire_plasma_combo() -> void:
 	shocked_cond_b.status_id = "shocked"
 	var self_cond_b := TriggerConditionTargetIsSelf.new()
 
-	var plasma_on_burning := TriggerListenerDefinition.new()
-	plasma_on_burning.event = "on_status_applied"
-	plasma_on_burning.target_self = true
-	plasma_on_burning.conditions = [shocked_cond_b, self_cond_b]
-	plasma_on_burning.effects = [plasma_aoe_b, consume_burning_b, consume_shocked_b]
-	burning.trigger_listeners.append(plasma_on_burning)
+	var hellfire_on_burning := TriggerListenerDefinition.new()
+	hellfire_on_burning.event = "on_status_applied"
+	hellfire_on_burning.target_self = true
+	hellfire_on_burning.conditions = [shocked_cond_b, self_cond_b]
+	hellfire_on_burning.effects = [hellfire_aoe_b, consume_burning_b, consume_shocked_b]
+	burning.trigger_listeners.append(hellfire_on_burning)
 
 
 static func _wire_superconductor_combo() -> void:

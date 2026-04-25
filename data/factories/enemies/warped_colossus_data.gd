@@ -13,8 +13,8 @@ static func create() -> EnemyDefinition:
 	def.tags = ["Melee", "Heavy", "Boss"]
 	def.base_stats = {"max_hp": 480.0}
 	def.combat_role = "MELEE"
-	def.move_speed = 30.0
-	def.contact_damage = 24.0
+	def.move_speed = 18.0
+	def.contact_damage = 14.0
 	def.base_armor = 6.0
 	def.xp_value = 60.0
 	def.health_drop_chance = 0.60
@@ -56,6 +56,8 @@ static func _tremor_slam() -> AbilityDefinition:
 	telegraph.telegraph_id = "colossus_slam"
 
 	var windup := ChoreographyPhase.new()
+	windup.animation = "attack"
+	windup.telegraph_speed_scale = 0.5
 	windup.effects = [telegraph]
 	windup.hit_frame = -1
 	windup.exit_type = "wait"
@@ -64,12 +66,12 @@ static func _tremor_slam() -> AbilityDefinition:
 
 	var slam_dmg := AreaDamageEffect.new()
 	slam_dmg.damage_type = "Physical"
-	slam_dmg.base_damage = 35.0
+	slam_dmg.base_damage = 21.0
 	slam_dmg.aoe_radius = 80.0
 
 	var debris_tick := DealDamageEffect.new()
 	debris_tick.damage_type = "Void"
-	debris_tick.base_damage = 4.0
+	debris_tick.base_damage = 2.0
 
 	var debris_zone := GroundZoneEffect.new()
 	debris_zone.zone_id = "colossus_debris"
@@ -118,6 +120,8 @@ static func _shockwave_ring() -> AbilityDefinition:
 	telegraph.telegraph_id = "colossus_ring"
 
 	var windup := ChoreographyPhase.new()
+	windup.animation = "attack"
+	windup.telegraph_speed_scale = 0.35
 	windup.effects = [telegraph]
 	windup.hit_frame = -1
 	windup.exit_type = "wait"
@@ -127,7 +131,7 @@ static func _shockwave_ring() -> AbilityDefinition:
 	## Projectile: slow travel outward, heavy hit
 	var hit_dmg := DealDamageEffect.new()
 	hit_dmg.damage_type = "Void"
-	hit_dmg.base_damage = 20.0
+	hit_dmg.base_damage = 12.0
 
 	var proj := ProjectileConfig.new()
 	proj.motion_type = "directional"
@@ -182,6 +186,8 @@ static func _heavy_lunge() -> AbilityDefinition:
 	telegraph.telegraph_id = "colossus_lunge"
 
 	var windup := ChoreographyPhase.new()
+	windup.animation = "attack"
+	windup.telegraph_speed_scale = 0.5
 	windup.effects = [telegraph]
 	windup.hit_frame = -1
 	windup.exit_type = "wait"
@@ -191,7 +197,7 @@ static func _heavy_lunge() -> AbilityDefinition:
 	## On-arrival AoE at landing point
 	var arrival_dmg := AreaDamageEffect.new()
 	arrival_dmg.damage_type = "Physical"
-	arrival_dmg.base_damage = 40.0
+	arrival_dmg.base_damage = 24.0
 	arrival_dmg.aoe_radius = 60.0
 
 	var disp := DisplacementEffect.new()

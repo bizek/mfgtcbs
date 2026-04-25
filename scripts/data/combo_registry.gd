@@ -404,11 +404,11 @@ static func build_registry() -> Array[ModCombo]:
 	))
 
 	combos.append(_create_combo(
-		"plasma", "Plasma",
+		"hellfire", "Hellfire",
 		["burning", "shocked"],
-		"Burning applied to a Shocked target. Consume both → 15 Plasma AoE (55px). Hybrid Fire+Lightning damage.",
+		"Burning applied to a Shocked target. Consume both → 15 Hellfire AoE (55px). Hybrid Fire+Lightning damage.",
 		ModCombo.ComboType.ELEMENTAL_ELEMENTAL,
-		"plasma_burst",
+		"hellfire_burst",
 		_make_bonus(MasteryBonus.BonusType.DAMAGE_INCREASE, 0.15, "+15% damage")
 	))
 

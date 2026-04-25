@@ -9,8 +9,8 @@ static func create() -> EnemyDefinition:
 	def.tags = ["Ranged", "Common"]
 	def.base_stats = {"max_hp": 20.0}
 	def.combat_role = "RANGED"
-	def.move_speed = 40.0
-	def.contact_damage = 8.0
+	def.move_speed = 24.0
+	def.contact_damage = 5.0
 	def.base_armor = 0.0
 	def.xp_value = 3.0
 	def.health_drop_chance = 0.05
@@ -69,7 +69,7 @@ static func _create_fire_puddle_skill() -> SkillDefinition:
 
 	var tick_dmg := DealDamageEffect.new()
 	tick_dmg.damage_type = "Fire"
-	tick_dmg.base_damage = 4.0
+	tick_dmg.base_damage = 2.0
 
 	var zone := GroundZoneEffect.new()
 	zone.zone_id = "caster_fire_puddle"

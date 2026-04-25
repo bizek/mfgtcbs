@@ -18,8 +18,8 @@ static func create() -> EnemyDefinition:
 	def.tags = ["Boss", "Final"]
 	def.base_stats = {"max_hp": 1600.0}
 	def.combat_role = "MELEE"
-	def.move_speed = 22.0
-	def.contact_damage = 30.0
+	def.move_speed = 13.0
+	def.contact_damage = 18.0
 	def.base_armor = 10.0
 	def.xp_value = 200.0
 	def.health_drop_chance = 1.0
@@ -87,6 +87,8 @@ static func _abyssal_slam_stance_machine() -> AbilityDefinition:
 	tel_slam.telegraph_id = "heart_slam"
 
 	var slam_windup := ChoreographyPhase.new()
+	slam_windup.animation = "attack"
+	slam_windup.telegraph_speed_scale = 0.5
 	slam_windup.effects = [tel_slam]
 	slam_windup.hit_frame = -1
 	slam_windup.exit_type = "wait"
@@ -95,7 +97,7 @@ static func _abyssal_slam_stance_machine() -> AbilityDefinition:
 
 	var slam_dmg := AreaDamageEffect.new()
 	slam_dmg.damage_type = "Void"
-	slam_dmg.base_damage = 55.0
+	slam_dmg.base_damage = 33.0
 	slam_dmg.aoe_radius = 100.0
 
 	var slam_hit := ChoreographyPhase.new()
@@ -119,6 +121,8 @@ static func _abyssal_slam_stance_machine() -> AbilityDefinition:
 	tel_sweep.telegraph_id = "heart_sweep"
 
 	var sweep_windup := ChoreographyPhase.new()
+	sweep_windup.animation = "attack"
+	sweep_windup.telegraph_speed_scale = 0.5
 	sweep_windup.effects = [tel_sweep]
 	sweep_windup.hit_frame = -1
 	sweep_windup.exit_type = "wait"
@@ -127,7 +131,7 @@ static func _abyssal_slam_stance_machine() -> AbilityDefinition:
 
 	var sweep_dmg := AreaDamageEffect.new()
 	sweep_dmg.damage_type = "Void"
-	sweep_dmg.base_damage = 45.0
+	sweep_dmg.base_damage = 27.0
 	sweep_dmg.aoe_radius = 150.0
 
 	var sweep_hit := ChoreographyPhase.new()
@@ -147,6 +151,8 @@ static func _abyssal_slam_stance_machine() -> AbilityDefinition:
 	tel_nova.telegraph_id = "heart_nova"
 
 	var nova_windup := ChoreographyPhase.new()
+	nova_windup.animation = "attack"
+	nova_windup.telegraph_speed_scale = 0.4
 	nova_windup.effects = [tel_nova]
 	nova_windup.hit_frame = -1
 	nova_windup.exit_type = "wait"
@@ -156,7 +162,7 @@ static func _abyssal_slam_stance_machine() -> AbilityDefinition:
 	## Radial projectile burst + persistent Void ground zone under the boss.
 	var nova_hit_dmg := DealDamageEffect.new()
 	nova_hit_dmg.damage_type = "Void"
-	nova_hit_dmg.base_damage = 30.0
+	nova_hit_dmg.base_damage = 18.0
 
 	var nova_proj := ProjectileConfig.new()
 	nova_proj.motion_type = "directional"
@@ -174,7 +180,7 @@ static func _abyssal_slam_stance_machine() -> AbilityDefinition:
 
 	var void_tick := DealDamageEffect.new()
 	void_tick.damage_type = "Void"
-	void_tick.base_damage = 6.0
+	void_tick.base_damage = 4.0
 
 	var void_zone := GroundZoneEffect.new()
 	void_zone.zone_id = "heart_void_pool"
@@ -230,6 +236,8 @@ static func _void_spit() -> AbilityDefinition:
 	telegraph.telegraph_id = "heart_spit"
 
 	var windup := ChoreographyPhase.new()
+	windup.animation = "attack"
+	windup.telegraph_speed_scale = 0.6
 	windup.effects = [telegraph]
 	windup.hit_frame = -1
 	windup.exit_type = "wait"
@@ -238,7 +246,7 @@ static func _void_spit() -> AbilityDefinition:
 
 	var hit_dmg := DealDamageEffect.new()
 	hit_dmg.damage_type = "Void"
-	hit_dmg.base_damage = 28.0
+	hit_dmg.base_damage = 17.0
 
 	var proj := ProjectileConfig.new()
 	proj.motion_type = "aimed"

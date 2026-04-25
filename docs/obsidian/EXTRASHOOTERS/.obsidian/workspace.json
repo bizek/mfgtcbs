@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "diagrams 1.md",
+                "file": "weapon-scaling-reference 1.md",
                 "mode": "preview",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "diagrams 1"
+              "title": "weapon-scaling-reference 1"
             }
           }
         ]
@@ -185,10 +185,12 @@
   },
   "active": "f97f5dc932832f04",
   "lastOpenFiles": [
+    "weapon-scaling-reference.md",
+    "weapon-scaling-reference 1.md",
+    "diagrams 1.md",
     "Game State Machine.md",
     "Autoload System Map.md",
     "diagrams.md",
-    "diagrams 1.md",
     "Welcome.md"
   ]
 }

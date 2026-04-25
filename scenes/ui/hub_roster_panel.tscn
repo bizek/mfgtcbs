@@ -262,7 +262,7 @@ offset_bottom = 131.0
 theme_override_fonts/font = ExtResource("3_font")
 theme_override_font_sizes/font_size = 19
 theme_override_colors/font_color = Color(0.58, 0.58, 0.64, 1)
-text = "Standard Sidearm"
+text = "Hurled Steel"
 
 [node name="DetailPassiveLabel" type="Label" parent="PanelBase/ContentContainer"]
 offset_left = 203.0

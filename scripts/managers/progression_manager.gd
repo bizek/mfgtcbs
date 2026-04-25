@@ -22,7 +22,7 @@ const UPGRADE_COSTS: Dictionary = {
 var resources: int = 0
 var run_stats: Dictionary = {}            ## Per-run stats (deepest_phase, etc.)
 var unlocked_weapons: Array = []
-var selected_weapon: String = "Standard Sidearm"
+var selected_weapon: String = "Hurled Steel"
 var selected_weapon_2: String = ""          ## Only used when armory_expansion_1 is owned
 var selected_weapon_3: String = ""          ## Only used when armory_expansion_2 is owned
 var hub_upgrades: Array = []               ## IDs of purchased Workshop upgrades
@@ -85,7 +85,7 @@ func load_data() -> void:
 		return
 	resources             = int(result.get("resources", 0))
 	unlocked_weapons      = result.get("unlocked_weapons", [])
-	selected_weapon       = str(result.get("selected_weapon", "Standard Sidearm"))
+	selected_weapon       = str(result.get("selected_weapon", "Hurled Steel"))
 	selected_weapon_2     = str(result.get("selected_weapon_2", ""))
 	selected_weapon_3     = str(result.get("selected_weapon_3", ""))
 	hub_upgrades          = result.get("hub_upgrades", [])

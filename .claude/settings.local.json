@@ -66,7 +66,16 @@
       "Bash(grep -E '\\\\.\\(png|txt|gif\\)$')",
       "Bash(gh pr *)",
       "Bash(git pull *)",
-      "Bash(xargs grep *)"
+      "Bash(xargs grep *)",
+      "mcp__godot-mcp-pro__execute_editor_script",
+      "Bash(grep -E \"\\\\.png$\")",
+      "Bash(cp \"C:/Users/bblda/Downloads/sprite_catalogue.md\" \"E:/Projects/extraction-survivors/docs/sprite_catalogue.md\")",
+      "Bash(cp \"C:/Users/bblda/Downloads/palette_swap.py\" \"E:/Projects/extraction-survivors/tools/palette_swap.py\")",
+      "Bash(dir \"E:\\\\Projects\\\\extraction-survivors\\\\assets\\\\minifantasy\\\\Minifantasy_Magic_Weapons_And_Effects_v1.0\" /b /s)",
+      "Bash(dir \"E:\\\\Projects\\\\extraction-survivors\\\\assets\\\\minifantasy\\\\Minifantasy_Magic_Weapons_And_Effects_v1.0\\\\Minifantasy_Magic_Weapons_And_Effects_Assets\" /b /s)",
+      "Bash(dir \"E:\\\\Projects\\\\extraction-survivors\\\\assets\\\\minifantasy\\\\Minifantasy_Magic_Weapons_And_Effects_v1.0\\\\Minifantasy_Magic_Weapons_And_Effects_Assets\\\\Standalone Effects\" /b /s)",
+      "Bash(dir \"E:\\\\Projects\\\\extraction-survivors\\\\assets\\\\minifantasy\\\\Minifantasy_Magic_Weapons_And_Effects_v1.0\\\\Minifantasy_Magic_Weapons_And_Effects_Assets\\\\Addon Effects \\(Minifantasy - Weapons\\)\" /b)",
+      "mcp__godot-mcp-pro__get_editor_screenshot"
     ]
   }
 }

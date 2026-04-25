@@ -13,15 +13,15 @@ class_name WeaponData
 
 const ALL: Dictionary = {
 
-	## ─── Standard Sidearm ────────────────────────────────────────────────────
-	## The default starter weapon. Reliable mid-range auto-fire.
-	"Standard Sidearm": {
-		"id":              "Standard Sidearm",
-		"display_name":    "Standard Sidearm",
-		"description":     "Steady auto-fire. Jack of all trades.",
+	## ─── Hurled Steel ────────────────────────────────────────────────────────
+	## The default starter weapon. A spinning blade hurled at the nearest enemy.
+	"Hurled Steel": {
+		"id":              "Hurled Steel",
+		"display_name":    "Hurled Steel",
+		"description":     "you wanna get close to use this?",
 		"behavior":        "projectile",
 		"damage_type":     "physical",
-		"damage":          18.0,
+		"damage":          11.0,
 		"attack_speed":    1.0,     ## shots per second
 		"projectile_speed": 400.0,
 		"lifetime":        3.0,     ## seconds before projectile expires
@@ -41,7 +41,7 @@ const ALL: Dictionary = {
 		"description":     "5-shot cryo cone. Lethal up close.",
 		"behavior":        "spread",
 		"damage_type":     "cryo",
-		"damage":          14.0,    ## per projectile (×5 = 70 total potential)
+		"damage":          8.0,     ## per projectile (×5 = 40 total potential)
 		"attack_speed":    0.85,
 		"projectile_speed": 340.0,
 		"lifetime":        0.68,    ## ~230px range at this speed
@@ -56,14 +56,14 @@ const ALL: Dictionary = {
 
 	## ─── Ember Beam ───────────────────────────────────────────────────────────
 	## Continuous rapid-tick damage to nearest enemy in range. Low per-hit,
-	## but constant pressure. Orange laser visual.
+	## but constant pressure. Orange fire-stream visual.
 	"Ember Beam": {
 		"id":              "Ember Beam",
 		"display_name":    "Ember Beam",
 		"description":     "Constant fire stream. Lower damage, never stops.",
 		"behavior":        "beam",
 		"damage_type":     "fire",
-		"damage":          6.0,     ## per tick (×12/sec = 72 DPS base)
+		"damage":          4.0,     ## per tick (×12/sec = 48 DPS base)
 		"attack_speed":    12.0,    ## ticks per second
 		"range":           285.0,
 		"tint":            Color(1.0, 0.42, 0.08),   ## deep orange-red
@@ -82,7 +82,7 @@ const ALL: Dictionary = {
 		"description":     "3 orbs orbit you. Touch enemies to shock them.",
 		"behavior":        "orbit",
 		"damage_type":     "shock",
-		"damage":          28.0,    ## per orb contact (0.45s cooldown per enemy)
+		"damage":          17.0,    ## per orb contact (0.45s cooldown per enemy)
 		"attack_speed":    1.0,     ## unused for orbit; kept for stat display
 		"orbit_count":     3,
 		"orbit_radius":    64.0,
@@ -103,8 +103,8 @@ const ALL: Dictionary = {
 		"description":     "Delayed AoE blast. Watch the ground.",
 		"behavior":        "artillery",
 		"damage_type":     "void",
-		"damage":          52.0,    ## AoE on explosion
-		"attack_speed":    0.55,    ## shots per second
+		"damage":          31.0,    ## AoE on explosion
+		"attack_speed":    0.40,    ## shots per second
 		"range":           380.0,   ## max target range
 		"aoe_radius":      64.0,
 		"fuse_time":        1.0,    ## seconds before detonation
@@ -115,23 +115,24 @@ const ALL: Dictionary = {
 		"blueprint_cost":  500,
 	},
 
-	## ─── Plasma Blade ─────────────────────────────────────────────────────────
+	## ─── Arcane Blade ─────────────────────────────────────────────────────────
 	## Fast arc swings through enemies in a wide semicircle. Extremely high
 	## damage but you have to be in their face. Very fast attack speed.
-	"Plasma Blade": {
-		"id":              "Plasma Blade",
-		"display_name":    "Plasma Blade",
+	## Arc grows with melee range mods; swing angle grows with arc mods.
+	"Arcane Blade": {
+		"id":              "Arcane Blade",
+		"display_name":    "Arcane Blade",
 		"description":     "High-damage arc swing. Get close or die.",
 		"behavior":        "melee",
 		"damage_type":     "physical",
-		"damage":          42.0,
-		"attack_speed":    2.5,     ## swings per second
-		"range":           55.0,    ## melee reach in pixels
-		"arc_degrees":     200.0,   ## swing arc width
-		"tint":            Color(0.48, 0.80, 1.0),   ## plasma cyan-blue
+		"damage":          25.0,
+		"attack_speed":    1.8,     ## swings per second
+		"range":           40.0,    ## melee reach in pixels — nerfed so size mod (+50%) feels impactful (→60px)
+		"arc_degrees":     170.0,   ## swing arc width — nerfed for same reason (→255° with size mod)
+		"tint":            Color(0.62, 0.28, 0.95),   ## arcane violet
 		"drop_weight":     10,
 		"mod_slots":       2,
-		"unlock_id":       "Plasma Blade",
+		"unlock_id":       "Arcane Blade",
 		"blueprint_cost":  400,
 	},
 
@@ -145,7 +146,7 @@ const ALL: Dictionary = {
 		"description":     "Slow fire, heavy impact. Each shot counts.",
 		"behavior":        "projectile",
 		"damage_type":     "physical",
-		"damage":          28.0,
+		"damage":          17.0,
 		"attack_speed":    0.55,    ## slow fire rate
 		"projectile_speed": 380.0,
 		"lifetime":        3.5,
@@ -165,7 +166,7 @@ const ALL: Dictionary = {
 		"description":     "Rapid-fire burst. Fragile but relentless.",
 		"behavior":        "projectile",
 		"damage_type":     "physical",
-		"damage":          14.0,
+		"damage":          8.0,
 		"attack_speed":    2.0,     ## fast fire rate
 		"projectile_speed": 440.0,
 		"lifetime":        3.0,
@@ -177,21 +178,21 @@ const ALL: Dictionary = {
 		"unlock_id":       "",
 	},
 
-	## ─── Herald's Beacon ───────────────────────────────────────────────────
+	## ─── Herald's Call ────────────────────────────────────────────────────
 	## Mediocre slow auto-fire. The Herald's power comes from abilities.
-	"Herald's Beacon": {
-		"id":              "Herald's Beacon",
-		"display_name":    "Herald's Beacon",
-		"description":     "Weak auto-fire. The signal calls power from elsewhere.",
+	"Herald's Call": {
+		"id":              "Herald's Call",
+		"display_name":    "Herald's Call",
+		"description":     "Weak auto-fire. The call draws power from elsewhere.",
 		"behavior":        "projectile",
 		"damage_type":     "physical",
-		"damage":          10.0,
+		"damage":          6.0,
 		"attack_speed":    0.80,
 		"projectile_speed": 360.0,
 		"lifetime":        3.0,
 		"projectile_count": 1,
 		"spread_angle":    14.0,
-		"tint":            Color(0.30, 0.86, 0.96),  ## signal teal
+		"tint":            Color(0.30, 0.86, 0.96),  ## herald teal
 		"drop_weight":     0,
 		"mod_slots":       1,
 		"unlock_id":       "",

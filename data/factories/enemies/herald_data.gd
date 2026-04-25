@@ -10,7 +10,7 @@ static func create() -> EnemyDefinition:
 	def.tags = ["Support", "Aura"]
 	def.base_stats = {"max_hp": 25.0}
 	def.combat_role = "MELEE"
-	def.move_speed = 70.0
+	def.move_speed = 42.0
 	def.contact_damage = 0.0
 	def.base_armor = 0.0
 	def.xp_value = 4.0
@@ -29,7 +29,7 @@ static func create() -> EnemyDefinition:
 static func _create_corruption_circle() -> AbilityDefinition:
 	var tick_dmg := DealDamageEffect.new()
 	tick_dmg.damage_type = "Void"
-	tick_dmg.base_damage = 3.0
+	tick_dmg.base_damage = 2.0
 
 	var zone := GroundZoneEffect.new()
 	zone.zone_id = "herald_corruption"

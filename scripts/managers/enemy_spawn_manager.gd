@@ -30,7 +30,7 @@ signal enemy_spawned(enemy: Node)
 
 ## ── Phase stat multipliers (index = phase_number - 1) ────────────────────────
 const PHASE_HP_MULT: Array    = [1.0, 1.5, 2.5, 4.0, 6.0]
-const PHASE_DMG_MULT: Array   = [1.0, 1.3, 1.6, 2.0, 2.5]
+const PHASE_DMG_MULT: Array   = [1.0, 1.2, 1.4, 1.7, 2.0]
 const PHASE_SPAWN_MULT: Array = [1.0, 1.2, 1.5, 1.8, 2.2]
 
 ## ── Per-phase wave composition weights (index = phase_number - 1) ────────────
@@ -75,9 +75,9 @@ var _final_boss_spawned_this_phase: bool = false
 
 ## ── Core spawn loop ──────────────────────────────────────────────────────────
 var spawn_timer: float = 0.0
-var base_spawn_interval: float = 2.5
-var enemies_per_spawn: int = 3
-var max_enemies: int = 150
+var base_spawn_interval: float = 3.5
+var enemies_per_spawn: int = 2
+var max_enemies: int = 90
 var active_enemies: int = 0
 var arena_bounds: Rect2 = Rect2(-320, -240, 640, 480)
 var player_ref: Node2D = null

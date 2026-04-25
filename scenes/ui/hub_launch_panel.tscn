@@ -49,7 +49,7 @@ offset_bottom = 64.0
 theme_override_fonts/font = ExtResource("3_font")
 theme_override_font_sizes/font_size = 19
 theme_override_colors/font_color = Color(0.82, 0.82, 0.87, 1)
-text = "Weapon:      Standard Sidearm"
+text = "Weapon:      Hurled Steel"
 
 [node name="Slot1Label" type="Label" parent="PanelBase/ContentContainer"]
 offset_left = 16.0
@@ -59,7 +59,7 @@ offset_bottom = 64.0
 theme_override_fonts/font = ExtResource("3_font")
 theme_override_font_sizes/font_size = 19
 theme_override_colors/font_color = Color(0.82, 0.82, 0.87, 1)
-text = "Slot 1:      Standard Sidearm"
+text = "Slot 1:      Hurled Steel"
 visible = false
 
 [node name="Slot2Label" type="Label" parent="PanelBase/ContentContainer"]
