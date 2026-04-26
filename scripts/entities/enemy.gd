@@ -393,6 +393,12 @@ func _physics_process(delta: float) -> void:
 
 	# Animation
 	if sprite:
+		# Face the player horizontally (sprites authored facing right; flip when target is left)
+		if not _ability_anim_active and not _is_damage_anim_active:
+			if is_instance_valid(player_ref):
+				var dx: float = player_ref.global_position.x - global_position.x
+				if absf(dx) > 1.0:
+					sprite.flip_h = dx < 0.0
 		if _behavior_type == "ranged" and velocity.length() < 5.0:
 			if sprite.sprite_frames and sprite.sprite_frames.has_animation("idle"):
 				sprite.play("idle")
@@ -479,6 +485,7 @@ func _start_animated_ability(ability: AbilityDefinition, targets: Array) -> void
 	_pending_ability = ability
 	_pending_targets = targets
 	_ability_anim_active = true
+	_is_damage_anim_active = false  # attack supersedes damage anim; clear stuck flag
 	_current_attack_anim = ability.anim_override if ability.anim_override != "" else "attack"
 	_current_hit_frame = ability.hit_frame_override if ability.hit_frame_override >= 0 else 3
 	_hit_frame_fired = false
@@ -579,6 +586,7 @@ func _start_choreography(ability: AbilityDefinition, targets: Array) -> void:
 	is_channeling = true
 	is_attacking = true
 	_ability_anim_active = true
+	_is_damage_anim_active = false  # choreography supersedes damage anim
 	_pending_ability = null
 	_pending_targets = []
 
