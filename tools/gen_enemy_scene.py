@@ -114,6 +114,50 @@ ENEMIES = [
         "hurtbox": (16, 16),
         "body":    (12, 12),
     },
+    # ── Level 1 — The Cave — exclusive enemies ────────────────────────────────
+    {
+        "scene_filename": "cave_bat.tscn",
+        "node_name": "CaveBat",
+        "pack_path": "assets/minifantasy/Minifantasy_Creatures_v3.3_Commercial_Version/Minifantasy_Creatures_Assets/Beasts/Bat",
+        # Bat has no Walk anim — bats fly. Reuse FlyIdle for both idle and walk.
+        "anims": {
+            "attack": ("BatAttack",  10.0, False),
+            "damage": ("BatDmg",     12.0, False),
+            "death":  ("BatDie",      8.0, False),
+            "idle":   ("BatFlyIdle",  6.0, True),
+            "walk":   ("BatFlyIdle",  6.0, True),
+        },
+        "hurtbox": (10, 8),
+        "body":    (8, 6),
+    },
+    {
+        "scene_filename": "cave_raider.tscn",
+        "node_name": "CaveRaider",
+        "pack_path": "assets/minifantasy/All_Exclusives_20260409/Creatures/Goblin_Raider/Goblin_Raider_With_Torch",
+        "anims": {
+            "attack": ("Attack", 8.0, False),
+            "damage": ("Dmg",   12.0, False),
+            "death":  ("Die",    6.0, False),
+            "idle":   ("Idle",   5.0, True),
+            "walk":   ("Walk",   5.0, True),
+        },
+        "hurtbox": (12, 14),
+        "body":    (10, 10),
+    },
+    {
+        "scene_filename": "cave_skirmisher.tscn",
+        "node_name": "CaveSkirmisher",
+        "pack_path": "assets/minifantasy/All_Exclusives_20260409/Creatures/Goblin_Raider/Goblin_Raider_No_Torch",
+        "anims": {
+            "attack": ("Attack_No_Torch", 8.0, False),
+            "damage": ("Dmg_No_Torch",   12.0, False),
+            "death":  ("Die_No_Torch",    6.0, False),
+            "idle":   ("Idle_No_Torch",   5.0, True),
+            "walk":   ("Walk_No_Torch",   5.0, True),
+        },
+        "hurtbox": (10, 12),
+        "body":    (8, 8),
+    },
 ]
 
 
@@ -223,8 +267,18 @@ def main(argv: list[str]) -> int:
         print(f"missing {out_dir}", file=sys.stderr)
         return 1
 
+    # Optional filter: pass scene_filename(s) on argv to regenerate just those.
+    # Default skips files that already exist to avoid churn on committed scenes
+    # (this generator uses random UIDs/IDs each run — re-running rewrites every byte).
+    filter_set = set(argv[1:])
     for spec in ENEMIES:
         out_path = os.path.join(out_dir, spec["scene_filename"])
+        if filter_set:
+            if spec["scene_filename"] not in filter_set:
+                continue
+        elif os.path.exists(out_path):
+            print(f"skip  {out_path} (exists; pass filename on argv to overwrite)")
+            continue
         text = render_scene(spec)
         with open(out_path, "w", encoding="utf-8", newline="\n") as fh:
             fh.write(text)

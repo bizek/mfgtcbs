@@ -17,14 +17,17 @@ const LEVELS: Dictionary = {
 		"floor_path": "res://assets/minifantasy/Minifantasy_DeepCaves_v2.0/Minifantasy_DeepCaves_Assets/PremadeScene/SeparateLayers/Premade_h-floor.png",
 		## Per-phase wave composition (index 0 = phase 1). Weights must sum to 1.0.
 		"wave_composition": [
-			## Phase 1 — tiny goblins overwhelm, regular goblins supplement
-			{"cave_fodder": 0.80, "cave_swarmer": 0.20},
-			## Phase 2 — trolls start lumbering in
-			{"cave_fodder": 0.50, "cave_swarmer": 0.35, "cave_brute": 0.15},
-			## Phase 3 — full cave roster; caster falls back to base scene
-			{"cave_fodder": 0.25, "cave_swarmer": 0.30, "cave_brute": 0.25, "caster": 0.20},
+			## Phase 1 — tiny goblins, bats, and skirmishers swarm in
+			{"cave_fodder": 0.55, "cave_skirmisher": 0.25, "cave_bat": 0.20},
+			## Phase 2 — raiders and bats join, regular goblins supplement
+			{"cave_fodder": 0.30, "cave_skirmisher": 0.20, "cave_swarmer": 0.20,
+				"cave_bat": 0.15, "cave_raider": 0.15},
+			## Phase 3 — trolls lumber in alongside the full goblin tribe
+			{"cave_fodder": 0.20, "cave_skirmisher": 0.15, "cave_swarmer": 0.20,
+				"cave_raider": 0.20, "cave_brute": 0.15, "cave_bat": 0.10},
 			## Phase 4 — specialist pressure (stalker/guardian use base scenes)
-			{"cave_fodder": 0.13, "cave_swarmer": 0.27, "stalker": 0.33, "guardian": 0.27},
+			{"cave_fodder": 0.10, "cave_swarmer": 0.20, "cave_raider": 0.15,
+				"cave_brute": 0.10, "stalker": 0.25, "guardian": 0.20},
 			## Phase 5 — warped variants; anchor uses base scene
 			{"cave_swarmer": 0.12, "anchor": 0.48, "warped_fodder": 0.10,
 				"warped_swarmer": 0.10, "warped_brute": 0.10, "warped_caster": 0.10},
@@ -32,9 +35,12 @@ const LEVELS: Dictionary = {
 		## Maps level-specific enemy IDs to their .tscn paths.
 		## IDs not listed here fall back to EnemySpawnManager's base scene lookup.
 		"scene_map": {
-			"cave_fodder":  "res://scenes/enemies/cave_fodder.tscn",
-			"cave_swarmer": "res://scenes/enemies/swarmer.tscn",
-			"cave_brute":   "res://scenes/enemies/cave_brute.tscn",
+			"cave_fodder":     "res://scenes/enemies/cave_fodder.tscn",
+			"cave_swarmer":    "res://scenes/enemies/swarmer.tscn",
+			"cave_brute":      "res://scenes/enemies/cave_brute.tscn",
+			"cave_bat":        "res://scenes/enemies/cave_bat.tscn",
+			"cave_raider":     "res://scenes/enemies/cave_raider.tscn",
+			"cave_skirmisher": "res://scenes/enemies/cave_skirmisher.tscn",
 		},
 	},
 
