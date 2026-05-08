@@ -1,6 +1,8 @@
 # Core Framework Decisions
 ### Phase 8 Output | The Math Behind Everything
 
+> **Status (Late-Alpha):** Numbers in this doc represent the design baseline. Live values for tuned systems live in `data/characters.gd`, `data/weapons.gd`, and the relevant manager scripts. When in conflict, code wins. Last reconciled with code: 2026-05-02.
+
 ---
 
 ## Important Note
@@ -41,22 +43,19 @@ The Drifter is the baseline. All other characters are defined as modifications t
 
 ### Character Stat Modifiers (Relative to Drifter Baseline)
 
-**Launch Roster (5 characters):**
+**All 7 Characters (live — source: `data/characters.gd`):**
 
-| Character | HP | Damage | Move Speed | Armor | Special |
-|-----------|-----|--------|------------|-------|---------|
-| The Drifter | 100 | 10 | 200 | 0 | None — pure baseline |
-| The Scavenger | 80 | 8 | 220 | 0 | +25% Pickup Radius, +15% Loot Find |
-| The Warden | 150 | 10 | 160 | 5 | Armor doubles below 50% HP |
-| The Spark | 60 | 14 | 210 | 0 | +50% Crit Damage (2.25x total) |
-| The Shade | 75 | 9 | 240 | 0 | 15% Dodge Chance, dodge grants 0.5s invisibility |
+| Character | HP | Armor | Move Speed | Starting Weapon | Passive |
+|-----------|-----|-------|------------|-----------------|---------|
+| The Drifter | 100 | 0 | 120 | Hurled Steel | None — pure baseline |
+| The Scavenger | 80 | 0 | 132 | Arcane Blade | +25% Pickup Radius, +15% Loot Find |
+| The Warden | 150 | 5 | 96 | Warden's Repeater | Armor doubles below 50% HP |
+| The Spark | 60 | 0 | 126 | Spark's Pistol | +50% Crit Damage (2.25× total) |
+| The Shade | 75 | 0 | 144 | Arcane Blade | 15% Dodge; dodge grants 0.5s invisibility |
+| The Herald | 90 | 0 | 120 | Herald's Call | Abilities +30% dmg, −20% cooldown; extra ability slot |
+| The Cursed | 120 | 3 | 126 | Void Mortar | Starts Unsettled; +20% to all base stats |
 
-**Post-Launch Characters (2 additions):**
-
-| Character | HP | Damage | Move Speed | Armor | Special |
-|-----------|-----|--------|------------|-------|---------|
-| The Herald | 90 | 8 | 200 | 0 | +30% ability damage, -20% ability cooldowns, extra ability slot |
-| The Cursed | 120 | 12 | 210 | 3 | Starts at 25% Instability. +20% all base stats but permanent penalty. |
+*Base damage is not defined at the character level — damage scaling flows through the modifier and upgrade system. Move Speed values are from `data/characters.gd` and differ from the 200 px/s figure in the baseline table above; the relationship between the two units is unverified — see verification_findings §5.*
 
 ---
 
@@ -150,30 +149,32 @@ XP Gain bonus stat accelerates this curve. +50% XP Gain at Level 10 means reachi
 
 ## Phase Timing
 
-### Phase Duration
+Each biome run comprises 5 wave-phases. The durations below are design targets; actual run-timer values have not been confirmed against code — treat this table as **TUNING-VALUES** until a timing audit is done.
 
-| Phase | Duration | Cumulative Time | Notes |
-|-------|----------|-----------------|-------|
-| Phase 1 | 3:00 | 0:00 - 3:00 | Short intro. Learn the build. |
-| Phase 2 | 3:30 | 3:00 - 6:30 | Slightly longer. Build developing. |
-| Phase 3 | 4:00 | 6:30 - 10:30 | Mid-run. Stakes rising. |
-| Phase 4 | 3:30 | 10:30 - 14:00 | Intense. Tightens before the climax. |
-| Phase 5 | 4:00 - 6:00 | 14:00 - 18:00/20:00 | Variable length. Ends when player extracts or dies. |
-| **Total** | **~18 minutes** | | Within our 15-20 minute target |
+### Wave-Phase Duration (per biome)
+
+| Wave-Phase | Target Duration | Cumulative Time | Notes |
+|------------|-----------------|-----------------|-------|
+| Wave-Phase 1 | 3:00 | 0:00 - 3:00 | Short intro. Learn the build. |
+| Wave-Phase 2 | 3:30 | 3:00 - 6:30 | Slightly longer. Build developing. |
+| Wave-Phase 3 | 4:00 | 6:30 - 10:30 | Mid-run. Stakes rising. |
+| Wave-Phase 4 | 3:30 | 10:30 - 14:00 | Intense. Tightens before the climax. |
+| Wave-Phase 5 | 4:00 - 6:00 | 14:00 - 18:00/20:00 | Variable length. Ends when player extracts or dies. |
+| **Total** | **~18 minutes** *(TUNING-VALUES)* | | Within our 15-20 minute target |
 
 ### Phase Transitions
 
-- Extraction window: 15 seconds (Timed extraction available)
+- Extraction window: 15 seconds (Timed extraction available) *(unverified — see verification_findings §8)*
 - Transition animation: 3-5 seconds
 - Total between-phase downtime: ~20 seconds
 
-Phase 5 has no automatic timer — it continues until the player extracts or dies. The Final Extraction point activates at the 4-minute mark, but enemies keep spawning and escalating. Surviving past 6 minutes in Phase 5 should be nearly impossible for most builds, creating a natural endpoint.
+Wave-Phase 5 has no automatic timer — it continues until the player extracts or dies. The Final Extraction point activates at the 4-minute mark, but enemies keep spawning and escalating. Surviving past 6 minutes in Wave-Phase 5 should be nearly impossible for most builds, creating a natural endpoint.
 
 ---
 
 ## Enemy Stat Scaling
 
-### Base Enemy Stats by Role (Phase 1 Values)
+### Base Enemy Stats by Role (Wave-Phase 1 Values)
 
 | Role | HP | Damage | Move Speed | Armor |
 |------|-----|--------|------------|-------|
@@ -184,21 +185,23 @@ Phase 5 has no automatic timer — it continues until the player extracts or die
 | Elite (modifier on any role) | ×2 HP | ×1.5 Damage | same | +3 |
 | Miniboss | 300 | 20 | 50 | 10 |
 
-### Phase Scaling Multiplier
+### Wave-Phase Scaling Multipliers (per biome)
 
-Enemy stats scale with each phase:
+Enemy stats scale with each wave-phase within a biome. Source: `scripts/managers/enemy_spawn_manager.gd`.
 
-| Phase | HP Multiplier | Damage Multiplier | Speed Multiplier |
-|-------|--------------|-------------------|------------------|
-| Phase 1 | 1.0x | 1.0x | 1.0x |
-| Phase 2 | 1.5x | 1.3x | 1.1x |
-| Phase 3 | 2.5x | 1.6x | 1.15x |
-| Phase 4 | 4.0x | 2.0x | 1.2x |
-| Phase 5 | 6.0x | 2.5x | 1.25x |
+| Wave-Phase | HP Multiplier | Damage Multiplier | Spawn Rate Multiplier |
+|------------|--------------|-------------------|-----------------------|
+| Wave-Phase 1 | 1.0x | 1.0x | 1.0x |
+| Wave-Phase 2 | 1.5x | 1.2x | 1.2x |
+| Wave-Phase 3 | 2.5x | 1.4x | 1.5x |
+| Wave-Phase 4 | 4.0x | 1.7x | 1.8x |
+| Wave-Phase 5 | 6.0x | 2.0x | 2.2x |
 
-**Example: Brute in Phase 4**
+*HP multipliers match the original design exactly. Damage multipliers were tuned down from the prototype values. The "Speed Multiplier" column from the prototype has been replaced by Spawn Rate Multiplier (`PHASE_SPAWN_MULT` in code) — per-phase enemy move-speed scaling is not currently implemented.*
+
+**Example: Brute in Wave-Phase 4**
 - HP: 80 × 4.0 = 320
-- Damage: 15 × 2.0 = 30
+- Damage: 15 × 1.7 = 22.5
 - Armor: 5 (doesn't scale — player damage outscales armor naturally)
 
 This feels like a significant threat that requires a developed build to handle efficiently.
@@ -212,7 +215,7 @@ This feels like a significant threat that requires a developed build to handle e
 | Volatile (50-75%) | +28% all stats | +12% elite rate | Noticeable. Hazards deal 25% more damage. |
 | Critical (75-100%) | +50% all stats | +20% elite rate | Oppressive. Hazards intensify. Spawn rate +20%. |
 
-**Instability + Phase stacking example: Phase 4 Brute at Critical Instability**
+**Instability + Phase stacking example: Wave-Phase 4 Brute at Critical Instability**
 - Base HP: 80
 - Phase 4 multiplier: × 4.0 = 320
 - Critical Instability: × 1.5 = 480 HP
@@ -283,13 +286,15 @@ If they also found a Legendary weapon (+25) and a Cursed artifact (+30): 42 + 25
 
 ## Extraction Timing
 
+All four extraction types are live (`timed_extraction.gd`, `guarded_extraction.gd`, `locked_extraction.gd`, `sacrifice_extraction.gd`). Confirmed values are sourced from those files; unconfirmed values retain the design baseline with an inline note.
+
 ### Timed Extraction
 
 | Parameter | Value | Rationale |
 |-----------|-------|-----------|
-| Warning before portal | 10 seconds | Enough to plan movement. Audio + visual cue. |
-| Portal active window | 18 seconds | Reachable from most arena positions if player prioritizes. |
-| Channel time | 4 seconds | Long enough to feel tense, short enough to not be tedious. |
+| Warning before portal | 10 seconds *(unverified — see verification_findings §8)* | Enough to plan movement. Audio + visual cue. |
+| Portal active window | 18 seconds *(unverified — see verification_findings §8)* | Reachable from most arena positions if player prioritizes. |
+| Channel time | 4 seconds ✓ | Long enough to feel tense, short enough to not be tedious. |
 
 ### Guarded Extraction
 
@@ -297,9 +302,9 @@ If they also found a Legendary weapon (+25) and a Cursed artifact (+30): 42 + 25
 |-----------|-------|-----------|
 | Guardian spawn | Run start | Always visible, always a known option. |
 | Guardian scaling | Phase multiplier × 1.5 | Tougher than standard enemies but not impossibly so. |
-| Window after guardian kill | 25 seconds | Longer than timed — you earned it. |
-| Guardian respawn delay | 45 seconds | Enough time for one attempt per phase if you fail. |
-| Channel time | 4 seconds | Same as timed. |
+| Window after guardian kill | 25 seconds ✓ | Longer than timed — you earned it. |
+| Guardian respawn delay | 45 seconds ✓ | Enough time for one attempt per phase if you fail. |
+| Channel time | 4 seconds ✓ | Same as timed. |
 
 ### Locked Extraction
 
@@ -307,15 +312,15 @@ If they also found a Legendary weapon (+25) and a Cursed artifact (+30): 42 + 25
 |-----------|-------|-----------|
 | Appears in | Phase 3+ arenas | Not available in early phases. |
 | Keystone drop chance | ~5% from Elites, guaranteed from Miniboss first kill per phase | Rare enough to be exciting, not so rare it's never seen. |
-| Channel time | 2 seconds | Faster — the Keystone was the price. |
-| Loot bonus | Phase 3: +25%, Phase 4: +50%, Phase 5: +100% | Scales to incentivize holding the Keystone for deeper phases. |
+| Channel time | 2 seconds ✓ | Faster — the Keystone was the price. |
+| Loot bonus | Phase 3: +25%, Phase 4: +50%, Phase 5: +100% *(unverified — see verification_findings §8)* | Scales to incentivize holding the Keystone for deeper phases. |
 
 ### Sacrifice Extraction
 
 | Parameter | Value | Rationale |
 |-----------|-------|-----------|
-| Appears in | Phase 2+ arenas | Available relatively early. |
-| Activation | Instant after item selection | No channel — the sacrifice was the cost. |
+| Appears in | Phase 2+ arenas *(unverified — see verification_findings §8)* | Available relatively early. |
+| Activation | Instant ✓ | No channel — the sacrifice was the cost. |
 | Item selection | UI pause — player picks from carried loot | Quick selection screen. Timer visible if enemies approaching. |
 
 ---
@@ -458,6 +463,8 @@ Resources are the universal currency. Approximate per-run resource extraction:
 
 ## Arena Dimensions
 
+<!-- TODO: verify phase vs biome — this table was authored under the old design where Phase 1–5 = 5 sequential biomes. In the current structure, a run takes place inside one biome; the "Phase X" rows below may describe different levels within a biome, different wave-phases, or simply be stale biome-level data. Verify against ldtk_workflow.md before acting on these numbers. -->
+
 | Phase | Arena Size (tiles) | Arena Size (pixels at 16px/tile) | Player Screen Proportion |
 |-------|-------------------|----------------------------------|-------------------------|
 | Phase 1 | 40 × 30 | 640 × 480 | Contained, can see most of arena |
@@ -468,7 +475,7 @@ Resources are the universal currency. Approximate per-run resource extraction:
 
 **Camera:** Follows the player with slight lookahead in movement direction. Screen shows roughly 20×15 tiles around the player (320×240 pixel viewport scaled up, or equivalent). Vision Radius stat affects the lit area within this view.
 
-**Phase 4 intentionally smaller than Phase 3.** This creates a claustrophobic feel — more enemies in less space. Contrasts with Phase 5's vastness.
+<!-- TODO: verify phase vs biome — "Phase 4 smaller than Phase 3" is biome-era design intent; unclear whether this still applies to wave-phases within a single biome or to specific levels in a biome. --> **Phase 4 intentionally smaller than Phase 3.** This creates a claustrophobic feel — more enemies in less space. Contrasts with Phase 5's vastness.
 
 ---
 

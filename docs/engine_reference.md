@@ -5,7 +5,7 @@ Component-based combat engine. All content = Resource definitions routed through
 ## Architecture at a Glance
 
 ```
-Autoloads:  EventBus, GameManager, ProgressionManager, UpgradeManager, EnemySpawnManager, ExtractionManager
+Autoloads:  EventBus, GameManager, ProgressionManager, UpgradeManager, EnemySpawnManager, ExtractionManager, CodexManager, LootTables
 Scene-owned: CombatOrchestrator (child of MainArena)
   Children:  ProjectileManager, VfxManager, DisplacementSystem, CombatFeedbackManager, DebugDraw
 ```
@@ -21,6 +21,14 @@ Every entity (player, enemy, summon) owns 6 components created in `_init()` or `
 Entity contract: see `scripts/entities/entity_interface.gd` for required properties/methods.
 
 Orchestrator tick order per frame: SpatialGrid rebuild → StatusEffect.tick → AbilityComponent.tick_cooldowns → BehaviorComponent.tick (enemies only; player ticks own behavior in _physics_process).
+
+## Level Loading
+
+Levels are authored in LDtk, one `.ldtkl` file per biome. See `docs/ldtk_schema.md` for the full entity/enum/IntGrid contract and `docs/ldtk_workflow.md` for authoring steps.
+
+`LdtkLoader` (`scripts/systems/ldtk_loader.gd`) parses the active level's `.ldtkl` file at arena start and instantiates: spawn zones (IntGrid regions fed to `EnemySpawnManager`), boss spawn markers, level exit triggers, and environmental decoration layers. Biome-level metadata — wave compositions, music track ID, extraction type pool — lives in `data/level_data.gd` and is read by `GameManager` during phase setup.
+
+> Cross-references: `docs/ldtk_schema.md` (entity defs, layer stack) · `docs/ldtk_workflow.md` (add a biome, add a level)
 
 ## The Effect Pipeline
 
@@ -132,7 +140,103 @@ entity.modifier_component.add_modifier(mod)
 
 **Stat read pattern**: `base = sum("stat", "add")`, then `final = base * (1.0 + sum("stat", "bonus"))`.
 
+### Codex System
+
+`CodexManager` (autoload, `scripts/systems/codex_manager.gd`) tracks per-combo discovery state across runs. Each `ModCombo` in `ComboRegistry` gets a `CodexEntry` with three progressive states: **discovered** (slotted in armory), **revealed** (triggered in a run), and **mastered** (triggered ≥ 50 times lifetime). The codex state serializes through `CodexManager.save_data()` / `load_data()` and is persisted by `ProgressionManager`. No hub UI panel exists yet — the data layer is complete but the viewer is planned.
+
+### Mastery Bonuses
+
+When a combo reaches mastered state, `MasteryApplicator.get_active_mastery_bonuses(active_combos)` returns a bonus dictionary (`bonus_type → accumulated_value`) for all currently active mastered combos. Bonus types and values are keyed per `ModCombo.combo_type` (e.g., ELEMENTAL_ELEMENTAL → +25% proc radius). `ComboRegistry` wires the `ModCombo.mastery_bonus: MasteryBonus` resource; `combo_effect_resolver.gd` calls `MasteryApplicator` during effect calculation to fold the bonuses in.
+
 ---
+
+## Enemy Role Taxonomy
+
+Every enemy falls into one of six roles. Role is expressed via `def.tags` on the EnemyDefinition and drives spawn composition per phase.
+
+| Role | Speed | HP | Damage | Typical Count | Purpose |
+|------|-------|----|--------|--------------|---------|
+| Fodder | Slow | Very Low | Low | Massive packs | XP economy. The horde layer. Satisfying to mow down. |
+| Swarmer | Fast | Low | Low–Med | Large packs | Positioning pressure. Dangerous in volume. |
+| Brute | Slow | High | High | Few | Priority threat. Blocks paths. Demands focused attention. |
+| Ranged/Caster | Stationary/Slow | Medium | Medium | Moderate | Forces movement. Creates danger zones. |
+| Elite | Varies | Boosted | Boosted | Rare | Any base role with 1–2 modifiers applied. Mini-challenge. |
+| Miniboss | Slow | Very High | Very High | 1–2 per phase | Guards extraction points. Unique attack patterns. Scales at phase × 1.5. |
+
+### Elite Modifiers
+
+Elites apply 1–2 modifiers on top of any base role:
+
+| Modifier | Effect |
+|----------|--------|
+| Shielded | Shield must be broken before HP damage applies. |
+| Splitting | On death, splits into 2–3 smaller copies of itself. |
+| Exploding | On death, detonates in an AoE. Punishes melee/close builds. |
+| Vampiric | Heals on hit — must be burst down. |
+| Hasting | Periodically surges to double speed for a few seconds. |
+| Reflecting | Returns a fraction of incoming damage to the attacker. |
+| Summoning | Periodically spawns Fodder enemies. |
+
+Modifiers are data flags on the EnemyDefinition. Any number can be added post-launch as pure content.
+
+### Special Enemy Types
+
+Beyond base roles, these behavioral variants appear at specific phase thresholds:
+
+| Type | Phase | Behavior |
+|------|-------|---------|
+| Stalker | 3+ | Invisible until close range. Low HP, high burst damage. Distinct audio sting on reveal. |
+| Mimic | 2+ | Disguised as a loot pickup. Reveals and attacks when player enters pickup radius. Replaces roughly 1-in-20 non-resource drops. |
+| Herald | 3+ | No direct attack. Emits an aura buffing nearby enemies (damage, speed, or armor). Fragile but high priority — killing it weakens the surrounding group. |
+| Anchor | 2+ | Plants itself and creates a persistent damage/slow zone. Must be killed to remove the zone. Denies kiting paths. |
+| Carrier | 2+ | Holds guaranteed valuable loot but flees the player. Fast and evasive. Chasing it pulls the player out of position. |
+| Phase-Warped | 5 only | Visually alien; unusual movement and attack patterns. Signals the player has crossed into somewhere they don't belong. |
+
+### Phase Spawn Composition
+
+| Phase | Composition | Elite Chance |
+|-------|------------|-------------|
+| Phase 1 | 80% Fodder, 20% Swarmer | None |
+| Phase 2 | 50% Fodder, 25% Swarmer, 15% Brute, 10% Ranged | ~5% |
+| Phase 3 | 30% Fodder, 25% Swarmer, 20% Brute, 15% Ranged, 10% Elite | ~15% |
+| Phase 4 | 20% Fodder, 20% Swarmer, 25% Brute, 20% Ranged, 15% Elite | ~25% |
+| Phase 5 | All types active, Phase-Warped dominant | ~40% |
+
+---
+
+## Extraction System
+
+`ExtractionManager` (autoload) tracks channeling state and extraction outcomes. Four extraction types exist, each with distinct activation requirements and risk/reward profiles. Types are placed in levels via LDtk `Extraction` entities (see `docs/ldtk_schema.md` §6).
+
+### Timed Extraction
+
+The baseline option — appears at the end of each phase. A 10-second warning plays, then a portal materializes at the designated arena location and remains active for 18 seconds before the next phase begins. Activation requires a 4-second channel; taking damage during the channel does not interrupt it, but the player must survive.
+
+### Guarded Extraction
+
+Present from Phase 1 — always visible. A miniboss-tier guardian occupies the extraction point from run start. Killing the guardian opens a 25-second window requiring the same 4-second channel. After the window closes, a harder guardian respawns after 45 seconds.
+
+### Locked Extraction
+
+Appears Phase 3+. The point is visible but sealed. A Keystone item (~5% drop from Elites, guaranteed from the first Miniboss kill per phase) unlocks it. Using a Keystone activates a 2-second channel. Successful extraction grants a loot value bonus: +25% in Phase 3, +50% in Phase 4, +100% in Phase 5.
+
+### Sacrifice Extraction
+
+Available Phase 2+. Always visible and always available — no window, no guardian. The player selects one carried loot item to permanently destroy; the sacrifice triggers immediate extraction with no channel time.
+
+### Death Penalty
+
+On death: all extractable loot is lost. Meta XP is granted at 25% of what a successful extraction would have awarded. The insured item (if any) is saved.
+
+---
+
+## Save / Load
+
+`ProgressionManager` owns all persistence. Save file: `user://progression.json` (JSON, written via `FileAccess`). Loaded on `_ready()`.
+
+**Serialized state**: currency (`resources`), hub upgrade IDs (`hub_upgrades`), unlocked and selected weapons, equipped mod loadout per weapon (`weapon_mods`), owned mod inventory, selected and unlocked characters, and career statistics (runs, extractions, deaths, kills, deepest phase, loot records). `CodexManager.save_data()` / `load_data()` extends this with per-combo discovery/mastery state — `ProgressionManager` calls both.
+
+**Save triggers**: after successful extraction (`GameManager.on_extraction_complete`), on player death (`GameManager` run-end flow), after every hub action that mutates state (buy upgrade, equip mod, select character — each mutation method calls `save_data()` inline). Armory equip changes also save via `hub_armory_panel.gd`. No mid-run save — intentional; runs are atomic.
 
 ## Unused / Underleveraged Systems
 
@@ -379,6 +483,7 @@ All in `data/resources/effects/`. Each is a Resource with @export fields, zero b
 | `OverflowChainEffect` | Overkill chains to nearby enemies. |
 | `ResurrectEffect` | Revive nearest same-faction corpse (stub). |
 | `SummonEffect` | Spawn summon entity (stub). |
+| `SpawnTelegraphEffect` | Spawn a telegraph indicator via `TelegraphManager`; used for boss wind-ups and area warnings before hit-frame. |
 
 ## Debug Tools
 
@@ -416,3 +521,18 @@ All signals flow through `EventBus` (autoload). TriggerComponent connects lazily
 | Orchestrator | `scripts/systems/combat_orchestrator.gd` |
 | Arena wiring | `scripts/main_arena.gd` |
 | Game data | `data/characters.gd`, `data/weapons.gd`, `data/mods.gd` |
+| Loot tables | `data/loot_tables.gd` (autoload) |
+| Codex / mastery | `scripts/systems/codex_manager.gd`, `scripts/systems/mastery_applicator.gd`, `scripts/resources/codex_entry.gd`, `scripts/resources/mastery_bonus.gd` |
+| Level loading | `scripts/systems/ldtk_loader.gd`, `data/level_data.gd` |
+| Save file | `user://progression.json` (written by `ProgressionManager`) |
+
+## See Also
+
+| Doc | Contents |
+|-----|---------|
+| `docs/mechanical_vocabulary.md` | Game grammar: damage types, status effects, weapon behaviors, mod effects, trigger events |
+| `docs/core_framework_decisions.md` | Math baselines: damage formula, XP curve, phase scaling, extraction timing, instability thresholds, economy |
+| `docs/mod_interaction_matrix.md` | All 69 two-mod pairs and 8 triple combos with resolved effects |
+| `docs/weapon-scaling-reference.md` | Per-weapon base stats, DPS figures, attack patterns |
+| `docs/ldtk_schema.md` | LDtk contract: entity defs, enums, IntGrid values, layer stack |
+| `docs/ldtk_workflow.md` | LDtk authoring: add a biome, add a level, biome asset map |

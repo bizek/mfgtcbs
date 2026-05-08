@@ -26,8 +26,105 @@
 	"__smartColor": "#ADADB5",
 	"__bgPos": null,
 	"externalRelPath": null,
-	"fieldInstances": [],
+	"fieldInstances": [
+		{ "__identifier": "biome", "__type": "LocalEnum.BiomeId", "__value": "Caves", "__tile": null, "defUid": 465, "realEditorValues": [] },
+		{ "__identifier": "schema_version", "__type": "Int", "__value": 1, "__tile": null, "defUid": 471, "realEditorValues": [] }
+	],
 	"layerInstances": [
+		{
+			"__identifier": "Entities",
+			"__type": "Entities",
+			"__cWid": 81,
+			"__cHei": 188,
+			"__gridSize": 8,
+			"__opacity": 1,
+			"__pxTotalOffsetX": 0,
+			"__pxTotalOffsetY": 0,
+			"__tilesetDefUid": null,
+			"__tilesetRelPath": null,
+			"iid": "3bfd6ae0-21a0-11f1-8d33-5b1b6953b70b",
+			"levelId": 0,
+			"layerDefUid": 507,
+			"pxOffsetX": 0,
+			"pxOffsetY": 0,
+			"visible": true,
+			"optionalRules": [],
+			"intGridCsv": [],
+			"autoLayerTiles": [],
+			"seed": 2508133,
+			"overrideTilesetUid": null,
+			"gridTiles": [],
+			"entityInstances": [
+				{
+					"__identifier": "Level_Instructions",
+					"__grid": [3,5],
+					"__pivot": [0,0],
+					"__tags": [],
+					"__tile": null,
+					"__smartColor": "#00FF00",
+					"iid": "b59b3150-21a0-11f1-ba5b-935760481437",
+					"width": 8,
+					"height": 8,
+					"defUid": 529,
+					"px": [24,40],
+					"fieldInstances": [
+						{ "__identifier": "Level_Name", "__type": "String", "__value": "", "__tile": null, "defUid": 585, "realEditorValues": [] },
+						{ "__identifier": "Monster_Spawns", "__type": "String", "__value": "", "__tile": null, "defUid": 586, "realEditorValues": [] },
+						{ "__identifier": "Boss_Spawn", "__type": "String", "__value": "", "__tile": null, "defUid": 587, "realEditorValues": [] },
+						{ "__identifier": "Loot_Pool", "__type": "String", "__value": "", "__tile": null, "defUid": 588, "realEditorValues": [] },
+						{ "__identifier": "Room_Distance_Tri", "__type": "Array<Int>", "__value": [], "__tile": null, "defUid": 589, "realEditorValues": [] },
+						{ "__identifier": "Misc_Overrides", "__type": "Array<String>", "__value": [], "__tile": null, "defUid": 590, "realEditorValues": [] },
+						{ "__identifier": "Misc_Notes", "__type": "Array<String>", "__value": [], "__tile": null, "defUid": 591, "realEditorValues": [] },
+						{ "__identifier": "Music_Id", "__type": "String", "__value": "", "__tile": null, "defUid": 592, "realEditorValues": [] },
+						{ "__identifier": "Recommended_Player_Level", "__type": "Int", "__value": 1, "__tile": null, "defUid": 593, "realEditorValues": [] },
+						{ "__identifier": "Tags", "__type": "Array<String>", "__value": [], "__tile": null, "defUid": 594, "realEditorValues": [] },
+						{ "__identifier": "Player_Spawn_Pos", "__type": "Point", "__value": { "cx": 4, "cy": 5 }, "__tile": null, "defUid": 595, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["4,5"]
+						}] },
+						{ "__identifier": "Player_Facing", "__type": "LocalEnum.Facing", "__value": "Down", "__tile": null, "defUid": 596, "realEditorValues": [] },
+						{ "__identifier": "Boss_Spawn_Pos", "__type": "Point", "__value": { "cx": 38, "cy": 136 }, "__tile": null, "defUid": 597, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["38,136"]
+						}] },
+						{ "__identifier": "Boss_Intro_Delay", "__type": "Float", "__value": 1.5, "__tile": null, "defUid": 598, "realEditorValues": [] },
+						{ "__identifier": "Boss_Camera_Zoom", "__type": "Float", "__value": 1, "__tile": null, "defUid": 599, "realEditorValues": [] },
+						{ "__identifier": "Level_Exit_Pos", "__type": "Point", "__value": { "cx": 7, "cy": 177 }, "__tile": null, "defUid": 600, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["7,177"]
+						}] },
+						{ "__identifier": "Next_Level_Id", "__type": "String", "__value": "", "__tile": null, "defUid": 601, "realEditorValues": [] },
+						{ "__identifier": "Exit_Transition", "__type": "LocalEnum.TransitionKind", "__value": "Fade", "__tile": null, "defUid": 602, "realEditorValues": [] }
+					],
+					"__worldX": 24,
+					"__worldY": 40
+				},
+				{
+					"__identifier": "Extraction",
+					"__grid": [69,174],
+					"__pivot": [0.5,0.5],
+					"__tags": [ "gameplay", "extraction" ],
+					"__tile": null,
+					"__smartColor": "#3FFF55",
+					"iid": "0d34e1e0-21a0-11f1-ba5b-0db92fdc9985",
+					"width": 96,
+					"height": 96,
+					"defUid": 474,
+					"px": [556,1396],
+					"fieldInstances": [
+						{ "__identifier": "kind", "__type": "LocalEnum.ExtractionType", "__value": "Timed", "__tile": null, "defUid": 604, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["Timed"]
+						}] },
+						{ "__identifier": "unlock_radius", "__type": "Float", "__value": 48, "__tile": null, "defUid": 605, "realEditorValues": [] },
+						{ "__identifier": "channel_seconds", "__type": "Float", "__value": 3, "__tile": null, "defUid": 606, "realEditorValues": [] },
+						{ "__identifier": "notes", "__type": "String", "__value": "", "__tile": null, "defUid": 607, "realEditorValues": [] }
+					],
+					"__worldX": 556,
+					"__worldY": 1396
+				}
+			]
+		},
 		{
 			"__identifier": "CryptTiles",
 			"__type": "Tiles",
@@ -516,7 +613,7 @@
 			"entityInstances": []
 		},
 		{
-			"__identifier": "CaveLayer",
+			"__identifier": "Collision",
 			"__type": "IntGrid",
 			"__cWid": 81,
 			"__cHei": 188,
@@ -12846,6 +12943,31 @@
 				{ "px": [632,1496], "src": [48,48], "f": 0, "t": 240, "d": [15226], "a": 1 },
 				{ "px": [640,1496], "src": [56,48], "f": 0, "t": 241, "d": [15227], "a": 1 }
 			],
+			"entityInstances": []
+		},
+		{
+			"__identifier": "CavesBackground",
+			"__type": "Tiles",
+			"__cWid": 81,
+			"__cHei": 188,
+			"__gridSize": 8,
+			"__opacity": 1,
+			"__pxTotalOffsetX": 0,
+			"__pxTotalOffsetY": 0,
+			"__tilesetDefUid": 2,
+			"__tilesetRelPath": "../../minifantasy/Minifantasy_DeepCaves_v2.0/Minifantasy_DeepCaves_Assets/Tileset/CavesTileset.png",
+			"iid": "a6c3efd0-21a0-11f1-a0cf-214c13dcfe1c",
+			"levelId": 0,
+			"layerDefUid": 508,
+			"pxOffsetX": 0,
+			"pxOffsetY": 0,
+			"visible": true,
+			"optionalRules": [],
+			"intGridCsv": [],
+			"autoLayerTiles": [],
+			"seed": 2187201,
+			"overrideTilesetUid": null,
+			"gridTiles": [],
 			"entityInstances": []
 		}
 	],

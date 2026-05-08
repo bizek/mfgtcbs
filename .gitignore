@@ -9,3 +9,7 @@ assets/minifantasy/
 # LDtk auto-backups (per-project backup folders)
 **/backups/
 *.ldtk-bak
+*.ldtk.bak
+
+# Claude Code worktrees (session-local sandboxes)
+.claude/worktrees/

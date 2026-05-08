@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://4x8ssz5ohe1zr"]
+[gd_scene format=3 uid="uid://cwepompwiywpf"]
 
 [ext_resource type="Script" uid="uid://cp7gnmjq6gvun" path="res://scripts/entities/enemy.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://vct4d22x0dlx" path="res://assets/minifantasy/Minifantasy_Creatures_v3.3_Commercial_Version/Minifantasy_Creatures_Assets/Beasts/Bat/BatAttack.png" id="2_tq1l6"]

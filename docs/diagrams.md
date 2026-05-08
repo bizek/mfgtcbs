@@ -341,6 +341,8 @@ sequenceDiagram
     GM->>GM: → HUB
 ```
 
+> **Note (2026-05-02):** This diagram shows only the Timed extraction flow. Four extraction types now ship: Timed, Guarded, Locked, and Sacrifice. A generalised diagram or three sibling diagrams covering the other types are pending future work.
+
 ---
 
 ## 13. EventBus Signal Hub

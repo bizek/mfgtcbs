@@ -1,5 +1,13 @@
 # CLAUDE.md — Extraction Survivors
 
+## Godot Project Conventions
+
+- This is a Godot 4 game project (GDScript) - NOT a web project. Do not look for dev servers, package.json, or web tooling.
+- Always type array element access (avoid `:=` on untyped array access - it causes type inference crashes).
+- When modifying weapon/mod/status code, check for cooldown_base=0.0 cases that could fire effects on the player immediately.
+- Prefer the Godot MCP editor tools for .tscn scene edits; do not hand-rewrite .tscn files (instanced sub-scene ownership and font UIDs get silently stripped).
+- Search the uncommitted working copy, not just git history, when locating code.
+
 ## Project Context
 
 This is a Godot 4 game project (extraction survivors). There are NO web servers, dev servers, or Node/npm tooling. Do not attempt to detect or start dev servers.
@@ -31,27 +39,28 @@ SpatialGrid rebuild → StatusEffect.tick → AbilityComponent.tick_cooldowns �
 
 | Doc | Contents |
 |-----|----------|
-| `docs/engine_reference.md` | **Read this first for any implementation work.** Full engine reference: all systems, data patterns, unused capabilities, effect/targeting vocabularies, wiring examples |
+| `docs/engine_reference.md` | **Read this first for any implementation work.** Full engine reference: all systems, data patterns, unused capabilities, effect/targeting vocabularies, wiring examples. Includes enemy role taxonomy and extraction system. |
 | `docs/mechanical_vocabulary.md` | Game-specific mechanical vocabulary: damage types, status effects, weapon behaviors, mod effects, triggers |
 | `docs/core_framework_decisions.md` | Formulas: damage, XP curve, phase timing, enemy scaling, instability thresholds, economy |
-| `docs/systems_design_part1.md` | Stat system, combat system, upgrade/build system design |
-| `docs/systems_design_part2.md` | Enemy system, loot system, extraction system design |
-| `docs/systems_design_part3.md` | Meta-progression, level/arena system design |
+| `docs/hub_reference.md` | Hub stations: what each panel does, what's implemented vs planned |
 | `docs/architecture_blueprint.md` | System architecture, entity scene structures, signal flows, data file examples |
 | `docs/asset_inventory.md` | Free asset sources, palette-shift strategy, license tracking |
+| `docs/ldtk_schema.md` | LDtk schema contract: entity defs, enums, level fields, IntGrid values, layer stack — read first for any level work |
+| `docs/ldtk_workflow.md` | LDtk authoring workflow: where files live, biome asset map, how to add a level/biome, arena design principles |
 
 ### When to read what
 
 | Task | Read these |
 |------|-----------|
 | **Any implementation** | `engine_reference.md` (always) |
-| **New enemy/boss** | `engine_reference.md` → "New Enemy" + "Choreography" + "Enemy Skills" sections |
+| **New enemy/boss** | `engine_reference.md` → "New Enemy" + "Enemy Role Taxonomy" + "Choreography" + "Enemy Skills" sections |
 | **New weapon** | `engine_reference.md` → "New Weapon" + WeaponData/WeaponFactory patterns |
 | **New status/buff/debuff** | `engine_reference.md` → "New Status Effect" + "Trigger System" |
 | **Combat balancing** | `core_framework_decisions.md` + `mechanical_vocabulary.md` |
 | **Game design questions** | `architecture_blueprint.md` (design principles section) |
-| **Meta-progression** | `systems_design_part3.md` |
-| **Loot/extraction** | `systems_design_part2.md` |
+| **Hub / meta-progression** | `hub_reference.md` |
+| **Extraction mechanics** | `engine_reference.md` → "Extraction System" section |
+| **Level / map authoring** | `ldtk_schema.md` + `ldtk_workflow.md` |
 
 ## Content Creation — The Pattern
 
@@ -89,9 +98,16 @@ All content follows the data factory pattern: `static func create() -> Resource`
 - Always use the Godot MCP editor tools for scene structure changes.
 - When changing UI, account for the 3x viewport scaling (text/font sizes must be large enough to remain readable).
 
+## UI Panel Changes
+
+- After resizing or adding rows to any hub UI panel, verify against the current viewport size and wrap scrollable content in a ScrollContainer with SHOW_AS_NEEDED (never SHOW_NEVER, which clips).
+- When adding new content to level-up or armory panels, check for overflow before declaring done.
+
 ## Commit Workflow
 
-Before declaring a commit done, run `git status` and `git diff` to verify zero unstaged or untracked files remain. Stage project.godot and any status/docs files explicitly.
+- Before declaring a commit done, run `git status` and `git diff` to verify zero unstaged or untracked files remain. Stage project.godot and any status/docs files explicitly.
+- When asked to commit, always run `git status` after staging and before committing to confirm no files are missed.
+- Use grouped conventional commit messages.
 
 ## Gameplay Implementation Rules
 

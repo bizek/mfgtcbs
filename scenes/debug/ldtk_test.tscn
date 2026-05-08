@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://csqqd41edanqk"]
+
+[ext_resource type="Script" uid="uid://cmeuhtd4fwduk" path="res://scripts/debug/ldtk_test_harness.gd" id="1_ceijy"]
+
+[node name="LdtkTest" type="Node2D" unique_id=905218147]
+script = ExtResource("1_ceijy")
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1774899684]
+position = Vector2(324, 752)
+zoom = Vector2(0.5, 0.5)

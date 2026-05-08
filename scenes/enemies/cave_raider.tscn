@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://2irkhxbmyp0ys"]
+[gd_scene format=3 uid="uid://gwhdjuu1bvog"]
 
 [ext_resource type="Script" uid="uid://cp7gnmjq6gvun" path="res://scripts/entities/enemy.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://2m5gq0fsmu2s" path="res://assets/minifantasy/All_Exclusives_20260409/Creatures/Goblin_Raider/Goblin_Raider_With_Torch/Attack.png" id="2_6obys"]
