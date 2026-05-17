@@ -289,6 +289,18 @@ func _render_tile_layer(layer_inst: Dictionary, is_auto: bool, result: Dictionar
 	var tml: TileMapLayer = TileMapLayer.new()
 	tml.name = layer_inst.get("__identifier", "TileLayer")
 	tml.tile_set = godot_ts
+
+	## Assign z-index so tile layers render behind entities (player/enemies are z=0).
+	## Covers both schema names and actual Level_0 identifiers.
+	const LAYER_Z: Dictionary = {
+		"Background": -5, "CavesBackground": -5, "CryptTiles": -4,
+		"FloorAuto": -3, "Cave_Tiles": -2,
+		"WallsAuto": -1,
+		"Decoration": 2,
+	}
+	var layer_id: String = layer_inst.get("__identifier", "")
+	tml.z_index = LAYER_Z.get(layer_id, -1)
+
 	add_child(tml)
 	_tilemap_layers.append(tml)
 
