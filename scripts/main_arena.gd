@@ -220,6 +220,18 @@ func _setup_ldtk_level() -> void:
 	if arena_floor:
 		arena_floor.visible = false
 
+	## Hide arena border ColorRects (visual overlays, not the physics walls).
+	for border_name: String in ["ArenaBorderTop", "ArenaBorderBottom", "ArenaBorderLeft", "ArenaBorderRight"]:
+		var border := get_node_or_null(border_name)
+		if border != null:
+			border.visible = false
+
+	## Disable old boundary physics walls — LDtk collision tiles replace them.
+	for wall_name: String in ["WallTop", "WallBottom", "WallLeft", "WallRight"]:
+		var wall := get_node_or_null(wall_name)
+		if wall is StaticBody2D:
+			(wall as StaticBody2D).collision_layer = 0
+
 	## Move player to the level-authored spawn point.
 	if not is_nan(result.player_spawn_pos.x):
 		player.global_position = result.player_spawn_pos
