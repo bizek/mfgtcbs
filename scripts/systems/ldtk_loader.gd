@@ -365,10 +365,14 @@ func _build_wall_collision(layer_inst: Dictionary, result: Dictionary) -> void:
 		return
 
 	## Build a 2D bool grid + visited mask (flat arrays for speed).
+	## Solid cells = explicitly painted Wall (value 2) OR empty/void (value 0).
+	## Floor (value 1) is the only passable value — the user paints walkable ground,
+	## and anything unpainted is treated as a solid cave wall.
 	var is_wall: PackedByteArray = PackedByteArray()
 	is_wall.resize(cw * ch)
 	for i in csv.size():
-		is_wall[i] = 1 if int(csv[i]) == INTGRID_WALL else 0
+		var v: int = int(csv[i])
+		is_wall[i] = 1 if (v == 0 or v == INTGRID_WALL) else 0
 	var visited: PackedByteArray = PackedByteArray()
 	visited.resize(cw * ch)
 

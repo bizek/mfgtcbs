@@ -67,11 +67,16 @@ Every biome's primary IntGrid layer (named `Collision`) uses these values exactl
 
 | Value | Identifier | Color | Meaning |
 |---|---|---|---|
+| `0` | *(empty)* | — | **Solid wall** — unpainted cells are treated as solid cave wall by the importer. Spawns StaticBody2D on collision layer 3. Paint `Floor` over any cell you want the player to walk on. |
 | `1` | `Floor` | `#3A6B3A` | Walkable. No collider spawned. |
-| `2` | `Wall` | `#3F2A1A` | Solid. Spawns StaticBody2D on collision layer 3 (player+enemy block). |
-| `3` | `Pit` | `#1A1A2A` | Visual void. No collider, but enemies pathfind around it (future). |
+| `2` | `Wall` | `#3F2A1A` | Explicit solid wall. Also spawns StaticBody2D on collision layer 3. Use when you need a wall inside a floor-painted area. |
+| `3` | `Pit` | `#1A1A2A` | Visual void. No collider (future: enemies pathfind around it). |
 | `4` | `LowCover` | `#7A5A3A` | Solid for enemies, walkable for player projectiles (future). |
 | `5` | `SpawnBlock` | `#552255` | Walkable, but `EnemySpawnManager` won't spawn on top of it. |
+
+> **Authoring workflow:** paint `Floor` (value 1) everywhere you want the player to walk.
+> Leave everything else unpainted — the importer treats unpainted cells as solid walls automatically.
+> You rarely need to explicitly paint `Wall` (value 2) unless you want an interior wall inside a floor area.
 
 > Identifiers must be exact. The importer keys off them, not the numeric value.
 > Numeric value is just for fast painting in the LDtk UI.
