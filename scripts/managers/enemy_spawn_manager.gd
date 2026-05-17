@@ -83,6 +83,29 @@ var arena_bounds: Rect2 = Rect2(-320, -240, 640, 480)
 var player_ref: Node2D = null
 var spawn_enabled: bool = false
 
+## ── LDtk zone-based spawning ─────────────────────────────────────────────────
+## Each entry: {rect, phase, density, pool_override, min_distance_from_player}
+## When non-empty, _get_spawn_position() prefers zone-based picks over the
+## fixed-radius circle. Falls back to circle/edge when no eligible zone found.
+var _spawn_zones: Array = []
+
+const _DENSITY_WEIGHTS: Dictionary = {"Low": 1.0, "Medium": 2.0, "High": 4.0}
+
+
+func register_spawn_zone(rect: Rect2, phase: String, density: String,
+		pool_override: String, min_dist: float) -> void:
+	_spawn_zones.append({
+		"rect": rect,
+		"phase": phase,
+		"density": density,
+		"pool_override": pool_override,
+		"min_distance_from_player": min_dist,
+	})
+
+
+func clear_spawn_zones() -> void:
+	_spawn_zones.clear()
+
 ## Cached definitions
 var _defs: Dictionary = {}
 
@@ -424,6 +447,12 @@ func _get_effective_difficulty() -> float:
 ## ── Spawn position helpers ────────────────────────────────────────────────────
 
 func _get_spawn_position() -> Vector2:
+	## Prefer zone-based when zones are registered.
+	if not _spawn_zones.is_empty():
+		var zone_pos: Vector2 = _get_zone_spawn_position()
+		if not is_nan(zone_pos.x):
+			return zone_pos
+	## Fallback: fixed-radius circle clamped to arena bounds.
 	const SPAWN_RADIUS: float = 340.0
 	const INNER_MARGIN: float = 20.0
 	var center: Vector2 = player_ref.global_position if player_ref else Vector2.ZERO
@@ -436,6 +465,47 @@ func _get_spawn_position() -> Vector2:
 	pos.x = clampf(pos.x, safe_bounds.position.x, safe_bounds.end.x)
 	pos.y = clampf(pos.y, safe_bounds.position.y, safe_bounds.end.y)
 	return pos
+
+
+func _get_zone_spawn_position() -> Vector2:
+	## Build weighted list of zones eligible for the current phase.
+	var phase_tag: String = "Phase" + str(GameManager.phase_number)
+	var eligible: Array = []
+	var total_weight: float = 0.0
+	for z in _spawn_zones:
+		var zphase: String = z.phase
+		if zphase != "Any" and zphase != phase_tag:
+			continue
+		var w: float = _DENSITY_WEIGHTS.get(z.density, 2.0)
+		eligible.append({"zone": z, "weight": w})
+		total_weight += w
+	if eligible.is_empty():
+		return Vector2(NAN, NAN)
+
+	## Weighted random select.
+	var roll: float = randf() * total_weight
+	var cumulative: float = 0.0
+	var picked: Dictionary = eligible[0].zone
+	for entry in eligible:
+		cumulative += entry.weight
+		if roll <= cumulative:
+			picked = entry.zone
+			break
+
+	## Try up to 8 random points inside the zone rect, respecting min_dist.
+	var rect: Rect2 = picked.rect
+	var min_dist: float = picked.min_distance_from_player
+	var ppos: Vector2 = player_ref.global_position if player_ref else Vector2.ZERO
+	for _attempt in range(8):
+		var candidate := Vector2(
+			randf_range(rect.position.x, rect.end.x),
+			randf_range(rect.position.y, rect.end.y)
+		)
+		if candidate.distance_to(ppos) >= min_dist:
+			return candidate
+
+	## All retries failed (player fills the zone) — signal caller to use fallback.
+	return Vector2(NAN, NAN)
 
 ## Edge spawn: pick a random point near one of the 4 arena walls (for Carriers)
 func _get_edge_spawn_position() -> Vector2:

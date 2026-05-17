@@ -33,6 +33,12 @@ var _camera: Camera2D = null
 var _active_channeling_type: String = ""
 var _debug_all_extractions_active: bool = false
 
+## LDtk mode — set when use_ldtk_level_1 flag is active
+var _using_ldtk: bool = false
+var _ldtk_loader: LdtkLoader = null
+var _ldtk_director: LdtkLevelDirector = null
+var _ldtk_exit: LdtkExitZone = null
+
 
 func _ready() -> void:
 	# Build engine status effect definitions
@@ -90,20 +96,23 @@ func _ready() -> void:
 	ExtractionManager.extraction_interrupted.connect(_on_any_extraction_interrupted)
 	GameManager.phase_started.connect(_on_phase_advanced)
 
-	# Floor
-	_setup_floor()
-
-	# Wall collision layers
+	# Wall collision layers (used by both paths)
 	for wall_name in ["WallTop", "WallBottom", "WallLeft", "WallRight"]:
 		var wall := get_node_or_null(wall_name)
 		if wall is StaticBody2D:
 			wall.collision_layer = 3
 			wall.collision_mask = 0
 
-	# Arena generator
-	arena_generator = ArenaGenerator.new()
-	add_child(arena_generator)
-	arena_generator.generate(2025)
+	# Level setup — LDtk or procedural
+	_using_ldtk = GameManager.debug_mode and GameManager.use_ldtk_level_1 \
+			and GameManager.current_level == 1
+	if _using_ldtk:
+		_setup_ldtk_level()
+	else:
+		_setup_floor()
+		arena_generator = ArenaGenerator.new()
+		add_child(arena_generator)
+		arena_generator.generate(2025)
 
 	# Pause menu (ESC)
 	var PauseMenuScript := preload("res://scripts/ui/pause_menu.gd")
@@ -129,10 +138,18 @@ func _ready() -> void:
 
 	# Start run
 	GameManager.start_run()
-	_setup_extraction_zones()
 
-	var bounds := Rect2(-ARENA_HALF_W, -ARENA_HALF_H, ARENA_HALF_W * 2.0, ARENA_HALF_H * 2.0)
-	EnemySpawnManager.start_spawning(player, bounds)
+	if _using_ldtk:
+		## LDtk mode: extraction zones come from the level, exit zone already wired.
+		## Do not call _setup_extraction_zones() — that code assumes ArenaGenerator.
+		var ldtk_bounds: Rect2 = Rect2(0.0, 0.0,
+				float(_ldtk_loader.get_meta("px_wid", ARENA_HALF_W * 2.0)),
+				float(_ldtk_loader.get_meta("px_hei", ARENA_HALF_H * 2.0)))
+		EnemySpawnManager.start_spawning(player, ldtk_bounds)
+	else:
+		_setup_extraction_zones()
+		var bounds := Rect2(-ARENA_HALF_W, -ARENA_HALF_H, ARENA_HALF_W * 2.0, ARENA_HALF_H * 2.0)
+		EnemySpawnManager.start_spawning(player, bounds)
 
 
 func _process(delta: float) -> void:
@@ -171,6 +188,88 @@ func _register_new_enemies() -> void:
 # ═══════════════════════════════════════════════════════════════════════════════
 # EXTRACTION ZONE SETUP & PROXIMITY
 # ═══════════════════════════════════════════════════════════════════════════════
+
+func _setup_ldtk_level() -> void:
+	## Load Level_0 from the Caves biome LDtk project and wire all subsystems.
+	const LDTK_PATH: String = "res://assets/Maps/Levels/Level 1 - Caves.ldtk"
+	const LEVEL_ID: String = "Level_0"
+
+	_ldtk_loader = LdtkLoader.new()
+	_ldtk_loader.name = "LdtkLoader"
+	add_child(_ldtk_loader)
+
+	var result: Dictionary = _ldtk_loader.load_level(LDTK_PATH, LEVEL_ID)
+	if not result.ok:
+		push_error("[MainArena] LDtk load failed: " + str(result.errors))
+		## Fall back to ArenaGenerator so the game is still runnable.
+		_using_ldtk = false
+		_setup_floor()
+		arena_generator = ArenaGenerator.new()
+		add_child(arena_generator)
+		arena_generator.generate(2025)
+		return
+
+	for w in result.warnings:
+		push_warning("[MainArena/LDtk] " + w)
+
+	## Store level dimensions for start_spawning bounds (read via meta in _ready tail).
+	_ldtk_loader.set_meta("px_wid", result.pxWid)
+	_ldtk_loader.set_meta("px_hei", result.pxHei)
+
+	## Hide the old tiled ArenaFloor — LDtk tile layers provide the floor now.
+	if arena_floor:
+		arena_floor.visible = false
+
+	## Move player to the level-authored spawn point.
+	if not is_nan(result.player_spawn_pos.x):
+		player.global_position = result.player_spawn_pos
+
+	## Camera limits: level strip instead of the fixed ±800×±600.
+	if _camera != null:
+		_camera.limit_left   = 0
+		_camera.limit_right  = result.pxWid
+		_camera.limit_top    = 0
+		_camera.limit_bottom = result.pxHei
+
+	## Register LDtk spawn zones with EnemySpawnManager.
+	EnemySpawnManager.clear_spawn_zones()
+	for sz in result.spawn_zones:
+		EnemySpawnManager.register_spawn_zone(
+			sz.rect,
+			sz.phase,
+			sz.density,
+			sz.enemy_pool_override,
+			sz.min_distance_from_player
+		)
+
+	## LevelDirector — PreBoss kill quota, boss-seal, exit-unlock signals.
+	_ldtk_director = LdtkLevelDirector.new()
+	_ldtk_director.name = "LdtkLevelDirector"
+	add_child(_ldtk_director)
+	_ldtk_director.boss_should_spawn.connect(_on_ldtk_boss_should_spawn)
+	_ldtk_director.exit_should_unlock.connect(_on_ldtk_exit_should_unlock)
+	_ldtk_director.activate(result.regions, result.boss_id, result.boss_spawn_pos, player)
+
+	## Exit zone — proximity channeling trigger for the LevelExit point.
+	if not is_nan(result.level_exit_pos.x):
+		_ldtk_exit = LdtkExitZone.new()
+		_ldtk_exit.name = "LdtkExitZone"
+		add_child(_ldtk_exit)
+		## boss_id == "" → unlocks immediately (boss-less level).
+		_ldtk_exit.setup(result.level_exit_pos, result.boss_id == "")
+
+
+func _on_ldtk_boss_should_spawn(boss_id: String, spawn_pos: Vector2) -> void:
+	## TODO: instantiate the boss scene at spawn_pos using EnemySpawnManager.
+	## For now, just log it; Level_0 is boss-less so this won't fire.
+	push_warning("[MainArena] boss_should_spawn: id='%s' pos=%s — boss scene wiring TBD" \
+			% [boss_id, spawn_pos])
+
+
+func _on_ldtk_exit_should_unlock() -> void:
+	if _ldtk_exit != null:
+		_ldtk_exit.unlock()
+
 
 func _setup_extraction_zones() -> void:
 	var phase: int = GameManager.phase_number
@@ -255,6 +354,8 @@ func _on_any_extraction_interrupted() -> void:
 	ExtractionManager.channel_duration = 4.0
 
 func _on_extraction_window_opened() -> void:
+	if _using_ldtk:
+		return  ## LDtk mode: exit zone handles exit; skip timed-extraction overlay
 	if GameManager.phase_number >= GameManager.MAX_PHASES:
 		return
 	var pos: Vector2 = arena_generator.get_extraction_position() if arena_generator else Vector2.ZERO
