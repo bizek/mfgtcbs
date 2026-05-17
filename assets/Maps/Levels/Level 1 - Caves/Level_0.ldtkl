@@ -56,50 +56,6 @@
 			"gridTiles": [],
 			"entityInstances": [
 				{
-					"__identifier": "Level_Instructions",
-					"__grid": [3,5],
-					"__pivot": [0,0],
-					"__tags": [],
-					"__tile": null,
-					"__smartColor": "#00FF00",
-					"iid": "b59b3150-21a0-11f1-ba5b-935760481437",
-					"width": 8,
-					"height": 8,
-					"defUid": 529,
-					"px": [24,40],
-					"fieldInstances": [
-						{ "__identifier": "Level_Name", "__type": "String", "__value": "", "__tile": null, "defUid": 585, "realEditorValues": [] },
-						{ "__identifier": "Monster_Spawns", "__type": "String", "__value": "", "__tile": null, "defUid": 586, "realEditorValues": [] },
-						{ "__identifier": "Boss_Spawn", "__type": "String", "__value": "", "__tile": null, "defUid": 587, "realEditorValues": [] },
-						{ "__identifier": "Loot_Pool", "__type": "String", "__value": "", "__tile": null, "defUid": 588, "realEditorValues": [] },
-						{ "__identifier": "Room_Distance_Tri", "__type": "Array<Int>", "__value": [], "__tile": null, "defUid": 589, "realEditorValues": [] },
-						{ "__identifier": "Misc_Overrides", "__type": "Array<String>", "__value": [], "__tile": null, "defUid": 590, "realEditorValues": [] },
-						{ "__identifier": "Misc_Notes", "__type": "Array<String>", "__value": [], "__tile": null, "defUid": 591, "realEditorValues": [] },
-						{ "__identifier": "Music_Id", "__type": "String", "__value": "", "__tile": null, "defUid": 592, "realEditorValues": [] },
-						{ "__identifier": "Recommended_Player_Level", "__type": "Int", "__value": 1, "__tile": null, "defUid": 593, "realEditorValues": [] },
-						{ "__identifier": "Tags", "__type": "Array<String>", "__value": [], "__tile": null, "defUid": 594, "realEditorValues": [] },
-						{ "__identifier": "Player_Spawn_Pos", "__type": "Point", "__value": { "cx": 4, "cy": 5 }, "__tile": null, "defUid": 595, "realEditorValues": [{
-							"id": "V_String",
-							"params": ["4,5"]
-						}] },
-						{ "__identifier": "Player_Facing", "__type": "LocalEnum.Facing", "__value": "Down", "__tile": null, "defUid": 596, "realEditorValues": [] },
-						{ "__identifier": "Boss_Spawn_Pos", "__type": "Point", "__value": { "cx": 38, "cy": 136 }, "__tile": null, "defUid": 597, "realEditorValues": [{
-							"id": "V_String",
-							"params": ["38,136"]
-						}] },
-						{ "__identifier": "Boss_Intro_Delay", "__type": "Float", "__value": 1.5, "__tile": null, "defUid": 598, "realEditorValues": [] },
-						{ "__identifier": "Boss_Camera_Zoom", "__type": "Float", "__value": 1, "__tile": null, "defUid": 599, "realEditorValues": [] },
-						{ "__identifier": "Level_Exit_Pos", "__type": "Point", "__value": { "cx": 7, "cy": 177 }, "__tile": null, "defUid": 600, "realEditorValues": [{
-							"id": "V_String",
-							"params": ["7,177"]
-						}] },
-						{ "__identifier": "Next_Level_Id", "__type": "String", "__value": "", "__tile": null, "defUid": 601, "realEditorValues": [] },
-						{ "__identifier": "Exit_Transition", "__type": "LocalEnum.TransitionKind", "__value": "Fade", "__tile": null, "defUid": 602, "realEditorValues": [] }
-					],
-					"__worldX": 24,
-					"__worldY": 40
-				},
-				{
 					"__identifier": "Extraction",
 					"__grid": [69,174],
 					"__pivot": [0.5,0.5],
@@ -122,6 +78,293 @@
 					],
 					"__worldX": 556,
 					"__worldY": 1396
+				},
+				{
+					"__identifier": "EnemySpawnZone",
+					"__grid": [31,22],
+					"__pivot": [0.5,0.5],
+					"__tags": [ "gameplay", "spawn" ],
+					"__tile": null,
+					"__smartColor": "#CC2222",
+					"iid": "6e66a7c0-48b0-11f1-ba5b-d9c456e644a4",
+					"width": 160,
+					"height": 80,
+					"defUid": 479,
+					"px": [252,180],
+					"fieldInstances": [
+						{ "__identifier": "phase", "__type": "LocalEnum.SpawnPhase", "__value": "Phase1", "__tile": null, "defUid": 609, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["Phase1"]
+						}] },
+						{ "__identifier": "density", "__type": "LocalEnum.SpawnDensity", "__value": "Low", "__tile": null, "defUid": 610, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["Low"]
+						}] },
+						{ "__identifier": "enemy_pool_override", "__type": "String", "__value": "", "__tile": null, "defUid": 611, "realEditorValues": [] },
+						{ "__identifier": "min_distance_from_player", "__type": "Float", "__value": 300, "__tile": null, "defUid": 612, "realEditorValues": [] }
+					],
+					"__worldX": 252,
+					"__worldY": 180
+				},
+				{
+					"__identifier": "EnemySpawnZone",
+					"__grid": [39,110],
+					"__pivot": [0.5,0.5],
+					"__tags": [ "gameplay", "spawn" ],
+					"__tile": null,
+					"__smartColor": "#CC2222",
+					"iid": "361bc750-48b0-11f1-ba5b-cf48642694bf",
+					"width": 584,
+					"height": 160,
+					"defUid": 479,
+					"px": [316,884],
+					"fieldInstances": [
+						{ "__identifier": "phase", "__type": "LocalEnum.SpawnPhase", "__value": "Phase2", "__tile": null, "defUid": 609, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["Phase2"]
+						}] },
+						{ "__identifier": "density", "__type": "LocalEnum.SpawnDensity", "__value": "Medium", "__tile": null, "defUid": 610, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["Medium"]
+						}] },
+						{ "__identifier": "enemy_pool_override", "__type": "String", "__value": "", "__tile": null, "defUid": 611, "realEditorValues": [] },
+						{ "__identifier": "min_distance_from_player", "__type": "Float", "__value": 300, "__tile": null, "defUid": 612, "realEditorValues": [] }
+					],
+					"__worldX": 316,
+					"__worldY": 884
+				},
+				{
+					"__identifier": "EnemySpawnZone",
+					"__grid": [37,138],
+					"__pivot": [0.5,0.5],
+					"__tags": [ "gameplay", "spawn" ],
+					"__tile": null,
+					"__smartColor": "#CC2222",
+					"iid": "645434e0-48b0-11f1-ba5b-ed7b38d7ccd8",
+					"width": 512,
+					"height": 192,
+					"defUid": 479,
+					"px": [300,1108],
+					"fieldInstances": [
+						{ "__identifier": "phase", "__type": "LocalEnum.SpawnPhase", "__value": "Phase3", "__tile": null, "defUid": 609, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["Phase3"]
+						}] },
+						{ "__identifier": "density", "__type": "LocalEnum.SpawnDensity", "__value": "High", "__tile": null, "defUid": 610, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["High"]
+						}] },
+						{ "__identifier": "enemy_pool_override", "__type": "String", "__value": "", "__tile": null, "defUid": 611, "realEditorValues": [] },
+						{ "__identifier": "min_distance_from_player", "__type": "Float", "__value": 300, "__tile": null, "defUid": 612, "realEditorValues": [] }
+					],
+					"__worldX": 300,
+					"__worldY": 1108
+				},
+				{
+					"__identifier": "EnemySpawnZone",
+					"__grid": [36,162],
+					"__pivot": [0.5,0.5],
+					"__tags": [ "gameplay", "spawn" ],
+					"__tile": null,
+					"__smartColor": "#CC2222",
+					"iid": "6becc960-48b0-11f1-ba5b-93cdf3d4160d",
+					"width": 64,
+					"height": 64,
+					"defUid": 479,
+					"px": [292,1300],
+					"fieldInstances": [
+						{ "__identifier": "phase", "__type": "LocalEnum.SpawnPhase", "__value": "Any", "__tile": null, "defUid": 609, "realEditorValues": [null] },
+						{ "__identifier": "density", "__type": "LocalEnum.SpawnDensity", "__value": "Medium", "__tile": null, "defUid": 610, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["Medium"]
+						}] },
+						{ "__identifier": "enemy_pool_override", "__type": "String", "__value": "", "__tile": null, "defUid": 611, "realEditorValues": [] },
+						{ "__identifier": "min_distance_from_player", "__type": "Float", "__value": 300, "__tile": null, "defUid": 612, "realEditorValues": [] }
+					],
+					"__worldX": 292,
+					"__worldY": 1300
+				},
+				{
+					"__identifier": "Obstacle",
+					"__grid": [15,14],
+					"__pivot": [0.5,1],
+					"__tags": [ "gameplay", "static" ],
+					"__tile": null,
+					"__smartColor": "#8A6A4A",
+					"iid": "9bf0cf30-48b0-11f1-ba5b-b59da2928fe9",
+					"width": 16,
+					"height": 16,
+					"defUid": 484,
+					"px": [124,120],
+					"fieldInstances": [
+						{ "__identifier": "kind", "__type": "LocalEnum.ObstacleKind", "__value": "Rock", "__tile": null, "defUid": 614, "realEditorValues": [] },
+						{ "__identifier": "variant_index", "__type": "Int", "__value": 0, "__tile": null, "defUid": 615, "realEditorValues": [] },
+						{ "__identifier": "collision_radius", "__type": "Float", "__value": 18, "__tile": null, "defUid": 616, "realEditorValues": [] },
+						{ "__identifier": "scale", "__type": "Float", "__value": 3, "__tile": null, "defUid": 617, "realEditorValues": [] }
+					],
+					"__worldX": 124,
+					"__worldY": 120
+				},
+				{
+					"__identifier": "Obstacle",
+					"__grid": [15,9],
+					"__pivot": [0.5,1],
+					"__tags": [ "gameplay", "static" ],
+					"__tile": null,
+					"__smartColor": "#8A6A4A",
+					"iid": "a16412b0-48b0-11f1-ba5b-8135f58b8152",
+					"width": 16,
+					"height": 16,
+					"defUid": 484,
+					"px": [124,80],
+					"fieldInstances": [
+						{ "__identifier": "kind", "__type": "LocalEnum.ObstacleKind", "__value": "Rock", "__tile": null, "defUid": 614, "realEditorValues": [] },
+						{ "__identifier": "variant_index", "__type": "Int", "__value": 0, "__tile": null, "defUid": 615, "realEditorValues": [] },
+						{ "__identifier": "collision_radius", "__type": "Float", "__value": 18, "__tile": null, "defUid": 616, "realEditorValues": [] },
+						{ "__identifier": "scale", "__type": "Float", "__value": 3, "__tile": null, "defUid": 617, "realEditorValues": [] }
+					],
+					"__worldX": 124,
+					"__worldY": 80
+				},
+				{
+					"__identifier": "Obstacle",
+					"__grid": [20,9],
+					"__pivot": [0.5,1],
+					"__tags": [ "gameplay", "static" ],
+					"__tile": null,
+					"__smartColor": "#8A6A4A",
+					"iid": "a2284d10-48b0-11f1-ba5b-036f4f7ad93f",
+					"width": 16,
+					"height": 16,
+					"defUid": 484,
+					"px": [164,80],
+					"fieldInstances": [
+						{ "__identifier": "kind", "__type": "LocalEnum.ObstacleKind", "__value": "Rock", "__tile": null, "defUid": 614, "realEditorValues": [] },
+						{ "__identifier": "variant_index", "__type": "Int", "__value": 0, "__tile": null, "defUid": 615, "realEditorValues": [] },
+						{ "__identifier": "collision_radius", "__type": "Float", "__value": 18, "__tile": null, "defUid": 616, "realEditorValues": [] },
+						{ "__identifier": "scale", "__type": "Float", "__value": 3, "__tile": null, "defUid": 617, "realEditorValues": [] }
+					],
+					"__worldX": 164,
+					"__worldY": 80
+				},
+				{
+					"__identifier": "Region",
+					"__grid": [40,43],
+					"__pivot": [0.5,0.5],
+					"__tags": [ "gameplay", "region" ],
+					"__tile": null,
+					"__smartColor": "#22CCCC",
+					"iid": "589818f0-48b0-11f1-9f86-fd7c63b3274a",
+					"width": 648,
+					"height": 696,
+					"defUid": 493,
+					"px": [324,348],
+					"fieldInstances": [
+						{ "__identifier": "kind", "__type": "LocalEnum.RegionKind", "__value": "Maze", "__tile": null, "defUid": 623, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["Maze"]
+						}] },
+						{ "__identifier": "id", "__type": "String", "__value": "", "__tile": null, "defUid": 624, "realEditorValues": [] },
+						{ "__identifier": "enter_seal", "__type": "Bool", "__value": false, "__tile": null, "defUid": 625, "realEditorValues": [] },
+						{ "__identifier": "kill_quota", "__type": "Int", "__value": 0, "__tile": null, "defUid": 626, "realEditorValues": [] },
+						{ "__identifier": "timer_seconds", "__type": "Float", "__value": 0, "__tile": null, "defUid": 627, "realEditorValues": [] }
+					],
+					"__worldX": 324,
+					"__worldY": 348
+				},
+				{
+					"__identifier": "Region",
+					"__grid": [40,104],
+					"__pivot": [0.5,0.5],
+					"__tags": [ "gameplay", "region" ],
+					"__tile": null,
+					"__smartColor": "#22CCCC",
+					"iid": "725c51c0-48b0-11f1-9f86-3b014d209897",
+					"width": 648,
+					"height": 280,
+					"defUid": 493,
+					"px": [324,836],
+					"fieldInstances": [
+						{ "__identifier": "kind", "__type": "LocalEnum.RegionKind", "__value": "PreBoss", "__tile": null, "defUid": 623, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["PreBoss"]
+						}] },
+						{ "__identifier": "id", "__type": "String", "__value": "", "__tile": null, "defUid": 624, "realEditorValues": [] },
+						{ "__identifier": "enter_seal", "__type": "Bool", "__value": false, "__tile": null, "defUid": 625, "realEditorValues": [] },
+						{ "__identifier": "kill_quota", "__type": "Int", "__value": 20, "__tile": null, "defUid": 626, "realEditorValues": [{ "id": "V_Int", "params": [20] }] },
+						{ "__identifier": "timer_seconds", "__type": "Float", "__value": 0, "__tile": null, "defUid": 627, "realEditorValues": [] }
+					],
+					"__worldX": 324,
+					"__worldY": 836
+				},
+				{
+					"__identifier": "Region",
+					"__grid": [40,154],
+					"__pivot": [0.5,0.5],
+					"__tags": [ "gameplay", "region" ],
+					"__tile": null,
+					"__smartColor": "#22CCCC",
+					"iid": "8ab07fd0-48b0-11f1-9f86-17546f5d4adf",
+					"width": 648,
+					"height": 520,
+					"defUid": 493,
+					"px": [324,1236],
+					"fieldInstances": [
+						{ "__identifier": "kind", "__type": "LocalEnum.RegionKind", "__value": "Boss", "__tile": null, "defUid": 623, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["Boss"]
+						}] },
+						{ "__identifier": "id", "__type": "String", "__value": "", "__tile": null, "defUid": 624, "realEditorValues": [] },
+						{ "__identifier": "enter_seal", "__type": "Bool", "__value": true, "__tile": null, "defUid": 625, "realEditorValues": [{
+							"id": "V_Bool",
+							"params": [ true ]
+						}] },
+						{ "__identifier": "kill_quota", "__type": "Int", "__value": 0, "__tile": null, "defUid": 626, "realEditorValues": [] },
+						{ "__identifier": "timer_seconds", "__type": "Float", "__value": 0, "__tile": null, "defUid": 627, "realEditorValues": [] }
+					],
+					"__worldX": 324,
+					"__worldY": 1236
+				},
+				{
+					"__identifier": "Level_Instructions",
+					"__grid": [2,13],
+					"__pivot": [0,0],
+					"__tags": [],
+					"__tile": null,
+					"__smartColor": "#00FF00",
+					"iid": "2c68e180-48b0-11f1-ba44-e59c703a7414",
+					"width": 8,
+					"height": 8,
+					"defUid": 529,
+					"px": [16,104],
+					"fieldInstances": [
+						{ "__identifier": "Level_Name", "__type": "String", "__value": "", "__tile": null, "defUid": 585, "realEditorValues": [] },
+						{ "__identifier": "Monster_Spawns", "__type": "String", "__value": "", "__tile": null, "defUid": 586, "realEditorValues": [] },
+						{ "__identifier": "Boss_Spawn", "__type": "String", "__value": "", "__tile": null, "defUid": 587, "realEditorValues": [] },
+						{ "__identifier": "Loot_Pool", "__type": "String", "__value": "", "__tile": null, "defUid": 588, "realEditorValues": [] },
+						{ "__identifier": "Room_Distance_Tri", "__type": "Array<Int>", "__value": [], "__tile": null, "defUid": 589, "realEditorValues": [] },
+						{ "__identifier": "Misc_Overrides", "__type": "Array<String>", "__value": [], "__tile": null, "defUid": 590, "realEditorValues": [] },
+						{ "__identifier": "Misc_Notes", "__type": "Array<String>", "__value": [], "__tile": null, "defUid": 591, "realEditorValues": [] },
+						{ "__identifier": "Music_Id", "__type": "String", "__value": "", "__tile": null, "defUid": 592, "realEditorValues": [] },
+						{ "__identifier": "Recommended_Player_Level", "__type": "Int", "__value": 1, "__tile": null, "defUid": 593, "realEditorValues": [] },
+						{ "__identifier": "Tags", "__type": "Array<String>", "__value": [], "__tile": null, "defUid": 594, "realEditorValues": [] },
+						{ "__identifier": "Player_Spawn_Pos", "__type": "Point", "__value": { "cx": 8, "cy": 9 }, "__tile": null, "defUid": 595, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["8,9"]
+						}] },
+						{ "__identifier": "Player_Facing", "__type": "LocalEnum.Facing", "__value": "Down", "__tile": null, "defUid": 596, "realEditorValues": [] },
+						{ "__identifier": "Boss_Spawn_Pos", "__type": "Point", "__value": null, "__tile": null, "defUid": 597, "realEditorValues": [] },
+						{ "__identifier": "Boss_Intro_Delay", "__type": "Float", "__value": 1.5, "__tile": null, "defUid": 598, "realEditorValues": [] },
+						{ "__identifier": "Boss_Camera_Zoom", "__type": "Float", "__value": 1, "__tile": null, "defUid": 599, "realEditorValues": [] },
+						{ "__identifier": "Level_Exit_Pos", "__type": "Point", "__value": { "cx": 62, "cy": 174 }, "__tile": null, "defUid": 600, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["62,174"]
+						}] },
+						{ "__identifier": "Next_Level_Id", "__type": "String", "__value": "", "__tile": null, "defUid": 601, "realEditorValues": [] },
+						{ "__identifier": "Exit_Transition", "__type": "LocalEnum.TransitionKind", "__value": "Fade", "__tile": null, "defUid": 602, "realEditorValues": [] }
+					],
+					"__worldX": 16,
+					"__worldY": 104
 				}
 			]
 		},

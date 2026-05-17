@@ -474,13 +474,10 @@ func _apply_misc_override(kv: String, result: Dictionary) -> void:
 
 func _collect_region(ent: Dictionary, result: Dictionary) -> void:
 	var fields: Dictionary = _ent_fields_to_dict(ent)
-	var px: Array = ent.get("px", [0, 0])
-	var w: int = int(ent.get("width", 0))
-	var h: int = int(ent.get("height", 0))
 	result.regions.append({
 		"kind": str(fields.get("kind", "Maze")),
 		"id": str(fields.get("id", "")),
-		"rect": Rect2(int(px[0]), int(px[1]), w, h),
+		"rect": _ent_bbox(ent),
 		"enter_seal": bool(fields.get("enter_seal", false)),
 		"kill_quota": int(fields.get("kill_quota", 0)),
 		"timer_seconds": float(fields.get("timer_seconds", 0.0)),
@@ -491,7 +488,7 @@ func _collect_extraction(ent: Dictionary, result: Dictionary) -> void:
 	var fields: Dictionary = _ent_fields_to_dict(ent)
 	result.extractions.append({
 		"kind": str(fields.get("kind", "Timed")),
-		"position": _ent_center_pos(ent),
+		"position": _ent_bbox(ent).get_center(),
 		"unlock_radius": float(fields.get("unlock_radius", 48.0)),
 		"channel_seconds": float(fields.get("channel_seconds", 3.0)),
 		"notes": str(fields.get("notes", "")),
@@ -500,13 +497,10 @@ func _collect_extraction(ent: Dictionary, result: Dictionary) -> void:
 
 func _collect_spawn_zone(ent: Dictionary, result: Dictionary) -> void:
 	var fields: Dictionary = _ent_fields_to_dict(ent)
-	var px: Array = ent.get("px", [0, 0])
-	var w: int = int(ent.get("width", 0))
-	var h: int = int(ent.get("height", 0))
 	result.spawn_zones.append({
 		"phase": str(fields.get("phase", "Any")),
 		"density": str(fields.get("density", "Medium")),
-		"rect": Rect2(int(px[0]), int(px[1]), w, h),
+		"rect": _ent_bbox(ent),
 		"enemy_pool_override": str(fields.get("enemy_pool_override", "")),
 		"min_distance_from_player": float(fields.get("min_distance_from_player", 300.0)),
 	})
@@ -514,7 +508,8 @@ func _collect_spawn_zone(ent: Dictionary, result: Dictionary) -> void:
 
 func _collect_obstacle(ent: Dictionary, result: Dictionary) -> void:
 	var fields: Dictionary = _ent_fields_to_dict(ent)
-	var pos: Vector2 = _ent_center_pos(ent)
+	## Obstacle pivots at bottom-center (0.5,1.0); px is the ground point clicked.
+	var pos: Vector2 = _ent_px(ent)
 	var info: Dictionary = {
 		"kind": str(fields.get("kind", "Rock")),
 		"position": pos,
@@ -531,7 +526,7 @@ func _collect_marker(ent: Dictionary, result: Dictionary) -> void:
 	var info: Dictionary = {
 		"tag": str(fields.get("tag", "LootSpawn")),
 		"id": str(fields.get("id", "")),
-		"position": _ent_center_pos(ent),
+		"position": _ent_bbox(ent).get_center(),
 		"payload": str(fields.get("payload", "")),
 	}
 	result.markers.append(info)
@@ -584,17 +579,23 @@ func _ent_fields_to_dict(ent: Dictionary) -> Dictionary:
 	return out
 
 
-func _ent_center_pos(ent: Dictionary) -> Vector2:
-	## LDtk stores top-left in `px` and pivot in the entity def. Use pivot to land on
-	## the entity's reference point (e.g. Obstacle pivots at bottom-center).
+func _ent_px(ent: Dictionary) -> Vector2:
+	## LDtk's `px` is the entity's PIVOT point in level pixel space (NOT the
+	## top-left). For Obstacle (pivot 0.5,1.0) this is the bottom-center ground
+	## point the author clicked — exactly where we want the collider.
 	var px: Array = ent.get("px", [0, 0])
-	var w: int = int(ent.get("width", 0))
-	var h: int = int(ent.get("height", 0))
-	var def_uid: int = int(ent.get("defUid", 0))
-	var ed: Dictionary = _entity_uid_to_def.get(def_uid, {})
-	var pivot_x: float = float(ed.get("pivotX", 0.5))
-	var pivot_y: float = float(ed.get("pivotY", 0.5))
-	return Vector2(int(px[0]) + w * pivot_x, int(px[1]) + h * pivot_y)
+	return Vector2(float(px[0]), float(px[1]))
+
+
+func _ent_bbox(ent: Dictionary) -> Rect2:
+	## Pivot-correct bounding box. top_left = px - (pivotX*w, pivotY*h).
+	var px: Vector2 = _ent_px(ent)
+	var w: float = float(ent.get("width", 0))
+	var h: float = float(ent.get("height", 0))
+	var ed: Dictionary = _entity_uid_to_def.get(int(ent.get("defUid", 0)), {})
+	var pivot_x: float = float(ed.get("pivotX", 0.0))
+	var pivot_y: float = float(ed.get("pivotY", 0.0))
+	return Rect2(px.x - pivot_x * w, px.y - pivot_y * h, w, h)
 
 
 func _grid_point_to_pos(point_value: Variant, ent: Dictionary) -> Vector2:
