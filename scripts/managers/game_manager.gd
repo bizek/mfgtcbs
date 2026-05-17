@@ -6,6 +6,10 @@ extends Node
 ## Enables F1 panel, F2/F3/F4 hotkeys, and the debug_* helper methods.
 var debug_mode: bool = true
 
+## When true (requires debug_mode) and current_level == 1, MainArena loads
+## Level_0 from the LDtk project instead of using ArenaGenerator.
+var use_ldtk_level_1: bool = false
+
 signal run_started
 signal phase_started(phase_number: int)
 signal phase_timer_updated(time_remaining: float)
