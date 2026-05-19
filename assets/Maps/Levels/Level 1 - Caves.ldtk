@@ -4730,7 +4730,7 @@
 			"bgPivotY": 0.5,
 			"__smartColor": "#ADADB5",
 			"__bgPos": null,
-			"externalRelPath": "Block_Caves_01_Open.ldtkl",
+			"externalRelPath": "Level 1 - Caves/Block_Caves_01_Open.ldtkl",
 			"fieldInstances": [
 				{
 					"__identifier": "biome",
@@ -4783,7 +4783,7 @@
 			"bgPivotY": 0.5,
 			"__smartColor": "#ADADB5",
 			"__bgPos": null,
-			"externalRelPath": "Block_Caves_02_Pillars.ldtkl",
+			"externalRelPath": "Level 1 - Caves/Block_Caves_02_Pillars.ldtkl",
 			"fieldInstances": [
 				{
 					"__identifier": "biome",
@@ -4836,7 +4836,7 @@
 			"bgPivotY": 0.5,
 			"__smartColor": "#ADADB5",
 			"__bgPos": null,
-			"externalRelPath": "Block_Caves_03_Choke.ldtkl",
+			"externalRelPath": "Level 1 - Caves/Block_Caves_03_Choke.ldtkl",
 			"fieldInstances": [
 				{
 					"__identifier": "biome",
@@ -4889,7 +4889,7 @@
 			"bgPivotY": 0.5,
 			"__smartColor": "#ADADB5",
 			"__bgPos": null,
-			"externalRelPath": "Block_Caves_04_Split.ldtkl",
+			"externalRelPath": "Level 1 - Caves/Block_Caves_04_Split.ldtkl",
 			"fieldInstances": [
 				{
 					"__identifier": "biome",
@@ -4942,7 +4942,7 @@
 			"bgPivotY": 0.5,
 			"__smartColor": "#ADADB5",
 			"__bgPos": null,
-			"externalRelPath": "Block_Caves_05_Merchant.ldtkl",
+			"externalRelPath": "Level 1 - Caves/Block_Caves_05_Merchant.ldtkl",
 			"fieldInstances": [
 				{
 					"__identifier": "biome",
