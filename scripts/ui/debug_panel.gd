@@ -40,6 +40,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_F5: _cmd_spawn_test_telegraph()
 		KEY_F6: _cmd_spawn_miniboss()
 		KEY_F7: _cmd_spawn_final_boss()
+		KEY_F8: _cmd_toggle_block_debug()
 
 func _toggle_panel() -> void:
 	_panel.visible = not _panel.visible
@@ -147,7 +148,7 @@ func _build_panel() -> void:
 
 	## Hotkey hint strip
 	var hints := Label.new()
-	hints.text = "F2=God  F3=Lvl  F4=Extract"
+	hints.text = "F2=God F3=Lvl F4=Ext F8=Blocks"
 	hints.add_theme_font_size_override("font_size", 9)
 	hints.modulate = Color(0.55, 0.55, 0.55)
 	vbox.add_child(hints)
@@ -296,3 +297,12 @@ func _cmd_spawn_final_boss() -> void:
 		disp_name = def.enemy_name
 	GameManager.final_boss_spawned.emit(disp_name)
 	EnemySpawnManager.debug_spawn_by_id("heart_of_the_deep", false)
+
+
+func _cmd_toggle_block_debug() -> void:
+	var arena := get_tree().current_scene
+	if arena == null:
+		return
+	var bm: BlockManager = arena.get_node_or_null("BlockManager")
+	if bm != null:
+		bm.toggle_debug_overlay()

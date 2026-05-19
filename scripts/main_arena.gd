@@ -35,9 +35,11 @@ var _debug_all_extractions_active: bool = false
 
 ## LDtk mode — set when use_ldtk_level_1 flag is active
 var _using_ldtk: bool = false
+var _using_descent: bool = false
 var _ldtk_loader: LdtkLoader = null
 var _ldtk_director: LdtkLevelDirector = null
 var _ldtk_exit: LdtkExitZone = null
+var _block_manager: BlockManager = null
 
 
 func _ready() -> void:
@@ -103,10 +105,13 @@ func _ready() -> void:
 			wall.collision_layer = 3
 			wall.collision_mask = 0
 
-	# Level setup — LDtk or procedural
+	# Level setup — LDtk descent, LDtk single-level, or procedural
 	_using_ldtk = GameManager.debug_mode and GameManager.use_ldtk_level_1 \
 			and GameManager.current_level == 1
-	if _using_ldtk:
+	_using_descent = _using_ldtk and GameManager.use_descent_mode
+	if _using_descent:
+		_setup_ldtk_descent()
+	elif _using_ldtk:
 		_setup_ldtk_level()
 	else:
 		_setup_floor()
@@ -139,7 +144,11 @@ func _ready() -> void:
 	# Start run
 	GameManager.start_run()
 
-	if _using_ldtk:
+	if _using_descent:
+		## Descent mode: BlockManager already registered spawn zones.
+		var descent_bounds := Rect2(0.0, 0.0, _block_manager.level_width, _block_manager.total_height)
+		EnemySpawnManager.start_spawning(player, descent_bounds)
+	elif _using_ldtk:
 		## LDtk mode: extraction zones come from the level, exit zone already wired.
 		## Do not call _setup_extraction_zones() — that code assumes ArenaGenerator.
 		var ldtk_bounds: Rect2 = Rect2(0.0, 0.0,
@@ -269,6 +278,71 @@ func _setup_ldtk_level() -> void:
 		add_child(_ldtk_exit)
 		## boss_id == "" → unlocks immediately (boss-less level).
 		_ldtk_exit.setup(result.level_exit_pos, result.boss_id == "")
+
+
+func _setup_ldtk_descent() -> void:
+	## Build a block-based vertical descent for the current level.
+	const LDTK_PATH: String = "res://assets/Maps/Levels/Level 1 - Caves.ldtk"
+	const BLOCK_COUNT: int = 10
+
+	var normal_block_ids: Array[String] = [
+		"Block_Caves_01_Open",
+		"Block_Caves_02_Pillars",
+		"Block_Caves_03_Choke",
+		"Block_Caves_04_Split",
+	]
+	var merchant_block_id: String = "Block_Caves_05_Merchant"
+
+	_block_manager = BlockManager.new()
+	_block_manager.name = "BlockManager"
+	add_child(_block_manager)
+
+	var result: Dictionary = _block_manager.build_descent(
+		LDTK_PATH, BLOCK_COUNT, normal_block_ids, merchant_block_id, 0.5)
+
+	if not result.ok:
+		push_error("[MainArena] Descent build failed: %s" % str(result.errors))
+		_using_descent = false
+		_using_ldtk = false
+		_setup_floor()
+		arena_generator = ArenaGenerator.new()
+		add_child(arena_generator)
+		arena_generator.generate(2025)
+		return
+
+	for w: String in result.warnings:
+		push_warning("[MainArena/Descent] %s" % w)
+
+	## Hide arena floor and borders — blocks provide the visuals.
+	if arena_floor:
+		arena_floor.visible = false
+	for border_name: String in ["ArenaBorderTop", "ArenaBorderBottom", "ArenaBorderLeft", "ArenaBorderRight"]:
+		var border := get_node_or_null(border_name)
+		if border != null:
+			border.visible = false
+	for wall_name: String in ["WallTop", "WallBottom", "WallLeft", "WallRight"]:
+		var wall := get_node_or_null(wall_name)
+		if wall is StaticBody2D:
+			(wall as StaticBody2D).collision_layer = 0
+
+	## Player spawn
+	player.global_position = result.player_spawn
+
+	## Camera limits for the full descent
+	if _camera != null:
+		_camera.limit_left = 0
+		_camera.limit_right = int(result.level_width)
+		_camera.limit_top = 0
+		_camera.limit_bottom = int(result.total_height)
+
+	## Register spawn zones with EnemySpawnManager
+	_block_manager.register_spawn_zones_with(EnemySpawnManager)
+
+	## Exit zone at the portal position (bottom of descent)
+	_ldtk_exit = LdtkExitZone.new()
+	_ldtk_exit.name = "LdtkExitZone"
+	add_child(_ldtk_exit)
+	_ldtk_exit.setup(result.portal_pos, true)
 
 
 func _on_ldtk_boss_should_spawn(boss_id: String, spawn_pos: Vector2) -> void:

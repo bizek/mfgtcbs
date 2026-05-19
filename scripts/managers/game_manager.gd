@@ -10,6 +10,10 @@ var debug_mode: bool = true
 ## Level_0 from the LDtk project instead of using ArenaGenerator.
 var use_ldtk_level_1: bool = true
 
+## When true (requires use_ldtk_level_1), uses block-based vertical descent
+## instead of loading a single monolithic level.
+var use_descent_mode: bool = true
+
 signal run_started
 signal phase_started(phase_number: int)
 signal phase_timer_updated(time_remaining: float)
