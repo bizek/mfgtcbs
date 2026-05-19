@@ -160,6 +160,7 @@ func toggle_debug_overlay() -> void:
 	_debug_overlay_visible = not _debug_overlay_visible
 	if _debug_draw_node != null:
 		_debug_draw_node.visible = _debug_overlay_visible
+		_debug_draw_node.queue_redraw()
 
 
 func _build_block_sequence(available: Array[String], count: int,
@@ -231,32 +232,28 @@ func _setup_debug_overlay() -> void:
 func _get_debug_draw_source() -> String:
 	return """extends Node2D
 
-var block_bounds: Array[Rect2] = []
-var event_anchors: Array[Dictionary] = []
+var block_bounds: Array = []
+var event_anchors: Array = []
 var portal_pos: Vector2 = Vector2.ZERO
 
 func _draw() -> void:
-	var colors: Array[Color] = [
+	var colors: Array = [
 		Color(1, 0, 0, 0.3), Color(0, 1, 0, 0.3), Color(0, 0, 1, 0.3),
 		Color(1, 1, 0, 0.3), Color(1, 0, 1, 0.3), Color(0, 1, 1, 0.3),
 	]
 	for i in range(block_bounds.size()):
 		var bounds: Rect2 = block_bounds[i]
 		var col: Color = colors[i % colors.size()]
-		# Block boundary lines
 		draw_rect(Rect2(bounds.position.x, bounds.position.y, bounds.size.x, 2), col.lightened(0.3))
 		draw_rect(Rect2(bounds.position.x, bounds.end.y - 2, bounds.size.x, 2), col.lightened(0.3))
-		# Block index label position
 		var label_pos := Vector2(4, bounds.position.y + 12)
-		draw_string(ThemeDB.fallback_font, label_pos, "B%d" % i, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, col.lightened(0.5))
+		draw_string(ThemeDB.fallback_font, label_pos, "B" + str(i), HORIZONTAL_ALIGNMENT_LEFT, -1, 10, col.lightened(0.5))
 
-	# Event anchors
 	for anchor in event_anchors:
-		var pos: Vector2 = anchor.position
+		var pos: Vector2 = anchor["position"]
 		draw_circle(pos, 6, Color(1, 0.8, 0, 0.7))
-		draw_string(ThemeDB.fallback_font, pos + Vector2(8, 4), anchor.get("payload", "?"), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(1, 0.8, 0))
+		draw_string(ThemeDB.fallback_font, pos + Vector2(8, 4), str(anchor.get("payload", "?")), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(1, 0.8, 0))
 
-	# Portal
 	if portal_pos != Vector2.ZERO:
 		draw_circle(portal_pos, 8, Color(0, 1, 0.5, 0.8))
 		draw_string(ThemeDB.fallback_font, portal_pos + Vector2(10, 4), "PORTAL", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0, 1, 0.5))
