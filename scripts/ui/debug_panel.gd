@@ -40,7 +40,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_F5: _cmd_spawn_test_telegraph()
 		KEY_F6: _cmd_spawn_miniboss()
 		KEY_F7: _cmd_spawn_final_boss()
-		KEY_F8: _cmd_toggle_block_debug()
+		KEY_F9: _cmd_toggle_block_debug()
 
 func _toggle_panel() -> void:
 	_panel.visible = not _panel.visible
@@ -148,7 +148,7 @@ func _build_panel() -> void:
 
 	## Hotkey hint strip
 	var hints := Label.new()
-	hints.text = "F2=God F3=Lvl F4=Ext F8=Blocks"
+	hints.text = "F2=God F3=Lvl F4=Ext F9=Blocks"
 	hints.add_theme_font_size_override("font_size", 9)
 	hints.modulate = Color(0.55, 0.55, 0.55)
 	vbox.add_child(hints)
