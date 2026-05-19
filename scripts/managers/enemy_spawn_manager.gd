@@ -375,6 +375,19 @@ func _spawn_herald_pack() -> void:
 			effective_difficulty, false)
 
 
+## Spawn a guaranteed-elite enemy at a specific world position.
+## Used by SummonAltar. Bypasses the probabilistic elite roll in _spawn_from_def.
+func spawn_forced_elite_at(enemy_id: String, pos: Vector2) -> Node2D:
+	var scene: PackedScene = _get_scene_for_id(enemy_id)
+	if scene == null:
+		push_warning("[EnemySpawnManager] spawn_forced_elite_at: no scene for '%s'" % enemy_id)
+		return null
+	var enemy: Node2D = _spawn_from_def(enemy_id, scene, pos, _get_effective_difficulty(), false)
+	if enemy != null and enemy.has_method("apply_elite_modifier"):
+		enemy.apply_elite_modifier()
+	return enemy
+
+
 ## ── Debug helpers ─────────────────────────────────────────────────────────────
 
 ## Spawn a specific enemy type near the player. Used by the debug panel.

@@ -1,0 +1,261 @@
+class_name MerchantShop
+extends Control
+
+## MerchantShop — modal shop UI opened by Merchant when player presses E.
+## Offers random weapons, mods, keystone, and a stability bundle.
+## Purchases deduct from GameManager.loot_carried via spend_loot().
+
+signal closed
+
+const PIXEL_FONT_PATH: String = "res://assets/fonts/m5x7.ttf"
+const PANEL_W: float = 380.0
+const PANEL_H: float = 300.0
+const VW: float = 640.0
+const VH: float = 360.0
+
+const WEAPON_PRICE: int = 12
+const MOD_PRICE: int = 8
+const KEYSTONE_PRICE: int = 20
+const STABILITY_PRICE: int = 15
+const STABILITY_REDUCTION: int = 20
+
+var _pixel_font: Font = null
+var _loot_counter: Label = null
+
+
+func build() -> void:
+	if ResourceLoader.exists(PIXEL_FONT_PATH):
+		_pixel_font = load(PIXEL_FONT_PATH)
+
+	var offers: Array[Dictionary] = _generate_offers()
+	_build_ui(offers)
+
+
+func _generate_offers() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+
+	## 2 random weapons (exclude already-collected)
+	var weapon_ids: Array = WeaponData.ALL.keys()
+	weapon_ids.shuffle()
+	var weapons_added: int = 0
+	for wid: String in weapon_ids:
+		if weapons_added >= 2:
+			break
+		var wd: Dictionary = WeaponData.ALL[wid]
+		result.append({
+			"type": "weapon",
+			"id": wid,
+			"display": str(wd.get("display_name", wid)),
+			"price": WEAPON_PRICE,
+			"color": Color(0.80, 0.75, 0.55),
+			"sold": false,
+		})
+		weapons_added += 1
+
+	## 2 random mods
+	var mod_ids: Array = ModData.ALL.keys()
+	mod_ids.shuffle()
+	var mods_added: int = 0
+	for mid: String in mod_ids:
+		if mods_added >= 2:
+			break
+		var md: Dictionary = ModData.ALL[mid]
+		result.append({
+			"type": "mod",
+			"id": mid,
+			"display": str(md.get("name", mid)),
+			"price": MOD_PRICE,
+			"color": Color(0.55, 0.80, 0.90),
+			"sold": false,
+		})
+		mods_added += 1
+
+	## Keystone (only if player doesn't have one)
+	if not GameManager.player_has_keystone:
+		result.append({
+			"type": "keystone",
+			"id": "keystone",
+			"display": "KEYSTONE  (opens locked extraction)",
+			"price": KEYSTONE_PRICE,
+			"color": Color(1.0, 0.88, 0.10),
+			"sold": false,
+		})
+
+	## Stability bundle
+	result.append({
+		"type": "stability",
+		"id": "stability",
+		"display": "Stability Bundle  (-20 instability)",
+		"price": STABILITY_PRICE,
+		"color": Color(0.45, 0.82, 0.62),
+		"sold": false,
+	})
+
+	return result
+
+
+func _build_ui(offers: Array[Dictionary]) -> void:
+	## Dark overlay
+	var overlay := ColorRect.new()
+	overlay.color = Color(0.0, 0.0, 0.0, 0.72)
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(overlay)
+
+	var panel := Panel.new()
+	panel.size = Vector2(PANEL_W, PANEL_H)
+	panel.position = Vector2((VW - PANEL_W) * 0.5, (VH - PANEL_H) * 0.5)
+	panel.process_mode = Node.PROCESS_MODE_ALWAYS
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.055, 0.052, 0.040, 0.97)
+	style.border_color = Color(0.70, 0.58, 0.10)
+	style.set_border_width_all(1)
+	panel.add_theme_stylebox_override("panel", style)
+	add_child(panel)
+
+	## Title bar
+	var title_bg := ColorRect.new()
+	title_bg.color = Color(0.20, 0.16, 0.02)
+	title_bg.size = Vector2(PANEL_W, 22.0)
+	panel.add_child(title_bg)
+
+	var title_lbl := Label.new()
+	title_lbl.text = "MERCHANT"
+	title_lbl.position = Vector2(8.0, 4.0)
+	if _pixel_font:
+		title_lbl.add_theme_font_override("font", _pixel_font)
+	title_lbl.add_theme_font_size_override("font_size", 17)
+	title_lbl.add_theme_color_override("font_color", Color(1.0, 0.85, 0.18))
+	panel.add_child(title_lbl)
+
+	## Loot counter — top-right of panel
+	var loot_lbl := Label.new()
+	loot_lbl.name = "LootCounter"
+	loot_lbl.text = "Loot: %d" % int(GameManager.loot_carried)
+	loot_lbl.position = Vector2(PANEL_W - 110.0, 5.0)
+	loot_lbl.size = Vector2(100.0, 14.0)
+	loot_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	if _pixel_font:
+		loot_lbl.add_theme_font_override("font", _pixel_font)
+	loot_lbl.add_theme_font_size_override("font_size", 13)
+	loot_lbl.add_theme_color_override("font_color", Color(0.90, 0.85, 0.50))
+	panel.add_child(loot_lbl)
+	_loot_counter = loot_lbl
+
+	var sub_lbl := Label.new()
+	sub_lbl.text = "Spend loot for goods and passage."
+	sub_lbl.position = Vector2(8.0, 26.0)
+	if _pixel_font:
+		sub_lbl.add_theme_font_override("font", _pixel_font)
+	sub_lbl.add_theme_font_size_override("font_size", 13)
+	sub_lbl.add_theme_color_override("font_color", Color(0.58, 0.55, 0.38))
+	panel.add_child(sub_lbl)
+
+	## Scrollable offer list
+	const LIST_Y: float = 46.0
+	const LIST_H: float = 208.0
+	var scroll := ScrollContainer.new()
+	scroll.position = Vector2(6.0, LIST_Y)
+	scroll.size = Vector2(PANEL_W - 12.0, LIST_H)
+	scroll.process_mode = Node.PROCESS_MODE_ALWAYS
+	panel.add_child(scroll)
+
+	var vbox := VBoxContainer.new()
+	vbox.custom_minimum_size = Vector2(PANEL_W - 16.0, 0.0)
+	vbox.add_theme_constant_override("separation", 4)
+	scroll.add_child(vbox)
+
+	for offer: Dictionary in offers:
+		var row := _build_offer_row(offer)
+		vbox.add_child(row)
+
+	## Separator + Leave button
+	var sep := ColorRect.new()
+	sep.color = Color(0.35, 0.28, 0.05)
+	sep.size = Vector2(PANEL_W, 1.0)
+	sep.position = Vector2(0.0, PANEL_H - 30.0)
+	panel.add_child(sep)
+
+	var leave_btn := Button.new()
+	leave_btn.text = "LEAVE"
+	leave_btn.size = Vector2(PANEL_W - 16.0, 22.0)
+	leave_btn.position = Vector2(8.0, PANEL_H - 26.0)
+	leave_btn.process_mode = Node.PROCESS_MODE_ALWAYS
+	if _pixel_font:
+		leave_btn.add_theme_font_override("font", _pixel_font)
+	leave_btn.add_theme_font_size_override("font_size", 15)
+	leave_btn.add_theme_color_override("font_color", Color(0.58, 0.55, 0.40))
+	leave_btn.pressed.connect(func(): closed.emit())
+	panel.add_child(leave_btn)
+
+
+func _build_offer_row(offer: Dictionary) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+
+	var col: Color = Color(offer.get("color", Color.WHITE))
+
+	var name_lbl := Label.new()
+	name_lbl.text = str(offer.get("display", ""))
+	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if _pixel_font:
+		name_lbl.add_theme_font_override("font", _pixel_font)
+	name_lbl.add_theme_font_size_override("font_size", 14)
+	name_lbl.add_theme_color_override("font_color", col)
+	row.add_child(name_lbl)
+
+	var price: int = int(offer.get("price", 0))
+	var price_lbl := Label.new()
+	price_lbl.text = "%d L" % price
+	price_lbl.custom_minimum_size = Vector2(38.0, 0.0)
+	if _pixel_font:
+		price_lbl.add_theme_font_override("font", _pixel_font)
+	price_lbl.add_theme_font_size_override("font_size", 13)
+	price_lbl.add_theme_color_override("font_color", Color(0.90, 0.85, 0.40))
+	row.add_child(price_lbl)
+
+	var buy_btn := Button.new()
+	buy_btn.text = "BUY"
+	buy_btn.custom_minimum_size = Vector2(44.0, 18.0)
+	buy_btn.process_mode = Node.PROCESS_MODE_ALWAYS
+	if _pixel_font:
+		buy_btn.add_theme_font_override("font", _pixel_font)
+	buy_btn.add_theme_font_size_override("font_size", 13)
+	buy_btn.add_theme_color_override("font_color", Color(0.95, 0.85, 0.20))
+
+	var cap_offer: Dictionary = offer.duplicate()
+	buy_btn.pressed.connect(func(): _on_buy(cap_offer, row, buy_btn))
+	row.add_child(buy_btn)
+
+	return row
+
+
+func _on_buy(offer: Dictionary, row: HBoxContainer, btn: Button) -> void:
+	var price: int = int(offer.get("price", 0))
+	if not GameManager.spend_loot(float(price)):
+		## Flash row to indicate insufficient loot
+		var t := row.create_tween()
+		t.tween_property(row, "modulate", Color(1.0, 0.3, 0.3), 0.05)
+		t.tween_property(row, "modulate", Color(1.0, 1.0, 1.0), 0.22)
+		return
+
+	if _loot_counter != null:
+		_loot_counter.text = "Loot: %d" % int(GameManager.loot_carried)
+
+	var type_key: String = str(offer.get("type", ""))
+	match type_key:
+		"weapon":
+			var wid: String = str(offer.get("id", ""))
+			if not GameManager.collected_weapons.has(wid):
+				GameManager.collected_weapons.append(wid)
+		"mod":
+			var mid: String = str(offer.get("id", ""))
+			if not GameManager.collected_mods.has(mid):
+				GameManager.collected_mods.append(mid)
+		"keystone":
+			GameManager.pickup_keystone()
+		"stability":
+			GameManager.modify_instability(-STABILITY_REDUCTION)
+
+	btn.disabled = true
+	row.modulate = Color(0.55, 0.55, 0.55, 0.65)

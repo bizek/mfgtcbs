@@ -41,6 +41,7 @@ var _ldtk_director: LdtkLevelDirector = null
 var _ldtk_exit: LdtkExitZone = null
 var _block_manager: BlockManager = null
 var _depth_tracker: DepthTracker = null
+var _event_spawn_manager: EventSpawnManager = null
 
 
 func _ready() -> void:
@@ -351,6 +352,13 @@ func _setup_ldtk_descent() -> void:
 	add_child(_depth_tracker)
 	_depth_tracker.setup(_block_manager, player)
 	hud.setup_depth_tracker(_depth_tracker)
+
+	## Event spawn manager — places Merchant and SummonAltar at block anchors
+	_event_spawn_manager = EventSpawnManager.new()
+	_event_spawn_manager.name = "EventSpawnManager"
+	add_child(_event_spawn_manager)
+	_event_spawn_manager.setup(_block_manager, player, self)
+	hud.set_depth_event_ticks(_event_spawn_manager.get_event_depths())
 
 
 func _on_ldtk_boss_should_spawn(boss_id: String, spawn_pos: Vector2) -> void:
