@@ -33,7 +33,10 @@ var _debug_draw_node: Node2D = null
 
 
 func build_descent(ldtk_project_path: String, desired_block_count: int,
-		available_block_ids: Array[String], merchant_block_id: String = "",
+		available_block_ids: Array[String],
+		entry_block_id: String = "",
+		portal_block_id: String = "",
+		merchant_block_id: String = "",
 		merchant_depth_ratio: float = 0.5) -> Dictionary:
 	block_bounds.clear()
 	_loaders.clear()
@@ -43,7 +46,8 @@ func build_descent(ldtk_project_path: String, desired_block_count: int,
 	block_count = desired_block_count
 
 	var sequence: Array[String] = _build_block_sequence(
-		available_block_ids, desired_block_count, merchant_block_id, merchant_depth_ratio)
+		available_block_ids, desired_block_count,
+		entry_block_id, portal_block_id, merchant_block_id, merchant_depth_ratio)
 
 	var y_offset: float = 0.0
 	var errors: Array[String] = []
@@ -94,7 +98,7 @@ func build_descent(ldtk_project_path: String, desired_block_count: int,
 				var anchor := marker.duplicate()
 				anchor.position = Vector2(marker.position.x, marker.position.y + y_offset)
 				anchor["block_index"] = i
-				anchor["depth_ratio"] = (y_offset + marker.position.y) / max(1.0, float(desired_block_count) * block_h)
+				anchor["depth_ratio"] = 0.0  ## fixed up after loop when total_height is known
 				_event_anchors.append(anchor)
 
 		for ext: Dictionary in result.extractions:
@@ -106,6 +110,11 @@ func build_descent(ldtk_project_path: String, desired_block_count: int,
 		y_offset += block_h
 
 	total_height = y_offset
+
+	## Fix up depth_ratios now that total_height is known
+	for anchor: Dictionary in _event_anchors:
+		anchor["depth_ratio"] = anchor["position"].y / maxf(total_height, 1.0)
+
 	_portal_pos = Vector2(level_width * 0.5, total_height - 24.0)
 
 	_setup_debug_overlay()
@@ -164,23 +173,43 @@ func toggle_debug_overlay() -> void:
 
 
 func _build_block_sequence(available: Array[String], count: int,
+		entry_id: String, portal_id: String,
 		merchant_id: String, merchant_depth: float) -> Array[String]:
+	## Build the ordered sequence:
+	##   [entry] + [inner shuffled/merchant] + [portal]
+	## entry and portal are fixed; inner slots are shuffled from available.
+
 	var normal_ids: Array[String] = []
 	for bid: String in available:
-		if bid != merchant_id:
+		if bid != merchant_id and bid != entry_id and bid != portal_id:
 			normal_ids.append(bid)
 
 	if normal_ids.is_empty():
 		push_error("[BlockManager] No normal block IDs available")
 		return []
 
-	var sequence: Array[String] = []
-	var merchant_slot: int = -1
-	if merchant_id != "":
-		merchant_slot = clampi(int(count * merchant_depth), 1, count - 2)
+	## How many inner (shuffled) slots exist
+	var inner_count: int = count
+	if entry_id != "":
+		inner_count -= 1
+	if portal_id != "":
+		inner_count -= 1
+	inner_count = maxi(inner_count, 0)
 
-	var prev_id: String = ""
-	for i in range(count):
+	## Merchant goes at a fixed inner slot index (avoid slot 0 = right after entry)
+	var merchant_slot: int = -1
+	if merchant_id != "" and inner_count > 2:
+		merchant_slot = clampi(int(inner_count * merchant_depth), 1, inner_count - 2)
+
+	var sequence: Array[String] = []
+
+	## Entry always first
+	if entry_id != "":
+		sequence.append(entry_id)
+
+	## Shuffle inner slots
+	var prev_id: String = entry_id
+	for i in range(inner_count):
 		if i == merchant_slot:
 			sequence.append(merchant_id)
 			prev_id = merchant_id
@@ -194,7 +223,7 @@ func _build_block_sequence(available: Array[String], count: int,
 			candidates = normal_ids.duplicate()
 
 		var chosen: String = candidates[randi() % candidates.size()]
-		# Weight Open variant higher in first 3 blocks
+		## Weight Open variants higher in first 3 inner slots
 		if i < 3 and normal_ids.size() > 1:
 			var open_id: String = ""
 			for nid: String in candidates:
@@ -206,6 +235,10 @@ func _build_block_sequence(available: Array[String], count: int,
 
 		sequence.append(chosen)
 		prev_id = chosen
+
+	## Portal always last
+	if portal_id != "":
+		sequence.append(portal_id)
 
 	return sequence
 

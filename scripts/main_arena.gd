@@ -284,23 +284,31 @@ func _setup_ldtk_level() -> void:
 
 func _setup_ldtk_descent() -> void:
 	## Build a block-based vertical descent for the current level.
+	## Sequence: [Entry] + [8 shuffled inner] + [Portal] = 10 total.
+	## Entry and Portal are fixed; inner slots shuffle from the normal pool.
 	const LDTK_PATH: String = "res://assets/Maps/Levels/Level 1 - Caves.ldtk"
 	const BLOCK_COUNT: int = 10
 
+	## Fixed bookend blocks — never shuffled
+	const ENTRY_BLOCK_ID: String = "Block_Caves_00_Entry"
+	const PORTAL_BLOCK_ID: String = "Block_Caves_09_Portal"
+
+	## Inner shuffled pool (add more variants here as they're authored)
 	var normal_block_ids: Array[String] = [
 		"Block_Caves_01_Open",
 		"Block_Caves_02_Pillars",
 		"Block_Caves_03_Choke",
 		"Block_Caves_04_Split",
 	]
-	var merchant_block_id: String = "Block_Caves_05_Merchant"
+	const MERCHANT_BLOCK_ID: String = "Block_Caves_05_Merchant"
 
 	_block_manager = BlockManager.new()
 	_block_manager.name = "BlockManager"
 	add_child(_block_manager)
 
 	var result: Dictionary = _block_manager.build_descent(
-		LDTK_PATH, BLOCK_COUNT, normal_block_ids, merchant_block_id, 0.5)
+		LDTK_PATH, BLOCK_COUNT, normal_block_ids,
+		ENTRY_BLOCK_ID, PORTAL_BLOCK_ID, MERCHANT_BLOCK_ID, 0.5)
 
 	if not result.ok:
 		push_error("[MainArena] Descent build failed: %s" % str(result.errors))
