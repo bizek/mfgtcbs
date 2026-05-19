@@ -16,6 +16,7 @@ var player_ref: Node2D = null
 var _panel: Control        ## Root panel container
 var _god_btn: Button       ## Kept for live label/colour updates
 var _debug_draw_btn: Button
+var _block_debug_btn: Button
 
 func _ready() -> void:
 	layer = 127  ## Above everything in-game, below nothing
@@ -40,7 +41,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_F5: _cmd_spawn_test_telegraph()
 		KEY_F6: _cmd_spawn_miniboss()
 		KEY_F7: _cmd_spawn_final_boss()
-		KEY_F9: _cmd_toggle_block_debug()
 
 func _toggle_panel() -> void:
 	_panel.visible = not _panel.visible
@@ -103,6 +103,7 @@ func _build_panel() -> void:
 		["God Mode: OFF",        _cmd_god_mode],
 		["Kill All Enemies",     _cmd_kill_all],
 		["Debug Draw: OFF",      _cmd_toggle_debug_draw],
+		["Block Overlay: OFF",   _cmd_toggle_block_debug],
 	]
 
 	for d in defs:
@@ -116,6 +117,8 @@ func _build_panel() -> void:
 			_god_btn = btn
 		if d[0].begins_with("Debug Draw"):
 			_debug_draw_btn = btn
+		if d[0].begins_with("Block Overlay"):
+			_block_debug_btn = btn
 
 	## ── Enemy spawn section ───────────────────────────────────────────────────
 	var sep2 := HSeparator.new()
@@ -148,7 +151,7 @@ func _build_panel() -> void:
 
 	## Hotkey hint strip
 	var hints := Label.new()
-	hints.text = "F2=God F3=Lvl F4=Ext F9=Blocks"
+	hints.text = "F2=God F3=Lvl F4=Ext"
 	hints.add_theme_font_size_override("font_size", 9)
 	hints.modulate = Color(0.55, 0.55, 0.55)
 	vbox.add_child(hints)
@@ -306,3 +309,7 @@ func _cmd_toggle_block_debug() -> void:
 	var bm: BlockManager = arena.get_node_or_null("BlockManager")
 	if bm != null:
 		bm.toggle_debug_overlay()
+		if _block_debug_btn:
+			var on: bool = bm._debug_overlay_visible
+			_block_debug_btn.text = "Block Overlay: " + ("ON" if on else "OFF")
+			_block_debug_btn.modulate = Color(0.3, 1.0, 0.3) if on else Color.WHITE
