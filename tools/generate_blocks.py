@@ -32,9 +32,9 @@ FIELD_SPAWN_PHASE = 609
 FIELD_SPAWN_DENSITY = 610
 FIELD_SPAWN_POOL = 611
 FIELD_SPAWN_MIN_DIST = 612
-FIELD_MARKER_TAG = 618
-FIELD_MARKER_ID = 619
-FIELD_MARKER_PAYLOAD = 620
+FIELD_MARKER_TAG = 619
+FIELD_MARKER_ID = 620
+FIELD_MARKER_PAYLOAD = 621
 FIELD_EXTRACT_KIND = 604
 FIELD_EXTRACT_RADIUS = 605
 FIELD_EXTRACT_CHANNEL = 606
@@ -296,7 +296,7 @@ def make_block_level(name, variant, level_uid, world_x):
 
 
 def main():
-    with open(PROJECT_PATH, "r") as f:
+    with open(PROJECT_PATH, "r", encoding="utf-8") as f:
         project = json.load(f)
 
     blocks = [
