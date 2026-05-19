@@ -46,6 +46,13 @@ var _extraction_locked_blink_t: float = 0.0
 var _instability_bar_fill: ColorRect = null
 var _instability_tier_label: Label = null
 var _instability_bg_ext: ColorRect = null  ## Extension of TopLeftBG for extra height
+## ── Depth meter (descent mode, left edge below instability) ──────────────────
+var _depth_tracker: DepthTracker = null
+var _depth_meter_root: Control = null
+var _depth_fill: ColorRect = null
+var _depth_tween: Tween = null
+var _depth_tweened_to: float = 0.0
+var _depth_tick_nodes: Array[Control] = []
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -78,6 +85,7 @@ func _ready() -> void:
 	_build_extraction_warning_label()
 	_build_extraction_locked_label()
 	_build_instability_meter()
+	_build_depth_meter()
 	_build_combo_discovery_popup()
 	GameManager.phase_started.connect(_on_phase_started)
 
@@ -142,6 +150,18 @@ func _process(delta: float) -> void:
 			_extraction_warning_label.visible = fmod(_blink_timer, 1.0) > 0.5
 		else:
 			_extraction_warning_label.visible = false
+
+	## Depth meter — tween fill bar when progress advances
+	if _depth_tracker != null and _depth_fill != null:
+		var target: float = _depth_tracker.depth_progress
+		if target > _depth_tweened_to + 0.001:
+			_depth_tweened_to = target
+			if _depth_tween != null:
+				_depth_tween.kill()
+			const METER_H: float = 200.0
+			_depth_tween = create_tween()
+			_depth_tween.tween_property(_depth_fill, "size:y",
+				METER_H * target, 0.3).set_ease(Tween.EASE_OUT)
 
 func _on_health_changed(current: float, maximum: float) -> void:
 	health_bar.max_value = maximum
@@ -527,6 +547,97 @@ func _build_instability_meter() -> void:
 		tier_lbl.add_theme_font_override("font", load(FONT_PATH))
 	add_child(tier_lbl)
 	_instability_tier_label = tier_lbl
+
+## ── Depth meter (descent mode) ───────────────────────────────────────────────
+
+func _build_depth_meter() -> void:
+	## Vertical fill bar on the left edge, below the instability meter.
+	## Hidden by default; shown via setup_depth_tracker().
+	## Viewport coords: x=2, y=90, 10px wide, 200px tall.
+	const MX: float = 2.0
+	const MY: float = 90.0
+	const MW: float = 10.0
+	const MH: float = 200.0
+	const FW: float = 6.0
+
+	var root := Control.new()
+	root.name = "DepthMeter"
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.visible = false
+	add_child(root)
+	_depth_meter_root = root
+
+	## Track background
+	var bg := ColorRect.new()
+	bg.color = Color(0.0, 0.0, 0.0, 0.55)
+	bg.position = Vector2(MX, MY)
+	bg.size = Vector2(MW, MH)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(bg)
+
+	## Fill (grows downward)
+	var fill := ColorRect.new()
+	fill.color = Color(0.55, 0.38, 0.18)  ## cave amber
+	fill.position = Vector2(MX + 2.0, MY)
+	fill.size = Vector2(FW, 0.0)
+	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(fill)
+	_depth_fill = fill
+
+	## 100% marker — 2px red line at the base of the track
+	var end_marker := ColorRect.new()
+	end_marker.color = Color(0.85, 0.18, 0.12)
+	end_marker.position = Vector2(MX, MY + MH)
+	end_marker.size = Vector2(MW, 2.0)
+	end_marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(end_marker)
+
+
+func setup_depth_tracker(tracker: DepthTracker) -> void:
+	_depth_tracker = tracker
+	_depth_tweened_to = 0.0
+	if _depth_meter_root != null:
+		_depth_meter_root.visible = true
+	if _depth_fill != null:
+		_depth_fill.size.y = 0.0
+
+
+func set_depth_event_ticks(ticks: Array[Dictionary]) -> void:
+	## Place small tick marks on the depth meter for event locations.
+	## Each dict needs: { percent: float, type: String }.
+	## Clears previous ticks first.
+	for node: Control in _depth_tick_nodes:
+		if is_instance_valid(node):
+			node.queue_free()
+	_depth_tick_nodes.clear()
+
+	if _depth_meter_root == null:
+		return
+
+	const MX: float = 2.0
+	const MY: float = 90.0
+	const MW: float = 10.0
+	const MH: float = 200.0
+
+	var type_colors: Dictionary = {
+		"merchant": Color(1.0, 0.85, 0.1),
+		"altar": Color(0.7, 0.2, 1.0),
+		"any": Color(0.5, 0.9, 0.5),
+	}
+
+	for tick: Dictionary in ticks:
+		var pct: float = clampf(float(tick.get("percent", 0.0)), 0.0, 1.0)
+		var type_key: String = str(tick.get("type", "any"))
+		var col: Color = type_colors.get(type_key, Color(0.7, 0.7, 0.7))
+
+		var dot := ColorRect.new()
+		dot.color = col
+		dot.position = Vector2(MX + MW, MY + pct * MH - 1.0)
+		dot.size = Vector2(3.0, 3.0)
+		dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_depth_meter_root.add_child(dot)
+		_depth_tick_nodes.append(dot)
+
 
 func _on_phase_started(phase: int) -> void:
 	## Update the persistent phase strip

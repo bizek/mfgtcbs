@@ -40,6 +40,7 @@ var _ldtk_loader: LdtkLoader = null
 var _ldtk_director: LdtkLevelDirector = null
 var _ldtk_exit: LdtkExitZone = null
 var _block_manager: BlockManager = null
+var _depth_tracker: DepthTracker = null
 
 
 func _ready() -> void:
@@ -343,6 +344,13 @@ func _setup_ldtk_descent() -> void:
 	_ldtk_exit.name = "LdtkExitZone"
 	add_child(_ldtk_exit)
 	_ldtk_exit.setup(result.portal_pos, true)
+
+	## Depth tracker — reads block bounds, drives HUD depth meter
+	_depth_tracker = DepthTracker.new()
+	_depth_tracker.name = "DepthTracker"
+	add_child(_depth_tracker)
+	_depth_tracker.setup(_block_manager, player)
+	hud.setup_depth_tracker(_depth_tracker)
 
 
 func _on_ldtk_boss_should_spawn(boss_id: String, spawn_pos: Vector2) -> void:
