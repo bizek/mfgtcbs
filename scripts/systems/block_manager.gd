@@ -180,9 +180,13 @@ func _load_block(ldtk_path: String, block_id: String, slot: int) -> Dictionary:
 	if BlockManager._block_scene_cache.has(block_id):
 		var entry: Dictionary = BlockManager._block_scene_cache[block_id]
 		var node: Node2D = (entry.packed as PackedScene).instantiate() as Node2D
-		node.name = "Block_%d" % slot
-		add_child(node)
-		return {node = node, result = entry.result, from_cache = true}
+		if node != null:
+			node.name = "Block_%d" % slot
+			add_child(node)
+			return {node = node, result = entry.result, from_cache = true}
+		## Instantiation failed — evict and fall through to full load
+		BlockManager._block_scene_cache.erase(block_id)
+		push_warning("[BlockManager] Cache instantiation failed for '%s', reloading." % block_id)
 
 	var loader := LdtkLoader.new()
 	loader.name = "Block_%d" % slot
@@ -192,9 +196,14 @@ func _load_block(ldtk_path: String, block_id: String, slot: int) -> Dictionary:
 		loader.queue_free()
 		return {}
 
+	## Detach the LdtkLoader script before packing — typed Array[Node] vars on the
+	## script don't survive PackedScene round-trips, leaving tiles blank on cache hits.
+	## Detaching leaves a plain Node2D with TileMapLayer/StaticBody2D children intact.
+	loader.set_script(null)
 	var packed := PackedScene.new()
-	packed.pack(loader)
-	BlockManager._block_scene_cache[block_id] = {packed = packed, result = result.duplicate(true)}
+	if packed.pack(loader) == OK:
+		BlockManager._block_scene_cache[block_id] = {packed = packed, result = result.duplicate(true)}
+
 	return {node = loader, result = result, from_cache = false}
 
 
