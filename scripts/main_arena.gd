@@ -345,6 +345,12 @@ func _setup_ldtk_descent() -> void:
 		_camera.limit_top = 0
 		_camera.limit_bottom = int(result.total_height)
 
+	## Expand projectile bounds to cover the full descent world
+	if orchestrator and orchestrator.projectile_manager:
+		orchestrator.projectile_manager.set_world_bounds(
+			Vector2(-50.0, -50.0),
+			Vector2(result.level_width + 50.0, result.total_height + 50.0))
+
 	## Register spawn zones with EnemySpawnManager
 	_block_manager.register_spawn_zones_with(EnemySpawnManager)
 
