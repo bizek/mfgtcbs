@@ -31,6 +31,10 @@ var _portal_pos: Vector2 = Vector2.ZERO
 var _debug_overlay_visible: bool = false
 var _debug_draw_node: Node2D = null
 
+## Persistent across descent runs — keyed by block_id.
+## First run loads + packs; subsequent runs instantiate instantly.
+static var _block_scene_cache: Dictionary = {}
+
 
 func build_descent(ldtk_project_path: String, desired_block_count: int,
 		available_block_ids: Array[String],
@@ -55,15 +59,13 @@ func build_descent(ldtk_project_path: String, desired_block_count: int,
 
 	for i in range(sequence.size()):
 		var block_id: String = sequence[i]
-		var loader := LdtkLoader.new()
-		loader.name = "Block_%d" % i
-		add_child(loader)
-
-		var result: Dictionary = loader.load_level(ldtk_project_path, block_id)
-		if not result.ok:
-			errors.append("Block %d (%s) failed: %s" % [i, block_id, str(result.errors)])
-			loader.queue_free()
+		var loaded: Dictionary = _load_block(ldtk_project_path, block_id, i)
+		if loaded.is_empty():
+			errors.append("Block %d (%s) failed to load" % [i, block_id])
 			continue
+
+		var loader: Node2D = loaded.node
+		var result: Dictionary = loaded.result
 
 		for w: String in result.warnings:
 			warnings.append("Block %d: %s" % [i, w])
@@ -108,7 +110,8 @@ func build_descent(ldtk_project_path: String, desired_block_count: int,
 			_extractions_collected.append(offset_ext)
 
 		y_offset += block_h
-		await get_tree().process_frame
+		if not loaded.get("from_cache", false):
+			await get_tree().process_frame
 
 	total_height = y_offset
 
@@ -171,6 +174,28 @@ func toggle_debug_overlay() -> void:
 	if _debug_draw_node != null:
 		_debug_draw_node.visible = _debug_overlay_visible
 		_debug_draw_node.queue_redraw()
+
+
+func _load_block(ldtk_path: String, block_id: String, slot: int) -> Dictionary:
+	if BlockManager._block_scene_cache.has(block_id):
+		var entry: Dictionary = BlockManager._block_scene_cache[block_id]
+		var node: Node2D = (entry.packed as PackedScene).instantiate() as Node2D
+		node.name = "Block_%d" % slot
+		add_child(node)
+		return {node = node, result = entry.result, from_cache = true}
+
+	var loader := LdtkLoader.new()
+	loader.name = "Block_%d" % slot
+	add_child(loader)
+	var result: Dictionary = loader.load_level(ldtk_path, block_id)
+	if not result.ok:
+		loader.queue_free()
+		return {}
+
+	var packed := PackedScene.new()
+	packed.pack(loader)
+	BlockManager._block_scene_cache[block_id] = {packed = packed, result = result.duplicate(true)}
+	return {node = loader, result = result, from_cache = false}
 
 
 func _build_block_sequence(available: Array[String], count: int,
