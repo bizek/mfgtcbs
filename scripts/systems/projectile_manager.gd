@@ -9,11 +9,19 @@ const POOL_SIZE := 256
 ## 8-direction names indexed by angle sector.
 const DIR_NAMES: Array[String] = ["e", "se", "s", "sw", "w", "nw", "n", "ne"]
 
-## World bounds for expiry (arena ±800 x ±600 with margin).
-const BOUNDS_MIN_X := -850.0
-const BOUNDS_MAX_X := 850.0
-const BOUNDS_MIN_Y := -650.0
-const BOUNDS_MAX_Y := 650.0
+## World bounds for expiry. Defaults to arena ±800 x ±600 with margin.
+## Call set_world_bounds() when entering descent mode.
+var BOUNDS_MIN_X := -850.0
+var BOUNDS_MAX_X := 850.0
+var BOUNDS_MIN_Y := -650.0
+var BOUNDS_MAX_Y := 650.0
+
+
+func set_world_bounds(min_pos: Vector2, max_pos: Vector2) -> void:
+	BOUNDS_MIN_X = min_pos.x
+	BOUNDS_MIN_Y = min_pos.y
+	BOUNDS_MAX_X = max_pos.x
+	BOUNDS_MAX_Y = max_pos.y
 
 var spatial_grid: SpatialGrid
 var combat_manager: Node2D
