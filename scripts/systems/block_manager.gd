@@ -36,6 +36,25 @@ var _debug_draw_node: Node2D = null
 static var _block_scene_cache: Dictionary = {}
 
 
+## Call from the hub _ready() in debug mode to warm the cache in the background
+## so the first descent is instant. block_ids should include all bookend + pool IDs.
+static func prewarm(ldtk_path: String, block_ids: Array[String], host: Node) -> void:
+	var warmer := BlockManager.new()
+	warmer.name = "_BlockCacheWarmer"
+	host.add_child(warmer)
+	warmer._prewarm_async(ldtk_path, block_ids)
+
+
+func _prewarm_async(ldtk_path: String, block_ids: Array[String]) -> void:
+	for i: int in range(block_ids.size()):
+		var bid: String = block_ids[i]
+		if not BlockManager._block_scene_cache.has(bid):
+			var loaded: Dictionary = _load_block(ldtk_path, bid, i)
+			if not loaded.is_empty():
+				await get_tree().process_frame
+	queue_free()
+
+
 func build_descent(ldtk_project_path: String, desired_block_count: int,
 		available_block_ids: Array[String],
 		entry_block_id: String = "",
