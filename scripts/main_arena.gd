@@ -112,7 +112,7 @@ func _ready() -> void:
 			and GameManager.current_level == 1
 	_using_descent = _using_ldtk and GameManager.use_descent_mode
 	if _using_descent:
-		_setup_ldtk_descent()
+		await _setup_ldtk_descent()
 	elif _using_ldtk:
 		_setup_ldtk_level()
 	else:
@@ -306,7 +306,7 @@ func _setup_ldtk_descent() -> void:
 	_block_manager.name = "BlockManager"
 	add_child(_block_manager)
 
-	var result: Dictionary = _block_manager.build_descent(
+	var result: Dictionary = await _block_manager.build_descent(
 		LDTK_PATH, BLOCK_COUNT, normal_block_ids,
 		ENTRY_BLOCK_ID, PORTAL_BLOCK_ID, MERCHANT_BLOCK_ID, 0.5)
 

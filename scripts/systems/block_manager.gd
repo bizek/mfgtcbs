@@ -108,6 +108,7 @@ func build_descent(ldtk_project_path: String, desired_block_count: int,
 			_extractions_collected.append(offset_ext)
 
 		y_offset += block_h
+		await get_tree().process_frame
 
 	total_height = y_offset
 
