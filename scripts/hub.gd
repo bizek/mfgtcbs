@@ -86,22 +86,6 @@ func _ready() -> void:
 	_build_stations()
 	_build_player()
 	_build_ui()
-	if GameManager.debug_mode:
-		_prewarm_descent_cache()
-
-
-func _prewarm_descent_cache() -> void:
-	const LDTK_PATH: String = "res://assets/Maps/Levels/Level 1 - Caves.ldtk"
-	var all_ids: Array[String] = [
-		"Block_Caves_00_Entry",
-		"Block_Caves_01_Open",
-		"Block_Caves_02_Pillars",
-		"Block_Caves_03_Choke",
-		"Block_Caves_04_Split",
-		"Block_Caves_05_Merchant",
-		"Block_Caves_09_Portal",
-	]
-	BlockManager.prewarm(LDTK_PATH, all_ids, self)
 
 # ── Room ──────────────────────────────────────────────────────────────────────
 
