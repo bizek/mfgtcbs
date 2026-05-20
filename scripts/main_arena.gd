@@ -287,7 +287,7 @@ func _setup_ldtk_descent() -> void:
 	## Sequence: [Entry] + [8 shuffled inner] + [Portal] = 10 total.
 	## Entry and Portal are fixed; inner slots shuffle from the normal pool.
 	const LDTK_PATH: String = "res://assets/Maps/Levels/Level 1 - Caves.ldtk"
-	const BLOCK_COUNT: int = 10
+	const BLOCK_COUNT: int = 6  ## TODO: raise to 10 when all blocks are painted
 
 	## Fixed bookend blocks — never shuffled
 	const ENTRY_BLOCK_ID: String = "Block_Caves_00_Entry"

@@ -226,7 +226,12 @@ func _warn(result: Dictionary, msg: String) -> void:
 
 # ─── JSON / project indexing ──────────────────────────────────────────────────
 
+## Project JSON cache — avoids re-reading the same file for every block in a descent.
+static var _project_cache: Dictionary = {}
+
 func _read_json(path: String, result: Dictionary) -> Dictionary:
+	if LdtkLoader._project_cache.has(path):
+		return LdtkLoader._project_cache[path]
 	var f := FileAccess.open(path, FileAccess.READ)
 	if f == null:
 		_fatal(result, "Could not open '%s' (err=%d)." % [path, FileAccess.get_open_error()])
@@ -237,6 +242,7 @@ func _read_json(path: String, result: Dictionary) -> Dictionary:
 	if typeof(parsed) != TYPE_DICTIONARY:
 		_fatal(result, "Failed to parse JSON at '%s'." % path)
 		return {}
+	LdtkLoader._project_cache[path] = parsed
 	return parsed
 
 
