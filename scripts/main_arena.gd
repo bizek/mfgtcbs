@@ -42,6 +42,7 @@ var _ldtk_exit: LdtkExitZone = null
 var _block_manager: BlockManager = null
 var _depth_tracker: DepthTracker = null
 var _event_spawn_manager: EventSpawnManager = null
+var _depth_canvas_mod: CanvasModulate = null
 
 
 func _ready() -> void:
@@ -184,6 +185,14 @@ func _process(delta: float) -> void:
 	# Extraction proximity checks
 	if _sacrifice == null or not _sacrifice.is_ui_open():
 		_check_extraction_zones(ppos)
+
+	# Depth atmosphere — lerp world modulate darker as player descends
+	if _depth_canvas_mod != null and _depth_tracker != null:
+		var t: float = _depth_tracker.depth_progress
+		_depth_canvas_mod.color = Color(
+			lerpf(1.0, 0.30, t),
+			lerpf(1.0, 0.25, t),
+			lerpf(1.0, 0.40, t))
 
 
 func _register_new_enemies() -> void:
@@ -373,6 +382,12 @@ func _setup_ldtk_descent() -> void:
 	add_child(_event_spawn_manager)
 	_event_spawn_manager.setup(_block_manager, player, self)
 	hud.set_depth_event_ticks(_event_spawn_manager.get_event_depths())
+
+	## Depth atmosphere — world darkens as player descends (CanvasLayer HUD is unaffected).
+	_depth_canvas_mod = CanvasModulate.new()
+	_depth_canvas_mod.name = "DepthCanvasModulate"
+	_depth_canvas_mod.color = Color(1.0, 1.0, 1.0)
+	add_child(_depth_canvas_mod)
 
 
 func _on_ldtk_boss_should_spawn(boss_id: String, spawn_pos: Vector2) -> void:

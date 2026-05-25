@@ -82,6 +82,7 @@ func _process(_delta: float) -> void:
 
 	if player_inside and not _channeling and not ExtractionManager.is_channeling:
 		_channeling = true
+		GameManager.open_extraction_window_immediate()
 		ExtractionManager.start_channel()
 	elif not player_inside and _channeling:
 		_channeling = false

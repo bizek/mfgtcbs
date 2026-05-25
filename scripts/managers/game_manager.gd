@@ -331,6 +331,12 @@ func get_instability_multiplier() -> float:
 func get_instability_elite_bonus() -> float:
 	return get_instability_tier().elite_bonus
 
+## Called by the descent portal to open the extraction window regardless of phase timer.
+func open_extraction_window_immediate() -> void:
+	if extraction_window_active or current_state != GameState.RUN_ACTIVE:
+		return
+	_open_extraction_window()
+
 func _open_extraction_window() -> void:
 	extraction_window_active = true
 	extraction_window_timer = extraction_window_duration
