@@ -585,14 +585,17 @@ func _on_entity_killed(killer: Node, victim: Node) -> void:
 	var is_elite: bool = victim.get("is_elite") == true
 	var phase: int = GameManager.phase_number
 
-	## Bonus drops for bosses — two extras, spread in a small arc around the body.
-	if victim.is_in_group("bosses"):
-		var bonus_count: int = 3 if victim.is_in_group("final_boss") else 2
-		for i in range(bonus_count):
-			var ang: float = TAU * float(i) / float(bonus_count) + randf() * 0.4
+	## Boss reward payouts.
+	if victim.is_in_group("final_boss"):
+		## Final boss — signature loot explosion (see _award_final_boss_rewards).
+		_award_final_boss_rewards(pos)
+		return
+	elif victim.is_in_group("bosses"):
+		## Miniboss — two bonus drops spread in a small arc around the body.
+		for i in range(2):
+			var ang: float = TAU * float(i) / 2.0 + randf() * 0.4
 			var offset := Vector2(cos(ang), sin(ang)) * 24.0
-			var rarity_phase: int = clampi(phase + 1, 1, 5)
-			var rarity: String = LootTables.roll_rarity(rarity_phase)
+			var rarity: String = LootTables.roll_rarity(clampi(phase + 1, 1, 5))
 			if randf() < 0.5:
 				_spawn_weapon_drop(pos + offset, rarity)
 			else:
@@ -661,6 +664,66 @@ func _spawn_weapon_drop(pos: Vector2, rarity: String = "common") -> void:
 	pickup.rarity          = rarity
 	pickup.global_position = pos
 	add_child(pickup)
+
+## ── Final boss reward payout ─────────────────────────────────────────────────
+
+const FINAL_BOSS_UNIQUE_MOD: String = "abyssal_pull"
+const FINAL_BOSS_SPRAY_COUNT: int = 4
+const FINAL_BOSS_CURRENCY_MIN: int = 500
+const FINAL_BOSS_CURRENCY_MAX: int = 900
+
+func _award_final_boss_rewards(pos: Vector2) -> void:
+	## Signature loot explosion for The Heart of the Deep. Everything is carry-out —
+	## the player must survive to the portal and extract to keep any of it.
+	##  • A 4-item spray of weapons/mods, rarity scaled by current Instability (risk).
+	##  • First clear (unique not yet owned) → guaranteed boss-exclusive unique mod.
+	##  • Repeat clears (already own it) → a hefty resource drop instead.
+	var inst: float = GameManager.instability
+
+	for i in range(FINAL_BOSS_SPRAY_COUNT):
+		var ang: float = TAU * float(i) / float(FINAL_BOSS_SPRAY_COUNT) + randf() * 0.4
+		var offset := Vector2(cos(ang), sin(ang)) * 30.0
+		var rarity: String = LootTables.roll_rarity_for_instability(inst)
+		if randf() < 0.5:
+			_spawn_weapon_drop(pos + offset, rarity)
+		else:
+			_spawn_mod_drop(pos + offset, rarity)
+
+	if _player_owns_mod(FINAL_BOSS_UNIQUE_MOD):
+		var amount: int = randi_range(FINAL_BOSS_CURRENCY_MIN, FINAL_BOSS_CURRENCY_MAX)
+		_spawn_resource_reward(pos, float(amount))
+	else:
+		_spawn_specific_mod_drop(pos, FINAL_BOSS_UNIQUE_MOD, "legendary")
+
+
+func _player_owns_mod(mod_id: String) -> bool:
+	## "Owns" = banked in inventory OR currently equipped on a weapon. Equipping moves
+	## a mod out of owned_mods into weapon_mods, so both must be checked.
+	if ProgressionManager.owned_mods.has(mod_id):
+		return true
+	for equipped: Variant in ProgressionManager.weapon_mods.values():
+		if equipped is Array and (equipped as Array).has(mod_id):
+			return true
+	return false
+
+
+func _spawn_specific_mod_drop(pos: Vector2, mod_id: String, rarity: String) -> void:
+	if not ModData.ALL.has(mod_id):
+		return
+	var pickup: Area2D = ModPickupScript.new()
+	pickup.mod_id          = mod_id
+	pickup.rarity          = rarity
+	pickup.global_position = pos
+	add_child(pickup)
+
+
+func _spawn_resource_reward(pos: Vector2, amount: float) -> void:
+	var drop: Area2D = LootDropScene.instantiate()
+	drop.global_position = pos
+	drop.value = amount
+	drop.size = "large"
+	add_child(drop)
+
 
 func _shake_camera(intensity: float = 3.0, duration: float = 0.12) -> void:
 	if _camera == null or not is_instance_valid(_camera):

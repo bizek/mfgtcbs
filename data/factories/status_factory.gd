@@ -11,6 +11,7 @@ static var frozen: StatusEffectDefinition
 static var shocked: StatusEffectDefinition
 static var void_touched: StatusEffectDefinition
 static var shade_invisible: StatusEffectDefinition
+static var abyssal_slow: StatusEffectDefinition  ## The Deep's Pull: void wake slow
 
 ## Trigger-based upgrade effects (passive statuses on player)
 static var bloodthirst: StatusEffectDefinition
@@ -59,6 +60,7 @@ static func build_all() -> void:
 	shocked = _build_shocked()
 	void_touched = _build_void_touched()
 	shade_invisible = _build_shade_invisible()
+	abyssal_slow = _build_abyssal_slow()
 
 	bloodthirst = _build_bloodthirst()
 	static_discharge = _build_static_discharge()
@@ -104,6 +106,8 @@ static func get_by_id(status_id: String) -> StatusEffectDefinition:
 			return shocked
 		"void_touched":
 			return void_touched
+		"abyssal_slow":
+			return abyssal_slow
 		"shade_invisible":
 			return shade_invisible
 		"bloodthirst":
@@ -300,6 +304,27 @@ static func _build_shocked() -> StatusEffectDefinition:
 	conductor_listener.conditions = [target_is_self]
 	conductor_listener.effects = [chain_dmg, chain_consume]
 	def.trigger_listeners = [conductor_listener]
+
+	return def
+
+
+static func _build_abyssal_slow() -> StatusEffectDefinition:
+	## The Deep's Pull void wake: -30% move speed for 1.5s. Single stack, refreshes.
+	## Distinct from Chilled (no Frozen escalation, Void-tagged).
+	var def := StatusEffectDefinition.new()
+	def.status_id = "abyssal_slow"
+	def.tags = ["Void", "CC"]
+	def.is_positive = false
+	def.max_stacks = 1
+	def.base_duration = 1.5
+	def.duration_refresh_mode = "overwrite"
+
+	var slow_mod := ModifierDefinition.new()
+	slow_mod.target_tag = "move_speed"
+	slow_mod.operation = "bonus"
+	slow_mod.value = -0.30
+	slow_mod.source_name = "abyssal_slow"
+	def.modifiers = [slow_mod]
 
 	return def
 

@@ -123,6 +123,17 @@ static func roll_rarity(phase: int) -> String:
 	return "common"
 
 
+static func roll_rarity_for_instability(instability: float) -> String:
+	## Rarity weighted by instability tier instead of phase — used for boss rewards
+	## in descent mode, where phase_number is time-based rather than earned.
+	## Higher instability (more risk carried) → better rarity floor.
+	var tier: Dictionary = get_instability_tier(instability)
+	var effective_phase: int = {
+		"STABLE": 2, "UNSETTLED": 3, "VOLATILE": 4, "CRITICAL": 5,
+	}.get(tier.get("name", "UNSETTLED"), 3)
+	return roll_rarity(effective_phase)
+
+
 static func roll_resource_size(phase: int) -> String:
 	## Weighted random resource size based on current phase.
 	var weights: Dictionary = RESOURCE_SIZE_WEIGHTS.get(clampi(phase, 1, 5), RESOURCE_SIZE_WEIGHTS[1])

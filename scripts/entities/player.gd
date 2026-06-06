@@ -338,7 +338,8 @@ func _on_auto_attack(ability: AbilityDefinition, targets: Array) -> void:
 	for effect in ability.effects:
 		if effect is SpawnProjectilesEffect:
 			effect.count = proj_count
-			effect.projectile.pierce_count = _base_proj_pierce + pierce_bonus
+			## -1 = pierce-all (e.g. The Deep's Pull); never downgrade it with a finite bonus.
+			effect.projectile.pierce_count = -1 if _base_proj_pierce == -1 else _base_proj_pierce + pierce_bonus
 			effect.projectile.visual_scale = _base_proj_scale * size_mult
 			effect.projectile.hit_radius   = _base_proj_hit_radius * size_mult
 	## Beam: sync live projectile_count → targeting so next resolve picks up multi-beam

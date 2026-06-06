@@ -280,6 +280,13 @@ static func _build_orbit_weapon(weapon_id: String, data: Dictionary,
 				aoe.base_damage = base_dmg * params.get("damage_mult", 0.3)
 				aoe.aoe_radius  = params.get("radius", 40.0)
 				ability.effects.append(aoe)
+			"deep_pull":
+				var slow_def: StatusEffectDefinition = StatusFactory.get_by_id("abyssal_slow")
+				if slow_def:
+					var slow_apply := ApplyStatusEffectData.new()
+					slow_apply.status = slow_def
+					slow_apply.stacks = 1
+					ability.effects.append(slow_apply)
 
 	return ability
 
@@ -406,9 +413,15 @@ static func _build_projectile_config(data: Dictionary, mods: Array) -> Projectil
 		var params: Dictionary = mod_data.get("params", {})
 		match mod_data.get("effect_type", ""):
 			"pierce":
-				config.pierce_count = maxi(config.pierce_count, params.get("pierce_count", 3))
+				## Don't downgrade an existing pierce-all (-1) to a finite count.
+				if config.pierce_count != -1:
+					config.pierce_count = maxi(config.pierce_count, params.get("pierce_count", 3))
 			"gravity":
 				config.motion_type = "homing"
+			"deep_pull":
+				## The Deep's Pull (boss unique): curve into enemies + pierce all.
+				config.motion_type = "homing"
+				config.pierce_count = -1
 			"size":
 				config.visual_scale *= params.get("size_mult", 1.5)
 			"ricochet":
@@ -483,6 +496,14 @@ static func _add_projectile_mod_effects(config: ProjectileConfig, mods: Array) -
 				apply.status = StatusFactory.bleed
 				apply.stacks = 1
 				config.on_hit_effects.append(apply)
+			"deep_pull":
+				## Void wake: slow every enemy the piercing projectile passes through.
+				var slow_def: StatusEffectDefinition = StatusFactory.get_by_id("abyssal_slow")
+				if slow_def:
+					var slow_apply := ApplyStatusEffectData.new()
+					slow_apply.status = slow_def
+					slow_apply.stacks = 1
+					config.on_hit_effects.append(slow_apply)
 			"chain":
 				## Chain: deal damage to enemies near the hit target (AreaDamageEffect in
 				## on_hit_effects, centered on primary hit target, excluding that target).
@@ -533,6 +554,14 @@ static func _add_mod_on_hit_effects(ability: AbilityDefinition, mods: Array) -> 
 				aoe.base_damage = base_dmg * params.get("damage_mult", 0.3)
 				aoe.aoe_radius  = params.get("radius", 40.0)
 				ability.effects.append(aoe)
+			"deep_pull":
+				## Direct-hit weapons can't curve/pierce, but the void wake slow still applies.
+				var slow_def: StatusEffectDefinition = StatusFactory.get_by_id("abyssal_slow")
+				if slow_def:
+					var slow_apply := ApplyStatusEffectData.new()
+					slow_apply.status = slow_def
+					slow_apply.stacks = 1
+					ability.effects.append(slow_apply)
 
 
 static func _get_damage_type(data: Dictionary) -> String:

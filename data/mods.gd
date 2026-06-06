@@ -147,6 +147,19 @@ const ALL: Dictionary = {
 		"effect_type": "napalm",
 		"params": { "patch_damage": 5.0, "patch_duration": 10.0, "patch_radius": 30.0, "patch_count": 5 },
 	},
+	## ── Boss-exclusive uniques ──────────────────────────────────────────────
+	## NOT listed in ORDER → never appears in the random drop spray, debug
+	## "give all", or codex. Only the Heart of the Deep drops it. Still fully
+	## equippable: the armory lists mods from owned_mods and looks up ModData.ALL.
+	"abyssal_pull": {
+		"id": "abyssal_pull",
+		"name": "THE DEEP'S PULL",
+		"desc": "Heart of the Deep relic. Projectiles curve into enemies and pierce all, dragging a void wake that slows everything they pass through.",
+		"color": Color(0.45, 0.20, 0.75),
+		"effect_type": "deep_pull",
+		"exclusive": true,
+		"params": {},
+	},
 }
 
 ## Stable display order for armory / debug panels
