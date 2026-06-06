@@ -199,11 +199,12 @@ func _on_phase_started(phase: int) -> void:
 		_miniboss_spawned_this_phase = false
 	elif phase != 3:
 		_miniboss_spawn_delay = -1.0
-	## Arm final boss on Phase 5 entry
-	if phase == 5:
+	## Arm final boss on Phase 5 entry — but NOT in descent mode, where the boss is
+	## triggered by reaching the Portal block (see MainArena), not the phase timer.
+	if phase == 5 and not GameManager.use_descent_mode:
 		_final_boss_spawn_delay = FINAL_BOSS_SPAWN_DELAY
 		_final_boss_spawned_this_phase = false
-	elif phase != 5:
+	else:
 		_final_boss_spawn_delay = -1.0
 
 func _on_entity_killed_eb(killer: Node, victim: Node) -> void:
@@ -337,19 +338,26 @@ func _spawn_miniboss() -> void:
 	_spawn_boss_bypass_cap("warped_colossus", scene, _get_edge_spawn_position())
 
 func _spawn_final_boss() -> void:
-	## Phase 5 final boss — The Heart of the Deep. Spawns at arena center for drama.
-	## Reuses brute_scene; flips GameManager.final_boss_alive so extraction gates.
+	## Phase 5 final boss (classic arena) — spawns at arena center for drama.
+	spawn_final_boss_at(Vector2.ZERO)
+
+
+func spawn_final_boss_at(pos: Vector2) -> Node2D:
+	## Spawn The Heart of the Deep at a given world position. Reuses brute_scene;
+	## flips GameManager.final_boss_alive so extraction gates until it dies.
+	## Used by both the Phase 5 timer (classic) and the descent Portal trigger.
 	var scene: PackedScene = brute_scene
 	if scene == null:
-		return
+		return null
 	GameManager.final_boss_alive = true
-	var boss: Node2D = _spawn_boss_bypass_cap("heart_of_the_deep", scene, Vector2.ZERO)
+	var boss: Node2D = _spawn_boss_bypass_cap("heart_of_the_deep", scene, pos)
 	if boss != null:
 		var disp_name: String = "The Heart of the Deep"
 		var def: EnemyDefinition = _defs.get("heart_of_the_deep")
 		if def != null and def.enemy_name != "":
 			disp_name = def.enemy_name
 		GameManager.final_boss_spawned.emit(disp_name)
+	return boss
 
 
 ## Herald always spawns with a small pack of fodder or swarmers

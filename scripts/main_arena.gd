@@ -44,6 +44,11 @@ var _depth_tracker: DepthTracker = null
 var _event_spawn_manager: EventSpawnManager = null
 var _depth_canvas_mod: CanvasModulate = null
 
+## Descent climax — boss gate at the Portal block
+var _portal_block_index: int = -1
+var _descent_boss_spawn_pos: Vector2 = Vector2.ZERO
+var _descent_boss_spawned: bool = false
+
 
 func _ready() -> void:
 	# Build engine status effect definitions
@@ -296,7 +301,7 @@ func _setup_ldtk_descent() -> void:
 	## Sequence: [Entry] + [8 shuffled inner] + [Portal] = 10 total.
 	## Entry and Portal are fixed; inner slots shuffle from the normal pool.
 	const LDTK_PATH: String = "res://assets/Maps/Levels/Level 1 - Caves.ldtk"
-	const BLOCK_COUNT: int = 6  ## TODO: raise to 10 when all blocks are painted
+	const BLOCK_COUNT: int = 10  ## Entry + 8 shuffled inner (Merchant at ~50%) + Portal
 
 	## Fixed bookend blocks — never shuffled
 	const ENTRY_BLOCK_ID: String = "Block_Caves_00_Entry"
@@ -363,17 +368,32 @@ func _setup_ldtk_descent() -> void:
 	## Register spawn zones with EnemySpawnManager
 	_block_manager.register_spawn_zones_with(EnemySpawnManager)
 
-	## Exit zone at the portal position (bottom of descent)
+	## Exit zone at the portal position (bottom of descent).
+	## Locked until the descent boss is defeated — reaching the Portal block
+	## triggers the boss, and its death unlocks extraction (hard gate).
 	_ldtk_exit = LdtkExitZone.new()
 	_ldtk_exit.name = "LdtkExitZone"
 	add_child(_ldtk_exit)
-	_ldtk_exit.setup(result.portal_pos, true)
+	_ldtk_exit.setup(result.portal_pos, false)
+
+	## Boss climax — spawn The Heart of the Deep when the player reaches the
+	## Portal block (last block). The boss spawns in the block above the exit so
+	## the player has the descent column above as dodge room for its nova.
+	_portal_block_index = int(result.block_count) - 1
+	if not _block_manager.block_bounds.is_empty() and _portal_block_index >= 0:
+		var portal_bounds: Rect2 = _block_manager.block_bounds[_portal_block_index]
+		_descent_boss_spawn_pos = Vector2(
+			result.level_width * 0.5,
+			portal_bounds.position.y + portal_bounds.size.y * 0.4)
+	_descent_boss_spawned = false
+	GameManager.final_boss_defeated.connect(_on_descent_boss_defeated)
 
 	## Depth tracker — reads block bounds, drives HUD depth meter
 	_depth_tracker = DepthTracker.new()
 	_depth_tracker.name = "DepthTracker"
 	add_child(_depth_tracker)
 	_depth_tracker.setup(_block_manager, player)
+	_depth_tracker.block_entered.connect(_on_descent_block_entered)
 	hud.setup_depth_tracker(_depth_tracker)
 
 	## Event spawn manager — places Merchant and SummonAltar at block anchors
@@ -398,6 +418,22 @@ func _on_ldtk_boss_should_spawn(boss_id: String, spawn_pos: Vector2) -> void:
 
 
 func _on_ldtk_exit_should_unlock() -> void:
+	if _ldtk_exit != null:
+		_ldtk_exit.unlock()
+
+
+func _on_descent_block_entered(block_index: int) -> void:
+	## Trigger the descent boss the first time the player reaches the Portal block.
+	if _descent_boss_spawned:
+		return
+	if block_index < _portal_block_index:
+		return
+	_descent_boss_spawned = true
+	EnemySpawnManager.spawn_final_boss_at(_descent_boss_spawn_pos)
+
+
+func _on_descent_boss_defeated() -> void:
+	## Boss death unlocks the portal extraction (hard gate cleared).
 	if _ldtk_exit != null:
 		_ldtk_exit.unlock()
 
