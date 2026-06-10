@@ -360,6 +360,27 @@ func spawn_final_boss_at(pos: Vector2) -> Node2D:
 	return boss
 
 
+func spawn_named_boss_at(boss_id: String, pos: Vector2) -> Node2D:
+	## Spawn any registered boss by id at a world position, bypassing the active-enemy
+	## cap. Sets GameManager.final_boss_alive and emits final_boss_spawned for bosses
+	## whose EnemyDefinition.groups includes "final_boss".
+	var def: EnemyDefinition = _defs.get(boss_id)
+	if def == null:
+		push_warning("[EnemySpawnManager] spawn_named_boss_at: unknown boss_id '%s'" % boss_id)
+		return null
+	var scene: PackedScene = _get_scene_for_id(boss_id)
+	if scene == null:
+		push_warning("[EnemySpawnManager] spawn_named_boss_at: no scene mapped for '%s'" % boss_id)
+		return null
+	if def.groups.has("final_boss"):
+		GameManager.final_boss_alive = true
+	var boss: Node2D = _spawn_boss_bypass_cap(boss_id, scene, pos)
+	if boss != null and def.groups.has("final_boss"):
+		var disp_name: String = def.enemy_name if def.enemy_name != "" else boss_id
+		GameManager.final_boss_spawned.emit(disp_name)
+	return boss
+
+
 ## Herald always spawns with a small pack of fodder or swarmers
 func _spawn_herald_pack() -> void:
 	if active_enemies >= max_enemies or herald_scene == null:

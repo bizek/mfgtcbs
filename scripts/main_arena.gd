@@ -411,10 +411,31 @@ func _setup_ldtk_descent() -> void:
 
 
 func _on_ldtk_boss_should_spawn(boss_id: String, spawn_pos: Vector2) -> void:
-	## TODO: instantiate the boss scene at spawn_pos using EnemySpawnManager.
-	## For now, just log it; Level_0 is boss-less so this won't fire.
-	push_warning("[MainArena] boss_should_spawn: id='%s' pos=%s — boss scene wiring TBD" \
-			% [boss_id, spawn_pos])
+	## Fired by LdtkLevelDirector when the PreBoss kill quota is met.
+	## Descent boss spawning uses a separate path (_on_descent_block_entered).
+	if EnemyRegistry.get_def(boss_id) == null:
+		push_warning("[MainArena] boss_should_spawn: unknown boss_id '%s' — no boss spawned" % boss_id)
+		return
+	var bounds: Rect2 = _get_level_bounds()
+	var clamped_pos := Vector2(
+		clampf(spawn_pos.x, bounds.position.x, bounds.end.x),
+		clampf(spawn_pos.y, bounds.position.y, bounds.end.y))
+	if clamped_pos.distance_to(spawn_pos) > 1.0:
+		push_warning("[MainArena] boss_should_spawn: spawn_pos %s outside level bounds — clamped to %s" \
+				% [spawn_pos, clamped_pos])
+	EnemySpawnManager.spawn_named_boss_at(boss_id, clamped_pos)
+
+
+func _get_level_bounds() -> Rect2:
+	## Return the playable world rect for the current mode so spawn-position validation
+	## uses actual level dimensions rather than the default ±800×±600 arena.
+	if _block_manager != null:
+		return Rect2(0.0, 0.0, _block_manager.level_width, _block_manager.total_height)
+	if _ldtk_loader != null:
+		return Rect2(0.0, 0.0,
+			float(_ldtk_loader.get_meta("px_wid", ARENA_HALF_W * 2.0)),
+			float(_ldtk_loader.get_meta("px_hei", ARENA_HALF_H * 2.0)))
+	return Rect2(-ARENA_HALF_W, -ARENA_HALF_H, ARENA_HALF_W * 2.0, ARENA_HALF_H * 2.0)
 
 
 func _on_ldtk_exit_should_unlock() -> void:
