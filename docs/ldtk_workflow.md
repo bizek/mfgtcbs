@@ -79,6 +79,7 @@ You're adding a new level inside a biome that already has a `.ldtk` project file
 5. **Layer order, top-to-bottom** (LDtk panel = render order, top = on top):
    - `Entities` ← place gameplay markers here
    - `Collision` ← paint Wall/Pit/etc. with the IntGrid tool
+   - `PropCollision` (optional) ← paint `Solid` to add colliders over hand-painted props / tile features (§2.1 of schema)
    - `Decoration` ← hand-place props (chests, bones)
    - `WallsAuto` ← driven by Collision IntGrid value `Wall=2`
    - `FloorAuto` ← driven by Collision IntGrid value `Floor=1`

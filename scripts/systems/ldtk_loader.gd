@@ -38,7 +38,8 @@ extends Node2D
 ##
 ## Side effects (added as children of self):
 ##   - One TileMapLayer per Tiles/AutoLayer layer with a bound tileset.
-##   - One StaticBody2D per merged Wall rectangle (greedy 2D merge of IntGrid value 2).
+##   - One StaticBody2D per merged Wall rectangle (greedy 2D merge of Collision IntGrid).
+##   - One StaticBody2D per merged PropCollision rectangle (paint-to-add prop/feature colliders).
 ##   - One Sprite2D + StaticBody2D per Obstacle entity (placeholder colored rect for now).
 ##
 ## Caller responsibilities (wire up in MainArena):
@@ -70,6 +71,12 @@ const INTGRID_SPAWNBLOCK: int = 5
 
 ## Collision layer 3 — walls block player (layer 1) + enemies (layer 2). Matches arena_generator.gd.
 const WALL_COLLISION_LAYER: int = 3
+
+## Dedicated paint-to-add collision IntGrid layer (docs/ldtk_schema.md §3). Inverse polarity from
+## `Collision`: unpainted = nothing, any nonzero cell = solid. Lets the author brush collision over
+## props (Caves_Props) and select Cave_Tiles features without touching the floor-flooded Collision
+## layer. Optional — absent on a block means no extra colliders.
+const PAINT_COLLISION_LAYER_NAME: String = "PropCollision"
 
 ## Cached project-level data, populated on each load_level call.
 var _project_dir: String = ""
@@ -137,8 +144,11 @@ func load_level(ldtk_project_path: String, level_identifier: String) -> Dictiona
 				## IntGrid layers also carry autoLayerTiles when an auto-rule paints over them.
 				if not layer_inst.get("autoLayerTiles", []).is_empty():
 					_render_tile_layer(layer_inst, true, result)
-				if layer_inst.get("__identifier", "") == "Collision":
+				var intgrid_id: String = layer_inst.get("__identifier", "")
+				if intgrid_id == "Collision":
 					_build_wall_collision(layer_inst, result)
+				elif intgrid_id == PAINT_COLLISION_LAYER_NAME:
+					_build_paint_collision(layer_inst, result)
 			"Entities":
 				entity_instances = layer_inst.get("entityInstances", [])
 			_:
@@ -370,33 +380,56 @@ func _build_wall_collision(layer_inst: Dictionary, result: Dictionary) -> void:
 		_warn(result, "Collision layer dimensions invalid (cw=%d ch=%d csv=%d) — skipping wall collision." % [cw, ch, csv.size()])
 		return
 
-	## Build a 2D bool grid + visited mask (flat arrays for speed).
 	## Solid cells = explicitly painted Wall (value 2) OR empty/void (value 0).
 	## Floor (value 1) is the only passable value — the user paints walkable ground,
 	## and anything unpainted is treated as a solid cave wall.
-	var is_wall: PackedByteArray = PackedByteArray()
-	is_wall.resize(cw * ch)
+	var is_solid: PackedByteArray = PackedByteArray()
+	is_solid.resize(cw * ch)
 	for i in csv.size():
 		var v: int = int(csv[i])
-		is_wall[i] = 1 if (v == 0 or v == INTGRID_WALL) else 0
+		is_solid[i] = 1 if (v == 0 or v == INTGRID_WALL) else 0
+	_merge_solid_grid(is_solid, cw, ch, grid_size)
+
+
+func _build_paint_collision(layer_inst: Dictionary, result: Dictionary) -> void:
+	## PropCollision layer: paint-to-add. Any nonzero cell is solid; unpainted cells are ignored
+	## (inverse of the Collision layer). Used for prop / Cave_Tiles feature colliders.
+	var cw: int = int(layer_inst.get("__cWid", 0))
+	var ch: int = int(layer_inst.get("__cHei", 0))
+	var grid_size: int = int(layer_inst.get("__gridSize", 8))
+	var csv: Array = layer_inst.get("intGridCsv", [])
+	if cw == 0 or ch == 0 or csv.size() != cw * ch:
+		_warn(result, "%s layer dimensions invalid (cw=%d ch=%d csv=%d) — skipping prop collision." % [PAINT_COLLISION_LAYER_NAME, cw, ch, csv.size()])
+		return
+
+	var is_solid: PackedByteArray = PackedByteArray()
+	is_solid.resize(cw * ch)
+	for i in csv.size():
+		is_solid[i] = 1 if int(csv[i]) != 0 else 0
+	_merge_solid_grid(is_solid, cw, ch, grid_size)
+
+
+## Greedy 2D merge of solid cells into maximal rectangles, spawning one StaticBody2D per rect.
+## Shared by the Collision (wall) and PropCollision (paint) builders.
+func _merge_solid_grid(is_solid: PackedByteArray, cw: int, ch: int, grid_size: int) -> void:
 	var visited: PackedByteArray = PackedByteArray()
 	visited.resize(cw * ch)
 
 	for y in ch:
 		for x in cw:
 			var idx: int = y * cw + x
-			if is_wall[idx] == 0 or visited[idx] == 1:
+			if is_solid[idx] == 0 or visited[idx] == 1:
 				continue
 			## Maximal rectangle starting at (x,y).
 			var w: int = 1
-			while x + w < cw and is_wall[idx + w] == 1 and visited[idx + w] == 0:
+			while x + w < cw and is_solid[idx + w] == 1 and visited[idx + w] == 0:
 				w += 1
 			var h: int = 1
 			while y + h < ch:
 				var row_ok: bool = true
 				var row_start: int = (y + h) * cw + x
 				for dx in w:
-					if is_wall[row_start + dx] == 0 or visited[row_start + dx] == 1:
+					if is_solid[row_start + dx] == 0 or visited[row_start + dx] == 1:
 						row_ok = false
 						break
 				if not row_ok:

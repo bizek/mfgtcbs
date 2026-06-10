@@ -81,6 +81,20 @@ Every biome's primary IntGrid layer (named `Collision`) uses these values exactl
 > Identifiers must be exact. The importer keys off them, not the numeric value.
 > Numeric value is just for fast painting in the LDtk UI.
 
+### 2.1 `PropCollision` IntGrid (optional, paint-to-add)
+
+A separate, optional IntGrid layer for adding collision over hand-painted props or `Cave_Tiles`
+features when you authored visuals on tile layers instead of the `Collision` IntGrid. Inverse
+polarity from `Collision`: **only painted (nonzero) cells are solid**; unpainted cells are ignored.
+
+| Value | Identifier | Meaning |
+|---|---|---|
+| `1` | `Solid` | Spawns a `StaticBody2D` collider (collision layer 3 — blocks player + enemies). |
+
+> The importer (`LdtkLoader._build_paint_collision`) greedy-merges painted cells into rectangles,
+> exactly like the `Collision` wall builder. The layer renders nothing in-game. Absent on a level =
+> no extra colliders (no warning).
+
 ---
 
 ## 3. Layers (LDtk list order: top entry rendered last / on top)
@@ -92,6 +106,7 @@ LDtk renders bottom-up, so `Background` paints first and `Entities` sit on top o
 |---|---|---|---|
 | 1 | `Entities` | Entities | All gameplay markers (spawn, extraction, obstacles). |
 | 2 | `Collision` | IntGrid | Walls, pits, cover. See §2. No tileset render. |
+| – | `PropCollision` | IntGrid | **Optional, paint-to-add.** Any nonzero cell → solid collider. Inverse polarity from `Collision` (unpainted = nothing). Use to add collision over hand-painted props / `Cave_Tiles` features without floor-flooding `Collision`. Invisible in-game. See §2. |
 | 3 | `Decoration` | Tiles | Hand-placed props on top of the floor (chests, bones, foliage). |
 | 4 | `WallsAuto` | AutoLayer (over Collision) | Auto-tiled walls driven by IntGrid value `2`. |
 | 5 | `FloorAuto` | AutoLayer (over Collision) | Auto-tiled floor driven by IntGrid value `1`. |
@@ -380,7 +395,7 @@ When the importer (TBD) loads a `.ldtkl`, it must:
 1. **Read level fields** → resolve `biome` → look up floor texture and default wave composition. Reject if `schema_version` doesn't match the importer's expected version.
 2. **Locate the `Level_Instructions` entity** (exactly one expected). Read all 18 fields. Warn if missing or duplicated.
 3. **Render layers in order** (Background → FloorAuto → WallsAuto → Decoration → Entities) — Entities layer becomes Godot nodes, the rest become `TileMapLayer` nodes.
-4. **Iterate `Collision` IntGrid** → spawn `StaticBody2D` per `Wall` cell (merged into rectangles where adjacent for perf).
+4. **Iterate `Collision` IntGrid** → spawn `StaticBody2D` per `Wall` cell (merged into rectangles where adjacent for perf). If a `PropCollision` IntGrid layer is present, also spawn a merged `StaticBody2D` per nonzero cell (paint-to-add prop/feature collision — see §2.1).
 5. **Apply Level_Instructions singletons:**
    - `Player_Spawn_Pos` + `Player_Facing` → set `Player` node position and facing.
    - `Boss_Spawn_Pos` + `Boss_Spawn` (id) + `Boss_Intro_Delay` + `Boss_Camera_Zoom` → register with `LevelDirector`; deferred until PreBoss requirements met. Skip if `Boss_Spawn` is empty.
@@ -435,6 +450,7 @@ When the importer (TBD) loads a `.ldtkl`, it must:
 | Add a new boss | This file (§4 `BossId`) + boss scene + `BossRegistry` (TBD) |
 | Add a new biome | This file (§9) + `LevelData.LEVELS` |
 | Change collision behavior of `Wall` | This file (§2) + `LdtkLoader` collision builder (TBD) |
+| Add collision over a hand-painted prop / tile feature | Paint `Solid` on the `PropCollision` IntGrid layer (§2.1) — no code change |
 | Add a new entity type | This file (§6) + `LdtkLoader` entity dispatch (TBD) |
 | Tweak boss spawn trigger | Set `kill_quota` / `timer_seconds` on the `PreBoss` `Region` in LDtk |
 | Add a new Level_Instructions field | This file (§6 Level_Instructions) + `tools/apply_ldtk_schema.py` + rerun on every biome `.ldtk` |
