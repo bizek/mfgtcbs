@@ -105,6 +105,7 @@ func _ready() -> void:
 	add_to_group("player")
 	_setup_components()
 	_load_character_stats()
+	_apply_character_sprite()
 	_load_equipped_weapon()
 	_apply_passive_mods()
 	_load_weapon_mods()
@@ -165,6 +166,22 @@ func _load_character_stats() -> void:
 	for mod in CharacterFactory.build_base_modifiers(char_id, _base_stats):
 		modifier_component.add_modifier(mod)
 	health.setup(_base_stats["max_hp"])
+
+
+# --- Character sprite ---
+
+func _apply_character_sprite() -> void:
+	## Swap the scene's placeholder SpriteFrames for the selected character's class
+	## sprite, built data-driven from CharacterData.ALL[id]["sprite"] (see
+	## docs/character_overhaul_design.md). Falls back to the scene's baked frames
+	## if the character has no sprite metadata or its sheets fail to load.
+	var char_id: String = ProgressionManager.selected_character
+	var frames: SpriteFrames = CharacterSpriteFactory.build(char_id)
+	if frames != null:
+		sprite.sprite_frames = frames
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	if sprite.sprite_frames and sprite.sprite_frames.has_animation("idle"):
+		sprite.play("idle")
 
 
 # --- Weapon loading ---
