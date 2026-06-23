@@ -311,6 +311,7 @@ static func _get_projectile_sprite_frames() -> SpriteFrames:
 	atlas.region = Rect2(0, 0, 32, 32)
 	atlas.filter_clip = true
 	var frames := SpriteFrames.new()
+	frames.clear_all()   ## SpriteFrames.new() ships a "default" anim; drop it before re-adding
 	frames.add_animation("default")
 	frames.set_animation_loop("default", false)
 	frames.add_frame("default", atlas)
@@ -368,6 +369,7 @@ static func _get_frost_impact_sprite_frames() -> SpriteFrames:
 		return null
 	var sheet: Texture2D = load(TEX_PATH)
 	var frames := SpriteFrames.new()
+	frames.clear_all()   ## SpriteFrames.new() ships a "default" anim; drop it before re-adding
 	frames.add_animation("default")
 	frames.set_animation_loop("default", false)
 	frames.set_animation_speed("default", 15.0)  ## 15 fps — crisp 1-second burst

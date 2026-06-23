@@ -69,6 +69,9 @@ const STATIONS: Array[Dictionary] = [
 ]
 
 var _player_body: CharacterBody2D
+var _hub_sprite: AnimatedSprite2D = null   ## selected character's idle/walk sprite (null = tinted-block fallback)
+var _avatar_holder: Node2D = null          ## parent of the swappable avatar visual (rebuilt on selection change)
+var _displayed_char_id: String = ""        ## character currently shown in the hub
 var _station_nodes: Array[Node2D] = []
 var _station_bg_rects: Array[ColorRect] = []  ## parallel to _station_nodes, for proximity glow
 var _map_offset: Vector2 = Vector2.ZERO
@@ -252,32 +255,55 @@ func _build_player() -> void:
 	cs.shape = rs
 	_player_body.add_child(cs)
 
-	## Sprite colors driven by selected character
-	var char_id: String = ProgressionManager.selected_character
-	var char_data: Dictionary = CharacterData.ALL.get(char_id, CharacterData.ALL["The Drifter"])
-	var body_col: Color = char_data.get("color_body", Color(0.78, 0.72, 0.58))
-	var head_col: Color = char_data.get("color_head", Color(0.94, 0.86, 0.68))
-
-	## Ground shadow behind sprite
+	## Ground shadow behind sprite (character-agnostic)
 	var shadow := ColorRect.new()
 	shadow.color = Color(0.0, 0.0, 0.0, 0.35)
 	shadow.size = Vector2(9, 13)
 	shadow.position = Vector2(-4.5, -4.5)
 	_player_body.add_child(shadow)
 
-	var body_vis := ColorRect.new()
-	body_vis.color = body_col
-	body_vis.size = Vector2(7, 11)
-	body_vis.position = Vector2(-3.5, -5.5)
-	_player_body.add_child(body_vis)
-
-	var head := ColorRect.new()
-	head.color = head_col
-	head.size = Vector2(5, 3)
-	head.position = Vector2(-2.5, -8.0)
-	_player_body.add_child(head)
+	## Holder for the swappable character avatar — rebuilt when roster selection changes.
+	_avatar_holder = Node2D.new()
+	_player_body.add_child(_avatar_holder)
 
 	add_child(_player_body)
+	_apply_player_visual()
+
+## (Re)build the selected character's avatar into _avatar_holder. Called on hub load
+## and whenever the roster selection changes (see _close_panel).
+func _apply_player_visual() -> void:
+	if _avatar_holder == null:
+		return
+	for c in _avatar_holder.get_children():
+		_avatar_holder.remove_child(c)
+		c.queue_free()
+	_hub_sprite = null
+
+	var char_id: String = ProgressionManager.selected_character
+	_displayed_char_id = char_id
+
+	## Character sprite — same data-driven SpriteFrames as the arena player.
+	var frames: SpriteFrames = CharacterSpriteFactory.build(char_id)
+	if frames != null and frames.has_animation("idle"):
+		_hub_sprite = AnimatedSprite2D.new()
+		_hub_sprite.sprite_frames = frames
+		_hub_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		_hub_sprite.position = Vector2(0, -6)   ## lift the 32px frame so feet rest near the body origin
+		_hub_sprite.play("idle")
+		_avatar_holder.add_child(_hub_sprite)
+	else:
+		## Fallback: legacy tinted blocks (character has no sprite metadata)
+		var char_data: Dictionary = CharacterData.ALL.get(char_id, CharacterData.ALL["The Drifter"])
+		var body_vis := ColorRect.new()
+		body_vis.color = char_data.get("color_body", Color(0.78, 0.72, 0.58))
+		body_vis.size = Vector2(7, 11)
+		body_vis.position = Vector2(-3.5, -5.5)
+		_avatar_holder.add_child(body_vis)
+		var head := ColorRect.new()
+		head.color = char_data.get("color_head", Color(0.94, 0.86, 0.68))
+		head.size = Vector2(5, 3)
+		head.position = Vector2(-2.5, -8.0)
+		_avatar_holder.add_child(head)
 
 # ── UI ────────────────────────────────────────────────────────────────────────
 
@@ -328,6 +354,16 @@ func _handle_movement(delta: float) -> void:
 	if Input.is_action_pressed("move_right"): dir.x += 1
 	_player_body.velocity = dir.normalized() * PLAYER_SPEED
 	_player_body.move_and_slide()
+
+	## Drive the character sprite: walk while moving, idle when still, flip on horizontal input.
+	if _hub_sprite:
+		if dir.x != 0:
+			_hub_sprite.flip_h = dir.x < 0
+		if dir.length_squared() > 0:
+			if _hub_sprite.animation != &"walk" and _hub_sprite.sprite_frames.has_animation("walk"):
+				_hub_sprite.play("walk")
+		elif _hub_sprite.animation != &"idle":
+			_hub_sprite.play("idle")
 
 func _update_proximity() -> void:
 	var nearest_id: String = ""
@@ -387,3 +423,6 @@ func _close_panel() -> void:
 	if _active_panel:
 		_active_panel.queue_free()
 		_active_panel = null
+	## Roster selection may have changed the character — refresh the hub avatar.
+	if _displayed_char_id != ProgressionManager.selected_character:
+		_apply_player_visual()
