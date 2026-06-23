@@ -3,6 +3,7 @@ extends Control
 
 ## Roster panel — character list (left) + detail view (right).
 ## Dark industrial redesign matching hub_armory_panel.gd aesthetics.
+## Portraits from the Minifantasy Portrait Generator, composed at editor time.
 
 signal close_requested
 
@@ -34,21 +35,9 @@ const FS_MD := 19
 const FS_SM := 16
 const FS_XS := 13
 
-## ── Role tags ─────────────────────────────────────────────────────────────────
-const CHAR_ROLES: Dictionary = {
-	"The Drifter":   "GENERALIST",
-	"The Scavenger": "EXTRACTION",
-	"The Warden":    "TANK",
-	"The Spark":     "GLASS CANNON",
-	"The Shade":     "EVASION",
-	"The Herald":    "ABILITY",
-	"The Cursed":    "EXPERT",
-}
-
-## ── Stat bar maxes ────────────────────────────────────────────────────────────
-const STAT_MAX_HP    := 200.0
-const STAT_MAX_ARMOR := 20.0
-const STAT_MAX_SPEED := 300.0
+## Portrait size in the detail pane (rendered with NEAREST for crisp 2× upscale).
+const PORTRAIT_DETAIL_PX := 48   ## 32px native × 1.5 (fits detail pane without scrolling)
+const PORTRAIT_CARD_PX   := 20   ## fits in the 26px card row
 
 ## ── State ─────────────────────────────────────────────────────────────────────
 var _pm: Node = null
@@ -123,6 +112,7 @@ func _build_char_list(parent: HBoxContainer) -> void:
 	var scroll := ScrollContainer.new()
 	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode   = ScrollContainer.SCROLL_MODE_AUTO
 	plate.add_child(scroll)
 
 	var vbox := VBoxContainer.new()
@@ -159,7 +149,7 @@ func _build_char_card(parent: VBoxContainer, char_id: String) -> void:
 	var is_detail: bool   = _detail_char == char_id
 
 	var card := Button.new()
-	card.custom_minimum_size   = Vector2(0, 26)
+	card.custom_minimum_size   = Vector2(0, 30)
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	card.focus_mode            = Control.FOCUS_NONE
 
@@ -174,7 +164,7 @@ func _build_char_card(parent: VBoxContainer, char_id: String) -> void:
 		card.add_theme_stylebox_override(state, sb)
 	parent.add_child(card)
 
-	## [3px strip | content margin]
+	## [3px accent strip | portrait | content margin]
 	var row := HBoxContainer.new()
 	row.set_anchors_preset(Control.PRESET_FULL_RECT)
 	row.add_theme_constant_override("separation", 0)
@@ -187,6 +177,31 @@ func _build_char_card(parent: VBoxContainer, char_id: String) -> void:
 	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(strip)
 
+	## Portrait thumbnail (20px, nearest-filtered)
+	var portrait_path: String = cdata.get("portrait", "")
+	if portrait_path != "" and ResourceLoader.exists(portrait_path):
+		var portrait_mm := MarginContainer.new()
+		portrait_mm.add_theme_constant_override("margin_left",  3)
+		portrait_mm.add_theme_constant_override("margin_right", 0)
+		portrait_mm.add_theme_constant_override("margin_top",   3)
+		portrait_mm.add_theme_constant_override("margin_bottom", 3)
+		portrait_mm.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		portrait_mm.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(portrait_mm)
+
+		var tex_rect := TextureRect.new()
+		tex_rect.texture = load(portrait_path) as Texture2D
+		tex_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		tex_rect.custom_minimum_size = Vector2(PORTRAIT_CARD_PX, PORTRAIT_CARD_PX)
+		tex_rect.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		## Locked = silhouette-style by heavy darkening; unowned = partial dim
+		if is_owned:
+			tex_rect.modulate = Color.WHITE
+		else:
+			tex_rect.modulate = Color(0.12, 0.10, 0.08, 0.85)
+		portrait_mm.add_child(tex_rect)
+
 	var cm := MarginContainer.new()
 	cm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	cm.size_flags_vertical   = Control.SIZE_EXPAND_FILL
@@ -197,31 +212,27 @@ func _build_char_card(parent: VBoxContainer, char_id: String) -> void:
 	cm.add_theme_constant_override("margin_bottom", 3)
 	row.add_child(cm)
 
-	var content_row := HBoxContainer.new()
-	content_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content_row.add_theme_constant_override("separation", 4)
-	content_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	cm.add_child(content_row)
+	var content_col := VBoxContainer.new()
+	content_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content_col.add_theme_constant_override("separation", 0)
+	content_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cm.add_child(content_col)
 
-	var dot := Label.new()
-	dot.text = "●"
-	dot.add_theme_font_override("font", FONT)
-	dot.add_theme_font_size_override("font_size", FS_XS)
-	dot.add_theme_color_override("font_color",
-		char_col if is_owned else Color(char_col.r * 0.35, char_col.g * 0.35, char_col.b * 0.35))
-	dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content_row.add_child(dot)
+	## Name row
+	var name_row := HBoxContainer.new()
+	name_row.add_theme_constant_override("separation", 4)
+	name_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content_col.add_child(name_row)
 
 	var name_lbl := Label.new()
 	name_lbl.text = cdata.get("display_name", char_id)
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_lbl.add_theme_font_override("font", FONT)
-	name_lbl.add_theme_font_size_override("font_size", FS_MD)
+	name_lbl.add_theme_font_size_override("font_size", FS_SM)
 	name_lbl.add_theme_color_override("font_color", char_col if is_owned else C_T2)
 	name_lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content_row.add_child(name_lbl)
+	name_row.add_child(name_lbl)
 
 	if is_active:
 		var act_lbl := Label.new()
@@ -231,7 +242,22 @@ func _build_char_card(parent: VBoxContainer, char_id: String) -> void:
 		act_lbl.add_theme_color_override("font_color", char_col)
 		act_lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		act_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		content_row.add_child(act_lbl)
+		name_row.add_child(act_lbl)
+
+	## Class / locked sub-row
+	var sub_lbl := Label.new()
+	var char_class: String = cdata.get("char_class", "")
+	if is_owned:
+		sub_lbl.text = char_class.to_upper() if char_class != "" else ""
+		sub_lbl.add_theme_color_override("font_color", Color(char_col.r * 0.55, char_col.g * 0.55, char_col.b * 0.55))
+	else:
+		var cost: int = cdata.get("unlock_cost", 0)
+		sub_lbl.text = "LOCKED  %d" % cost
+		sub_lbl.add_theme_color_override("font_color", C_T2)
+	sub_lbl.add_theme_font_override("font", FONT)
+	sub_lbl.add_theme_font_size_override("font_size", FS_XS)
+	sub_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content_col.add_child(sub_lbl)
 
 	var cid := char_id
 	card.pressed.connect(func():
@@ -249,6 +275,7 @@ func _build_detail_pane(parent: HBoxContainer) -> void:
 	var is_owned: bool  = _pm.has_character(_detail_char)
 	var is_active: bool = _pm.selected_character == _detail_char
 	var d_cost: int     = ddata.get("unlock_cost", 0)
+	var char_class: String = ddata.get("char_class", "")
 
 	var plate := Panel.new()
 	plate.size_flags_horizontal    = Control.SIZE_EXPAND_FILL
@@ -263,35 +290,102 @@ func _build_detail_pane(parent: HBoxContainer) -> void:
 	plate.add_theme_stylebox_override("panel", ps)
 	parent.add_child(plate)
 
+	## Outer vbox splits plate into: scrollable content (top) + pinned footer (bottom).
+	var outer_vbox := VBoxContainer.new()
+	outer_vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
+	outer_vbox.add_theme_constant_override("separation", 0)
+	plate.add_child(outer_vbox)
+
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical     = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode  = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode    = ScrollContainer.SCROLL_MODE_AUTO
+	outer_vbox.add_child(scroll)
+
 	var margin := MarginContainer.new()
-	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	margin.add_theme_constant_override("margin_left",   10)
-	margin.add_theme_constant_override("margin_top",     8)
+	margin.add_theme_constant_override("margin_top",     6)
 	margin.add_theme_constant_override("margin_right",  10)
-	margin.add_theme_constant_override("margin_bottom",  8)
-	plate.add_child(margin)
+	margin.add_theme_constant_override("margin_bottom",  4)
+	scroll.add_child(margin)
 
 	var vbox := VBoxContainer.new()
 	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vbox.size_flags_vertical   = Control.SIZE_EXPAND_FILL
-	vbox.add_theme_constant_override("separation", 4)
+	vbox.add_theme_constant_override("separation", 3)
 	margin.add_child(vbox)
 
-	## ── Header ───────────────────────────────────────────────────────────────
+	## ── Header: portrait + name/class ────────────────────────────────────────
 	var hdr_row := HBoxContainer.new()
-	hdr_row.add_theme_constant_override("separation", 6)
+	hdr_row.add_theme_constant_override("separation", 8)
 	hdr_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vbox.add_child(hdr_row)
 
-	_lbl(hdr_row, ddata.get("display_name", _detail_char), FS_LG,
+	## Portrait block
+	var portrait_path: String = ddata.get("portrait", "")
+	if portrait_path != "" and ResourceLoader.exists(portrait_path):
+		var p_panel := Panel.new()
+		p_panel.custom_minimum_size = Vector2(PORTRAIT_DETAIL_PX + 4, PORTRAIT_DETAIL_PX + 4)
+		p_panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		var p_sb := StyleBoxFlat.new()
+		p_sb.bg_color     = C_CARD
+		p_sb.border_color = char_col if is_owned else C_BORDER
+		p_sb.border_width_left = 1; p_sb.border_width_top = 1
+		p_sb.border_width_right = 1; p_sb.border_width_bottom = 1
+		p_sb.set_content_margin_all(2)
+		p_panel.add_theme_stylebox_override("panel", p_sb)
+		hdr_row.add_child(p_panel)
+
+		var tex := TextureRect.new()
+		tex.texture = load(portrait_path) as Texture2D
+		tex.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		tex.custom_minimum_size = Vector2(PORTRAIT_DETAIL_PX, PORTRAIT_DETAIL_PX)
+		tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tex.set_anchors_preset(Control.PRESET_FULL_RECT)
+		if not is_owned:
+			tex.modulate = Color(0.15, 0.12, 0.10, 1.0)
+		p_panel.add_child(tex)
+
+		## LOCKED overlay text on portrait
+		if not is_owned:
+			var lock_lbl := Label.new()
+			lock_lbl.text = "?"
+			lock_lbl.add_theme_font_override("font", FONT)
+			lock_lbl.add_theme_font_size_override("font_size", FS_LG)
+			lock_lbl.add_theme_color_override("font_color", C_T2)
+			lock_lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
+			lock_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			lock_lbl.vertical_alignment   = VERTICAL_ALIGNMENT_CENTER
+			p_panel.add_child(lock_lbl)
+
+	## Name + class stack
+	var name_col := VBoxContainer.new()
+	name_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_col.size_flags_vertical   = Control.SIZE_SHRINK_CENTER
+	name_col.add_theme_constant_override("separation", 2)
+	hdr_row.add_child(name_col)
+
+	var name_lbl := Label.new()
+	name_lbl.text = ddata.get("display_name", _detail_char)
+	name_lbl.add_theme_font_override("font", FONT)
+	name_lbl.add_theme_font_size_override("font_size", FS_LG)
+	name_lbl.add_theme_color_override("font_color",
 		char_col if is_owned else char_col.darkened(0.55))
+	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	name_col.add_child(name_lbl)
 
-	var hdr_spacer := Control.new()
-	hdr_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hdr_row.add_child(hdr_spacer)
+	if char_class != "":
+		var class_lbl := Label.new()
+		class_lbl.text = char_class.to_upper()
+		class_lbl.add_theme_font_override("font", FONT)
+		class_lbl.add_theme_font_size_override("font_size", FS_XS)
+		class_lbl.add_theme_color_override("font_color",
+			Color(char_col.r * 0.65, char_col.g * 0.65, char_col.b * 0.65) if is_owned else C_T2)
+		class_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		name_col.add_child(class_lbl)
 
-	_lbl(hdr_row, CHAR_ROLES.get(_detail_char, "OPERATIVE"), FS_XS, C_T2)
-
+	## Accent rule (character color)
 	var hdr_rule := ColorRect.new()
 	hdr_rule.custom_minimum_size   = Vector2(0, 1)
 	hdr_rule.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -311,16 +405,16 @@ func _build_detail_pane(parent: HBoxContainer) -> void:
 	var arm_val: float = ddata.get("base_armor",         0.0)
 	var spd_val: float = ddata.get("base_move_speed",  200.0)
 
-	_stat_row(stats_vbox, "HP",    int(hp_val),  hp_val  / STAT_MAX_HP,    C_RED_HI)
-	_stat_row(stats_vbox, "ARMOR", int(arm_val), arm_val / STAT_MAX_ARMOR, C_AMBER)
-	_stat_row(stats_vbox, "SPEED", int(spd_val), spd_val / STAT_MAX_SPEED, C_GREEN_HI)
+	_stat_row(stats_vbox, "HP",    int(hp_val),  hp_val  / 200.0, C_RED_HI)
+	_stat_row(stats_vbox, "ARMOR", int(arm_val), arm_val /  20.0, C_AMBER)
+	_stat_row(stats_vbox, "SPEED", int(spd_val), spd_val / 300.0, C_GREEN_HI)
 
 	## Starting weapon
 	var wpn_row := HBoxContainer.new()
 	wpn_row.add_theme_constant_override("separation", 5)
 	vbox.add_child(wpn_row)
 	_lbl(wpn_row, "WEAPON", FS_XS, C_T2)
-	_lbl(wpn_row, ddata.get("starting_weapon", "?"), FS_SM, C_T1)
+	_lbl(wpn_row, ddata.get("starting_weapon", "?"), FS_SM, C_T1 if is_owned else C_T2)
 
 	## ── Passive ──────────────────────────────────────────────────────────────
 	var pass_sep := ColorRect.new()
@@ -330,33 +424,43 @@ func _build_detail_pane(parent: HBoxContainer) -> void:
 	pass_sep.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vbox.add_child(pass_sep)
 
-	_lbl(vbox, "PASSIVE", FS_XS, C_T2)
+	## Passive header row: "PASSIVE" label + themed name
+	var pass_hdr := HBoxContainer.new()
+	pass_hdr.add_theme_constant_override("separation", 6)
+	vbox.add_child(pass_hdr)
+	_lbl(pass_hdr, "PASSIVE", FS_XS, C_T2)
+
+	var passive_name: String = ddata.get("passive_name", "")
+	if passive_name != "" and passive_name != "—":
+		_lbl(pass_hdr, passive_name, FS_XS, char_col if is_owned else C_T2)
 
 	var p_lbl := Label.new()
 	p_lbl.text = ddata.get("passive_desc", "None.")
 	p_lbl.add_theme_font_override("font", FONT)
-	p_lbl.add_theme_font_size_override("font_size", FS_SM)
+	p_lbl.add_theme_font_size_override("font_size", FS_XS)
 	p_lbl.add_theme_color_override("font_color", C_T1 if is_owned else C_T2)
 	p_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	p_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
 	vbox.add_child(p_lbl)
 
-	## ── Spacer ───────────────────────────────────────────────────────────────
-	var spacer := Control.new()
-	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	vbox.add_child(spacer)
-
-	## ── Footer ───────────────────────────────────────────────────────────────
+	## ── Footer (pinned, outside scroll) ─────────────────────────────────────
 	var foot_sep := ColorRect.new()
 	foot_sep.custom_minimum_size   = Vector2(0, 1)
 	foot_sep.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	foot_sep.color = C_BORDER
 	foot_sep.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vbox.add_child(foot_sep)
+	outer_vbox.add_child(foot_sep)
+
+	var foot_mm := MarginContainer.new()
+	foot_mm.add_theme_constant_override("margin_left",   8)
+	foot_mm.add_theme_constant_override("margin_top",    4)
+	foot_mm.add_theme_constant_override("margin_right",  8)
+	foot_mm.add_theme_constant_override("margin_bottom", 5)
+	outer_vbox.add_child(foot_mm)
 
 	var foot_row := HBoxContainer.new()
 	foot_row.add_theme_constant_override("separation", 6)
-	vbox.add_child(foot_row)
+	foot_mm.add_child(foot_row)
 
 	var res_vb := VBoxContainer.new()
 	res_vb.add_theme_constant_override("separation", 1)
@@ -394,7 +498,7 @@ func _build_detail_pane(parent: HBoxContainer) -> void:
 			_build()
 		)
 	elif _pm.resources >= d_cost:
-		btn.text     = "BUY  %d" % d_cost
+		btn.text     = "UNLOCK  %d" % d_cost
 		btn.disabled = false
 		btn.add_theme_color_override("font_color",       C_GREEN_HI)
 		btn.add_theme_color_override("font_hover_color", C_GREEN_HI.lightened(0.30))
@@ -423,7 +527,7 @@ func _stat_row(parent: Control, label: String, value: int,
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", 5)
 	hb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hb.custom_minimum_size   = Vector2(0, 14)
+	hb.custom_minimum_size   = Vector2(0, 12)
 	parent.add_child(hb)
 
 	var lbl := Label.new()

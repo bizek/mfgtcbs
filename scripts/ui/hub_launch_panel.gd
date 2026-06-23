@@ -94,6 +94,11 @@ func populate(pm: Node) -> void:
 	## ── Character row ────────────────────────────────────────────────────────
 	_row(inner, "CHARACTER", char_data.get("display_name", char_id), char_col)
 
+	## Class label (dim, sits below character name)
+	var char_class: String = char_data.get("char_class", "")
+	if char_class != "":
+		_row(inner, "CLASS", char_class.to_upper(), Color(char_col.r * 0.55, char_col.g * 0.55, char_col.b * 0.55))
+
 	## ── Weapon rows ──────────────────────────────────────────────────────────
 	if slot_count >= 2:
 		for s in range(1, slot_count + 1):
