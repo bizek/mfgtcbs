@@ -292,14 +292,25 @@ func _render_tile_layer(layer_inst: Dictionary, is_auto: bool, result: Dictionar
 		_warn(result, "Layer '%s' references unknown tileset uid %d — skipping." % [layer_inst.get("__identifier", "?"), tileset_uid])
 		return
 
-	## Build (or reuse cached) Godot TileSet for this LDtk tileset.
+	## Build a Godot TileSet for this layer (only the atlas cells it uses — see below).
 	var tile_size: int = int(ts_def.get("tileGridSize", 8))
 	var tex_path: String = _resolve_tileset_texture(ts_def)
 	if tex_path == "" or not ResourceLoader.exists(tex_path):
 		_warn(result, "Tileset '%s' texture not found at '%s' — skipping layer." % [ts_def.get("identifier", "?"), tex_path])
 		return
 	var tex: Texture2D = load(tex_path)
-	var godot_ts: TileSet = _build_godot_tileset(tex, tile_size)
+
+	## Tiles live in autoLayerTiles (auto/intgrid) or gridTiles (manual). Gather them
+	## up-front so the tileset only pre-creates the atlas cells this layer references —
+	## pre-creating the whole atlas is O(cells^2) (create_tile is O(n) per call) and
+	## dominated descent load (prop layers spent 12-21 s, two placing zero tiles).
+	var tiles: Array = layer_inst.get("autoLayerTiles", []) if is_auto else layer_inst.get("gridTiles", [])
+	var used_atlas: Dictionary = {}
+	for t in tiles:
+		var s: Array = t.get("src", [0, 0])
+		@warning_ignore("integer_division")
+		used_atlas[Vector2i(int(s[0]) / tile_size, int(s[1]) / tile_size)] = true
+	var godot_ts: TileSet = _build_godot_tileset(tex, tile_size, used_atlas)
 
 	## Use a TileMapLayer per LDtk layer so layer ordering / z-index is per-layer.
 	var tml: TileMapLayer = TileMapLayer.new()
@@ -320,8 +331,6 @@ func _render_tile_layer(layer_inst: Dictionary, is_auto: bool, result: Dictionar
 	add_child(tml)
 	_tilemap_layers.append(tml)
 
-	## LDtk stores tiles in autoLayerTiles (auto/intgrid) or gridTiles (manual).
-	var tiles: Array = layer_inst.get("autoLayerTiles", []) if is_auto else layer_inst.get("gridTiles", [])
 	for t in tiles:
 		var px: Array = t.get("px", [0, 0])
 		var src: Array = t.get("src", [0, 0])
@@ -351,20 +360,23 @@ func _resolve_tileset_texture(ts_def: Dictionary) -> String:
 	return abs_path  ## last-resort; will likely fail ResourceLoader.exists
 
 
-func _build_godot_tileset(tex: Texture2D, tile_size: int) -> TileSet:
+func _build_godot_tileset(tex: Texture2D, tile_size: int, used_atlas: Dictionary) -> TileSet:
 	var ts := TileSet.new()
 	ts.tile_size = Vector2i(tile_size, tile_size)
 	var src := TileSetAtlasSource.new()
 	src.texture = tex
 	src.texture_region_size = Vector2i(tile_size, tile_size)
-	## Pre-create every cell in the atlas so set_cell calls succeed.
+	## Create only the atlas cells this layer references (keys of used_atlas).
+	## Pre-creating the full atlas is O(cells^2) — create_tile is O(n) per call — and
+	## most cells go unused. Bounds-guard stray src coords: an out-of-range cell
+	## wouldn't have existed under the old full-grid build either, so set_cell skips it.
 	@warning_ignore("integer_division")
 	var cols: int = tex.get_width() / tile_size
 	@warning_ignore("integer_division")
 	var rows: int = tex.get_height() / tile_size
-	for y in rows:
-		for x in cols:
-			src.create_tile(Vector2i(x, y))
+	for coord: Vector2i in used_atlas:
+		if coord.x >= 0 and coord.y >= 0 and coord.x < cols and coord.y < rows:
+			src.create_tile(coord)
 	ts.add_source(src, 0)
 	return ts
 
