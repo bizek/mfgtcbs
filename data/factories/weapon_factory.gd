@@ -49,6 +49,8 @@ static func _build_projectile_weapon(weapon_id: String, data: Dictionary,
 	ability.targeting = targeting
 
 	var proj_config := _build_projectile_config(data, mods)
+	if weapon_id == "Hunter's Bow":
+		_apply_arrow_sprites(proj_config)
 	var spawn := SpawnProjectilesEffect.new()
 	spawn.projectile = proj_config
 	spawn.spawn_pattern = "spread"
@@ -297,6 +299,7 @@ static func _build_orbit_weapon(weapon_id: String, data: Dictionary,
 static var _projectile_sprite_frames: SpriteFrames = null
 static var _frost_projectile_sprite_frames: SpriteFrames = null
 static var _frost_impact_sprite_frames: SpriteFrames = null
+static var _arrow_sprite_frames: SpriteFrames = null
 
 static func _get_projectile_sprite_frames() -> SpriteFrames:
 	if _projectile_sprite_frames:
@@ -381,6 +384,40 @@ static func _get_frost_impact_sprite_frames() -> SpriteFrames:
 		frames.add_frame("default", atlas)
 	_frost_impact_sprite_frames = frames
 	return frames
+
+
+## Single east-pointing arrow frame from the Cherub 96×96 3×3 directional sheet (cell col2,row1).
+## The projectile rotates this to its travel direction, so we pick the cardinal-east cell and
+## use rotation_offset 0 (arrow already points +x). If it renders rotated 90°/180° in-engine,
+## adjust rotation_offset (e.g. PI for a left-pointing arrow).
+static func _get_arrow_sprite_frames() -> SpriteFrames:
+	if _arrow_sprite_frames:
+		return _arrow_sprite_frames
+	const ARROW_TEX := "res://assets/minifantasy/Minifantasy_Enchanted_Companions_v1.0/Minifantasy_Enchanted_Companions_Assets/Companions/Cherub/Arrow_Projectile.png"
+	if not ResourceLoader.exists(ARROW_TEX):
+		return null
+	var sheet: Texture2D = load(ARROW_TEX)
+	var atlas := AtlasTexture.new()
+	atlas.atlas = sheet
+	atlas.region = Rect2(64, 32, 32, 32)   ## east-pointing arrow (col 2, row 1)
+	atlas.filter_clip = true
+	var frames := SpriteFrames.new()
+	## SpriteFrames.new() already ships an empty "default" animation — configure + fill it
+	## directly (calling add_animation("default") again just spams a harmless error).
+	frames.set_animation_loop("default", false)
+	frames.add_frame("default", atlas)
+	_arrow_sprite_frames = frames
+	return frames
+
+
+static func _apply_arrow_sprites(config: ProjectileConfig) -> void:
+	var sf := _get_arrow_sprite_frames()
+	if sf:
+		config.sprite_frames = sf
+		config.animation = "default"
+		config.use_directional_anims = false
+		config.rotation_offset = 0.0   ## east arrow already aligned with +x travel direction
+		config.fallback_color = Color(0.85, 0.78, 0.55)
 
 
 static func _apply_frost_sprites(config: ProjectileConfig) -> void:

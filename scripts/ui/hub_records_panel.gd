@@ -16,7 +16,7 @@ const C_T2     := Color(0.314, 0.235, 0.157)
 const FONT  := HubPanelBase.PIXEL_FONT
 const FS_MD := 19
 const FS_SM := 16
-const FS_XS := 13
+const FS_XS := 14
 
 func _ready() -> void:
 	_base.close_requested.connect(func(): close_requested.emit())

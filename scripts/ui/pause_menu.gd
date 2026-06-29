@@ -93,7 +93,7 @@ func _build_menu() -> void:
 	## Resume button
 	var resume_btn := Button.new()
 	resume_btn.text = "Resume"
-	resume_btn.add_theme_font_size_override("font_size", 13)
+	resume_btn.add_theme_font_size_override("font_size", 14)
 	resume_btn.pressed.connect(_close)
 	vbox.add_child(resume_btn)
 
@@ -101,7 +101,7 @@ func _build_menu() -> void:
 	if GameManager.debug_mode:
 		var debug_btn := Button.new()
 		debug_btn.text = "Debug Panel"
-		debug_btn.add_theme_font_size_override("font_size", 13)
+		debug_btn.add_theme_font_size_override("font_size", 14)
 		debug_btn.pressed.connect(_toggle_debug_panel)
 		vbox.add_child(debug_btn)
 

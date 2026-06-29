@@ -95,7 +95,7 @@ func _build_visuals() -> void:
 	label.modulate = Color(0.15, 1.0, 0.5, 1.0)
 	var font_settings := LabelSettings.new()
 	font_settings.font = load("res://assets/fonts/m5x7.ttf")
-	font_settings.font_size = 21
+	font_settings.font_size = 16
 	font_settings.outline_size = 1
 	font_settings.outline_color = Color(0.0, 0.0, 0.0, 0.9)
 	label.label_settings = font_settings

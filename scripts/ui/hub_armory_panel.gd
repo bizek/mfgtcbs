@@ -53,10 +53,10 @@ const C_T1 := Color(0.541, 0.408, 0.282)
 const C_T2 := Color(0.314, 0.235, 0.157)
 
 const FONT   := HubPanelBase.PIXEL_FONT
-const FS_LG  := 21
+const FS_LG  := 16
 const FS_MD  := 19
 const FS_SM  := 16
-const FS_XS  := 13
+const FS_XS  := 14
 
 ## ── State ────────────────────────────────────────────────────────────────────
 var _pm:              Node = null
@@ -131,7 +131,11 @@ func _build_armory() -> void:
 	hdr.custom_minimum_size = Vector2(0, 16)
 	vbox.add_child(hdr)
 
-	_lbl(hdr, "EQUIPPED LOADOUT", FS_SM, C_T2)
+	var loadout_label: String = "EQUIPPED LOADOUT"
+	if not Engine.is_editor_hint() and _pm != null:
+		var cid: String = str(_pm.selected_character)
+		loadout_label = "LOADOUT — %s" % str(CharacterData.ALL.get(cid, {}).get("display_name", cid))
+	_lbl(hdr, loadout_label, FS_SM, C_T2)
 
 	var sep_line := ColorRect.new()
 	sep_line.custom_minimum_size       = Vector2(0, 1)
@@ -402,10 +406,7 @@ func _build_weapon_picker(parent: Control) -> void:
 			var cap_wid: String = w_id
 			var cap_slot: int   = _active_slot
 			btn.pressed.connect(func():
-				match cap_slot:
-					1: _pm.selected_weapon   = cap_wid
-					2: _pm.selected_weapon_2 = cap_wid
-					3: _pm.selected_weapon_3 = cap_wid
+				_pm.set_character_weapon(_pm.selected_character, cap_slot, cap_wid)
 				_pm.save_data()
 				_weapon_picking = false
 				populate(_pm)
@@ -525,12 +526,7 @@ func _footer_divider(parent: Control) -> void:
 
 func _build_mod_picker() -> void:
 	var pm        := _pm
-	var weapon_id: String
-	match _active_slot:
-		1: weapon_id = pm.selected_weapon
-		2: weapon_id = pm.selected_weapon_2
-		3: weapon_id = pm.selected_weapon_3
-		_: weapon_id = pm.selected_weapon
+	var weapon_id: String = pm.get_character_weapon(pm.selected_character, _active_slot)
 
 	# Hide the hardcoded static rows — replaced by dynamic scroll list below
 	for btn in _picker_mod_btns: btn.visible = false
@@ -735,11 +731,8 @@ func _lbl(parent: Control, text: String, sz: int, col: Color) -> Label:
 func _get_weapon_for_slot(slot: int) -> String:
 	if Engine.is_editor_hint() or _pm == null:
 		return ""
-	match slot:
-		1: return _pm.selected_weapon
-		2: return _pm.selected_weapon_2
-		3: return _pm.selected_weapon_3
-	return ""
+	## Per-character loadout: the armory edits the currently selected character's weapons.
+	return _pm.get_character_weapon(_pm.selected_character, slot)
 
 
 func _disconnect_all(sig: Signal) -> void:

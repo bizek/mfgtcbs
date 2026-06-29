@@ -137,7 +137,7 @@ func _build_ui(offers: Array[Dictionary]) -> void:
 	loot_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	if _pixel_font:
 		loot_lbl.add_theme_font_override("font", _pixel_font)
-	loot_lbl.add_theme_font_size_override("font_size", 13)
+	loot_lbl.add_theme_font_size_override("font_size", 14)
 	loot_lbl.add_theme_color_override("font_color", Color(0.90, 0.85, 0.50))
 	panel.add_child(loot_lbl)
 	_loot_counter = loot_lbl
@@ -147,7 +147,7 @@ func _build_ui(offers: Array[Dictionary]) -> void:
 	sub_lbl.position = Vector2(8.0, 26.0)
 	if _pixel_font:
 		sub_lbl.add_theme_font_override("font", _pixel_font)
-	sub_lbl.add_theme_font_size_override("font_size", 13)
+	sub_lbl.add_theme_font_size_override("font_size", 14)
 	sub_lbl.add_theme_color_override("font_color", Color(0.58, 0.55, 0.38))
 	panel.add_child(sub_lbl)
 
@@ -210,7 +210,7 @@ func _build_offer_row(offer: Dictionary) -> HBoxContainer:
 	price_lbl.custom_minimum_size = Vector2(38.0, 0.0)
 	if _pixel_font:
 		price_lbl.add_theme_font_override("font", _pixel_font)
-	price_lbl.add_theme_font_size_override("font_size", 13)
+	price_lbl.add_theme_font_size_override("font_size", 14)
 	price_lbl.add_theme_color_override("font_color", Color(0.90, 0.85, 0.40))
 	row.add_child(price_lbl)
 
@@ -220,7 +220,7 @@ func _build_offer_row(offer: Dictionary) -> HBoxContainer:
 	buy_btn.process_mode = Node.PROCESS_MODE_ALWAYS
 	if _pixel_font:
 		buy_btn.add_theme_font_override("font", _pixel_font)
-	buy_btn.add_theme_font_size_override("font_size", 13)
+	buy_btn.add_theme_font_size_override("font_size", 14)
 	buy_btn.add_theme_color_override("font_color", Color(0.95, 0.85, 0.20))
 
 	var cap_offer: Dictionary = offer.duplicate()

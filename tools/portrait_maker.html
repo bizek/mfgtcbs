@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Portrait Maker — Extraction Survivors</title>
+<style>
+:root {
+  --bg:     #0d0c0a;
+  --card:   #141311;
+  --border: #2a2520;
+  --amber:  #d47219;
+  --amberhi:#e88820;
+  --text:   #cbb08f;
+  --dim:    #5c4a34;
+  --green:  #4fb030;
+  --red:    #c0392b;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: monospace; font-size: 13px; height: 100vh; display: flex; flex-direction: column; }
+
+header {
+  padding: 10px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 14px; flex-shrink: 0;
+}
+header h1 { font-size: 13px; color: var(--amber); letter-spacing: 2px; }
+header .hint { color: var(--dim); font-size: 11px; }
+
+.layout { display: flex; gap: 0; flex: 1; overflow: hidden; }
+
+/* ── Controls column ── */
+.controls {
+  width: 200px; flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px;
+}
+
+.sec { }
+.sec-title {
+  color: var(--dim); font-size: 10px; letter-spacing: 1.5px;
+  padding: 4px 0 6px; border-bottom: 1px solid var(--border); margin-bottom: 6px;
+}
+.field { margin-bottom: 6px; }
+.field:last-child { margin-bottom: 0; }
+.field label { display: block; color: var(--dim); font-size: 10px; letter-spacing: 1px; margin-bottom: 2px; }
+.field select {
+  width: 100%; background: var(--bg); color: var(--text);
+  border: 1px solid var(--border); padding: 3px 5px;
+  font-family: monospace; font-size: 12px;
+}
+.field select:focus { outline: 1px solid var(--amber); }
+
+.toggle-row { display: flex; gap: 4px; }
+.tog {
+  flex: 1; background: var(--bg); color: var(--dim);
+  border: 1px solid var(--border); padding: 3px 0;
+  font-family: monospace; font-size: 11px; cursor: pointer; text-align: center;
+}
+.tog.active { background: var(--amber); color: #000; border-color: var(--amber); }
+
+/* ── Preview column ── */
+.preview-col {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 20px;
+}
+
+canvas#preview {
+  width: 256px; height: 256px;
+  image-rendering: pixelated;
+  background: repeating-conic-gradient(#1c1a16 0% 25%, #141210 0% 50%) 0 0 / 16px 16px;
+  border: 1px solid var(--border);
+  display: block;
+}
+
+.export { width: 256px; display: flex; flex-direction: column; gap: 6px; }
+.export select, .export input {
+  width: 100%; background: var(--card); color: var(--text);
+  border: 1px solid var(--border); padding: 5px 7px;
+  font-family: monospace; font-size: 12px;
+}
+.export input::placeholder { color: var(--dim); }
+.export input:focus, .export select:focus { outline: 1px solid var(--amber); }
+
+.btn {
+  width: 100%; padding: 7px; font-family: monospace; font-size: 12px;
+  cursor: pointer; letter-spacing: 1px; border: 1px solid var(--amber);
+  background: var(--amber); color: #000;
+}
+.btn:hover { background: var(--amberhi); }
+
+.note { color: var(--dim); font-size: 10px; text-align: center; }
+.err  { color: var(--red);  font-size: 10px; text-align: center; min-height: 14px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>PORTRAIT MAKER</h1>
+  <span class="hint">Run from project root: <code>python -m http.server 8000</code> → open <code>localhost:8000/tools/portrait_maker.html</code></span>
+</header>
+
+<div class="layout">
+
+  <!-- ── Controls ── -->
+  <div class="controls">
+
+    <div class="sec">
+      <div class="sec-title">RACE &amp; SKIN</div>
+      <div class="field"><label>RACE</label><select id="race"></select></div>
+      <div class="field"><label>SKIN</label><select id="skin"></select></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">FACE</div>
+      <div class="field"><label>EARS</label><select id="ears"></select></div>
+      <div class="field"><label>NOSE</label><select id="nose"></select></div>
+      <div class="field"><label>MOUTH</label><select id="mouth"></select></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">EYES</div>
+      <div class="field" id="iris-field"><label>IRIS</label><select id="eyeIris"></select></div>
+      <div class="field"><label>STYLE</label><select id="eyeStyle"></select></div>
+      <div class="field">
+        <label>VARIANT</label>
+        <div class="toggle-row">
+          <button class="tog active" id="var1" onclick="setVar(1)">1</button>
+          <button class="tog"        id="var2" onclick="setVar(2)">2</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">HAIR</div>
+      <div class="field"><label>COLOR</label><select id="hairColor"></select></div>
+      <div class="field"><label>STYLE</label><select id="hairStyle"></select></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">BEARD</div>
+      <div class="field"><label>COLOR</label><select id="beardColor"></select></div>
+      <div class="field"><label>STYLE</label><select id="beardStyle"></select></div>
+    </div>
+
+  </div>
+
+  <!-- ── Preview ── -->
+  <div class="preview-col">
+    <canvas id="preview" width="32" height="32"></canvas>
+
+    <div class="export">
+      <select id="charSlot">
+        <option value="the_drifter">the_drifter  —  The Sellsword</option>
+        <option value="the_scavenger">the_scavenger  —  The Scavenger</option>
+        <option value="the_warden">the_warden  —  The Warden</option>
+        <option value="the_spark">the_spark  —  The Spark</option>
+        <option value="the_shade">the_shade  —  The Shade</option>
+        <option value="the_herald">the_herald  —  The Herald</option>
+        <option value="the_cursed">the_cursed  —  The Cursed</option>
+        <option value="__custom__">custom filename...</option>
+      </select>
+      <input type="text" id="customName" placeholder="filename (no extension)" style="display:none">
+      <button class="btn" onclick="download()">⬇  DOWNLOAD  32×32  PNG</button>
+      <div class="note" id="saveNote">assets/characters/portraits/the_drifter.png</div>
+      <div class="err"  id="errMsg"></div>
+    </div>
+  </div>
+
+</div><!-- .layout -->
+
+<script>
+// ── Asset manifest ─────────────────────────────────────────────────────────────
+
+const BASE = '/assets/minifantasy/Minifantasy_Portrait_Generator_Graphical_Assets_v1.0/Portrait_Generator/single_images';
+
+const RACES = {
+  human:    { skins: ['pale','brown','black','white'],              eyeMode: 'iris', irises: ['black','brown','pale','white'] },
+  halfling: { skins: ['apple','blueberry','chestnut','wheat'],      eyeMode: 'skin' },
+  elf:      { skins: ['soft','albino','purple','tourmaline'],       eyeMode: 'skin' },
+  dwarf:    { skins: ['bronzed','obsidian','rosacea','stone'],      eyeMode: 'skin' },
+  orc:      { skins: ['green','dark','emerald','olive'],            eyeMode: 'skin' },
+  goblin:   { skins: ['grassland','desert','swamp','tundra'],       eyeMode: 'skin' },
+};
+
+const EAR_STYLES   = ['big','bitten','mini','monk','monkey','normal','pressed','protruding','small','tall'];
+const NOSE_STYLES  = ['none','ball','big','fat','flat','mini','oink','pointy','rounded','small','straight'];
+const MOUTH_STYLES = ['none','confident','frown','grimace','grit','happy','laugh','neutral','pursed','sad','small','smile','surprise'];
+const EYE_STYLES   = ['angry','happy','mini','narrow','pissed','round','sad','small','suspicious','tall'];
+
+const HAIR_COLORS  = ['black','blonde','blue','brown','green','pink','purple','red','turquoise','white'];
+const HAIR_STYLES  = ['none','afro','bald','bobcut','bow','bows','bubbles','dcut','long','mane','middle_part','mohawk','ponytail','short','spikes','tip','toupee','vcut'];
+const BEARD_STYLES = ['none','braided','chops','classic','curtain','dutch','egyptian','fork','garibaldi','goatee','long','lumberjack','shaft','shaman','sideburns','viking'];
+
+// ── State ──────────────────────────────────────────────────────────────────────
+
+const S = {
+  race: 'human', skin: 'pale',
+  ears: 'normal', nose: 'straight', mouth: 'neutral',
+  eyeIris: 'black', eyeStyle: 'narrow', eyeVar: 1,
+  hairColor: 'black', hairStyle: 'short',
+  beardColor: 'black', beardStyle: 'none',
+};
+
+// ── Populate helpers ───────────────────────────────────────────────────────────
+
+function opts(arr, cur) {
+  return arr.map(v => `<option value="${v}"${v===cur?' selected':''}>${v}</option>`).join('');
+}
+
+function populateAll() {
+  const race = RACES[S.race];
+
+  document.getElementById('race').innerHTML     = opts(Object.keys(RACES), S.race);
+  document.getElementById('skin').innerHTML     = opts(race.skins, S.skin);
+
+  document.getElementById('ears').innerHTML     = opts(EAR_STYLES,   S.ears);
+  document.getElementById('nose').innerHTML     = opts(NOSE_STYLES,   S.nose);
+  document.getElementById('mouth').innerHTML    = opts(MOUTH_STYLES,  S.mouth);
+
+  const irisField = document.getElementById('iris-field');
+  if (race.eyeMode === 'iris') {
+    irisField.style.display = '';
+    document.getElementById('eyeIris').innerHTML = opts(race.irises, S.eyeIris);
+  } else {
+    irisField.style.display = 'none';
+  }
+  document.getElementById('eyeStyle').innerHTML = opts(EYE_STYLES, S.eyeStyle);
+
+  document.getElementById('hairColor').innerHTML  = opts(HAIR_COLORS,  S.hairColor);
+  document.getElementById('hairStyle').innerHTML  = opts(HAIR_STYLES,  S.hairStyle);
+  document.getElementById('beardColor').innerHTML = opts(HAIR_COLORS,  S.beardColor);
+  document.getElementById('beardStyle').innerHTML = opts(BEARD_STYLES, S.beardStyle);
+}
+
+// ── Events ─────────────────────────────────────────────────────────────────────
+
+function wire(id, key, onChangeFn) {
+  document.getElementById(id).addEventListener('change', e => {
+    S[key] = e.target.value;
+    if (onChangeFn) onChangeFn();
+    render();
+  });
+}
+
+function onRaceChange() {
+  const race = RACES[S.race];
+  // Reset skin if no longer valid
+  if (!race.skins.includes(S.skin)) S.skin = race.skins[0];
+  // Reset iris if race has no iris mode
+  populateAll();
+}
+
+function setVar(v) {
+  S.eyeVar = v;
+  document.getElementById('var1').className = 'tog' + (v===1 ? ' active' : '');
+  document.getElementById('var2').className = 'tog' + (v===2 ? ' active' : '');
+  render();
+}
+
+// ── Layer builder ──────────────────────────────────────────────────────────────
+
+function buildLayers() {
+  const { race: r, skin: s, ears, nose, mouth,
+          eyeIris, eyeStyle, eyeVar,
+          hairColor, hairStyle, beardColor, beardStyle } = S;
+
+  const eyePrefix = RACES[r].eyeMode === 'iris' ? eyeIris : s;
+  const layers = [];
+
+  layers.push(`${BASE}/${r}/${r}_${s}_base.png`);
+  if (ears  !== 'none') layers.push(`${BASE}/${r}/${r}_${s}_ears_${ears}.png`);
+  if (nose  !== 'none') layers.push(`${BASE}/${r}/${r}_${s}_nose_${nose}.png`);
+  if (mouth !== 'none') layers.push(`${BASE}/${r}/${r}_${s}_mouth_${mouth}.png`);
+  layers.push(`${BASE}/${r}/${r}_eyes/${r}_eyes_${eyePrefix}_${eyeStyle}_${eyeVar}.png`);
+  if (hairStyle  !== 'none') layers.push(`${BASE}/common/common_hair_${hairColor}_${hairStyle}.png`);
+  if (beardStyle !== 'none') layers.push(`${BASE}/common/common_beard_${beardColor}_${beardStyle}.png`);
+
+  return layers;
+}
+
+// ── Rendering ──────────────────────────────────────────────────────────────────
+
+const cache = {};
+function loadImg(src) {
+  if (!cache[src]) {
+    cache[src] = new Promise(res => {
+      const img = new Image();
+      img.onload  = () => res(img);
+      img.onerror = () => res(null);   // missing layer → skip
+      img.src = src;
+    });
+  }
+  return cache[src];
+}
+
+async function render() {
+  const canvas = document.getElementById('preview');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, 32, 32);
+  document.getElementById('errMsg').textContent = '';
+
+  const missing = [];
+  for (const path of buildLayers()) {
+    const img = await loadImg(path);
+    if (img) ctx.drawImage(img, 0, 0);
+    else missing.push(path.split('/').pop());
+  }
+  if (missing.length) {
+    document.getElementById('errMsg').textContent = 'skipped: ' + missing.join(', ');
+  }
+}
+
+// ── Export ─────────────────────────────────────────────────────────────────────
+
+function getFilename() {
+  const slot = document.getElementById('charSlot').value;
+  return slot === '__custom__'
+    ? (document.getElementById('customName').value.trim() || 'portrait')
+    : slot;
+}
+
+function updateNote() {
+  document.getElementById('saveNote').textContent =
+    `assets/characters/portraits/${getFilename()}.png`;
+}
+
+function download() {
+  document.getElementById('preview').toBlob(blob => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = getFilename() + '.png';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    document.getElementById('saveNote').textContent =
+      `Downloaded! Replace: assets/characters/portraits/${getFilename()}.png`;
+  }, 'image/png');
+}
+
+// ── Boot ───────────────────────────────────────────────────────────────────────
+
+populateAll();
+
+wire('race',       'race',       onRaceChange);
+wire('skin',       'skin');
+wire('ears',       'ears');
+wire('nose',       'nose');
+wire('mouth',      'mouth');
+wire('eyeIris',    'eyeIris');
+wire('eyeStyle',   'eyeStyle');
+wire('hairColor',  'hairColor');
+wire('hairStyle',  'hairStyle');
+wire('beardColor', 'beardColor');
+wire('beardStyle', 'beardStyle');
+
+document.getElementById('charSlot').addEventListener('change', () => {
+  const custom = document.getElementById('customName');
+  custom.style.display = document.getElementById('charSlot').value === '__custom__' ? '' : 'none';
+  updateNote();
+});
+document.getElementById('customName').addEventListener('input', updateNote);
+
+render();
+</script>
+</body>
+</html>

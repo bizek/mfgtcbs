@@ -142,7 +142,7 @@ func _build_ui() -> void:
 	for def in filter_defs:
 		var key: String = def[0]
 		var btn := _make_button(def[1], fx, filter_y, 108, 14)
-		btn.add_theme_font_size_override("font_size", 13)
+		btn.add_theme_font_size_override("font_size", 14)
 		_style_btn_flat(btn, Color.TRANSPARENT, Color(0.28, 0.18, 0.48, 0.55))
 		btn.pressed.connect(func():
 			_filter = key

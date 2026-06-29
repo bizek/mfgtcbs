@@ -329,6 +329,57 @@ static func spawn_melee_arc(owner: Node, scene_root: Node, center: Vector2, angl
 		ta.tween_callback(anim.queue_free)
 
 
+## Lightweight dash cue: a few fading afterimage ghosts of the player's current frame
+## trailing behind the dash, plus a one-shot dust puff at the launch point. No pooling —
+## a handful of transient nodes per dash, self-freeing via tween/timer.
+static func spawn_dash_cue(owner: Node, scene_root: Node, player_sprite: AnimatedSprite2D, start_pos: Vector2, dir: Vector2) -> void:
+	# --- Afterimage ghosts ---
+	var tex: Texture2D = null
+	var flip: bool = false
+	if player_sprite and player_sprite.sprite_frames:
+		var anim: String = player_sprite.animation
+		if player_sprite.sprite_frames.has_animation(anim):
+			tex = player_sprite.sprite_frames.get_frame_texture(anim, player_sprite.frame)
+		flip = player_sprite.flip_h
+	if tex:
+		for i in 3:
+			var ghost := Sprite2D.new()
+			ghost.top_level       = true
+			ghost.texture         = tex
+			ghost.flip_h          = flip
+			ghost.centered        = true
+			ghost.texture_filter  = CanvasItem.TEXTURE_FILTER_NEAREST
+			ghost.z_index         = -1
+			ghost.global_position = start_pos - dir * (float(i) * 8.0)
+			ghost.modulate        = Color(0.6, 0.8, 1.0, 0.45 - float(i) * 0.12)
+			scene_root.add_child(ghost)
+			var tg := owner.create_tween()
+			tg.tween_property(ghost, "modulate:a", 0.0, 0.18 + float(i) * 0.04)
+			tg.tween_callback(ghost.queue_free)
+
+	# --- Dust puff ---
+	var dust := CPUParticles2D.new()
+	dust.top_level             = true
+	dust.global_position       = start_pos
+	dust.amount                = 8
+	dust.lifetime              = 0.35
+	dust.one_shot              = true
+	dust.explosiveness         = 0.9
+	dust.direction             = -dir
+	dust.spread                = 35.0
+	dust.initial_velocity_min  = 30.0
+	dust.initial_velocity_max  = 70.0
+	dust.gravity               = Vector2.ZERO
+	dust.scale_amount_min      = 1.5
+	dust.scale_amount_max      = 3.0
+	dust.color                 = Color(0.7, 0.75, 0.85, 0.7)
+	scene_root.add_child(dust)
+	dust.emitting = true
+	owner.get_tree().create_timer(0.6).timeout.connect(func() -> void:
+		if is_instance_valid(dust): dust.queue_free()
+	)
+
+
 static func spawn_artillery_marker(owner: Node, scene_root: Node, pos: Vector2, radius: float, fuse: float, tint: Color) -> void:
 	var marker := Node2D.new()
 	marker.global_position = pos

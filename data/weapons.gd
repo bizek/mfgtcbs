@@ -24,13 +24,34 @@ const ALL: Dictionary = {
 		"damage":          11.0,
 		"attack_speed":    1.0,     ## shots per second
 		"projectile_speed": 400.0,
-		"lifetime":        3.0,     ## seconds before projectile expires
+		"lifetime":        1.2,     ## range = speed×lifetime ≈ 480px (manual-aim range nerf 2026-06-24)
 		"projectile_count": 1,
 		"spread_angle":    10.0,    ## total cone width in degrees (±5°)
 		"tint":            Color.WHITE,
-		"drop_weight":     0,       ## 0 = never drops; always available as default
+		"drop_weight":     10,      ## now a generic mid-run drop (retired as a character starter 2026-06-24)
 		"mod_slots":       2,       ## mod slots available for this weapon
 		"unlock_id":       "",      ## empty = always available, no blueprint required
+	},
+
+	## ─── Hunter's Bow ─────────────────────────────────────────────────────────
+	## The Scavenger's (Ranger) signature: a fast, accurate single arrow. Uses her
+	## existing bow "SingleShot" attack animation. Replaced Hurled Steel on the Ranger 2026-06-24.
+	"Hunter's Bow": {
+		"id":              "Hunter's Bow",
+		"display_name":    "Hunter's Bow",
+		"description":     "A swift arrow to the nearest threat.",
+		"behavior":        "projectile",
+		"damage_type":     "physical",
+		"damage":          13.0,
+		"attack_speed":    1.1,
+		"projectile_speed": 460.0,   ## arrows fly fast
+		"lifetime":        1.15,     ## range ≈ 530px — long ranger reach
+		"projectile_count": 1,
+		"spread_angle":    4.0,      ## tight, accurate
+		"tint":            Color(0.85, 0.78, 0.55),   ## fletched-wood tan
+		"drop_weight":     0,        ## character starter — never drops
+		"mod_slots":       2,
+		"unlock_id":       "",
 	},
 
 	## ─── Frost Scattergun ─────────────────────────────────────────────────────
@@ -65,7 +86,7 @@ const ALL: Dictionary = {
 		"damage_type":     "fire",
 		"damage":          4.0,     ## per tick (×12/sec = 48 DPS base)
 		"attack_speed":    12.0,    ## ticks per second
-		"range":           285.0,
+		"range":           240.0,   ## manual-aim range nerf 2026-06-24 (was 285)
 		"tint":            Color(1.0, 0.42, 0.08),   ## deep orange-red
 		"drop_weight":     10,
 		"mod_slots":       1,
@@ -105,7 +126,7 @@ const ALL: Dictionary = {
 		"damage_type":     "void",
 		"damage":          31.0,    ## AoE on explosion
 		"attack_speed":    0.40,    ## shots per second
-		"range":           380.0,   ## max target range
+		"range":           340.0,   ## max target range — manual-aim range nerf 2026-06-24 (was 380)
 		"aoe_radius":      64.0,
 		"fuse_time":        1.0,    ## seconds before detonation
 		"tint":            Color(0.38, 0.08, 0.62),  ## dark purple-void
@@ -149,7 +170,7 @@ const ALL: Dictionary = {
 		"damage":          17.0,
 		"attack_speed":    0.55,    ## slow fire rate
 		"projectile_speed": 380.0,
-		"lifetime":        3.5,
+		"lifetime":        1.5,     ## range ≈ 570px — longest reach (sniper identity); range nerf 2026-06-24
 		"projectile_count": 1,
 		"spread_angle":    6.0,
 		"tint":            Color(0.82, 0.64, 0.28),  ## iron bronze
@@ -169,7 +190,7 @@ const ALL: Dictionary = {
 		"damage":          8.0,
 		"attack_speed":    2.0,     ## fast fire rate
 		"projectile_speed": 440.0,
-		"lifetime":        3.0,
+		"lifetime":        1.0,     ## range ≈ 440px — manual-aim range nerf 2026-06-24
 		"projectile_count": 1,
 		"spread_angle":    8.0,
 		"tint":            Color(1.0, 0.95, 0.30),   ## electric yellow
@@ -189,7 +210,7 @@ const ALL: Dictionary = {
 		"damage":          6.0,
 		"attack_speed":    0.80,
 		"projectile_speed": 360.0,
-		"lifetime":        3.0,
+		"lifetime":        1.2,     ## range ≈ 432px — manual-aim range nerf 2026-06-24
 		"projectile_count": 1,
 		"spread_angle":    14.0,
 		"tint":            Color(0.30, 0.86, 0.96),  ## herald teal

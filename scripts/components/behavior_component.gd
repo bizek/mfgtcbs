@@ -38,6 +38,12 @@ func _on_heal_for_targeting(source: Node2D, target: Node2D, _amount: float) -> v
 		_heal_reactive_target = target
 
 
+func get_effective_attack_interval() -> float:
+	## Public accessor for the cadence used by the manual-fire path (player.gd), so
+	## manual shooting respects attack-speed / cooldown mods exactly like auto-fire.
+	return _get_effective_aa_interval()
+
+
 func _get_effective_aa_interval() -> float:
 	var base: float = _base_attack_interval
 	if _modifier_comp:

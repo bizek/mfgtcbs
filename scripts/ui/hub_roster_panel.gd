@@ -30,10 +30,10 @@ const C_T1 := Color(0.541, 0.408, 0.282)
 const C_T2 := Color(0.314, 0.235, 0.157)
 
 const FONT  := HubPanelBase.PIXEL_FONT
-const FS_LG := 21
+const FS_LG := 16
 const FS_MD := 19
 const FS_SM := 16
-const FS_XS := 13
+const FS_XS := 14
 
 ## Portrait size in the detail pane (rendered with NEAREST for crisp 2× upscale).
 const PORTRAIT_DETAIL_PX := 48   ## 32px native × 1.5 (fits detail pane without scrolling)
@@ -149,7 +149,7 @@ func _build_char_card(parent: VBoxContainer, char_id: String) -> void:
 	var is_detail: bool   = _detail_char == char_id
 
 	var card := Button.new()
-	card.custom_minimum_size   = Vector2(0, 30)
+	card.custom_minimum_size   = Vector2(0, 38)
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	card.focus_mode            = Control.FOCUS_NONE
 

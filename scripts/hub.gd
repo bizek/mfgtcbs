@@ -255,13 +255,6 @@ func _build_player() -> void:
 	cs.shape = rs
 	_player_body.add_child(cs)
 
-	## Ground shadow behind sprite (character-agnostic)
-	var shadow := ColorRect.new()
-	shadow.color = Color(0.0, 0.0, 0.0, 0.35)
-	shadow.size = Vector2(9, 13)
-	shadow.position = Vector2(-4.5, -4.5)
-	_player_body.add_child(shadow)
-
 	## Holder for the swappable character avatar — rebuilt when roster selection changes.
 	_avatar_holder = Node2D.new()
 	_player_body.add_child(_avatar_holder)

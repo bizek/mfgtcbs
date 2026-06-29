@@ -450,7 +450,7 @@ func _build_extraction_warning_label() -> void:
 	lbl.position = Vector2(220.0, 20.0)
 	lbl.size = Vector2(200.0, 12.0)
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.add_theme_font_size_override("font_size", 13)
+	lbl.add_theme_font_size_override("font_size", 14)
 	lbl.add_theme_color_override("font_color", Color(1.0, 0.9, 0.1))
 	lbl.visible = false
 	if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):

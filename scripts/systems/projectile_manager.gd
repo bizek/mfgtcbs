@@ -6,6 +6,14 @@ extends Node2D
 
 const POOL_SIZE := 256
 
+## Deliberate-pacing rebalance 2026-06-23 — projectile travel-speed slowdown so
+## shots can be read and dodged. Applied per faction at spawn time to the actual
+## velocity/speed only; max_range is left untouched, so a projectile still covers
+## the same distance (it just takes longer). Tuning these two numbers is the
+## single lever for projectile readability. See docs/pacing_rebalance.md.
+const PLAYER_PROJECTILE_SPEED_SCALE: float = 0.65
+const ENEMY_PROJECTILE_SPEED_SCALE: float = 0.6
+
 ## 8-direction names indexed by angle sector.
 const DIR_NAMES: Array[String] = ["e", "se", "s", "sw", "w", "nw", "n", "ne"]
 
@@ -173,15 +181,20 @@ func spawn(source: Node2D, ability, config: ProjectileConfig,
 	if i < 0:
 		return
 
+	var src_faction: int = int(source.faction)
+	## Deliberate-pacing slowdown — slow the travel speed, keep max_range intact.
+	var speed_scale: float = PLAYER_PROJECTILE_SPEED_SCALE if src_faction == 0 else ENEMY_PROJECTILE_SPEED_SCALE
+	var scaled_speed: float = config.speed * speed_scale
+
 	_alive[i] = 1
 	_positions[i] = source.global_position + offset
-	_speeds[i] = config.speed
+	_speeds[i] = scaled_speed
 	_max_ranges[i] = config.max_range
 	_distances[i] = 0.0
 	_hit_radius_sqs[i] = config.hit_radius * config.hit_radius
-	_factions[i] = int(source.faction)
-	_target_factions[i] = 1 if int(source.faction) == 0 else 0
-	_velocities[i] = direction * config.speed
+	_factions[i] = src_faction
+	_target_factions[i] = 1 if src_faction == 0 else 0
+	_velocities[i] = direction * scaled_speed
 	if not config.use_directional_anims:
 		_rotations[i] = direction.angle() + config.rotation_offset
 	else:
@@ -216,7 +229,7 @@ func spawn(source: Node2D, ability, config: ProjectileConfig,
 			var range_dist := config.max_range if config.max_range > 0.0 else 200.0
 			_arc_ends[i] = _positions[i] + direction * range_dist
 		var initial_dist := _positions[i].distance_to(_arc_ends[i])
-		_arc_durations[i] = initial_dist / maxf(config.speed, 1.0)
+		_arc_durations[i] = initial_dist / maxf(scaled_speed, 1.0)
 		_arc_times[i] = 0.0
 
 	_visual_scales[i] = config.visual_scale

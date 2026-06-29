@@ -22,9 +22,15 @@ const UPGRADE_COSTS: Dictionary = {
 var resources: int = 0
 var run_stats: Dictionary = {}            ## Per-run stats (deepest_phase, etc.)
 var unlocked_weapons: Array = []
-var selected_weapon: String = "Hurled Steel"
+var selected_weapon: String = "Hurled Steel"    ## Legacy global pick — superseded by character_loadouts; kept for save compat
 var selected_weapon_2: String = ""          ## Only used when armory_expansion_1 is owned
 var selected_weapon_3: String = ""          ## Only used when armory_expansion_2 is owned
+
+## Per-character weapon loadouts — { char_id: [slot1, slot2, slot3] }. Slot 1 (index 0) is
+## the weapon used in-run; each character defaults to its signature starting_weapon. This
+## opens weapon choice to every character (class × weapon build diversity), replacing the
+## old Drifter-only global selected_weapon model.
+var character_loadouts: Dictionary = {}
 var hub_upgrades: Array = []               ## IDs of purchased Workshop upgrades
 var total_resources_spent: int = 0         ## Drives hub visual tier
 
@@ -66,6 +72,7 @@ func save_data() -> void:
 		"unlocked_characters":    unlocked_characters,
 		"owned_mods":             owned_mods,
 		"weapon_mods":            weapon_mods,
+		"character_loadouts":     character_loadouts,
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file:
@@ -107,6 +114,7 @@ func load_data() -> void:
 		unlocked_characters.append("The Drifter")
 	owned_mods   = result.get("owned_mods",  [])
 	weapon_mods  = result.get("weapon_mods", {})
+	character_loadouts = result.get("character_loadouts", {})
 
 ## Returns true if the player owns Extraction Intel I (timed zone revealed at run start).
 func has_extraction_intel() -> bool:
@@ -226,6 +234,33 @@ func is_weapon_available(weapon_id: String) -> bool:
 func add_mod(mod_id: String) -> void:
 	owned_mods.append(mod_id)   ## Allow duplicates — each instance is a separate item
 	save_data()
+
+## ── Per-character weapon loadouts ────────────────────────────────────────────
+## Each character picks its own weapon(s); slot 1 (index 0) is what fires in-run.
+## A character with no stored loadout defaults to its signature starting_weapon.
+
+func get_character_loadout(char_id: String) -> Array:
+	if not character_loadouts.has(char_id):
+		var sig: String = CharacterData.ALL.get(char_id, {}).get("starting_weapon", "Hurled Steel")
+		character_loadouts[char_id] = [sig, "", ""]
+	return character_loadouts[char_id]
+
+## Weapon equipped in the given 1-based slot for a character ("" if the slot is empty).
+func get_character_weapon(char_id: String, slot: int = 1) -> String:
+	var loadout: Array = get_character_loadout(char_id)
+	var idx: int = slot - 1
+	if idx >= 0 and idx < loadout.size():
+		return str(loadout[idx])
+	return ""
+
+## Assign a weapon to a character's 1-based slot. Caller saves.
+func set_character_weapon(char_id: String, slot: int, weapon_id: String) -> void:
+	var loadout: Array = get_character_loadout(char_id)
+	while loadout.size() < slot:
+		loadout.append("")
+	loadout[slot - 1] = weapon_id
+	character_loadouts[char_id] = loadout
+
 
 ## Returns the equipped mod IDs for a weapon as an Array (may include "" for empty slots).
 func get_weapon_mods(weapon_id: String) -> Array:

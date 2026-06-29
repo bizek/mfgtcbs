@@ -8,7 +8,7 @@ extends Panel
 ## accesses ContentContainer to add rows, and forwards the close_requested signal.
 
 const PIXEL_FONT  := preload("res://assets/fonts/m5x7.ttf")
-const FONT_TITLE  := 21
+const FONT_TITLE  := 16
 const FONT_BODY   := 19
 const FONT_DIM    := 16
 const ROW_GAP     := 23

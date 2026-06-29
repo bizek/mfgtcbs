@@ -11,8 +11,19 @@ extends RefCounted
 ##   rows = 4 facing directions, columns = animation frames; Die is a single row.
 ##   The engine renders one facing + flip_h, so we slice dir_row (0 = Down/front).
 ## Mirrors the runtime-slicing pattern in enemy_guardian.gd and player_vfx_helper.gd.
+##
+## Anim spec shape (per docs/combat_chain_architecture.md §7):
+##   [sheet, frame_count, fps]                                  ## base (idle/walk/attack/...)
+##   [sheet, frame_count, fps, {hit_frame, cancel_open, cancel_close}]  ## combo/skill nodes
+## The optional 4th element carries per-anim combat timing read by the choreography runner /
+## chain factory via get_anim_meta(); build() ignores it (slicing doesn't need it).
+##
+## `sheet` is normally a filename appended to the "dir" base, but combat specials live in
+## Special_Animations/<Name>/ subfolders — so a spec sheet starting with "res://" is treated
+## as an ABSOLUTE path and used verbatim (back-compatible: bare filenames still join "dir").
 
-## Animations that loop; everything else (attack/damage/death) plays once.
+## Animations that loop; everything else (attack/damage/death/combo/skill) plays once.
+## Combo channels (e.g. Whirlwind) loop via choreography phase re-entry, not a looping SpriteFrames.
 const LOOPING_ANIMS: Array[String] = ["idle", "walk"]
 
 ## Animations player.gd plays by name — warn if a character's data omits one.
@@ -42,7 +53,9 @@ static func build(char_id: String) -> SpriteFrames:
 		if spec.size() < 3:
 			push_warning("CharacterSpriteFactory: bad anim spec for %s/%s" % [char_id, anim_name])
 			continue
-		var path: String = base_dir + str(spec[0])
+		var raw_sheet: String = str(spec[0])
+		## Specials in subfolders pass an absolute res:// path; base anims pass a bare filename.
+		var path: String = raw_sheet if raw_sheet.begins_with("res://") else base_dir + raw_sheet
 		var count: int = int(spec[1])
 		var fps: float = float(spec[2])
 		if not ResourceLoader.exists(path):
@@ -71,3 +84,17 @@ static func build(char_id: String) -> SpriteFrames:
 		if not frames.has_animation(StringName(req)):
 			push_warning("CharacterSpriteFactory: %s is missing required anim '%s'" % [char_id, req])
 	return frames
+
+
+## Per-anim combat timing metadata (the optional 4th element of an anims spec), or {} if absent.
+## Read by the choreography runner / chain factory: {hit_frame:int, cancel_open:int, cancel_close:int}
+## in animation frames. Returns a copy with safe defaults so callers can index freely.
+static func get_anim_meta(char_id: String, anim_name: String) -> Dictionary:
+	var char_data: Dictionary = CharacterData.ALL.get(char_id, {})
+	var anims: Dictionary = char_data.get("sprite", {}).get("anims", {})
+	var spec: Array = anims.get(anim_name, [])
+	var meta: Dictionary = {"hit_frame": -1, "cancel_open": -1, "cancel_close": -1}
+	if spec.size() >= 4 and spec[3] is Dictionary:
+		for k in spec[3]:
+			meta[k] = spec[3][k]
+	return meta

@@ -9,9 +9,15 @@ signal died(enemy: Node2D)
 const XP_GEM_SCENE_PATH: String = "res://scenes/pickups/xp_gem.tscn"
 const HEALTH_ORB_SCENE_PATH: String = "res://scenes/pickups/health_orb.tscn"
 
+## Deliberate-pacing rebalance 2026-06-23 — global slowdown applied to every
+## enemy's per-type design speed at setup. Tuning this one number rescales ALL
+## enemy movement while preserving the relative spread authored in the data
+## factories. See docs/pacing_rebalance.md.
+const MOVE_SPEED_SCALE: float = 0.6
+
 ## Base stats (set by setup_from_enemy_def or @export for legacy scenes)
 @export var max_hp: float = 30.0
-@export var base_move_speed: float = 42.0
+@export var base_move_speed: float = 25.0  ## legacy-scene default; data enemies override via setup_from_enemy_def
 @export var contact_damage: float = 10.0
 @export var base_armor: float = 0.0
 @export var xp_value: float = 1.0
@@ -133,7 +139,7 @@ func setup_from_enemy_def(def: EnemyDefinition) -> void:
 
 	# Core stats
 	max_hp = def.base_stats.get("max_hp", 30.0)
-	base_move_speed = def.move_speed
+	base_move_speed = def.move_speed * MOVE_SPEED_SCALE  ## deliberate-pacing global slowdown
 	contact_damage = def.contact_damage
 	base_armor = def.base_armor
 	xp_value = def.xp_value

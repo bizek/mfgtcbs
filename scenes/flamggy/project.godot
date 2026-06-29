@@ -1,0 +1,15 @@
+; Engine configuration file.
+; Throwaway test project for flame_mascot.glb — not part of Extraction Survivors.
+
+config_version=5
+
+[application]
+
+config/name="Flame Mascot Test"
+run/main_scene="res://flame_test.tscn"
+config/features=PackedStringArray("4.6", "GL Compatibility")
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"

@@ -175,7 +175,7 @@ func _build_panel() -> Control:
 	sub_lbl.position = Vector2(8.0, 26.0)
 	if pixel_font:
 		sub_lbl.add_theme_font_override("font", pixel_font)
-	sub_lbl.add_theme_font_size_override("font_size", 13)
+	sub_lbl.add_theme_font_size_override("font_size", 14)
 	sub_lbl.add_theme_color_override("font_color", Color(0.65, 0.55, 0.55))
 	sub_lbl.size = Vector2(PANEL_W - 16.0, 16.0)
 	panel.add_child(sub_lbl)
@@ -260,7 +260,7 @@ func _build_row(display_text: String, item_key: String, pixel_font: Font) -> HBo
 	btn.process_mode = Node.PROCESS_MODE_ALWAYS
 	if pixel_font:
 		btn.add_theme_font_override("font", pixel_font)
-	btn.add_theme_font_size_override("font_size", 13)
+	btn.add_theme_font_size_override("font_size", 14)
 	btn.add_theme_color_override("font_color", Color(0.95, 0.28, 0.28))
 	var cap_key: String = item_key
 	btn.pressed.connect(func(): _on_item_selected(cap_key))

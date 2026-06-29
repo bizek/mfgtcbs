@@ -17,6 +17,7 @@ var _panel: Control        ## Root panel container
 var _god_btn: Button       ## Kept for live label/colour updates
 var _debug_draw_btn: Button
 var _block_debug_btn: Button
+var _auto_fire_btn: Button
 
 func _ready() -> void:
 	layer = 127  ## Above everything in-game, below nothing
@@ -101,6 +102,7 @@ func _build_panel() -> void:
 		["Level Up ×5",          _cmd_level_up_five],
 		["Skip to Extraction",   _cmd_skip_extraction],
 		["God Mode: OFF",        _cmd_god_mode],
+		["Auto Fire: OFF",       _cmd_toggle_auto_fire],
 		["Kill All Enemies",     _cmd_kill_all],
 		["Debug Draw: OFF",      _cmd_toggle_debug_draw],
 		["Block Overlay: OFF",   _cmd_toggle_block_debug],
@@ -119,6 +121,8 @@ func _build_panel() -> void:
 			_debug_draw_btn = btn
 		if d[0].begins_with("Block Overlay"):
 			_block_debug_btn = btn
+		if d[0].begins_with("Auto Fire"):
+			_auto_fire_btn = btn
 
 	## ── Enemy spawn section ───────────────────────────────────────────────────
 	var sep2 := HSeparator.new()
@@ -215,6 +219,15 @@ func _cmd_god_mode() -> void:
 	if is_instance_valid(_god_btn):
 		_god_btn.text = "God Mode: " + ("ON" if on else "OFF")
 		_god_btn.modulate = Color(1.0, 0.35, 0.35) if on else Color.WHITE
+
+func _cmd_toggle_auto_fire() -> void:
+	if player_ref == null or not is_instance_valid(player_ref):
+		return
+	## Manual fire is the default; this toggles legacy auto-fire (aim at nearest enemy).
+	var auto_on: bool = not player_ref.toggle_manual_fire()
+	if is_instance_valid(_auto_fire_btn):
+		_auto_fire_btn.text = "Auto Fire: " + ("ON" if auto_on else "OFF")
+		_auto_fire_btn.modulate = Color(0.3, 1.0, 0.3) if auto_on else Color.WHITE
 
 func _cmd_kill_all() -> void:
 	for enemy in get_tree().get_nodes_in_group("enemies"):

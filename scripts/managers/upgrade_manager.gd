@@ -123,6 +123,18 @@ var EVOLUTION_RECIPES: Array[Dictionary] = [
 		],
 	},
 	{
+		"id": "phase_runner",
+		"name": "PHASE RUNNER",
+		"description": "+1 Dash Charge, +30% Dash Dist, +15% Speed",
+		"requires": ["fleetfoot", "dash_charge_up"],
+		"is_evolution": true,
+		"effects": [
+			{"stat": "dash_charges", "type": "flat", "value": 1.0},
+			{"stat": "dash_speed", "type": "percent", "value": 0.30},
+			{"stat": "move_speed", "type": "percent", "value": 0.15},
+		],
+	},
+	{
 		"id": "lightning_reflexes",
 		"name": "LIGHTNING REFLEXES",
 		"description": "On Crit: 20 Lightning AoE + On Dodge: Heal 5%",
@@ -145,6 +157,7 @@ func _build_upgrade_pool() -> void:
 		{"id": "attack_speed_up", "name": "Attack Speed Up", "description": "+15% Attack Speed", "stat": "attack_speed", "type": "percent", "value": 0.15},
 		{"id": "max_hp_up", "name": "Max HP Up", "description": "+20 Max HP", "stat": "max_hp", "type": "flat", "value": 20.0},
 		{"id": "move_speed_up", "name": "Speed Up", "description": "+15% Move Speed", "stat": "move_speed", "type": "percent", "value": 0.15},
+		{"id": "fleetfoot", "name": "Fleetfoot", "description": "+12 Move Speed", "stat": "move_speed", "type": "flat", "value": 12.0},
 		{"id": "crit_chance_up", "name": "Critical Strike", "description": "+5% Crit Chance", "stat": "crit_chance", "type": "flat", "value": 0.05},
 		{"id": "crit_damage_up", "name": "Critical Power", "description": "+25% Crit Damage", "stat": "crit_multiplier", "type": "flat", "value": 0.25},
 		{"id": "pickup_radius_up", "name": "Magnetism", "description": "+30% Pickup Radius", "stat": "pickup_radius", "type": "percent", "value": 0.30},
@@ -152,6 +165,10 @@ func _build_upgrade_pool() -> void:
 		{"id": "projectile_count_up", "name": "Multi Shot", "description": "+1 Projectile", "stat": "projectile_count", "type": "flat", "value": 1.0},
 		{"id": "pierce_up", "name": "Pierce", "description": "+1 Pierce", "stat": "pierce", "type": "flat", "value": 1.0},
 		{"id": "projectile_size_up", "name": "Bigger Shots", "description": "+25% Projectile Size", "stat": "projectile_size", "type": "percent", "value": 0.25},
+		{"id": "reach_up", "name": "Reach", "description": "+25% Melee Range", "stat": "melee_range", "type": "percent", "value": 0.25, "requires_melee": true},
+		{"id": "dash_distance_up", "name": "Dash Distance", "description": "+20% Dash Distance", "stat": "dash_speed", "type": "percent", "value": 0.20},
+		{"id": "dash_charge_up", "name": "Extra Dash Charge", "description": "+1 Dash Charge", "stat": "dash_charges", "type": "flat", "value": 1.0},
+		{"id": "dash_cooldown_down", "name": "Quick Recovery", "description": "-15% Dash Cooldown", "stat": "dash_cooldown", "type": "percent", "value": -0.15},
 		{"id": "bloodthirst", "name": "Bloodthirst", "description": "On Kill: Heal 5% Max HP", "type": "status", "status_id": "bloodthirst"},
 		{"id": "static_discharge", "name": "Static Discharge", "description": "On Crit: Lightning AOE", "type": "status", "status_id": "static_discharge"},
 		{"id": "serrated_strikes", "name": "Serrated Strikes", "description": "Hits apply Bleed", "type": "status", "status_id": "serrated_strikes"},
@@ -165,9 +182,13 @@ func generate_choices(count: int = 3) -> Array[Dictionary]:
 	var owned_ids: Array[String] = []
 	for u in player_upgrades:
 		owned_ids.append(u["id"])
+	## Melee-only upgrades (e.g. Reach) are filtered out for characters with no combo kit.
+	var is_melee: bool = CharacterData.ALL.get(ProgressionManager.selected_character, {}).get("melee_kit", "") != ""
 	var pool_copy: Array[Dictionary] = []
 	for entry in upgrade_pool:
 		if entry.get("type") == "status" and entry["id"] in owned_ids:
+			continue
+		if entry.get("requires_melee", false) and not is_melee:
 			continue
 		pool_copy.append(entry)
 

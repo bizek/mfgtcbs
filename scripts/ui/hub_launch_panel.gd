@@ -6,10 +6,10 @@ extends Control
 signal close_requested
 
 const _FONT := HubPanelBase.PIXEL_FONT
-const _FS_LG := 21
+const _FS_LG := 16
 const _FS_MD := 19
 const _FS_SM := 16
-const _FS_XS := 13
+const _FS_XS := 14
 
 @onready var _base:    HubPanelBase = $PanelBase
 @onready var _content: Control      = $PanelBase/ContentContainer
@@ -28,7 +28,7 @@ func populate(pm: Node) -> void:
 	var char_id: String       = pm.selected_character
 	var char_data: Dictionary = CharacterData.ALL.get(char_id, CharacterData.ALL["The Drifter"])
 	var char_col: Color       = char_data.get("color", Color(0.92, 0.86, 0.60))
-	var slot_count: int       = pm.starting_weapon_slots() if char_id == "The Drifter" else 1
+	var slot_count: int       = pm.starting_weapon_slots()   ## per-character loadouts: every character gets armory slots
 
 	## ── Root layout ──────────────────────────────────────────────────────────
 	var root := MarginContainer.new()
@@ -102,18 +102,12 @@ func populate(pm: Node) -> void:
 	## ── Weapon rows ──────────────────────────────────────────────────────────
 	if slot_count >= 2:
 		for s in range(1, slot_count + 1):
-			var w: String
-			match s:
-				1: w = pm.selected_weapon
-				2: w = pm.selected_weapon_2
-				3: w = pm.selected_weapon_3
-			if (w as String).is_empty():
+			var w: String = pm.get_character_weapon(char_id, s)
+			if w.is_empty():
 				w = "\u2014 none \u2014"
 			_row(inner, "SLOT %d" % s, w, Color(0.800, 0.690, 0.565))
 	else:
-		var starting_weapon: String = char_data.get("starting_weapon", pm.selected_weapon)
-		if char_id == "The Drifter":
-			starting_weapon = pm.selected_weapon
+		var starting_weapon: String = pm.get_character_weapon(char_id, 1)
 		_row(inner, "WEAPON", starting_weapon, Color(0.800, 0.690, 0.565))
 
 		if char_id != "The Drifter":

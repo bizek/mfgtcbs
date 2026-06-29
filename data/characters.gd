@@ -14,7 +14,8 @@ const ALL: Dictionary = {
 		"display_name":    "THE SELLSWORD",
 		"char_class":      "Fighter",
 		"description":     "A nameless blade-for-hire. No magic, no tricks — just steel.",
-		"starting_weapon": "Hurled Steel",
+		"starting_weapon": "Arcane Blade",   ## Fighter = melee (swapped with Ranger 2026-06-24)
+		"melee_kit":       "fighter",        ## drives the combo-chain moveset (ChainFactory/SkillFactory)
 		"passive_id":      "none",
 		"passive_name":    "—",
 		"passive_desc":    "None — a plain blade and a steady hand.",
@@ -22,7 +23,7 @@ const ALL: Dictionary = {
 		"unlock_cost":     0,
 		"base_hp":         100.0,
 		"base_armor":      0.0,
-		"base_move_speed": 120.0,
+		"base_move_speed": 66.0,   ## deliberate-pacing rebalance 2026-06-23 (was 120) — see docs/pacing_rebalance.md
 		"color":           Color(0.92, 0.86, 0.60),   ## warm gold
 		"color_body":      Color(0.78, 0.72, 0.58),   ## hub sprite body
 		"color_head":      Color(0.94, 0.86, 0.68),   ## hub sprite head
@@ -31,12 +32,27 @@ const ALL: Dictionary = {
 			"dir":        "res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/General_Animations/",
 			"frame_size": 32,
 			"dir_row":    0,                          ## front/Down-facing row; flip_h handles left/right
-			"anims": {                                ## name: [sheet_file, frame_count, fps]
+			"anims": {                                ## name: [sheet_file, frame_count, fps, {meta}?]
 				"idle":   ["Figther_Idle.png",   16,  9.0],
 				"walk":   ["Figther_walk.png",    4, 10.0],
 				"attack": ["Figther_Attack.png",  4, 20.0],
 				"damage": ["Figther_Dmg.png",     4, 15.0],
 				"death":  ["Figther_Die.png",    15, 18.0],
+				## Combo specials (Special_Animations/ subfolders → absolute res:// paths).
+				## Timing/damage live in ChainFactory.build_fighter_combo (provisional).
+				"swirl":     ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/Special_Animations/Swirl/Figther_Swirl.png",         4, 18.0],
+				"tempest":   ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/Special_Animations/Tempest/Figther_Tempest.png",      7, 18.0],
+				"cataclysm": ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/Special_Animations/Cataclysm/Figther_Cataclysm.png", 12, 18.0],
+				## Swing-effect overlays (the white slash). Played on a separate ComboFx sprite,
+				## scaled by COMBO_FX_SCALE × melee_range so the visual tracks the (scalable) hit range.
+				"attack_fx":    ["Figther_Attack_Effect.png", 4, 20.0],
+				"swirl_fx":     ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/Special_Animations/Swirl/Figther_Swirl_Effect.png",      4, 18.0],
+				"tempest_fx":   ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/Special_Animations/Tempest/Figther_Tempest_Effect.png",  7, 18.0],
+				"cataclysm_fx": ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/Special_Animations/Cataclysm/Cataclysm_Effect.png",      12, 18.0],
+				## Neutral specials: Uppercut (RMB tap, launcher) + Taunt (RMB hold, shockwave).
+				"uppercut":     ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/Special_Animations/Uppercut/Figther_Uppercut.png",        4, 18.0],
+				"uppercut_fx":  ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/Special_Animations/Uppercut/Figther_Uppercut_Effect.png", 4, 18.0],
+				"taunt":        ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/Special_Animations/Taunt/Figther_Taunt.png",              9, 16.0],
 			},
 		},
 	},
@@ -48,7 +64,7 @@ const ALL: Dictionary = {
 		"display_name":    "THE SCAVENGER",
 		"char_class":      "Ranger",
 		"description":     "A wilds-runner who reads every battlefield for salvage.",
-		"starting_weapon": "Arcane Blade",
+		"starting_weapon": "Hunter's Bow",   ## Ranger = bow/arrows (2026-06-24)
 		"passive_id":      "scavenger_passive",
 		"passive_name":    "Forager's Eye",
 		"passive_desc":    "+25% Pickup Radius. +15% Loot Find.",
@@ -56,7 +72,7 @@ const ALL: Dictionary = {
 		"unlock_cost":     1000,
 		"base_hp":         80.0,
 		"base_armor":      0.0,
-		"base_move_speed": 132.0,
+		"base_move_speed": 72.0,   ## deliberate-pacing rebalance 2026-06-23 (was 132)
 		"color":           Color(0.52, 0.88, 0.40),   ## scrap green
 		"color_body":      Color(0.42, 0.68, 0.32),
 		"color_head":      Color(0.58, 0.82, 0.46),
@@ -90,7 +106,7 @@ const ALL: Dictionary = {
 		"unlock_cost":     1000,
 		"base_hp":         150.0,
 		"base_armor":      5.0,
-		"base_move_speed": 96.0,
+		"base_move_speed": 58.0,   ## deliberate-pacing rebalance 2026-06-23 (was 96) — slowest; kept a touch above ×0.55 so the tank isn't sluggish
 		"color":           Color(0.82, 0.64, 0.28),   ## iron bronze
 		"color_body":      Color(0.55, 0.48, 0.28),
 		"color_head":      Color(0.75, 0.65, 0.40),
@@ -124,7 +140,7 @@ const ALL: Dictionary = {
 		"unlock_cost":     1500,
 		"base_hp":         60.0,
 		"base_armor":      0.0,
-		"base_move_speed": 126.0,
+		"base_move_speed": 70.0,   ## deliberate-pacing rebalance 2026-06-23 (was 126)
 		"color":           Color(1.0, 0.82, 0.12),    ## electric yellow
 		"color_body":      Color(0.88, 0.72, 0.12),
 		"color_head":      Color(1.0, 0.92, 0.44),
@@ -158,7 +174,7 @@ const ALL: Dictionary = {
 		"unlock_cost":     2000,
 		"base_hp":         75.0,
 		"base_armor":      0.0,
-		"base_move_speed": 144.0,
+		"base_move_speed": 80.0,   ## deliberate-pacing rebalance 2026-06-23 (was 144) — fastest character
 		"color":           Color(0.65, 0.38, 0.92),   ## deep violet
 		"color_body":      Color(0.35, 0.22, 0.55),
 		"color_head":      Color(0.58, 0.38, 0.78),
@@ -192,7 +208,7 @@ const ALL: Dictionary = {
 		"unlock_cost":     2500,
 		"base_hp":         90.0,
 		"base_armor":      0.0,
-		"base_move_speed": 120.0,
+		"base_move_speed": 66.0,   ## deliberate-pacing rebalance 2026-06-23 (was 120)
 		"color":           Color(0.30, 0.86, 0.96),   ## signal teal
 		"color_body":      Color(0.20, 0.58, 0.75),
 		"color_head":      Color(0.38, 0.82, 0.95),
@@ -226,7 +242,7 @@ const ALL: Dictionary = {
 		"unlock_cost":     5000,
 		"base_hp":         120.0,
 		"base_armor":      3.0,
-		"base_move_speed": 126.0,
+		"base_move_speed": 70.0,   ## deliberate-pacing rebalance 2026-06-23 (was 126); Blood Pact +20% → effective 84 (expert-tier)
 		"color":           Color(0.90, 0.22, 0.22),   ## blood red
 		"color_body":      Color(0.55, 0.14, 0.14),
 		"color_head":      Color(0.78, 0.28, 0.28),

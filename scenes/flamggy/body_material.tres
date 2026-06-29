@@ -1,0 +1,12 @@
+[gd_resource type="ShaderMaterial" load_steps=3 format=3]
+
+[ext_resource type="Shader" path="res://flame_toon.gdshader" id="1"]
+[ext_resource type="Material" path="res://outline_material.tres" id="2"]
+
+[resource]
+next_pass = ExtResource("2")
+shader = ExtResource("1")
+shader_parameter/shadow_color = Color(0.7, 0.13, 0.03, 1)
+shader_parameter/rim_color = Color(1, 0.97, 0.72, 1)
+shader_parameter/rim_strength = 0.8
+shader_parameter/rim_threshold = 0.55

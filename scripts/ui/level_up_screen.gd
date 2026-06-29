@@ -49,7 +49,7 @@ func _show_choices() -> void:
 		btn.custom_minimum_size = Vector2(210, 38)
 		if pixel_font:
 			btn.add_theme_font_override("font", pixel_font)
-		btn.add_theme_font_size_override("font_size", 21)
+		btn.add_theme_font_size_override("font_size", 16)
 		btn.pressed.connect(_on_choice_pressed.bind(i))
 		choices_container.add_child(btn)
 
