@@ -29,6 +29,10 @@ python tools/block_compiler.py --preview-only blocks/caves/Block_Caves_10_ChokeA
 
 # re-extract the prop stamp library after new hand-painted reference blocks
 python tools/extract_prop_stamps.py
+
+# REQUIRED after compiling: headless loader smoke test (catches registration /
+# path / parse errors the PNG preview cannot). Exit code 0 = all blocks load.
+E:\Godot\Godot_v4.6.1-stable_win64.exe --headless --path . --script res://tools/test_block_load.gd
 ```
 
 Recompiling an existing name replaces its `.ldtkl` and keeps its uid/world position

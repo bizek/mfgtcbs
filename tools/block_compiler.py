@@ -729,7 +729,8 @@ def register_level(project, level, name):
         "pxWid", "pxHei", "__bgColor", "bgColor", "useAutoIdentifier",
         "bgRelPath", "bgPos", "bgPivotX", "bgPivotY", "__smartColor", "__bgPos",
         "fieldInstances")}
-    entry["externalRelPath"] = name + ".ldtkl"
+    # relative to the .ldtk project file — must include the level subfolder
+    entry["externalRelPath"] = os.path.basename(LEVELS_DIR) + "/" + name + ".ldtkl"
     entry["layerInstances"] = None
     project["levels"].append(entry)
     if project.get("nextUid", 0) <= level["uid"]:
