@@ -271,13 +271,25 @@ def validate(sk):
 # Wall / floor rendering
 # ---------------------------------------------------------------------------
 class TilePainter:
-    """Accumulates tiles per layer; coordinates in 8px tile units unless noted."""
+    """Accumulates tiles per layer, ONE tile per cell (later put replaces earlier).
+
+    The game's LdtkLoader renders each LDtk layer as a single TileMapLayer via
+    set_cell — one tile per cell, no stacking. Overlay-over-base effects must
+    therefore use a higher layer (Cave_Pillars renders above Cave_Tiles), never
+    stacked tiles within one layer.
+    """
 
     def __init__(self):
-        self.layers = defaultdict(list)   # layer identifier -> [(px, py, srcx, srcy, flip)]
+        self.layers = defaultdict(dict)   # layer -> {(px, py): (srcx, srcy, flip)}
 
     def put(self, layer, x, y, src, flip=0, grid=GRID):
-        self.layers[layer].append((x * grid, y * grid, src[0], src[1], flip))
+        self.layers[layer][(x * grid, y * grid)] = (src[0], src[1], flip)
+
+    def put_px(self, layer, px, py, src_x, src_y, flip=0):
+        self.layers[layer][(px, py)] = (src_x, src_y, flip)
+
+    def tiles(self, layer):
+        return [(px, py, s[0], s[1], s[2]) for (px, py), s in self.layers[layer].items()]
 
 
 def render_structure(sk, rng):
@@ -402,11 +414,12 @@ def render_structure(sk, rng):
                         p.put("Cave_Tiles", x, y, rng.choice(FACE_BOT))
 
             # gap side trims: only where a path cuts past the face rows
-            # (plain-floor neighbors get nothing — pillars stay clean)
+            # (plain-floor neighbors get nothing — pillars stay clean).
+            # Partially transparent -> Cave_Pillars so the path shows through.
             if left_open and h >= 3 and cell(x - 1, y1 - 1) == "-":
-                p.put("Cave_Tiles", x - 1, y1 - 1, GAP_EDGE_L)
+                p.put("Cave_Pillars", x - 1, y1 - 1, GAP_EDGE_L)
             if right_open and h >= 3 and cell(x + 1, y1 - 1) == "-":
-                p.put("Cave_Tiles", x + 1, y1 - 1, GAP_EDGE_R)
+                p.put("Cave_Pillars", x + 1, y1 - 1, GAP_EDGE_R)
 
     # --- gap dressing: a walkable span cutting through a ridge face gets the
     # darker fill, side trims, and a 3-row shaded apron below (hand-painted
@@ -420,17 +433,22 @@ def render_structure(sk, rng):
                     x += 1
                 if roles.get((x, y)) == "face_mid" and x - gx0 <= 14:
                     span = list(range(gx0, x))
-                    # darker dirt fill through the cut (rim + lit-face rows)
+                    # darker dirt fill through the cut (rim + lit-face rows);
+                    # all opaque -> replace floor on Cave_Tiles directly
                     for gx in span:
                         p.put("Cave_Tiles", gx, y - 1, GAP_FILL)
                         p.put("Cave_Tiles", gx, y, GAP_FILL)
                     p.put("Cave_Tiles", span[0], y, GAP_SIDE_L)
                     p.put("Cave_Tiles", span[-1], y, GAP_SIDE_R)
-                    # apron: rows at face_bot and two below, tapering to scallops
+                    # apron: rows at face_bot and two below, tapering to scallops.
+                    # Row 128 is opaque (Cave_Tiles); rows 136/144 have transparent
+                    # pixels and must overlay on Cave_Pillars (renders above) so
+                    # the floor shows through in-game.
                     for row_i, ysrc in enumerate(APRON_YS):
                         yy = y + 1 + row_i
                         if yy >= BLOCK_H:
                             break
+                        layer = "Cave_Tiles" if row_i == 0 else "Cave_Pillars"
                         cols = span if row_i < 2 else span[1:-1]
                         if row_i == 2:
                             p.put("Cave_Tiles", span[0], yy, APRON_SCALLOP)
@@ -442,9 +460,7 @@ def render_structure(sk, rng):
                                 xs = APRON_X_END_R
                             else:
                                 xs = rng.choice(APRON_X_MID)
-                            p.put("Cave_Tiles", gx, yy, (xs, ysrc))
-                            if 0 < i < len(cols) - 1:
-                                p.put("CavesShadows", gx, yy, (xs, ysrc))
+                            p.put(layer, gx, yy, (xs, ysrc))
                 continue
             x += 1
 
@@ -508,11 +524,12 @@ def decorate(sk, painter, rng):
             # paint: stamp coords are in 2px cells relative to stamp origin
             ox, oy = x * GRID, y * GRID
             for (dx, dy, sx, sy, fl) in stamp["tiles"]:
-                painter.layers[stamp["layer"]].append((ox + dx * grid2, oy + dy * grid2, sx, sy, fl))
+                painter.put_px(stamp["layer"], ox + dx * grid2, oy + dy * grid2, sx, sy, fl)
             if stamp["shadow_layer"]:
                 for (dx, dy, sx, sy, fl) in stamp["shadow_tiles"]:
-                    painter.layers[stamp["shadow_layer"]].append(
-                        (ox + dx * grid2, oy + dy * grid2, sx, sy, fl))
+                    px_, py_ = ox + dx * grid2, oy + dy * grid2
+                    if 0 <= px_ < BLOCK_W * GRID and 0 <= py_ < BLOCK_H * GRID:
+                        painter.put_px(stamp["shadow_layer"], px_, py_, sx, sy, fl)
             return True
         return False
 
@@ -668,7 +685,7 @@ def build_level(sk, defs, painter, intgrid, level_uid, world_x, world_y):
             li["entityInstances"] = build_entities(sk, defs)
         if ident in painter.layers and ld["__type"] == "Tiles":
             tiles = []
-            for (px, py, sx, sy, fl) in painter.layers[ident]:
+            for (px, py, sx, sy, fl) in painter.tiles(ident):
                 tiles.append({
                     "px": [px, py],
                     "src": [sx, sy],
@@ -740,7 +757,23 @@ def register_level(project, level, name):
 # ---------------------------------------------------------------------------
 # PNG preview
 # ---------------------------------------------------------------------------
+# Mirrors LdtkLoader's LAYER_Z map + default (-1) — keep in sync with
+# scripts/systems/ldtk_loader.gd _render_tile_layer.
+LOADER_LAYER_Z = {
+    "Background": -5, "CavesBackground": -5, "CryptTiles": -4,
+    "FloorAuto": -3, "Cave_Tiles": -2,
+    "WallsAuto": -1,
+    "Decoration": 2,
+}
+
+
 def render_preview(level, defs, out_path, scale=2):
+    """Game-accurate preview: emulates LdtkLoader rendering, NOT LDtk's.
+
+    - one tile per cell per layer (set_cell semantics: last tile in gridTiles wins)
+    - layers sorted by the loader's z-index map; equal z = child add order
+      (layerInstances order), later children render on top
+    """
     from PIL import Image
     img = Image.new("RGBA", (BLOCK_W * GRID, BLOCK_H * GRID), (18, 18, 22, 255))
     tileset_cache = {}
@@ -752,24 +785,24 @@ def render_preview(level, defs, out_path, scale=2):
             tileset_cache[ts_uid] = Image.open(path).convert("RGBA")
         return tileset_cache[ts_uid]
 
-    # LDtk renders the layer list bottom-up
-    for li in reversed(level["layerInstances"]):
-        if not li["gridTiles"]:
-            continue
+    ordered = sorted(
+        (li for li in level["layerInstances"] if li["gridTiles"] and li["__tilesetDefUid"]),
+        key=lambda li: LOADER_LAYER_Z.get(li["__identifier"], -1))
+    for li in ordered:
         ts_uid = li["__tilesetDefUid"]
-        if ts_uid is None:
-            continue
         ts = defs.tilesets_by_uid[ts_uid]
         gsz = ts["tileGridSize"]
         sheet = tileset_img(ts_uid)
+        cells = {}                      # set_cell semantics: last tile per cell wins
         for t in li["gridTiles"]:
-            sx, sy = t["src"]
+            cells[(t["px"][0], t["px"][1])] = (t["src"][0], t["src"][1], t["f"])
+        for (px, py), (sx, sy, fl) in cells.items():
             tile = sheet.crop((sx, sy, sx + gsz, sy + gsz))
-            if t["f"] & 1:
+            if fl & 1:
                 tile = tile.transpose(Image.FLIP_LEFT_RIGHT)
-            if t["f"] & 2:
+            if fl & 2:
                 tile = tile.transpose(Image.FLIP_TOP_BOTTOM)
-            img.alpha_composite(tile, (t["px"][0], t["px"][1]))
+            img.alpha_composite(tile, (px, py))
     if scale != 1:
         img = img.resize((img.width * scale, img.height * scale), Image.NEAREST)
     os.makedirs(os.path.dirname(out_path), exist_ok=True)

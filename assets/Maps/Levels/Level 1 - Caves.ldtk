@@ -5606,7 +5606,7 @@
 		},
 		{
 			"identifier": "Block_Caves_10_ChokeA",
-			"iid": "a1dd206c-b112-44a9-b1c3-e2a32bca18e6",
+			"iid": "d5f76936-69d5-4e34-ad42-001f0b99b6f2",
 			"uid": 652,
 			"worldX": 5608,
 			"worldY": 0,
@@ -5659,7 +5659,7 @@
 		},
 		{
 			"identifier": "Block_Caves_11_ChokeB",
-			"iid": "397b24f6-bd83-4ad9-a963-0b32ae1fd94e",
+			"iid": "965c198f-ce56-4b80-b981-200ca00779f8",
 			"uid": 653,
 			"worldX": 6308,
 			"worldY": 0,
@@ -5712,7 +5712,7 @@
 		},
 		{
 			"identifier": "Block_Caves_12_PillarsB",
-			"iid": "15e84f24-8660-423a-8b56-6c9c9d788792",
+			"iid": "96299d45-fbc8-4007-94f7-903d70277b05",
 			"uid": 654,
 			"worldX": 7008,
 			"worldY": 0,
@@ -5765,7 +5765,7 @@
 		},
 		{
 			"identifier": "Block_Caves_13_SplitB",
-			"iid": "587a1011-a5bc-40fd-8780-9e94504f37e7",
+			"iid": "0ba6627e-48c3-476e-aa3e-5f7e75a3aa83",
 			"uid": 655,
 			"worldX": 7708,
 			"worldY": 0,
@@ -5818,7 +5818,7 @@
 		},
 		{
 			"identifier": "Block_Caves_14_OpenB",
-			"iid": "fc91283c-121c-4081-a7a3-861408bbfe32",
+			"iid": "5d90c3dc-f12b-4bbd-8dd4-a40be922a8dd",
 			"uid": 656,
 			"worldX": 8408,
 			"worldY": 0,
@@ -5871,7 +5871,7 @@
 		},
 		{
 			"identifier": "Block_Caves_15_Gauntlet",
-			"iid": "fbec3895-36d2-4891-aa07-b64b8824e0c1",
+			"iid": "96099fe3-699b-4a77-aacb-f2da1826ae53",
 			"uid": 657,
 			"worldX": 9108,
 			"worldY": 0,

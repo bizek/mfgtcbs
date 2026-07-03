@@ -9,7 +9,7 @@
 		"url": "https://ldtk.io"
 	},
 	"identifier": "Block_Caves_11_ChokeB",
-	"iid": "397b24f6-bd83-4ad9-a963-0b32ae1fd94e",
+	"iid": "965c198f-ce56-4b80-b981-200ca00779f8",
 	"uid": 653,
 	"worldX": 6308,
 	"worldY": 0,
@@ -70,7 +70,7 @@
 			"__pxTotalOffsetY": 0,
 			"__tilesetDefUid": null,
 			"__tilesetRelPath": null,
-			"iid": "966608a8-aa55-42ab-bb03-feb5e43f69e3",
+			"iid": "3f603ece-a57d-44e2-8c6e-3a5f37bbfb3d",
 			"levelId": 653,
 			"layerDefUid": 507,
 			"pxOffsetX": 0,
@@ -79,7 +79,7 @@
 			"optionalRules": [],
 			"intGridCsv": [],
 			"autoLayerTiles": [],
-			"seed": 8222034,
+			"seed": 8970308,
 			"overrideTilesetUid": null,
 			"gridTiles": [],
 			"entityInstances": [
@@ -99,7 +99,7 @@
 					],
 					"__tile": null,
 					"__smartColor": "#CC2222",
-					"iid": "c23365af-e0b1-48e8-9e0b-09d525f104e7",
+					"iid": "b179400e-087b-49aa-be95-34732cc80e84",
 					"width": 488,
 					"height": 320,
 					"defUid": 479,
@@ -174,7 +174,7 @@
 					],
 					"__tile": null,
 					"__smartColor": "#FFCC22",
-					"iid": "2b0755a6-4e09-4ff5-bfd0-2a189975a9a5",
+					"iid": "fe5c0bb6-7cd7-44c3-b01b-1b58c51db99a",
 					"width": 8,
 					"height": 8,
 					"defUid": 489,
@@ -245,7 +245,7 @@
 			"__pxTotalOffsetY": 0,
 			"__tilesetDefUid": null,
 			"__tilesetRelPath": null,
-			"iid": "da59a234-25fa-4dee-8ae5-57234503961b",
+			"iid": "34ebf975-f13f-487e-b161-e703badf5443",
 			"levelId": 653,
 			"layerDefUid": 641,
 			"pxOffsetX": 0,
@@ -78015,7 +78015,7 @@
 				0
 			],
 			"autoLayerTiles": [],
-			"seed": 2974862,
+			"seed": 4185452,
 			"overrideTilesetUid": null,
 			"gridTiles": [],
 			"entityInstances": []
@@ -78031,7 +78031,7 @@
 			"__pxTotalOffsetY": 0,
 			"__tilesetDefUid": 649,
 			"__tilesetRelPath": "../../minifantasy/Minifantasy_Crypt_Of_The_Forgotten_v1.0/Minifantasy_Crypt_Of_The_Forgotten_Assets/Props/Prop_Shadows.png",
-			"iid": "fa2b6561-56e1-4d55-b992-754685fdc78c",
+			"iid": "ae25f2ae-9374-4314-a4ed-b137d1f32877",
 			"levelId": 653,
 			"layerDefUid": 650,
 			"pxOffsetX": 0,
@@ -78040,7 +78040,7 @@
 			"optionalRules": [],
 			"intGridCsv": [],
 			"autoLayerTiles": [],
-			"seed": 2439541,
+			"seed": 6083717,
 			"overrideTilesetUid": null,
 			"gridTiles": [],
 			"entityInstances": []
@@ -78056,7 +78056,7 @@
 			"__pxTotalOffsetY": 0,
 			"__tilesetDefUid": 646,
 			"__tilesetRelPath": "../../minifantasy/Minifantasy_Crypt_Of_The_Forgotten_v1.0/Minifantasy_Crypt_Of_The_Forgotten_Assets/Props/Props.png",
-			"iid": "de1e771b-f933-4cc8-81d3-ab22454e1065",
+			"iid": "55876259-c13e-4025-940c-2cdd752a688e",
 			"levelId": 653,
 			"layerDefUid": 647,
 			"pxOffsetX": 0,
@@ -78065,7 +78065,7 @@
 			"optionalRules": [],
 			"intGridCsv": [],
 			"autoLayerTiles": [],
-			"seed": 4925723,
+			"seed": 7426435,
 			"overrideTilesetUid": null,
 			"gridTiles": [],
 			"entityInstances": []
@@ -78081,7 +78081,7 @@
 			"__pxTotalOffsetY": 0,
 			"__tilesetDefUid": 645,
 			"__tilesetRelPath": "../../minifantasy/Minifantasy_Crypt_Of_The_Forgotten_v1.0/Minifantasy_Crypt_Of_The_Forgotten_Assets/Tileset/Shadows.png",
-			"iid": "9f2d1cd5-a22f-425b-8e61-7acfcc270166",
+			"iid": "aa810c7e-a2e5-45b2-9dd1-dba9c0fd0055",
 			"levelId": 653,
 			"layerDefUid": 644,
 			"pxOffsetX": 0,
@@ -78090,7 +78090,7 @@
 			"optionalRules": [],
 			"intGridCsv": [],
 			"autoLayerTiles": [],
-			"seed": 7994849,
+			"seed": 1522423,
 			"overrideTilesetUid": null,
 			"gridTiles": [],
 			"entityInstances": []
@@ -78106,7 +78106,7 @@
 			"__pxTotalOffsetY": 0,
 			"__tilesetDefUid": 431,
 			"__tilesetRelPath": "../../minifantasy/Minifantasy_Crypt_Of_The_Forgotten_v1.0/Minifantasy_Crypt_Of_The_Forgotten_Assets/Tileset/Tileset.png",
-			"iid": "72bb6a5e-3b51-4c45-ae39-9d09e1d1d3c6",
+			"iid": "04b07949-77cf-42bc-a23f-96345f8e6e48",
 			"levelId": 653,
 			"layerDefUid": 648,
 			"pxOffsetX": 0,
@@ -78115,7 +78115,7 @@
 			"optionalRules": [],
 			"intGridCsv": [],
 			"autoLayerTiles": [],
-			"seed": 6115681,
+			"seed": 7679136,
 			"overrideTilesetUid": null,
 			"gridTiles": [],
 			"entityInstances": []
@@ -78131,7 +78131,7 @@
 			"__pxTotalOffsetY": 0,
 			"__tilesetDefUid": 431,
 			"__tilesetRelPath": "../../minifantasy/Minifantasy_Crypt_Of_The_Forgotten_v1.0/Minifantasy_Crypt_Of_The_Forgotten_Assets/Tileset/Tileset.png",
-			"iid": "3b9a57db-d3bb-4755-a4d2-aa02ddef868a",
+			"iid": "23bb52ee-8fa3-4a0f-815e-3803bd9ec862",
 			"levelId": 653,
 			"layerDefUid": 449,
 			"pxOffsetX": 0,
@@ -78140,7 +78140,7 @@
 			"optionalRules": [],
 			"intGridCsv": [],
 			"autoLayerTiles": [],
-			"seed": 3674454,
+			"seed": 4319004,
 			"overrideTilesetUid": null,
 			"gridTiles": [],
 			"entityInstances": []
@@ -78156,7 +78156,7 @@
 			"__pxTotalOffsetY": 0,
 			"__tilesetDefUid": 431,
 			"__tilesetRelPath": "../../minifantasy/Minifantasy_Crypt_Of_The_Forgotten_v1.0/Minifantasy_Crypt_Of_The_Forgotten_Assets/Tileset/Tileset.png",
-			"iid": "8168ef5b-879a-4a90-a73d-ca44fc3f1902",
+			"iid": "fdc6bb65-92f8-4ead-b1bf-a55105118eba",
 			"levelId": 653,
 			"layerDefUid": 433,
 			"pxOffsetX": 0,
@@ -83026,7 +83026,7 @@
 				0
 			],
 			"autoLayerTiles": [],
-			"seed": 7230306,
+			"seed": 5211628,
 			"overrideTilesetUid": null,
 			"gridTiles": [],
 			"entityInstances": []
@@ -83042,7 +83042,7 @@
 			"__pxTotalOffsetY": 0,
 			"__tilesetDefUid": 2,
 			"__tilesetRelPath": "../../minifantasy/Minifantasy_DeepCaves_v2.0/Minifantasy_DeepCaves_Assets/Tileset/CavesTileset.png",
-			"iid": "27b1765d-5647-4e9d-b7ad-5bf44781fe44",
+			"iid": "f358383c-1486-4303-9c9a-074eb15cb294",
 			"levelId": 653,
 			"layerDefUid": 4,
 			"pxOffsetX": 0,
@@ -87912,7 +87912,7 @@
 				0
 			],
 			"autoLayerTiles": [],
-			"seed": 6773452,
+			"seed": 7131111,
 			"overrideTilesetUid": null,
 			"gridTiles": [],
 			"entityInstances": []
@@ -87928,7 +87928,7 @@
 			"__pxTotalOffsetY": 0,
 			"__tilesetDefUid": 638,
 			"__tilesetRelPath": "../../minifantasy/Minifantasy_Ancient_Forests/Minifantasy_Ancient_Forests_Assets/Dark Forest/Props/Props_dark.png",
-			"iid": "a20e59c2-546e-4d82-a4cc-45bac036552e",
+			"iid": "27a7a915-5137-4cb1-9f41-2e8940bed3ae",
 			"levelId": 653,
 			"layerDefUid": 639,
 			"pxOffsetX": 0,
@@ -87937,7 +87937,7 @@
 			"optionalRules": [],
 			"intGridCsv": [],
 			"autoLayerTiles": [],
-			"seed": 6578777,
+			"seed": 5227173,
 			"overrideTilesetUid": null,
 			"gridTiles": [
 				{
@@ -89562,22 +89562,6 @@
 						124
 					],
 					"src": [
-						444,
-						188
-					],
-					"f": 0,
-					"t": 24286,
-					"d": [
-						20294
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						412,
-						124
-					],
-					"src": [
 						414,
 						184
 					],
@@ -89585,22 +89569,6 @@
 					"t": 23759,
 					"d": [
 						20294
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						412,
-						126
-					],
-					"src": [
-						444,
-						190
-					],
-					"f": 0,
-					"t": 24542,
-					"d": [
-						20618
 					],
 					"a": 1
 				},
@@ -90514,7 +90482,7 @@
 			"__pxTotalOffsetY": 0,
 			"__tilesetDefUid": 628,
 			"__tilesetRelPath": "../../minifantasy/Minifantasy_DeepCaves_v2.0/Minifantasy_DeepCaves_Assets/Props/CavesProps.png",
-			"iid": "63749e83-38b7-4c24-9085-3c8d908293a2",
+			"iid": "07c20ea4-9c9a-4213-a29e-dd6584f30a92",
 			"levelId": 653,
 			"layerDefUid": 631,
 			"pxOffsetX": 0,
@@ -90523,7 +90491,7 @@
 			"optionalRules": [],
 			"intGridCsv": [],
 			"autoLayerTiles": [],
-			"seed": 7263089,
+			"seed": 1856409,
 			"overrideTilesetUid": null,
 			"gridTiles": [
 				{
@@ -101700,22 +101668,6 @@
 						426
 					],
 					"src": [
-						24,
-						74
-					],
-					"f": 0,
-					"t": 3268,
-					"d": [
-						69060
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						96,
-						426
-					],
-					"src": [
 						96,
 						100
 					],
@@ -102172,7 +102124,7 @@
 			"__pxTotalOffsetY": 0,
 			"__tilesetDefUid": 629,
 			"__tilesetRelPath": "../../minifantasy/Minifantasy_DeepCaves_v2.0/Minifantasy_DeepCaves_Assets/Props/DeepCavesPropsShadows.png",
-			"iid": "70c4e457-f4fb-40a3-be36-e2ae81b15786",
+			"iid": "e6672307-96ba-4cde-88b5-6ced27769220",
 			"levelId": 653,
 			"layerDefUid": 632,
 			"pxOffsetX": 0,
@@ -102181,7 +102133,7 @@
 			"optionalRules": [],
 			"intGridCsv": [],
 			"autoLayerTiles": [],
-			"seed": 3540632,
+			"seed": 7993080,
 			"overrideTilesetUid": null,
 			"gridTiles": [
 				{
@@ -105446,7 +105398,7 @@
 			"__pxTotalOffsetY": 0,
 			"__tilesetDefUid": 424,
 			"__tilesetRelPath": "../../minifantasy/Minifantasy_DeepCaves_v2.0/Minifantasy_DeepCaves_Assets/Tileset/CavesTilesetShadows.png",
-			"iid": "9ab2cb37-bb37-4cb1-8639-57a41e347886",
+			"iid": "ba50ea4f-dd3d-41ea-b3b5-d0401b0d456c",
 			"levelId": 653,
 			"layerDefUid": 508,
 			"pxOffsetX": 0,
@@ -105455,217 +105407,9 @@
 			"optionalRules": [],
 			"intGridCsv": [],
 			"autoLayerTiles": [],
-			"seed": 7721046,
+			"seed": 5438212,
 			"overrideTilesetUid": null,
 			"gridTiles": [
-				{
-					"px": [
-						440,
-						256
-					],
-					"src": [
-						256,
-						128
-					],
-					"f": 0,
-					"t": 656,
-					"d": [
-						2647
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						448,
-						256
-					],
-					"src": [
-						248,
-						128
-					],
-					"f": 0,
-					"t": 655,
-					"d": [
-						2648
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						456,
-						256
-					],
-					"src": [
-						248,
-						128
-					],
-					"f": 0,
-					"t": 655,
-					"d": [
-						2649
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						464,
-						256
-					],
-					"src": [
-						272,
-						128
-					],
-					"f": 0,
-					"t": 658,
-					"d": [
-						2650
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						472,
-						256
-					],
-					"src": [
-						256,
-						128
-					],
-					"f": 0,
-					"t": 656,
-					"d": [
-						2651
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						440,
-						264
-					],
-					"src": [
-						256,
-						136
-					],
-					"f": 0,
-					"t": 695,
-					"d": [
-						2728
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						448,
-						264
-					],
-					"src": [
-						240,
-						136
-					],
-					"f": 0,
-					"t": 693,
-					"d": [
-						2729
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						456,
-						264
-					],
-					"src": [
-						240,
-						136
-					],
-					"f": 0,
-					"t": 693,
-					"d": [
-						2730
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						464,
-						264
-					],
-					"src": [
-						256,
-						136
-					],
-					"f": 0,
-					"t": 695,
-					"d": [
-						2731
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						472,
-						264
-					],
-					"src": [
-						272,
-						136
-					],
-					"f": 0,
-					"t": 697,
-					"d": [
-						2732
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						448,
-						272
-					],
-					"src": [
-						256,
-						144
-					],
-					"f": 0,
-					"t": 734,
-					"d": [
-						2810
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						456,
-						272
-					],
-					"src": [
-						272,
-						144
-					],
-					"f": 0,
-					"t": 736,
-					"d": [
-						2811
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						464,
-						272
-					],
-					"src": [
-						256,
-						144
-					],
-					"f": 0,
-					"t": 734,
-					"d": [
-						2812
-					],
-					"a": 1
-				},
 				{
 					"px": [
 						480,
@@ -105712,7 +105456,7 @@
 			"__pxTotalOffsetY": 0,
 			"__tilesetDefUid": 2,
 			"__tilesetRelPath": "../../minifantasy/Minifantasy_DeepCaves_v2.0/Minifantasy_DeepCaves_Assets/Tileset/CavesTileset.png",
-			"iid": "1c650d16-10fe-4108-a12f-c959c74b0d8a",
+			"iid": "5d848211-9e48-4089-80f5-d712805a273d",
 			"levelId": 653,
 			"layerDefUid": 642,
 			"pxOffsetX": 0,
@@ -105721,7 +105465,7 @@
 			"optionalRules": [],
 			"intGridCsv": [],
 			"autoLayerTiles": [],
-			"seed": 7736518,
+			"seed": 1999806,
 			"overrideTilesetUid": null,
 			"gridTiles": [
 				{
@@ -107279,6 +107023,22 @@
 				{
 					"px": [
 						432,
+						248
+					],
+					"src": [
+						272,
+						136
+					],
+					"f": 0,
+					"t": 697,
+					"d": [
+						2565
+					],
+					"a": 1
+				},
+				{
+					"px": [
+						432,
 						200
 					],
 					"src": [
@@ -107417,6 +107177,22 @@
 					"t": 30,
 					"d": [
 						2491
+					],
+					"a": 1
+				},
+				{
+					"px": [
+						480,
+						248
+					],
+					"src": [
+						232,
+						136
+					],
+					"f": 0,
+					"t": 692,
+					"d": [
+						2571
 					],
 					"a": 1
 				},
@@ -107995,6 +107771,198 @@
 						2509
 					],
 					"a": 1
+				},
+				{
+					"px": [
+						432,
+						264
+					],
+					"src": [
+						232,
+						136
+					],
+					"f": 0,
+					"t": 692,
+					"d": [
+						2727
+					],
+					"a": 1
+				},
+				{
+					"px": [
+						440,
+						264
+					],
+					"src": [
+						256,
+						136
+					],
+					"f": 0,
+					"t": 695,
+					"d": [
+						2728
+					],
+					"a": 1
+				},
+				{
+					"px": [
+						448,
+						264
+					],
+					"src": [
+						240,
+						136
+					],
+					"f": 0,
+					"t": 693,
+					"d": [
+						2729
+					],
+					"a": 1
+				},
+				{
+					"px": [
+						456,
+						264
+					],
+					"src": [
+						240,
+						136
+					],
+					"f": 0,
+					"t": 693,
+					"d": [
+						2730
+					],
+					"a": 1
+				},
+				{
+					"px": [
+						464,
+						264
+					],
+					"src": [
+						256,
+						136
+					],
+					"f": 0,
+					"t": 695,
+					"d": [
+						2731
+					],
+					"a": 1
+				},
+				{
+					"px": [
+						472,
+						264
+					],
+					"src": [
+						272,
+						136
+					],
+					"f": 0,
+					"t": 697,
+					"d": [
+						2732
+					],
+					"a": 1
+				},
+				{
+					"px": [
+						480,
+						264
+					],
+					"src": [
+						280,
+						136
+					],
+					"f": 0,
+					"t": 698,
+					"d": [
+						2733
+					],
+					"a": 1
+				},
+				{
+					"px": [
+						440,
+						272
+					],
+					"src": [
+						232,
+						144
+					],
+					"f": 0,
+					"t": 731,
+					"d": [
+						2809
+					],
+					"a": 1
+				},
+				{
+					"px": [
+						448,
+						272
+					],
+					"src": [
+						256,
+						144
+					],
+					"f": 0,
+					"t": 734,
+					"d": [
+						2810
+					],
+					"a": 1
+				},
+				{
+					"px": [
+						456,
+						272
+					],
+					"src": [
+						272,
+						144
+					],
+					"f": 0,
+					"t": 736,
+					"d": [
+						2811
+					],
+					"a": 1
+				},
+				{
+					"px": [
+						464,
+						272
+					],
+					"src": [
+						256,
+						144
+					],
+					"f": 0,
+					"t": 734,
+					"d": [
+						2812
+					],
+					"a": 1
+				},
+				{
+					"px": [
+						472,
+						272
+					],
+					"src": [
+						280,
+						144
+					],
+					"f": 0,
+					"t": 737,
+					"d": [
+						2813
+					],
+					"a": 1
 				}
 			],
 			"entityInstances": []
@@ -108010,7 +107978,7 @@
 			"__pxTotalOffsetY": 0,
 			"__tilesetDefUid": 2,
 			"__tilesetRelPath": "../../minifantasy/Minifantasy_DeepCaves_v2.0/Minifantasy_DeepCaves_Assets/Tileset/CavesTileset.png",
-			"iid": "942f44c8-caa4-4a77-b3d8-73916186f820",
+			"iid": "c515b4cc-fde9-45dd-95ff-821bfef5a21e",
 			"levelId": 653,
 			"layerDefUid": 426,
 			"pxOffsetX": 0,
@@ -108019,7 +107987,7 @@
 			"optionalRules": [],
 			"intGridCsv": [],
 			"autoLayerTiles": [],
-			"seed": 4991650,
+			"seed": 9767056,
 			"overrideTilesetUid": null,
 			"gridTiles": [
 				{
@@ -144861,10 +144829,10 @@
 					],
 					"src": [
 						256,
-						96
+						128
 					],
 					"f": 0,
-					"t": 500,
+					"t": 656,
 					"d": [
 						2484
 					],
@@ -144877,10 +144845,10 @@
 					],
 					"src": [
 						256,
-						96
+						128
 					],
 					"f": 0,
-					"t": 500,
+					"t": 656,
 					"d": [
 						2485
 					],
@@ -144893,10 +144861,10 @@
 					],
 					"src": [
 						256,
-						96
+						128
 					],
 					"f": 0,
-					"t": 500,
+					"t": 656,
 					"d": [
 						2486
 					],
@@ -144909,10 +144877,10 @@
 					],
 					"src": [
 						256,
-						96
+						128
 					],
 					"f": 0,
-					"t": 500,
+					"t": 656,
 					"d": [
 						2487
 					],
@@ -144925,10 +144893,10 @@
 					],
 					"src": [
 						256,
-						96
+						128
 					],
 					"f": 0,
-					"t": 500,
+					"t": 656,
 					"d": [
 						2488
 					],
@@ -144941,10 +144909,10 @@
 					],
 					"src": [
 						256,
-						96
+						128
 					],
 					"f": 0,
-					"t": 500,
+					"t": 656,
 					"d": [
 						2489
 					],
@@ -144957,10 +144925,10 @@
 					],
 					"src": [
 						256,
-						96
+						128
 					],
 					"f": 0,
-					"t": 500,
+					"t": 656,
 					"d": [
 						2490
 					],
@@ -144972,11 +144940,11 @@
 						248
 					],
 					"src": [
-						256,
-						96
+						232,
+						120
 					],
 					"f": 0,
-					"t": 500,
+					"t": 614,
 					"d": [
 						2565
 					],
@@ -144989,10 +144957,10 @@
 					],
 					"src": [
 						256,
-						96
+						128
 					],
 					"f": 0,
-					"t": 500,
+					"t": 656,
 					"d": [
 						2566
 					],
@@ -145005,10 +144973,10 @@
 					],
 					"src": [
 						256,
-						96
+						128
 					],
 					"f": 0,
-					"t": 500,
+					"t": 656,
 					"d": [
 						2567
 					],
@@ -145021,10 +144989,10 @@
 					],
 					"src": [
 						256,
-						96
+						128
 					],
 					"f": 0,
-					"t": 500,
+					"t": 656,
 					"d": [
 						2568
 					],
@@ -145037,10 +145005,10 @@
 					],
 					"src": [
 						256,
-						96
+						128
 					],
 					"f": 0,
-					"t": 500,
+					"t": 656,
 					"d": [
 						2569
 					],
@@ -145053,10 +145021,10 @@
 					],
 					"src": [
 						256,
-						96
+						128
 					],
 					"f": 0,
-					"t": 500,
+					"t": 656,
 					"d": [
 						2570
 					],
@@ -145068,11 +145036,11 @@
 						248
 					],
 					"src": [
-						256,
-						96
+						280,
+						120
 					],
 					"f": 0,
-					"t": 500,
+					"t": 620,
 					"d": [
 						2571
 					],
@@ -145084,11 +145052,11 @@
 						256
 					],
 					"src": [
-						256,
-						96
+						232,
+						128
 					],
 					"f": 0,
-					"t": 500,
+					"t": 653,
 					"d": [
 						2646
 					],
@@ -145101,10 +145069,10 @@
 					],
 					"src": [
 						256,
-						96
+						128
 					],
 					"f": 0,
-					"t": 500,
+					"t": 656,
 					"d": [
 						2647
 					],
@@ -145116,11 +145084,11 @@
 						256
 					],
 					"src": [
-						256,
-						96
+						248,
+						128
 					],
 					"f": 0,
-					"t": 500,
+					"t": 655,
 					"d": [
 						2648
 					],
@@ -145132,11 +145100,11 @@
 						256
 					],
 					"src": [
-						256,
-						96
+						248,
+						128
 					],
 					"f": 0,
-					"t": 500,
+					"t": 655,
 					"d": [
 						2649
 					],
@@ -145148,11 +145116,11 @@
 						256
 					],
 					"src": [
-						256,
-						96
+						272,
+						128
 					],
 					"f": 0,
-					"t": 500,
+					"t": 658,
 					"d": [
 						2650
 					],
@@ -145165,10 +145133,10 @@
 					],
 					"src": [
 						256,
-						96
+						128
 					],
 					"f": 0,
-					"t": 500,
+					"t": 656,
 					"d": [
 						2651
 					],
@@ -145180,11 +145148,11 @@
 						256
 					],
 					"src": [
-						256,
-						96
+						280,
+						128
 					],
 					"f": 0,
-					"t": 500,
+					"t": 659,
 					"d": [
 						2652
 					],
@@ -147308,11 +147276,11 @@
 						272
 					],
 					"src": [
-						256,
+						168,
 						96
 					],
 					"f": 0,
-					"t": 500,
+					"t": 489,
 					"d": [
 						2808
 					],
@@ -147404,11 +147372,11 @@
 						272
 					],
 					"src": [
-						256,
+						168,
 						96
 					],
 					"f": 0,
-					"t": 500,
+					"t": 489,
 					"d": [
 						2814
 					],
@@ -184457,22 +184425,6 @@
 				{
 					"px": [
 						432,
-						248
-					],
-					"src": [
-						272,
-						136
-					],
-					"f": 0,
-					"t": 697,
-					"d": [
-						2565
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						432,
 						200
 					],
 					"src": [
@@ -184643,22 +184595,6 @@
 					"t": 358,
 					"d": [
 						2653
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						480,
-						248
-					],
-					"src": [
-						232,
-						136
-					],
-					"f": 0,
-					"t": 692,
-					"d": [
-						2571
 					],
 					"a": 1
 				},
@@ -185813,598 +185749,6 @@
 						2671
 					],
 					"a": 1
-				},
-				{
-					"px": [
-						432,
-						240
-					],
-					"src": [
-						256,
-						128
-					],
-					"f": 0,
-					"t": 656,
-					"d": [
-						2484
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						432,
-						248
-					],
-					"src": [
-						256,
-						128
-					],
-					"f": 0,
-					"t": 656,
-					"d": [
-						2565
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						440,
-						240
-					],
-					"src": [
-						256,
-						128
-					],
-					"f": 0,
-					"t": 656,
-					"d": [
-						2485
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						440,
-						248
-					],
-					"src": [
-						256,
-						128
-					],
-					"f": 0,
-					"t": 656,
-					"d": [
-						2566
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						448,
-						240
-					],
-					"src": [
-						256,
-						128
-					],
-					"f": 0,
-					"t": 656,
-					"d": [
-						2486
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						448,
-						248
-					],
-					"src": [
-						256,
-						128
-					],
-					"f": 0,
-					"t": 656,
-					"d": [
-						2567
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						456,
-						240
-					],
-					"src": [
-						256,
-						128
-					],
-					"f": 0,
-					"t": 656,
-					"d": [
-						2487
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						456,
-						248
-					],
-					"src": [
-						256,
-						128
-					],
-					"f": 0,
-					"t": 656,
-					"d": [
-						2568
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						464,
-						240
-					],
-					"src": [
-						256,
-						128
-					],
-					"f": 0,
-					"t": 656,
-					"d": [
-						2488
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						464,
-						248
-					],
-					"src": [
-						256,
-						128
-					],
-					"f": 0,
-					"t": 656,
-					"d": [
-						2569
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						472,
-						240
-					],
-					"src": [
-						256,
-						128
-					],
-					"f": 0,
-					"t": 656,
-					"d": [
-						2489
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						472,
-						248
-					],
-					"src": [
-						256,
-						128
-					],
-					"f": 0,
-					"t": 656,
-					"d": [
-						2570
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						480,
-						240
-					],
-					"src": [
-						256,
-						128
-					],
-					"f": 0,
-					"t": 656,
-					"d": [
-						2490
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						480,
-						248
-					],
-					"src": [
-						256,
-						128
-					],
-					"f": 0,
-					"t": 656,
-					"d": [
-						2571
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						432,
-						248
-					],
-					"src": [
-						232,
-						120
-					],
-					"f": 0,
-					"t": 614,
-					"d": [
-						2565
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						480,
-						248
-					],
-					"src": [
-						280,
-						120
-					],
-					"f": 0,
-					"t": 620,
-					"d": [
-						2571
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						432,
-						256
-					],
-					"src": [
-						232,
-						128
-					],
-					"f": 0,
-					"t": 653,
-					"d": [
-						2646
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						440,
-						256
-					],
-					"src": [
-						256,
-						128
-					],
-					"f": 0,
-					"t": 656,
-					"d": [
-						2647
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						448,
-						256
-					],
-					"src": [
-						248,
-						128
-					],
-					"f": 0,
-					"t": 655,
-					"d": [
-						2648
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						456,
-						256
-					],
-					"src": [
-						248,
-						128
-					],
-					"f": 0,
-					"t": 655,
-					"d": [
-						2649
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						464,
-						256
-					],
-					"src": [
-						272,
-						128
-					],
-					"f": 0,
-					"t": 658,
-					"d": [
-						2650
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						472,
-						256
-					],
-					"src": [
-						256,
-						128
-					],
-					"f": 0,
-					"t": 656,
-					"d": [
-						2651
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						480,
-						256
-					],
-					"src": [
-						280,
-						128
-					],
-					"f": 0,
-					"t": 659,
-					"d": [
-						2652
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						432,
-						264
-					],
-					"src": [
-						232,
-						136
-					],
-					"f": 0,
-					"t": 692,
-					"d": [
-						2727
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						440,
-						264
-					],
-					"src": [
-						256,
-						136
-					],
-					"f": 0,
-					"t": 695,
-					"d": [
-						2728
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						448,
-						264
-					],
-					"src": [
-						240,
-						136
-					],
-					"f": 0,
-					"t": 693,
-					"d": [
-						2729
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						456,
-						264
-					],
-					"src": [
-						240,
-						136
-					],
-					"f": 0,
-					"t": 693,
-					"d": [
-						2730
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						464,
-						264
-					],
-					"src": [
-						256,
-						136
-					],
-					"f": 0,
-					"t": 695,
-					"d": [
-						2731
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						472,
-						264
-					],
-					"src": [
-						272,
-						136
-					],
-					"f": 0,
-					"t": 697,
-					"d": [
-						2732
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						480,
-						264
-					],
-					"src": [
-						280,
-						136
-					],
-					"f": 0,
-					"t": 698,
-					"d": [
-						2733
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						432,
-						272
-					],
-					"src": [
-						168,
-						96
-					],
-					"f": 0,
-					"t": 489,
-					"d": [
-						2808
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						480,
-						272
-					],
-					"src": [
-						168,
-						96
-					],
-					"f": 0,
-					"t": 489,
-					"d": [
-						2814
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						440,
-						272
-					],
-					"src": [
-						232,
-						144
-					],
-					"f": 0,
-					"t": 731,
-					"d": [
-						2809
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						448,
-						272
-					],
-					"src": [
-						256,
-						144
-					],
-					"f": 0,
-					"t": 734,
-					"d": [
-						2810
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						456,
-						272
-					],
-					"src": [
-						272,
-						144
-					],
-					"f": 0,
-					"t": 736,
-					"d": [
-						2811
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						464,
-						272
-					],
-					"src": [
-						256,
-						144
-					],
-					"f": 0,
-					"t": 734,
-					"d": [
-						2812
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						472,
-						272
-					],
-					"src": [
-						280,
-						144
-					],
-					"f": 0,
-					"t": 737,
-					"d": [
-						2813
-					],
-					"a": 1
 				}
 			],
 			"entityInstances": []
@@ -186420,7 +185764,7 @@
 			"__pxTotalOffsetY": 0,
 			"__tilesetDefUid": 633,
 			"__tilesetRelPath": "../../minifantasy/Minifantasy_DeepCaves_v2.0/Minifantasy_DeepCaves_Assets/Tileset/Cave Entrances/Minifantasy_DeepCavesEntrances.png",
-			"iid": "e63cbd5d-74ee-44e2-ae3e-df0fec90119f",
+			"iid": "fc52436a-32c4-4c48-9586-32e04efefb39",
 			"levelId": 653,
 			"layerDefUid": 634,
 			"pxOffsetX": 0,
@@ -186429,7 +185773,7 @@
 			"optionalRules": [],
 			"intGridCsv": [],
 			"autoLayerTiles": [],
-			"seed": 5706343,
+			"seed": 7044537,
 			"overrideTilesetUid": null,
 			"gridTiles": [],
 			"entityInstances": []

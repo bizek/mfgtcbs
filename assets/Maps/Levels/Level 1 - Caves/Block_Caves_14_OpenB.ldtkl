@@ -9,7 +9,7 @@
 		"url": "https://ldtk.io"
 	},
 	"identifier": "Block_Caves_14_OpenB",
-	"iid": "fc91283c-121c-4081-a7a3-861408bbfe32",
+	"iid": "5d90c3dc-f12b-4bbd-8dd4-a40be922a8dd",
 	"uid": 656,
 	"worldX": 8408,
 	"worldY": 0,
@@ -70,7 +70,7 @@
 			"__pxTotalOffsetY": 0,
 			"__tilesetDefUid": null,
 			"__tilesetRelPath": null,
-			"iid": "b0fc28ac-bf7c-40bf-8c57-d6cd954075af",
+			"iid": "60366670-377e-477d-b183-69baec0f9f3b",
 			"levelId": 656,
 			"layerDefUid": 507,
 			"pxOffsetX": 0,
@@ -79,7 +79,7 @@
 			"optionalRules": [],
 			"intGridCsv": [],
 			"autoLayerTiles": [],
-			"seed": 1143601,
+			"seed": 2175165,
 			"overrideTilesetUid": null,
 			"gridTiles": [],
 			"entityInstances": [
@@ -99,7 +99,7 @@
 					],
 					"__tile": null,
 					"__smartColor": "#CC2222",
-					"iid": "752ea7cf-ce7f-41da-9e7f-174496f626a4",
+					"iid": "858bfa39-7022-4116-9d9f-d9befb699eeb",
 					"width": 488,
 					"height": 320,
 					"defUid": 479,
@@ -171,7 +171,7 @@
 			"__pxTotalOffsetY": 0,
 			"__tilesetDefUid": null,
 			"__tilesetRelPath": null,
-			"iid": "cca6861b-4485-4189-8bcc-a22b0ee2a55d",
+			"iid": "df05ebd1-9a61-4d26-baca-031f944ae309",
 			"levelId": 656,
 			"layerDefUid": 641,
 			"pxOffsetX": 0,
@@ -77941,7 +77941,7 @@
 				0
 			],
 			"autoLayerTiles": [],
-			"seed": 9093944,
+			"seed": 1104514,
 			"overrideTilesetUid": null,
 			"gridTiles": [],
 			"entityInstances": []
@@ -77957,7 +77957,7 @@
 			"__pxTotalOffsetY": 0,
 			"__tilesetDefUid": 649,
 			"__tilesetRelPath": "../../minifantasy/Minifantasy_Crypt_Of_The_Forgotten_v1.0/Minifantasy_Crypt_Of_The_Forgotten_Assets/Props/Prop_Shadows.png",
-			"iid": "f60eec50-8a11-444a-8c82-bf50ee422337",
+			"iid": "53a016df-6aec-401f-9709-00d91470fe80",
 			"levelId": 656,
 			"layerDefUid": 650,
 			"pxOffsetX": 0,
@@ -77966,7 +77966,7 @@
 			"optionalRules": [],
 			"intGridCsv": [],
 			"autoLayerTiles": [],
-			"seed": 6935218,
+			"seed": 6698689,
 			"overrideTilesetUid": null,
 			"gridTiles": [],
 			"entityInstances": []
@@ -77982,7 +77982,7 @@
 			"__pxTotalOffsetY": 0,
 			"__tilesetDefUid": 646,
 			"__tilesetRelPath": "../../minifantasy/Minifantasy_Crypt_Of_The_Forgotten_v1.0/Minifantasy_Crypt_Of_The_Forgotten_Assets/Props/Props.png",
-			"iid": "4f0979e1-65a6-4026-bb2f-595d430f5736",
+			"iid": "25b7f01f-ff3b-4494-8a2d-5c1a3b8eca4d",
 			"levelId": 656,
 			"layerDefUid": 647,
 			"pxOffsetX": 0,
@@ -77991,7 +77991,7 @@
 			"optionalRules": [],
 			"intGridCsv": [],
 			"autoLayerTiles": [],
-			"seed": 7853310,
+			"seed": 5535208,
 			"overrideTilesetUid": null,
 			"gridTiles": [],
 			"entityInstances": []
@@ -78007,7 +78007,7 @@
 			"__pxTotalOffsetY": 0,
 			"__tilesetDefUid": 645,
 			"__tilesetRelPath": "../../minifantasy/Minifantasy_Crypt_Of_The_Forgotten_v1.0/Minifantasy_Crypt_Of_The_Forgotten_Assets/Tileset/Shadows.png",
-			"iid": "a448595e-b683-454e-943a-bccc64eff035",
+			"iid": "41a0aec6-6d8e-4700-93cd-6ffdb6e1a55c",
 			"levelId": 656,
 			"layerDefUid": 644,
 			"pxOffsetX": 0,
@@ -78016,7 +78016,7 @@
 			"optionalRules": [],
 			"intGridCsv": [],
 			"autoLayerTiles": [],
-			"seed": 4054910,
+			"seed": 2851720,
 			"overrideTilesetUid": null,
 			"gridTiles": [],
 			"entityInstances": []
@@ -78032,7 +78032,7 @@
 			"__pxTotalOffsetY": 0,
 			"__tilesetDefUid": 431,
 			"__tilesetRelPath": "../../minifantasy/Minifantasy_Crypt_Of_The_Forgotten_v1.0/Minifantasy_Crypt_Of_The_Forgotten_Assets/Tileset/Tileset.png",
-			"iid": "b69ec731-6297-40bf-9dbe-b1c4655f075d",
+			"iid": "01dd6412-57df-4013-8e53-71bd493b9711",
 			"levelId": 656,
 			"layerDefUid": 648,
 			"pxOffsetX": 0,
@@ -78041,7 +78041,7 @@
 			"optionalRules": [],
 			"intGridCsv": [],
 			"autoLayerTiles": [],
-			"seed": 3230788,
+			"seed": 5753791,
 			"overrideTilesetUid": null,
 			"gridTiles": [],
 			"entityInstances": []
@@ -78057,7 +78057,7 @@
 			"__pxTotalOffsetY": 0,
 			"__tilesetDefUid": 431,
 			"__tilesetRelPath": "../../minifantasy/Minifantasy_Crypt_Of_The_Forgotten_v1.0/Minifantasy_Crypt_Of_The_Forgotten_Assets/Tileset/Tileset.png",
-			"iid": "8f17a652-e36a-4034-8c6b-fd2ebb77a9cd",
+			"iid": "86ac83ff-a2a1-437d-94d3-097bc429e3a8",
 			"levelId": 656,
 			"layerDefUid": 449,
 			"pxOffsetX": 0,
@@ -78066,7 +78066,7 @@
 			"optionalRules": [],
 			"intGridCsv": [],
 			"autoLayerTiles": [],
-			"seed": 4215497,
+			"seed": 4894412,
 			"overrideTilesetUid": null,
 			"gridTiles": [],
 			"entityInstances": []
@@ -78082,7 +78082,7 @@
 			"__pxTotalOffsetY": 0,
 			"__tilesetDefUid": 431,
 			"__tilesetRelPath": "../../minifantasy/Minifantasy_Crypt_Of_The_Forgotten_v1.0/Minifantasy_Crypt_Of_The_Forgotten_Assets/Tileset/Tileset.png",
-			"iid": "f9eb1f1f-47b0-4418-a35e-2e9e62b809a3",
+			"iid": "22cc7336-4e01-4cf8-8e1a-e0265411bf90",
 			"levelId": 656,
 			"layerDefUid": 433,
 			"pxOffsetX": 0,
@@ -82952,7 +82952,7 @@
 				0
 			],
 			"autoLayerTiles": [],
-			"seed": 6124914,
+			"seed": 4786450,
 			"overrideTilesetUid": null,
 			"gridTiles": [],
 			"entityInstances": []
@@ -82968,7 +82968,7 @@
 			"__pxTotalOffsetY": 0,
 			"__tilesetDefUid": 2,
 			"__tilesetRelPath": "../../minifantasy/Minifantasy_DeepCaves_v2.0/Minifantasy_DeepCaves_Assets/Tileset/CavesTileset.png",
-			"iid": "8db99b8c-392e-4459-85f2-2afb17efb26b",
+			"iid": "bf52cdc5-093f-47d6-95cb-136a8175b326",
 			"levelId": 656,
 			"layerDefUid": 4,
 			"pxOffsetX": 0,
@@ -87838,7 +87838,7 @@
 				0
 			],
 			"autoLayerTiles": [],
-			"seed": 3526037,
+			"seed": 7364677,
 			"overrideTilesetUid": null,
 			"gridTiles": [],
 			"entityInstances": []
@@ -87854,7 +87854,7 @@
 			"__pxTotalOffsetY": 0,
 			"__tilesetDefUid": 638,
 			"__tilesetRelPath": "../../minifantasy/Minifantasy_Ancient_Forests/Minifantasy_Ancient_Forests_Assets/Dark Forest/Props/Props_dark.png",
-			"iid": "5b437034-9325-4dd5-b97c-f2ef3b327456",
+			"iid": "894333a9-0dd3-4cb4-8a48-be87856cd4b7",
 			"levelId": 656,
 			"layerDefUid": 639,
 			"pxOffsetX": 0,
@@ -87863,7 +87863,7 @@
 			"optionalRules": [],
 			"intGridCsv": [],
 			"autoLayerTiles": [],
-			"seed": 2623200,
+			"seed": 7648726,
 			"overrideTilesetUid": null,
 			"gridTiles": [
 				{
@@ -89312,22 +89312,6 @@
 						156
 					],
 					"src": [
-						432,
-						190
-					],
-					"f": 0,
-					"t": 24536,
-					"d": [
-						25402
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						260,
-						156
-					],
-					"src": [
 						426,
 						184
 					],
@@ -89479,22 +89463,6 @@
 					"t": 24281,
 					"d": [
 						25079
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						262,
-						156
-					],
-					"src": [
-						434,
-						190
-					],
-					"f": 0,
-					"t": 24537,
-					"d": [
-						25403
 					],
 					"a": 1
 				},
@@ -89856,22 +89824,6 @@
 						142
 					],
 					"src": [
-						422,
-						184
-					],
-					"f": 0,
-					"t": 23763,
-					"d": [
-						23137
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						266,
-						142
-					],
-					"src": [
 						410,
 						190
 					],
@@ -90096,22 +90048,6 @@
 						142
 					],
 					"src": [
-						424,
-						184
-					],
-					"f": 0,
-					"t": 23764,
-					"d": [
-						23138
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						268,
-						142
-					],
-					"src": [
 						412,
 						190
 					],
@@ -90279,22 +90215,6 @@
 					"t": 24271,
 					"d": [
 						22815
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						270,
-						142
-					],
-					"src": [
-						426,
-						184
-					],
-					"f": 0,
-					"t": 23765,
-					"d": [
-						23139
 					],
 					"a": 1
 				},
@@ -90519,22 +90439,6 @@
 					"t": 24272,
 					"d": [
 						22816
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						272,
-						142
-					],
-					"src": [
-						428,
-						184
-					],
-					"f": 0,
-					"t": 23766,
-					"d": [
-						23140
 					],
 					"a": 1
 				},
@@ -92360,7 +92264,7 @@
 			"__pxTotalOffsetY": 0,
 			"__tilesetDefUid": 628,
 			"__tilesetRelPath": "../../minifantasy/Minifantasy_DeepCaves_v2.0/Minifantasy_DeepCaves_Assets/Props/CavesProps.png",
-			"iid": "43fbf7ca-c1ef-4a65-a6c9-d8101553e72e",
+			"iid": "aaf05fa6-7fed-4158-b839-94a5e2f25dda",
 			"levelId": 656,
 			"layerDefUid": 631,
 			"pxOffsetX": 0,
@@ -92369,7 +92273,7 @@
 			"optionalRules": [],
 			"intGridCsv": [],
 			"autoLayerTiles": [],
-			"seed": 2742622,
+			"seed": 9641967,
 			"overrideTilesetUid": null,
 			"gridTiles": [
 				{
@@ -96074,22 +95978,6 @@
 						182
 					],
 					"src": [
-						8,
-						78
-					],
-					"f": 0,
-					"t": 3436,
-					"d": [
-						29750
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						532,
-						182
-					],
-					"src": [
 						28,
 						74
 					],
@@ -96282,22 +96170,6 @@
 						180
 					],
 					"src": [
-						56,
-						34
-					],
-					"f": 0,
-					"t": 1524,
-					"d": [
-						29429
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						538,
-						180
-					],
-					"src": [
 						14,
 						76
 					],
@@ -96305,22 +96177,6 @@
 					"t": 3351,
 					"d": [
 						29429
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						538,
-						182
-					],
-					"src": [
-						56,
-						36
-					],
-					"f": 0,
-					"t": 1612,
-					"d": [
-						29753
 					],
 					"a": 1
 				},
@@ -97466,22 +97322,6 @@
 						184
 					],
 					"src": [
-						70,
-						38
-					],
-					"f": 0,
-					"t": 1707,
-					"d": [
-						30084
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						552,
-						184
-					],
-					"src": [
 						24,
 						74
 					],
@@ -97489,22 +97329,6 @@
 					"t": 3268,
 					"d": [
 						30084
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						552,
-						186
-					],
-					"src": [
-						70,
-						40
-					],
-					"f": 0,
-					"t": 1795,
-					"d": [
-						30408
 					],
 					"a": 1
 				},
@@ -101066,22 +100890,6 @@
 						396
 					],
 					"src": [
-						14,
-						60
-					],
-					"f": 0,
-					"t": 2647,
-					"d": [
-						64331
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						358,
-						396
-					],
-					"src": [
 						40,
 						60
 					],
@@ -101089,22 +100897,6 @@
 					"t": 2660,
 					"d": [
 						64331
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						358,
-						398
-					],
-					"src": [
-						14,
-						62
-					],
-					"f": 0,
-					"t": 2735,
-					"d": [
-						64655
 					],
 					"a": 1
 				},
@@ -101130,22 +100922,6 @@
 						400
 					],
 					"src": [
-						14,
-						64
-					],
-					"f": 0,
-					"t": 2823,
-					"d": [
-						64979
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						358,
-						400
-					],
-					"src": [
 						40,
 						64
 					],
@@ -101162,22 +100938,6 @@
 						402
 					],
 					"src": [
-						14,
-						66
-					],
-					"f": 0,
-					"t": 2911,
-					"d": [
-						65303
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						358,
-						402
-					],
-					"src": [
 						40,
 						66
 					],
@@ -101185,22 +100945,6 @@
 					"t": 2924,
 					"d": [
 						65303
-					],
-					"a": 1
-				},
-				{
-					"px": [
-						358,
-						404
-					],
-					"src": [
-						14,
-						68
-					],
-					"f": 0,
-					"t": 2999,
-					"d": [
-						65627
 					],
 					"a": 1
 				},
@@ -102626,7 +102370,7 @@
 			"__pxTotalOffsetY": 0,
 			"__tilesetDefUid": 629,
 			"__tilesetRelPath": "../../minifantasy/Minifantasy_DeepCaves_v2.0/Minifantasy_DeepCaves_Assets/Props/DeepCavesPropsShadows.png",
-			"iid": "a4659743-1068-4d37-b17d-841739a1acf1",
+			"iid": "6088ee10-30b2-44cc-af6a-beabdb2a93c9",
 			"levelId": 656,
 			"layerDefUid": 632,
 			"pxOffsetX": 0,
@@ -102635,7 +102379,7 @@
 			"optionalRules": [],
 			"intGridCsv": [],
 			"autoLayerTiles": [],
-			"seed": 1270820,
+			"seed": 8148233,
 			"overrideTilesetUid": null,
 			"gridTiles": [
 				{
@@ -105276,7 +105020,7 @@
 			"__pxTotalOffsetY": 0,
 			"__tilesetDefUid": 424,
 			"__tilesetRelPath": "../../minifantasy/Minifantasy_DeepCaves_v2.0/Minifantasy_DeepCaves_Assets/Tileset/CavesTilesetShadows.png",
-			"iid": "324acbb8-8b1b-4573-9889-d08da9950aa2",
+			"iid": "134a0a6a-d4f4-4d84-a8d8-4976ce16a713",
 			"levelId": 656,
 			"layerDefUid": 508,
 			"pxOffsetX": 0,
@@ -105285,7 +105029,7 @@
 			"optionalRules": [],
 			"intGridCsv": [],
 			"autoLayerTiles": [],
-			"seed": 5215361,
+			"seed": 2445030,
 			"overrideTilesetUid": null,
 			"gridTiles": [
 				{
@@ -105430,7 +105174,7 @@
 			"__pxTotalOffsetY": 0,
 			"__tilesetDefUid": 2,
 			"__tilesetRelPath": "../../minifantasy/Minifantasy_DeepCaves_v2.0/Minifantasy_DeepCaves_Assets/Tileset/CavesTileset.png",
-			"iid": "8b0c89e7-b875-4a5a-a0cb-9102bbb5ef29",
+			"iid": "08709dfa-0d38-4b57-b611-ad3e2ce142f0",
 			"levelId": 656,
 			"layerDefUid": 642,
 			"pxOffsetX": 0,
@@ -105439,7 +105183,7 @@
 			"optionalRules": [],
 			"intGridCsv": [],
 			"autoLayerTiles": [],
-			"seed": 8608876,
+			"seed": 7856659,
 			"overrideTilesetUid": null,
 			"gridTiles": [
 				{
@@ -105584,7 +105328,7 @@
 			"__pxTotalOffsetY": 0,
 			"__tilesetDefUid": 2,
 			"__tilesetRelPath": "../../minifantasy/Minifantasy_DeepCaves_v2.0/Minifantasy_DeepCaves_Assets/Tileset/CavesTileset.png",
-			"iid": "ad1c49f2-bc46-42f2-b4f8-8aa7e1b809ee",
+			"iid": "4122e607-cf3c-4b8e-bd2a-a95647a190a6",
 			"levelId": 656,
 			"layerDefUid": 426,
 			"pxOffsetX": 0,
@@ -105593,7 +105337,7 @@
 			"optionalRules": [],
 			"intGridCsv": [],
 			"autoLayerTiles": [],
-			"seed": 2068990,
+			"seed": 5006061,
 			"overrideTilesetUid": null,
 			"gridTiles": [
 				{
@@ -183370,7 +183114,7 @@
 			"__pxTotalOffsetY": 0,
 			"__tilesetDefUid": 633,
 			"__tilesetRelPath": "../../minifantasy/Minifantasy_DeepCaves_v2.0/Minifantasy_DeepCaves_Assets/Tileset/Cave Entrances/Minifantasy_DeepCavesEntrances.png",
-			"iid": "27fb7abc-6a4b-41ff-9ae3-415c41706ecf",
+			"iid": "233e7f48-0127-4c99-a8b7-4467dd7f1385",
 			"levelId": 656,
 			"layerDefUid": 634,
 			"pxOffsetX": 0,
@@ -183379,7 +183123,7 @@
 			"optionalRules": [],
 			"intGridCsv": [],
 			"autoLayerTiles": [],
-			"seed": 8043537,
+			"seed": 5669147,
 			"overrideTilesetUid": null,
 			"gridTiles": [],
 			"entityInstances": []
