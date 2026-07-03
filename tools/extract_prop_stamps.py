@@ -15,23 +15,34 @@ from collections import Counter, defaultdict
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LVL_DIR = os.path.join(ROOT, "assets", "Maps", "Levels", "Level 1 - Caves")
-OUT_PATH = os.path.join(ROOT, "tools", "block_style_caves.json")
 
-EXAMPLE_BLOCKS = [
-    "Block_Caves_00_Entry",
-    "Block_Caves_01_Open",
-    "Block_Caves_02_Pillars",
-    "Block_Caves_03_Choke",
-    "Block_Caves_04_Split",
-    "Block_Caves_05_Merchant",
-    "Block_Caves_09_Portal",
-]
-
-# (prop layer, paired shadow layer). Both are 2px-grid layers.
-PROP_LAYERS = [
-    ("Caves_Props", "Caves_PropsShadows"),
-    ("Darkforestandrocks", None),
-]
+# Per-biome extraction configs: reference blocks + (prop layer, paired shadow
+# layer) pairs (both 2px-grid layers) + output pack path.
+BIOMES = {
+    "caves": {
+        "blocks": [
+            "Block_Caves_00_Entry",
+            "Block_Caves_01_Open",
+            "Block_Caves_02_Pillars",
+            "Block_Caves_03_Choke",
+            "Block_Caves_04_Split",
+            "Block_Caves_05_Merchant",
+            "Block_Caves_09_Portal",
+        ],
+        "layers": [
+            ("Caves_Props", "Caves_PropsShadows"),
+            ("Darkforestandrocks", None),
+        ],
+        "out": os.path.join(ROOT, "tools", "block_style_caves.json"),
+    },
+    "crypt": {
+        "blocks": ["Block_Crypt_00_Entry"],
+        "layers": [
+            ("CryptProps", "CryptProps_Shadows"),
+        ],
+        "out": os.path.join(ROOT, "tools", "block_style_crypt.json"),
+    },
+}
 
 GRID = 2                 # prop layer grid size in px
 CLUSTER_REACH = 3        # chebyshev distance (in 2px cells) merged into one stamp
@@ -95,19 +106,22 @@ def size_class(w_px, h_px):
     return "large"
 
 
-def main():
+def extract_biome(name, cfg):
     stamp_index = {}      # signature -> stamp dict
     class_counts = Counter()
     per_block_counts = defaultdict(Counter)
     floor_area = {}
+    example_blocks = cfg["blocks"]
+    prop_layers = cfg["layers"]
+    out_path = cfg["out"]
 
-    for block in EXAMPLE_BLOCKS:
+    for block in example_blocks:
         lvl = load_level(block)
         # approximate placeable floor area (tiles) for density calibration
         coll = next(l for l in lvl["layerInstances"] if l["__identifier"] == "Collision")
         floor_area[block] = sum(1 for v in coll["intGridCsv"] if v == 1)
 
-        for prop_layer, shadow_layer in PROP_LAYERS:
+        for prop_layer, shadow_layer in prop_layers:
             cells = layer_cells(lvl, prop_layer)
             if not cells:
                 continue
@@ -174,26 +188,26 @@ def main():
 
     pack = {
         "_generated_by": "tools/extract_prop_stamps.py",
-        "_source_blocks": EXAMPLE_BLOCKS,
+        "_source_blocks": example_blocks,
         "grid": GRID,
         "class_counts": dict(class_counts),
         "density_per_1000_floor_tiles": density,
         "stamps": stamps,
     }
-    with open(OUT_PATH, "w", encoding="utf-8", newline="\n") as f:
+    with open(out_path, "w", encoding="utf-8", newline="\n") as f:
         json.dump(pack, f, indent=1)
         f.write("\n")
 
-    print(f"Wrote {OUT_PATH}")
-    print(f"stamps: {len(stamps)} distinct, {sum(s['count'] for s in stamps)} instances")
-    print(f"class counts: {dict(class_counts)}")
-    print("density per 1000 floor tiles:")
+    print(f"[{name}] Wrote {out_path}")
+    print(f"[{name}] stamps: {len(stamps)} distinct, {sum(s['count'] for s in stamps)} instances; "
+          f"classes: {dict(class_counts)}")
     for block, d in density.items():
         print(f"  {block:<28} {d}")
-    print("largest stamps:")
-    for s in sorted(stamps, key=lambda s: -(s["w_cells"] * s["h_cells"]))[:8]:
-        print(f"  {s['id']} class={s['class']} {s['w_cells']}x{s['h_cells']} cells "
-              f"tiles={len(s['tiles'])} shadows={len(s['shadow_tiles'])} count={s['count']}")
+
+
+def main():
+    for name, cfg in BIOMES.items():
+        extract_biome(name, cfg)
 
 
 if __name__ == "__main__":

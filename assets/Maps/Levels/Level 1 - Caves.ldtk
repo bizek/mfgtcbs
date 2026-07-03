@@ -11,7 +11,7 @@
 	"iid": "45139d80-21a0-11f1-98a2-21c7292a6549",
 	"jsonVersion": "1.5.3",
 	"appBuildId": 473703,
-	"nextUid": 658,
+	"nextUid": 668,
 	"identifierStyle": "Free",
 	"toc": [],
 	"worldLayout": "Free",
@@ -5920,6 +5920,536 @@
 				}
 			],
 			"externalRelPath": "Level 1 - Caves/Block_Caves_15_Gauntlet.ldtkl",
+			"layerInstances": null
+		},
+		{
+			"identifier": "Block_Crypt_01_Hall",
+			"iid": "c476dd3d-9602-4f54-89bd-a1fb328248dd",
+			"uid": 658,
+			"worldX": 1348,
+			"worldY": 506,
+			"worldDepth": 0,
+			"pxWid": 648,
+			"pxHei": 480,
+			"__bgColor": "#696A79",
+			"bgColor": null,
+			"useAutoIdentifier": false,
+			"bgRelPath": null,
+			"bgPos": null,
+			"bgPivotX": 0.5,
+			"bgPivotY": 0.5,
+			"__smartColor": "#ADADB5",
+			"__bgPos": null,
+			"fieldInstances": [
+				{
+					"__identifier": "biome",
+					"__type": "LocalEnum.BiomeId",
+					"__value": "Caves",
+					"__tile": null,
+					"defUid": 465,
+					"realEditorValues": [
+						{
+							"id": "V_String",
+							"params": [
+								"Caves"
+							]
+						}
+					]
+				},
+				{
+					"__identifier": "schema_version",
+					"__type": "Int",
+					"__value": 1,
+					"__tile": null,
+					"defUid": 471,
+					"realEditorValues": [
+						{
+							"id": "V_Int",
+							"params": [
+								1
+							]
+						}
+					]
+				}
+			],
+			"externalRelPath": "Level 1 - Caves/Block_Crypt_01_Hall.ldtkl",
+			"layerInstances": null
+		},
+		{
+			"identifier": "Block_Crypt_02_Chambers",
+			"iid": "dcb89e68-5936-4878-8fc5-3e8bf88c5b9f",
+			"uid": 659,
+			"worldX": 2048,
+			"worldY": 506,
+			"worldDepth": 0,
+			"pxWid": 648,
+			"pxHei": 480,
+			"__bgColor": "#696A79",
+			"bgColor": null,
+			"useAutoIdentifier": false,
+			"bgRelPath": null,
+			"bgPos": null,
+			"bgPivotX": 0.5,
+			"bgPivotY": 0.5,
+			"__smartColor": "#ADADB5",
+			"__bgPos": null,
+			"fieldInstances": [
+				{
+					"__identifier": "biome",
+					"__type": "LocalEnum.BiomeId",
+					"__value": "Caves",
+					"__tile": null,
+					"defUid": 465,
+					"realEditorValues": [
+						{
+							"id": "V_String",
+							"params": [
+								"Caves"
+							]
+						}
+					]
+				},
+				{
+					"__identifier": "schema_version",
+					"__type": "Int",
+					"__value": 1,
+					"__tile": null,
+					"defUid": 471,
+					"realEditorValues": [
+						{
+							"id": "V_Int",
+							"params": [
+								1
+							]
+						}
+					]
+				}
+			],
+			"externalRelPath": "Level 1 - Caves/Block_Crypt_02_Chambers.ldtkl",
+			"layerInstances": null
+		},
+		{
+			"identifier": "Block_Crypt_03_Corridors",
+			"iid": "e95a7223-be8e-4494-85a1-a54ce261d87e",
+			"uid": 660,
+			"worldX": 2748,
+			"worldY": 506,
+			"worldDepth": 0,
+			"pxWid": 648,
+			"pxHei": 480,
+			"__bgColor": "#696A79",
+			"bgColor": null,
+			"useAutoIdentifier": false,
+			"bgRelPath": null,
+			"bgPos": null,
+			"bgPivotX": 0.5,
+			"bgPivotY": 0.5,
+			"__smartColor": "#ADADB5",
+			"__bgPos": null,
+			"fieldInstances": [
+				{
+					"__identifier": "biome",
+					"__type": "LocalEnum.BiomeId",
+					"__value": "Caves",
+					"__tile": null,
+					"defUid": 465,
+					"realEditorValues": [
+						{
+							"id": "V_String",
+							"params": [
+								"Caves"
+							]
+						}
+					]
+				},
+				{
+					"__identifier": "schema_version",
+					"__type": "Int",
+					"__value": 1,
+					"__tile": null,
+					"defUid": 471,
+					"realEditorValues": [
+						{
+							"id": "V_Int",
+							"params": [
+								1
+							]
+						}
+					]
+				}
+			],
+			"externalRelPath": "Level 1 - Caves/Block_Crypt_03_Corridors.ldtkl",
+			"layerInstances": null
+		},
+		{
+			"identifier": "Block_Crypt_04_Crossing",
+			"iid": "d2fedaa7-213d-4fe8-b2de-0de3db9c29a6",
+			"uid": 661,
+			"worldX": 3448,
+			"worldY": 506,
+			"worldDepth": 0,
+			"pxWid": 648,
+			"pxHei": 480,
+			"__bgColor": "#696A79",
+			"bgColor": null,
+			"useAutoIdentifier": false,
+			"bgRelPath": null,
+			"bgPos": null,
+			"bgPivotX": 0.5,
+			"bgPivotY": 0.5,
+			"__smartColor": "#ADADB5",
+			"__bgPos": null,
+			"fieldInstances": [
+				{
+					"__identifier": "biome",
+					"__type": "LocalEnum.BiomeId",
+					"__value": "Caves",
+					"__tile": null,
+					"defUid": 465,
+					"realEditorValues": [
+						{
+							"id": "V_String",
+							"params": [
+								"Caves"
+							]
+						}
+					]
+				},
+				{
+					"__identifier": "schema_version",
+					"__type": "Int",
+					"__value": 1,
+					"__tile": null,
+					"defUid": 471,
+					"realEditorValues": [
+						{
+							"id": "V_Int",
+							"params": [
+								1
+							]
+						}
+					]
+				}
+			],
+			"externalRelPath": "Level 1 - Caves/Block_Crypt_04_Crossing.ldtkl",
+			"layerInstances": null
+		},
+		{
+			"identifier": "Block_Crypt_05_Tombs",
+			"iid": "3e8fcad7-6682-4eef-a5b4-919a8e11c3be",
+			"uid": 662,
+			"worldX": 4148,
+			"worldY": 506,
+			"worldDepth": 0,
+			"pxWid": 648,
+			"pxHei": 480,
+			"__bgColor": "#696A79",
+			"bgColor": null,
+			"useAutoIdentifier": false,
+			"bgRelPath": null,
+			"bgPos": null,
+			"bgPivotX": 0.5,
+			"bgPivotY": 0.5,
+			"__smartColor": "#ADADB5",
+			"__bgPos": null,
+			"fieldInstances": [
+				{
+					"__identifier": "biome",
+					"__type": "LocalEnum.BiomeId",
+					"__value": "Caves",
+					"__tile": null,
+					"defUid": 465,
+					"realEditorValues": [
+						{
+							"id": "V_String",
+							"params": [
+								"Caves"
+							]
+						}
+					]
+				},
+				{
+					"__identifier": "schema_version",
+					"__type": "Int",
+					"__value": 1,
+					"__tile": null,
+					"defUid": 471,
+					"realEditorValues": [
+						{
+							"id": "V_Int",
+							"params": [
+								1
+							]
+						}
+					]
+				}
+			],
+			"externalRelPath": "Level 1 - Caves/Block_Crypt_05_Tombs.ldtkl",
+			"layerInstances": null
+		},
+		{
+			"identifier": "Block_Crypt_06_Gallery",
+			"iid": "8610675c-2a4f-483a-a17c-7947ec338829",
+			"uid": 663,
+			"worldX": 4848,
+			"worldY": 506,
+			"worldDepth": 0,
+			"pxWid": 648,
+			"pxHei": 480,
+			"__bgColor": "#696A79",
+			"bgColor": null,
+			"useAutoIdentifier": false,
+			"bgRelPath": null,
+			"bgPos": null,
+			"bgPivotX": 0.5,
+			"bgPivotY": 0.5,
+			"__smartColor": "#ADADB5",
+			"__bgPos": null,
+			"fieldInstances": [
+				{
+					"__identifier": "biome",
+					"__type": "LocalEnum.BiomeId",
+					"__value": "Caves",
+					"__tile": null,
+					"defUid": 465,
+					"realEditorValues": [
+						{
+							"id": "V_String",
+							"params": [
+								"Caves"
+							]
+						}
+					]
+				},
+				{
+					"__identifier": "schema_version",
+					"__type": "Int",
+					"__value": 1,
+					"__tile": null,
+					"defUid": 471,
+					"realEditorValues": [
+						{
+							"id": "V_Int",
+							"params": [
+								1
+							]
+						}
+					]
+				}
+			],
+			"externalRelPath": "Level 1 - Caves/Block_Crypt_06_Gallery.ldtkl",
+			"layerInstances": null
+		},
+		{
+			"identifier": "Block_Crypt_07_Weave",
+			"iid": "b9be8894-399a-4506-821e-ad2bf1395897",
+			"uid": 664,
+			"worldX": 5548,
+			"worldY": 506,
+			"worldDepth": 0,
+			"pxWid": 648,
+			"pxHei": 480,
+			"__bgColor": "#696A79",
+			"bgColor": null,
+			"useAutoIdentifier": false,
+			"bgRelPath": null,
+			"bgPos": null,
+			"bgPivotX": 0.5,
+			"bgPivotY": 0.5,
+			"__smartColor": "#ADADB5",
+			"__bgPos": null,
+			"fieldInstances": [
+				{
+					"__identifier": "biome",
+					"__type": "LocalEnum.BiomeId",
+					"__value": "Caves",
+					"__tile": null,
+					"defUid": 465,
+					"realEditorValues": [
+						{
+							"id": "V_String",
+							"params": [
+								"Caves"
+							]
+						}
+					]
+				},
+				{
+					"__identifier": "schema_version",
+					"__type": "Int",
+					"__value": 1,
+					"__tile": null,
+					"defUid": 471,
+					"realEditorValues": [
+						{
+							"id": "V_Int",
+							"params": [
+								1
+							]
+						}
+					]
+				}
+			],
+			"externalRelPath": "Level 1 - Caves/Block_Crypt_07_Weave.ldtkl",
+			"layerInstances": null
+		},
+		{
+			"identifier": "Block_Crypt_08_Vault",
+			"iid": "3149521e-63e9-41a2-ba97-1b82d9da5818",
+			"uid": 665,
+			"worldX": 6248,
+			"worldY": 506,
+			"worldDepth": 0,
+			"pxWid": 648,
+			"pxHei": 480,
+			"__bgColor": "#696A79",
+			"bgColor": null,
+			"useAutoIdentifier": false,
+			"bgRelPath": null,
+			"bgPos": null,
+			"bgPivotX": 0.5,
+			"bgPivotY": 0.5,
+			"__smartColor": "#ADADB5",
+			"__bgPos": null,
+			"fieldInstances": [
+				{
+					"__identifier": "biome",
+					"__type": "LocalEnum.BiomeId",
+					"__value": "Caves",
+					"__tile": null,
+					"defUid": 465,
+					"realEditorValues": [
+						{
+							"id": "V_String",
+							"params": [
+								"Caves"
+							]
+						}
+					]
+				},
+				{
+					"__identifier": "schema_version",
+					"__type": "Int",
+					"__value": 1,
+					"__tile": null,
+					"defUid": 471,
+					"realEditorValues": [
+						{
+							"id": "V_Int",
+							"params": [
+								1
+							]
+						}
+					]
+				}
+			],
+			"externalRelPath": "Level 1 - Caves/Block_Crypt_08_Vault.ldtkl",
+			"layerInstances": null
+		},
+		{
+			"identifier": "Block_Crypt_09_Columns",
+			"iid": "21d3dc9c-47b4-457d-af1c-4e54bf2a3d1c",
+			"uid": 666,
+			"worldX": 6948,
+			"worldY": 506,
+			"worldDepth": 0,
+			"pxWid": 648,
+			"pxHei": 480,
+			"__bgColor": "#696A79",
+			"bgColor": null,
+			"useAutoIdentifier": false,
+			"bgRelPath": null,
+			"bgPos": null,
+			"bgPivotX": 0.5,
+			"bgPivotY": 0.5,
+			"__smartColor": "#ADADB5",
+			"__bgPos": null,
+			"fieldInstances": [
+				{
+					"__identifier": "biome",
+					"__type": "LocalEnum.BiomeId",
+					"__value": "Caves",
+					"__tile": null,
+					"defUid": 465,
+					"realEditorValues": [
+						{
+							"id": "V_String",
+							"params": [
+								"Caves"
+							]
+						}
+					]
+				},
+				{
+					"__identifier": "schema_version",
+					"__type": "Int",
+					"__value": 1,
+					"__tile": null,
+					"defUid": 471,
+					"realEditorValues": [
+						{
+							"id": "V_Int",
+							"params": [
+								1
+							]
+						}
+					]
+				}
+			],
+			"externalRelPath": "Level 1 - Caves/Block_Crypt_09_Columns.ldtkl",
+			"layerInstances": null
+		},
+		{
+			"identifier": "Block_Crypt_10_Antechambers",
+			"iid": "8013c2eb-f989-4f75-9ccf-e37e0ba49068",
+			"uid": 667,
+			"worldX": 7648,
+			"worldY": 506,
+			"worldDepth": 0,
+			"pxWid": 648,
+			"pxHei": 480,
+			"__bgColor": "#696A79",
+			"bgColor": null,
+			"useAutoIdentifier": false,
+			"bgRelPath": null,
+			"bgPos": null,
+			"bgPivotX": 0.5,
+			"bgPivotY": 0.5,
+			"__smartColor": "#ADADB5",
+			"__bgPos": null,
+			"fieldInstances": [
+				{
+					"__identifier": "biome",
+					"__type": "LocalEnum.BiomeId",
+					"__value": "Caves",
+					"__tile": null,
+					"defUid": 465,
+					"realEditorValues": [
+						{
+							"id": "V_String",
+							"params": [
+								"Caves"
+							]
+						}
+					]
+				},
+				{
+					"__identifier": "schema_version",
+					"__type": "Int",
+					"__value": 1,
+					"__tile": null,
+					"defUid": 471,
+					"realEditorValues": [
+						{
+							"id": "V_Int",
+							"params": [
+								1
+							]
+						}
+					]
+				}
+			],
+			"externalRelPath": "Level 1 - Caves/Block_Crypt_10_Antechambers.ldtkl",
 			"layerInstances": null
 		}
 	],

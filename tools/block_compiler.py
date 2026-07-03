@@ -99,6 +99,34 @@ DENSITY_PRESETS = {
     "dense":  {"debris": 7.0, "small": 2.0, "medium": 2.0, "large": 0.8},
 }
 
+# ---------------------------------------------------------------------------
+# Crypt visual grammar (from Block_Crypt_00_Entry + the CryptLayer auto-rules)
+# ---------------------------------------------------------------------------
+# Architectural brick walls: a top row, then repeating two-row brick courses.
+# The brick floor itself is NOT hand-painted: the CryptLayer IntGrid's active
+# auto-rules bake it (incl. edge trims where floor meets wall) — the compiler
+# evaluates those rules from the project defs, so an LDtk re-save re-bakes
+# identically.
+CRYPT_TOP = [(72, 104), (64, 104)]        # wall top row (weighted: variant rare)
+CRYPT_COURSE_A = [(72, 112), (64, 112)]   # brick course, upper row
+CRYPT_COURSE_B = [(72, 120), (64, 120)]   # brick course, lower row
+CRYPT_BORDER_L, CRYPT_BORDER_R = (32, 64), (80, 64)
+CRYPT_FLOOR_LAYER = "CryptLayer"          # IntGrid whose rules bake the floor
+CRYPT_WALL_LAYER = "CryptTiles"
+
+STYLES = {
+    "caves": {
+        "pack": STYLE_PACK,
+        "min_blob_w": 3, "min_blob_h": 4, "rims": True,
+        "world_y": 0,
+    },
+    "crypt": {
+        "pack": os.path.join(ROOT, "tools", "block_style_crypt.json"),
+        "min_blob_w": 2, "min_blob_h": 2, "rims": False,
+        "world_y": 506,   # Block_Crypt_00_Entry's row in the LDtk world view
+    },
+}
+
 
 def make_iid():
     return str(uuid.uuid4())
@@ -111,6 +139,7 @@ class Sketch:
     def __init__(self):
         self.name = None
         self.biome = "Caves"
+        self.style = "caves"     # visual grammar: caves | crypt
         self.floor = FLOOR_DEFAULT
         self.density = "sparse"
         self.seed = 0
@@ -157,6 +186,10 @@ def parse_sketch(path):
             sk.name = val
         elif key == "biome":
             sk.biome = val
+        elif key == "style":
+            if val not in STYLES:
+                raise ValueError(f"{path}: unknown style {val!r}")
+            sk.style = val
         elif key == "floor":
             a, b = val.split(",")
             sk.floor = (int(a), int(b))
@@ -264,11 +297,16 @@ def validate(sk):
                 xs = [c[0] for c in comp]
                 ys = [c[1] for c in comp]
                 w, h = max(xs) - min(xs) + 1, max(ys) - min(ys) + 1
+                style = STYLES[sk.style]
                 if h == 1:
-                    continue  # 1-row rim line — supported
-                if w < 3 or h < 4:
+                    if not style["rims"]:
+                        errors.append(f"solid blob at ({min(xs)},{min(ys)}) is 1 row tall; "
+                                      f"style '{sk.style}' has no rim grammar")
+                    continue  # 1-row rim line — supported by caves
+                if w < style["min_blob_w"] or h < style["min_blob_h"]:
                     errors.append(f"solid blob at ({min(xs)},{min(ys)}) is {w}x{h}; "
-                                  f"interior blobs must be >=3 wide and >=4 tall (or exactly 1 tall for rims)")
+                                  f"style '{sk.style}' needs >={style['min_blob_w']} wide "
+                                  f"and >={style['min_blob_h']} tall")
     if not sk.spawn_zones:
         errors.append("no spawn_zone defined (block_architecture.md §3: at least one required)")
     return errors
@@ -531,14 +569,125 @@ def render_structure(sk, rng, defs):
                     seq = SHADOW_LEFT
                     for i, yy in enumerate(range(y0 + 1, min(y1 + 1, y0 + 1 + len(seq)))):
                         p.put("CavesShadows", x - 1, yy, seq[min(i, len(seq) - 1)])
-    return p, intgrid
+    return p, {"Collision": intgrid}, {}
+
+
+# ---------------------------------------------------------------------------
+# Crypt rendering — brick walls + rule-baked floor
+# ---------------------------------------------------------------------------
+def bake_intgrid_rules(defs, layer_name, mask):
+    """Evaluate the project's active auto-rules for an IntGrid layer over a
+    boolean mask (True = value 1). First matching rule wins per cell, exactly
+    like LDtk (chance=1, no modulo/flip rules expected). Returns autoLayerTiles.
+    """
+    ld = defs.layers[layer_name]
+    ts = defs.tilesets_by_uid[ld["tilesetDefUid"]]
+    grid = ts["tileGridSize"]
+    sheet_cols = ts["pxWid"] // grid
+
+    rules = []
+    for g in ld.get("autoRuleGroups", []):
+        if not g.get("active", True):
+            continue
+        for r in g["rules"]:
+            if r["active"]:
+                tile_ids = r.get("tileRectsIds") or [[tid] for tid in r.get("tileIds", [])]
+                rules.append((r["size"], r["pattern"], tile_ids[0][0], r["uid"]))
+
+    def at(x, y):
+        return 0 <= x < BLOCK_W and 0 <= y < BLOCK_H and mask[y][x]
+
+    tiles = []
+    for y in range(BLOCK_H):
+        for x in range(BLOCK_W):
+            if not mask[y][x]:
+                continue
+            for size, pattern, tid, rule_uid in rules:
+                half = size // 2
+                match = True
+                for i, pv in enumerate(pattern):
+                    if pv == 0:
+                        continue
+                    nx, ny = x + i % size - half, y + i // size - half
+                    hit = at(nx, ny)
+                    if (pv > 0 and not hit) or (pv < 0 and hit):
+                        match = False
+                        break
+                if match:
+                    src = [(tid % sheet_cols) * grid, (tid // sheet_cols) * grid]
+                    tiles.append({
+                        "px": [x * GRID, y * GRID], "src": src, "f": 0, "t": tid,
+                        "d": [rule_uid, y * BLOCK_W + x], "a": 1,
+                    })
+                    break
+    return tiles
+
+
+def render_structure_crypt(sk, rng, defs):
+    """Crypt: architectural brick walls; floor baked by CryptLayer auto-rules.
+    Returns (painter, intgrids dict, autotiles dict)."""
+    g = sk.grid
+    p = TilePainter()
+    intgrid = [0] * (BLOCK_W * BLOCK_H)
+
+    def cell(x, y):
+        if 0 <= x < BLOCK_W and 0 <= y < BLOCK_H:
+            return g[y][x]
+        return "#"
+
+    def pick(variants):
+        return variants[1] if rng.random() < 0.12 else variants[0]
+
+    # collision + floor mask ('-' has no special meaning in crypt: plain floor)
+    floor_mask = [[False] * BLOCK_W for _ in range(BLOCK_H)]
+    for y in range(BLOCK_H):
+        for x in range(BLOCK_W):
+            ch = cell(x, y)
+            if ch in WALKABLE:
+                intgrid[y * BLOCK_W + x] = IG_SPAWNBLOCK if ch == "," else IG_FLOOR
+                floor_mask[y][x] = True
+            elif ch == "#":
+                intgrid[y * BLOCK_W + x] = IG_WALL if 0 < x < BLOCK_W - 1 else 0
+
+    # map border columns
+    for y in range(BLOCK_H):
+        p.put(CRYPT_WALL_LAYER, 0, y, CRYPT_BORDER_L)
+        p.put(CRYPT_WALL_LAYER, BLOCK_W - 1, y, CRYPT_BORDER_R)
+
+    # walls: per-column vertical runs — top row, then alternating brick courses
+    for x in range(1, BLOCK_W - 1):
+        y = 0
+        while y < BLOCK_H:
+            if cell(x, y) != "#":
+                y += 1
+                continue
+            y0 = y
+            while y < BLOCK_H and cell(x, y) == "#":
+                y += 1
+            y1 = y - 1
+            for yy in range(y0, y1 + 1):
+                i = yy - y0
+                if i == 0:
+                    src = pick(CRYPT_TOP)
+                elif i % 2 == 1:
+                    src = pick(CRYPT_COURSE_A)
+                else:
+                    src = pick(CRYPT_COURSE_B)
+                p.put(CRYPT_WALL_LAYER, x, yy, src)
+
+    # floor: CryptLayer IntGrid mask + rule-baked autoLayerTiles
+    crypt_csv = [1 if floor_mask[i // BLOCK_W][i % BLOCK_W] else 0
+                 for i in range(BLOCK_W * BLOCK_H)]
+    auto = bake_intgrid_rules(defs, CRYPT_FLOOR_LAYER, floor_mask)
+
+    return p, {"Collision": intgrid, CRYPT_FLOOR_LAYER: crypt_csv}, {CRYPT_FLOOR_LAYER: auto}
 
 
 # ---------------------------------------------------------------------------
 # Decorator — prop stamps
 # ---------------------------------------------------------------------------
 def decorate(sk, painter, rng):
-    with open(STYLE_PACK, encoding="utf-8") as f:
+    with open(STYLES[sk.style]["pack"], encoding="utf-8") as f:
         pack = json.load(f)
     stamps_by_class = defaultdict(list)
     for s in pack["stamps"]:
@@ -701,7 +850,7 @@ def build_entities(sk, defs):
     return ents
 
 
-def build_level(sk, defs, painter, intgrid, level_uid, world_x, world_y):
+def build_level(sk, defs, painter, intgrids, autotiles, level_uid, world_x, world_y):
     layer_instances = []
     for ld in defs.project["defs"]["layers"]:
         ident = ld["identifier"]
@@ -730,10 +879,10 @@ def build_level(sk, defs, painter, intgrid, level_uid, world_x, world_y):
             "gridTiles": [],
             "entityInstances": [],
         }
-        if ident == "Collision":
-            li["intGridCsv"] = intgrid
-        elif ld["__type"] == "IntGrid":
-            li["intGridCsv"] = [0] * (li["__cWid"] * li["__cHei"])
+        if ld["__type"] == "IntGrid":
+            li["intGridCsv"] = intgrids.get(ident) or [0] * (li["__cWid"] * li["__cHei"])
+        if ident in autotiles:
+            li["autoLayerTiles"] = autotiles[ident]
         if ident == "Entities":
             li["entityInstances"] = build_entities(sk, defs)
         if ident in painter.layers and ld["__type"] == "Tiles":
@@ -842,7 +991,8 @@ def render_preview(level, defs, out_path, scale=2):
         return tileset_cache[ts_uid]
 
     ordered = sorted(
-        (li for li in level["layerInstances"] if li["gridTiles"] and li["__tilesetDefUid"]),
+        (li for li in level["layerInstances"]
+         if (li["gridTiles"] or li["autoLayerTiles"]) and li["__tilesetDefUid"]),
         key=lambda li: LOADER_LAYER_Z.get(li["__identifier"], -1))
     for li in ordered:
         ts_uid = li["__tilesetDefUid"]
@@ -850,7 +1000,7 @@ def render_preview(level, defs, out_path, scale=2):
         gsz = ts["tileGridSize"]
         sheet = tileset_img(ts_uid)
         cells = {}                      # set_cell semantics: last tile per cell wins
-        for t in li["gridTiles"]:
+        for t in li["autoLayerTiles"] + li["gridTiles"]:
             cells[(t["px"][0], t["px"][1])] = (t["src"][0], t["src"][1], t["f"])
         for (px, py), (sx, sy, fl) in cells.items():
             tile = sheet.crop((sx, sy, sx + gsz, sy + gsz))
@@ -878,7 +1028,10 @@ def compile_sketch(path, project, defs, preview_only=False):
         return False
 
     rng = random.Random(sk.seed)
-    painter, intgrid = render_structure(sk, rng, defs)
+    if sk.style == "crypt":
+        painter, intgrids, autotiles = render_structure_crypt(sk, rng, defs)
+    else:
+        painter, intgrids, autotiles = render_structure(sk, rng, defs)
     placed = decorate(sk, painter, rng)
 
     existing = {lv["identifier"]: lv for lv in project["levels"]}
@@ -887,10 +1040,12 @@ def compile_sketch(path, project, defs, preview_only=False):
         world_x, world_y = existing[sk.name]["worldX"], existing[sk.name]["worldY"]
     else:
         level_uid = project.get("nextUid", 1000)
-        world_x = max((lv["worldX"] + 700 for lv in project["levels"]), default=100)
-        world_y = 0
+        world_y = STYLES[sk.style]["world_y"]
+        # place at the end of this style's row in the LDtk world view
+        row = [lv["worldX"] for lv in project["levels"] if lv["worldY"] == world_y]
+        world_x = max(row, default=-600) + 700
 
-    level = build_level(sk, defs, painter, intgrid, level_uid, world_x, world_y)
+    level = build_level(sk, defs, painter, intgrids, autotiles, level_uid, world_x, world_y)
 
     preview_path = os.path.join(PREVIEW_DIR, sk.name + ".png")
     render_preview(level, defs, preview_path)

@@ -108,9 +108,25 @@ avoid seams, paths, structures, and each other. Change `seed` to reroll placemen
 5. To put it in the descent rotation: add its name to `normal_block_ids` in
    `scripts/main_arena.gd` (see `BLOCK_COUNT` region ~line 304).
 
+## Crypt Style (`style = crypt`)
+
+Second grammar, for crypt/catacomb blocks (sketches in `blocks/crypt/`). Same grid
+legend, architectural rendering:
+
+- Walls are brick: top row `(72,104)` + repeating two-row courses `(72,112)/(72,120)`
+  (from `Block_Crypt_00_Entry`). Interior blobs can be as small as 2×2 (tomb slabs).
+  No rim lines, no ramp dressing — gaps through walls are clean doorways.
+- The brick **floor is baked from the CryptLayer IntGrid's active auto-rules** (read
+  from the project defs at compile time — an LDtk re-save re-bakes identically).
+  Floor-meets-wall edge trims come from those rules automatically.
+- Prop stamps: `tools/block_style_crypt.json` (only 5 stamps from the single reference
+  block — paint more reference props in LDtk and rerun the extractor to enrich it).
+- New crypt blocks register on the crypt row of the world view (worldY = 506).
+- Not wired to any descent rotation yet — the Catacombs descent flow doesn't exist.
+
 ## Current Limitations (v1)
 
-- Caves biome only. New biome = new grammar constants + stamp extraction from a few
+- Caves + Crypt only. New biome = new grammar constants + stamp extraction from a few
   hand-painted reference blocks of that biome.
 - No ponds/pits/water (`~`/`o` reserved, not implemented) — pin them by hand in LDtk on
   a forked copy, or wait for v2.
