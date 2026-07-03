@@ -319,9 +319,16 @@ func _render_tile_layer(layer_inst: Dictionary, is_auto: bool, result: Dictionar
 
 	## Assign z-index so tile layers render behind entities (player/enemies are z=0).
 	## Covers both schema names and actual Level_0 identifiers.
+	## Order mirrors LDtk's layer list (top of list = drawn in front): floor at the
+	## bottom, structural overlays (Cave_Pillars: rims, caps, trims) above the floor,
+	## shadows above those, prop layers in front so props are never hidden under
+	## rim/cap overlay lines.
 	const LAYER_Z: Dictionary = {
 		"Background": -5, "CavesBackground": -5, "CryptTiles": -4,
-		"FloorAuto": -3, "Cave_Tiles": -2,
+		"FloorAuto": -3, "Cave_Tiles": -3,
+		"Cave_Pillars": -2, "CavesShadows": -2, "CryptLayer": -2,
+		"CaveEntrances": -2, "Caves_PropsShadows": -2, "CryptProps_Shadows": -2,
+		"CryptShadows": -2,
 		"WallsAuto": -1,
 		"Decoration": 2,
 	}

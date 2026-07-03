@@ -299,11 +299,43 @@ class TilePainter:
         return [(px, py, s[0], s[1], s[2]) for (px, py), s in self.layers[layer].items()]
 
 
-def render_structure(sk, rng):
+class TileOpacity:
+    """Per-tile opacity check against the tileset PNG. Semi-transparent structural
+    tiles (trims, some face tiles) were designed to stack over floor in LDtk;
+    the game renders one tile per cell, so they need a floor underlay on
+    Cave_Tiles with the tile itself overlaid on Cave_Pillars."""
+
+    def __init__(self, sheet_path):
+        from PIL import Image
+        self.img = Image.open(sheet_path).convert("RGBA")
+        self.cache = {}
+
+    def opaque(self, src):
+        if src not in self.cache:
+            tile = self.img.crop((src[0], src[1], src[0] + GRID, src[1] + GRID))
+            alpha = tile.getchannel("A")
+            self.cache[src] = alpha.getextrema()[0] > 0
+        return self.cache[src]
+
+
+def render_structure(sk, rng, defs):
     """Floor flood + wall grammar. Returns (TilePainter, intgrid list)."""
     g = sk.grid
     p = TilePainter()
     intgrid = [0] * (BLOCK_W * BLOCK_H)
+
+    caves_ts = defs.tilesets_by_uid[defs.layers["Cave_Tiles"]["tilesetDefUid"]]
+    opacity = TileOpacity(os.path.normpath(
+        os.path.join(os.path.dirname(PROJECT_PATH), caves_ts["relPath"])))
+
+    def ps(x, y, src):
+        """Structural put: opaque tiles go straight to Cave_Tiles; tiles with
+        transparent pixels get a floor underlay + overlay on Cave_Pillars."""
+        if opacity.opaque(src):
+            p.put("Cave_Tiles", x, y, src)
+        else:
+            p.put("Cave_Tiles", x, y, sk.floor)
+            p.put("Cave_Pillars", x, y, src)
 
     def cell(x, y):
         if 0 <= x < BLOCK_W and 0 <= y < BLOCK_H:
@@ -352,13 +384,11 @@ def render_structure(sk, rng):
                 # thin rim line (choke north lip): scallop overlay on Cave_Pillars.
                 # Base tile continues whatever is above the rim (regular floor above ->
                 # regular floor behind the scallops; corridor above -> darker dirt).
+                # A rim segment resuming after a cut starts with the end-cap piece.
                 base = RIM_BASE if cell(x, y0 - 1) == "-" else sk.floor
                 p.put("Cave_Tiles", x, y0, base)
-                p.put("Cave_Pillars", x, y0, rng.choice(RIM_PIECES))
-                if cell(x - 1, y0) in WALKABLE and cell(x - 1, y0 - 1) in WALKABLE:
-                    p.put("Cave_Pillars", x - 1, y0, RIM_CAP_L)
-                if cell(x + 1, y0) in WALKABLE and cell(x + 1, y0 - 1) in WALKABLE:
-                    p.put("Cave_Pillars", x + 1, y0, RIM_CAP_R)
+                piece = RIM_CAP_L if cell(x - 1, y0) in WALKABLE else rng.choice(RIM_PIECES)
+                p.put("Cave_Pillars", x, y0, piece)
                 continue
 
             at_top = y0 == 0
@@ -387,38 +417,41 @@ def render_structure(sk, rng):
                         p.put("Cave_Pillars", x, y, rng.choice(CAP_INNER))
                 elif role == "void":
                     if edge_left:
-                        p.put("Cave_Tiles", x, y, EDGE_L["void"])
+                        ps(x, y, EDGE_L["void"])
                     elif edge_right:
-                        p.put("Cave_Tiles", x, y, EDGE_R["void"])
+                        ps(x, y, EDGE_R["void"])
                     else:
-                        p.put("Cave_Tiles", x, y, VOID)
+                        ps(x, y, VOID)
                 elif role == "face_top":
                     if y == y0 and not at_top and cell(x, y0 - 1) in WALKABLE:
                         # run's top row with walkable above (ridge seen from behind):
-                        # scalloped rim, base continues the tile above
+                        # scalloped rim, base continues the tile above; segment
+                        # resuming after a cut starts with the end-cap piece
                         base = RIM_BASE if cell(x, y0 - 1) == "-" else sk.floor
                         p.put("Cave_Tiles", x, y, base)
-                        p.put("Cave_Pillars", x, y, rng.choice(RIM_PIECES))
+                        piece = (RIM_CAP_L if cell(x - 1, y) in WALKABLE
+                                 else rng.choice(RIM_PIECES))
+                        p.put("Cave_Pillars", x, y, piece)
                     elif edge_left:
-                        p.put("Cave_Tiles", x, y, EDGE_L["face_top"])
+                        ps(x, y, EDGE_L["face_top"])
                     elif edge_right:
-                        p.put("Cave_Tiles", x, y, EDGE_R["face_top"])
+                        ps(x, y, EDGE_R["face_top"])
                     else:
-                        p.put("Cave_Tiles", x, y, rng.choice(FACE_TOP))
+                        ps(x, y, rng.choice(FACE_TOP))
                 elif role == "face_mid":
                     if edge_left:
-                        p.put("Cave_Tiles", x, y, EDGE_L["face_mid"])
+                        ps(x, y, EDGE_L["face_mid"])
                     elif edge_right:
-                        p.put("Cave_Tiles", x, y, EDGE_R["face_mid"])
+                        ps(x, y, EDGE_R["face_mid"])
                     else:
-                        p.put("Cave_Tiles", x, y, rng.choice(FACE_MID))
+                        ps(x, y, rng.choice(FACE_MID))
                 elif role == "face_bot":
                     if edge_left:
-                        p.put("Cave_Tiles", x, y, EDGE_L["trim"])
+                        ps(x, y, EDGE_L["trim"])
                     elif edge_right:
-                        p.put("Cave_Tiles", x, y, EDGE_R["trim"])
+                        ps(x, y, EDGE_R["trim"])
                     else:
-                        p.put("Cave_Tiles", x, y, rng.choice(FACE_BOT))
+                        ps(x, y, rng.choice(FACE_BOT))
 
             # gap side trims: only where a path cuts past the face rows
             # (plain-floor neighbors get nothing — pillars stay clean).
@@ -777,7 +810,10 @@ def register_level(project, level, name):
 # scripts/systems/ldtk_loader.gd _render_tile_layer.
 LOADER_LAYER_Z = {
     "Background": -5, "CavesBackground": -5, "CryptTiles": -4,
-    "FloorAuto": -3, "Cave_Tiles": -2,
+    "FloorAuto": -3, "Cave_Tiles": -3,
+    "Cave_Pillars": -2, "CavesShadows": -2, "CryptLayer": -2,
+    "CaveEntrances": -2, "Caves_PropsShadows": -2, "CryptProps_Shadows": -2,
+    "CryptShadows": -2,
     "WallsAuto": -1,
     "Decoration": 2,
 }
@@ -838,7 +874,7 @@ def compile_sketch(path, project, defs, preview_only=False):
         return False
 
     rng = random.Random(sk.seed)
-    painter, intgrid = render_structure(sk, rng)
+    painter, intgrid = render_structure(sk, rng, defs)
     placed = decorate(sk, painter, rng)
 
     existing = {lv["identifier"]: lv for lv in project["levels"]}
