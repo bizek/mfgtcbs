@@ -77,9 +77,16 @@ GAP_EDGE_L, GAP_EDGE_R = (232, 136), (272, 136)
 GAP_FILL = (256, 128)                        # darker dirt through the cut
 GAP_SIDE_L, GAP_SIDE_R = (232, 120), (280, 120)
 APRON_YS = (128, 136, 144)                   # 3 apron rows below the band
-APRON_X_END_L, APRON_X_END_R = 232, 280
-APRON_X_MID = (240, 248, 256, 264, 272)
 APRON_SCALLOP = (168, 96)
+
+
+def apron_xs(n, lo=232, hi=280):
+    """The apron is a designed strip (lo..hi step 8): left edge, gradient middle,
+    right edge. Sample it proportionally IN ORDER — never shuffle, the tiles only
+    read as a ramp in sequence."""
+    if n <= 1:
+        return [lo] * max(n, 0)
+    return [lo + 8 * round(i * (hi - lo) / 8 / (n - 1)) for i in range(n)]
 # pillar SW shadow (CavesShadows, 8px layer): column left of pillar + inner col
 SHADOW_LEFT = [(120, 8), (120, 24), (120, 32), (120, 40)]
 SHADOW_INNER = [(128, 24), (128, 32), (128, 40)]
@@ -433,8 +440,14 @@ def render_structure(sk, rng):
                     x += 1
                 if roles.get((x, y)) == "face_mid" and x - gx0 <= 14:
                     span = list(range(gx0, x))
-                    # darker dirt fill through the cut (rim + lit-face rows);
-                    # all opaque -> replace floor on Cave_Tiles directly
+                    # The ramp formula (fill + side sticks + dotted apron) is
+                    # designed for the choke's light-dirt corridor context —
+                    # against plain floor every piece of it reads as floating
+                    # clutter. Plain-floor gaps get NO dressing: the band's own
+                    # cut edges already render clean rocky shoulders (doorway).
+                    corridor_ctx = any(cell(gx, y - 2) == "-" for gx in span)
+                    if not corridor_ctx:
+                        continue  # x already advanced past the span
                     for gx in span:
                         p.put("Cave_Tiles", gx, y - 1, GAP_FILL)
                         p.put("Cave_Tiles", gx, y, GAP_FILL)
@@ -449,17 +462,20 @@ def render_structure(sk, rng):
                         if yy >= BLOCK_H:
                             break
                         layer = "Cave_Tiles" if row_i == 0 else "Cave_Pillars"
-                        cols = span if row_i < 2 else span[1:-1]
-                        if row_i == 2:
-                            p.put("Cave_Tiles", span[0], yy, APRON_SCALLOP)
-                            p.put("Cave_Tiles", span[-1], yy, APRON_SCALLOP)
-                        for i, gx in enumerate(cols):
-                            if i == 0:
-                                xs = APRON_X_END_L
-                            elif i == len(cols) - 1:
-                                xs = APRON_X_END_R
-                            else:
-                                xs = rng.choice(APRON_X_MID)
+                        if row_i < 2:
+                            cols = span
+                            xs_seq = apron_xs(len(cols))
+                        else:
+                            # last row: 2-tile scallop shoulders, narrow center taper
+                            shoulder = 2 if len(span) >= 7 else 1
+                            cols = span[shoulder:-shoulder]
+                            if not cols:
+                                break
+                            xs_seq = apron_xs(len(cols), 240, 272)
+                            for s in range(shoulder):
+                                p.put("Cave_Tiles", span[s], yy, APRON_SCALLOP)
+                                p.put("Cave_Tiles", span[-1 - s], yy, APRON_SCALLOP)
+                        for gx, xs in zip(cols, xs_seq):
                             p.put(layer, gx, yy, (xs, ysrc))
                 continue
             x += 1
