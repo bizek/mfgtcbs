@@ -307,12 +307,19 @@ func _setup_ldtk_descent() -> void:
 	const ENTRY_BLOCK_ID: String = "Block_Caves_00_Entry"
 	const PORTAL_BLOCK_ID: String = "Block_Caves_09_Portal"
 
-	## Inner shuffled pool (add more variants here as they're authored)
+	## Inner shuffled pool (add more variants here as they're authored;
+	## 10+ are compiled from blocks/caves/*.block — see docs/block_sketch_workflow.md)
 	var normal_block_ids: Array[String] = [
 		"Block_Caves_01_Open",
 		"Block_Caves_02_Pillars",
 		"Block_Caves_03_Choke",
 		"Block_Caves_04_Split",
+		"Block_Caves_10_ChokeA",
+		"Block_Caves_11_ChokeB",
+		"Block_Caves_12_PillarsB",
+		"Block_Caves_13_SplitB",
+		"Block_Caves_14_OpenB",
+		"Block_Caves_15_Gauntlet",
 	]
 	const MERCHANT_BLOCK_ID: String = "Block_Caves_05_Merchant"
 
