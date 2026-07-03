@@ -3,6 +3,10 @@
 The day-to-day guide for designing levels in LDtk. Companion to [`ldtk_schema.md`](ldtk_schema.md)
 (the contract) — this doc covers **how to use it**.
 
+> **Descent blocks are no longer hand-painted.** New blocks are authored as text sketches
+> compiled by `tools/block_compiler.py` — see [`block_sketch_workflow.md`](block_sketch_workflow.md).
+> This doc remains the reference for hero blocks, biome bootstrap, and full non-block levels.
+
 Read order if you've never authored a level here: `ldtk_schema.md` first, then this.
 
 ---

@@ -13,3 +13,6 @@ assets/minifantasy/
 
 # Claude Code worktrees (session-local sandboxes)
 .claude/worktrees/
+
+# Python tool caches
+tools/__pycache__/

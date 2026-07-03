@@ -47,6 +47,7 @@ SpatialGrid rebuild → StatusEffect.tick → AbilityComponent.tick_cooldowns �
 | `docs/asset_inventory.md` | Free asset sources, palette-shift strategy, license tracking |
 | `docs/ldtk_schema.md` | LDtk schema contract: entity defs, enums, level fields, IntGrid values, layer stack — read first for any level work |
 | `docs/ldtk_workflow.md` | LDtk authoring workflow: where files live, biome asset map, how to add a level/biome, arena design principles |
+| `docs/block_sketch_workflow.md` | **Preferred path for new descent blocks**: text sketch → `tools/block_compiler.py` → .ldtkl + PNG preview. Sketch format, grid legend, validators, prop decorator |
 
 ### When to read what
 
