@@ -635,15 +635,19 @@ def build_field(defs, entity, field, ftype, value, editor_val=None):
 def build_entities(sk, defs):
     ents = []
     for z in sk.spawn_zones:
+        # rect is authored as top-left x,y + size in px; "full" covers the block
+        # minus a 3-tile margin. The entity pivot is (0.5, 0.5), so px must be
+        # the rect CENTER — px at the corner shoves half the zone off the block.
         if z.get("rect", "full") == "full":
-            x, y, w, h = 80, 80, 488, 320
+            x, y, w, h = 24, 24, BLOCK_W * GRID - 48, BLOCK_H * GRID - 48
         else:
             x, y, w, h = (int(v) for v in z["rect"].split(","))
+        cx_, cy_ = x + w // 2, y + h // 2
         ents.append({
-            "__identifier": "EnemySpawnZone", "__grid": [x // GRID, y // GRID],
+            "__identifier": "EnemySpawnZone", "__grid": [cx_ // GRID, cy_ // GRID],
             "__pivot": [0.5, 0.5], "__tags": ["gameplay", "spawn"], "__tile": None,
             "__smartColor": "#CC2222", "iid": make_iid(), "width": w, "height": h,
-            "defUid": defs.entities["EnemySpawnZone"]["uid"], "px": [x, y],
+            "defUid": defs.entities["EnemySpawnZone"]["uid"], "px": [cx_, cy_],
             "fieldInstances": [
                 build_field(defs, "EnemySpawnZone", "phase", "LocalEnum.SpawnPhase",
                             z.get("phase", "Any"),
@@ -655,7 +659,7 @@ def build_entities(sk, defs):
                 build_field(defs, "EnemySpawnZone", "min_distance_from_player", "Float",
                             float(z.get("min_dist", 300))),
             ],
-            "__worldX": x, "__worldY": y,
+            "__worldX": cx_, "__worldY": cy_,
         })
     for m in sk.markers:
         gx, gy = (int(v) for v in m["at"].split(","))
