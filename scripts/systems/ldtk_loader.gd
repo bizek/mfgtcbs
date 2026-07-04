@@ -325,10 +325,12 @@ func _render_tile_layer(layer_inst: Dictionary, is_auto: bool, result: Dictionar
 	## rim/cap overlay lines.
 	const LAYER_Z: Dictionary = {
 		"Background": -5, "CavesBackground": -5, "CryptTiles": -4,
-		"FloorAuto": -3, "Cave_Tiles": -3,
+		"EtherealAutoLayer": -4,
+		"FloorAuto": -3, "Cave_Tiles": -3, "Ethereal_Floor": -3,
 		"Cave_Pillars": -2, "CavesShadows": -2, "CryptLayer": -2,
 		"CaveEntrances": -2, "Caves_PropsShadows": -2, "CryptProps_Shadows": -2,
-		"CryptShadows": -2,
+		"CryptShadows": -2, "Ethereal_Shadows": -2, "Ethereal_Props_Shadows": -2,
+		"Ethereal_Walls": -2,
 		"WallsAuto": -1,
 		"Decoration": 2,
 	}

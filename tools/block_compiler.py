@@ -49,7 +49,9 @@ GRID = 8
 
 WALKABLE = {".", ",", "-"}
 SOLID = {"#"}
-LEGEND = WALKABLE | SOLID
+PLATFORM = "P"        # nmrealm only: raised platform (solid, on top of island floor)
+RUINWALL = "W"        # nmrealm only: ruined wall line (walkable decor, like Ben's)
+LEGEND = WALKABLE | SOLID | {PLATFORM, RUINWALL}
 
 # IntGrid values (docs/ldtk_schema.md §2)
 IG_FLOOR, IG_WALL, IG_SPAWNBLOCK = 1, 2, 5
@@ -114,6 +116,49 @@ CRYPT_BORDER_L, CRYPT_BORDER_R = (32, 64), (80, 64)
 CRYPT_FLOOR_LAYER = "CryptLayer"          # IntGrid whose rules bake the floor
 CRYPT_WALL_LAYER = "CryptTiles"
 
+# ---------------------------------------------------------------------------
+# Nightmare Realm visual grammar (mined from the asset pack's premade scene by
+# tools/extract_nmrealm_style.py — see block_style_nmrealm.json)
+# ---------------------------------------------------------------------------
+# Inverted world: `#` is VOID (black emptiness the island floats in), walkable
+# cells are the island. The island surface + scalloped edges are baked from
+# Ben's 33 EtherealAutoLayer auto-rules (Solid_Tileset).
+NM_FLOOR_LAYER = "EtherealAutoLayer"      # IntGrid whose rules bake the island
+NM_WALL_LAYER = "Ethereal_Walls"
+NM_DETAIL_LAYER = "Ethereal_Floor"        # scratch decals over the baked floor
+
+# `P` raised platform — Ben's rectangle grammar (decoded from his touched-up
+# Isles): cap row on top, edged fill interior, 3-row face at the bottom.
+NM_PLAT_TOP_TL, NM_PLAT_TOP_TR = (208, 376), (224, 440)
+NM_PLAT_TOP_MID = [(128, 448)] * 6 + [(40, 448)] * 2 + [(216, 440)] * 2
+NM_PLAT_EDGE_L, NM_PLAT_EDGE_R = (104, 472), (224, 448)
+NM_PLAT_FILL = (216, 312)
+NM_PLAT_FACE_L = [(16, 480), (16, 488), (16, 496)]
+NM_PLAT_FACE_R = [(240, 480), (240, 488), (240, 496)]
+NM_PLAT_FACE_COLS = [    # (3-row column family, weight)
+    ([(40, 512), (40, 520), (40, 528)], 5),
+    ([(216, 344), (216, 80), (200, 496)], 3),
+    ([(128, 512), (128, 520), (128, 528)], 2),
+]
+
+# `W` ruined wall lines (from Ben's Isles wall assemblies): horizontal walls
+# are 3-column end caps + repeating crumble courses (caps carry a 4th top row,
+# courses don't -> ragged silhouette); vertical walls are single brick columns,
+# optionally spire-capped. Walkable decor — Ben gives them no collision.
+NM_HWALL_CAP_L = [(512, 320), (520, 320), (528, 320)]   # top row of the caps
+NM_HWALL_CAP_COLS_L = [512, 520, 528]
+NM_HWALL_CAP_COLS_R = [544, 552, 560]
+NM_HWALL_CAP_ROWS = [328, 336, 344]
+NM_HWALL_COURSE = [(536, 328), (536, 336), (536, 344)]
+NM_HWALL_COURSE_VAR = [(536, 360), (536, 368), (536, 376)]
+NM_VWALL_TOP = (560, 432)
+NM_VWALL_BODY = [(560, 440), (560, 448)]
+NM_VWALL_BOT = [(560, 456), (560, 464), (560, 472)]
+NM_SPIRE = [(464, 400), (472, 400), (480, 400),         # 3x4 broken-spire cap
+            (464, 408), (472, 408), (480, 408),
+            (464, 416), (472, 416), (480, 416),
+            (464, 424), (472, 424), (480, 424)]
+
 STYLES = {
     "caves": {
         "pack": STYLE_PACK,
@@ -124,6 +169,18 @@ STYLES = {
         "pack": os.path.join(ROOT, "tools", "block_style_crypt.json"),
         "min_blob_w": 2, "min_blob_h": 2, "rims": False,
         "world_y": 506,   # Block_Crypt_00_Entry's row in the LDtk world view
+    },
+    "nmrealm": {
+        "pack": os.path.join(ROOT, "tools", "block_style_nmrealm.json"),
+        "min_blob_w": 3, "min_blob_h": 3, "rims": False,
+        "world_y": 1006,  # Block_NMRealm_00_Entry2's row in the LDtk world view
+        # prop densities measured from Ben's Entry + Isles ("normal" = his look)
+        "density_presets": {
+            "none":   {"debris": 0.0, "small": 0.0, "medium": 0.0, "large": 0.0},
+            "sparse": {"debris": 1.7, "small": 0.5, "medium": 1.8, "large": 0.9},
+            "normal": {"debris": 2.8, "small": 0.8, "medium": 3.0, "large": 1.6},
+            "dense":  {"debris": 4.2, "small": 1.2, "medium": 4.5, "large": 2.3},
+        },
     },
 }
 
@@ -142,6 +199,7 @@ class Sketch:
         self.style = "caves"     # visual grammar: caves | crypt
         self.floor = FLOOR_DEFAULT
         self.density = "sparse"
+        self.scratches = "off"   # nmrealm ground scarring: off = Ben hand-paints
         self.seed = 0
         self.spawn_zones = []
         self.markers = []
@@ -197,6 +255,10 @@ def parse_sketch(path):
             if val not in DENSITY_PRESETS:
                 raise ValueError(f"{path}: unknown density {val!r}")
             sk.density = val
+        elif key == "scratches":
+            if val not in ("off", "auto"):
+                raise ValueError(f"{path}: scratches must be off|auto, got {val!r}")
+            sk.scratches = val
         elif key == "seed":
             sk.seed = int(val)
         elif key == "spawn_zone":
@@ -226,11 +288,14 @@ def validate(sk):
         for x, ch in enumerate(row):
             if ch not in LEGEND:
                 errors.append(f"row {y} col {x}: unknown char {ch!r}")
+            elif ch in (PLATFORM, RUINWALL) and sk.style != "nmrealm":
+                errors.append(f"row {y} col {x}: {ch!r} is nmrealm-only")
     if errors:
         return errors
 
     def walk(x, y):
-        return g[y][x] in WALKABLE
+        # RUINWALL is walkable decor (Ben's convention: no collision on ruins)
+        return g[y][x] in WALKABLE or g[y][x] == RUINWALL
 
     # border columns must be solid
     for y in range(BLOCK_H):
@@ -307,6 +372,81 @@ def validate(sk):
                     errors.append(f"solid blob at ({min(xs)},{min(ys)}) is {w}x{h}; "
                                   f"style '{sk.style}' needs >={style['min_blob_w']} wide "
                                   f"and >={style['min_blob_h']} tall")
+    # nmrealm platforms: blobs of P, min 3x4 (top row + 3-row south face), fully
+    # surrounded by island floor (the learned grammar was mined island-interior),
+    # and clear of seams
+    if sk.style == "nmrealm":
+        seen_p = set()
+        for y in range(BLOCK_H):
+            for x in range(BLOCK_W):
+                if g[y][x] != PLATFORM or (x, y) in seen_p:
+                    continue
+                comp = [(x, y)]
+                seen_p.add((x, y))
+                stack = [(x, y)]
+                while stack:
+                    cx, cy = stack.pop()
+                    for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                        nx, ny = cx + dx, cy + dy
+                        if (0 <= nx < BLOCK_W and 0 <= ny < BLOCK_H
+                                and (nx, ny) not in seen_p and g[ny][nx] == PLATFORM):
+                            seen_p.add((nx, ny))
+                            stack.append((nx, ny))
+                            comp.append((nx, ny))
+                xs = [c[0] for c in comp]
+                ys = [c[1] for c in comp]
+                w, h = max(xs) - min(xs) + 1, max(ys) - min(ys) + 1
+                if w < 3 or h < 4:
+                    errors.append(f"platform at ({min(xs)},{min(ys)}) is {w}x{h}; "
+                                  f"needs >=3 wide and >=4 tall (top + 3-row face)")
+                if len(comp) != w * h:
+                    errors.append(f"platform at ({min(xs)},{min(ys)}) is not rectangular "
+                                  f"(Ben's platform grammar is cap/fill/face rows)")
+                if min(ys) < 4 or max(ys) > BLOCK_H - 6 or min(xs) < 3 or max(xs) > BLOCK_W - 4:
+                    errors.append(f"platform at ({min(xs)},{min(ys)}) too close to seams/border")
+                bad = next(((cx + dx, cy + dy) for cx, cy in comp
+                            for dx in (-1, 0, 1) for dy in (-1, 0, 1)
+                            if 0 <= cx + dx < BLOCK_W and 0 <= cy + dy < BLOCK_H
+                            and g[cy + dy][cx + dx] not in WALKABLE
+                            and g[cy + dy][cx + dx] != PLATFORM), None)
+                if bad:
+                    errors.append(f"platform at ({min(xs)},{min(ys)}) touches void at {bad}; "
+                                  f"platforms must sit on island floor")
+        # ruined walls: straight 1-cell lines, horizontal len>=8 (two 3-col caps
+        # + courses) or vertical len>=5; must not hang into the void
+        seen_w = set()
+        for y in range(BLOCK_H):
+            for x in range(BLOCK_W):
+                if g[y][x] != RUINWALL or (x, y) in seen_w:
+                    continue
+                comp = [(x, y)]
+                seen_w.add((x, y))
+                stack = [(x, y)]
+                while stack:
+                    cx, cy = stack.pop()
+                    for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                        nx, ny = cx + dx, cy + dy
+                        if (0 <= nx < BLOCK_W and 0 <= ny < BLOCK_H
+                                and (nx, ny) not in seen_w and g[ny][nx] == RUINWALL):
+                            seen_w.add((nx, ny))
+                            stack.append((nx, ny))
+                            comp.append((nx, ny))
+                xs = [c[0] for c in comp]
+                ys = [c[1] for c in comp]
+                w, h = max(xs) - min(xs) + 1, max(ys) - min(ys) + 1
+                if not ((h == 1 and w == len(comp)) or (w == 1 and h == len(comp))):
+                    errors.append(f"ruined wall at ({min(xs)},{min(ys)}) must be a straight "
+                                  f"1-cell horizontal or vertical line")
+                elif h == 1 and w < 8:
+                    errors.append(f"horizontal ruined wall at ({min(xs)},{min(ys)}) is {w} long; "
+                                  f"needs >=8 (3-col caps + courses)")
+                elif w == 1 and h < 5:
+                    errors.append(f"vertical ruined wall at ({min(xs)},{min(ys)}) is {h} long; "
+                                  f"needs >=5")
+                if h == 1 and any(not (0 <= yy < BLOCK_H) or g[yy][cx] == "#"
+                                  for cx, cy in comp for yy in (cy + 1, cy + 2, cy + 3)):
+                    errors.append(f"horizontal ruined wall at ({min(xs)},{min(ys)}) needs 3 "
+                                  f"non-void rows below (courses render there)")
     if not sk.spawn_zones:
         errors.append("no spawn_zone defined (block_architecture.md §3: at least one required)")
     return errors
@@ -575,10 +715,14 @@ def render_structure(sk, rng, defs):
 # ---------------------------------------------------------------------------
 # Crypt rendering — brick walls + rule-baked floor
 # ---------------------------------------------------------------------------
-def bake_intgrid_rules(defs, layer_name, mask):
+def bake_intgrid_rules(defs, layer_name, mask, oob=False):
     """Evaluate the project's active auto-rules for an IntGrid layer over a
     boolean mask (True = value 1). First matching rule wins per cell, exactly
     like LDtk (chance=1, no modulo/flip rules expected). Returns autoLayerTiles.
+
+    oob=True treats out-of-bounds neighbors as value 1 — mirrors the layer's
+    outOfBoundsValue=1 in LDtk, so island floors continue seamlessly across
+    block seams instead of baking an edge line at every seam row.
     """
     ld = defs.layers[layer_name]
     ts = defs.tilesets_by_uid[ld["tilesetDefUid"]]
@@ -595,7 +739,9 @@ def bake_intgrid_rules(defs, layer_name, mask):
                 rules.append((r["size"], r["pattern"], tile_ids[0][0], r["uid"]))
 
     def at(x, y):
-        return 0 <= x < BLOCK_W and 0 <= y < BLOCK_H and mask[y][x]
+        if not (0 <= x < BLOCK_W and 0 <= y < BLOCK_H):
+            return oob
+        return mask[y][x]
 
     tiles = []
     for y in range(BLOCK_H):
@@ -683,12 +829,182 @@ def render_structure_crypt(sk, rng, defs):
     return p, {"Collision": intgrid, CRYPT_FLOOR_LAYER: crypt_csv}, {CRYPT_FLOOR_LAYER: auto}
 
 
+def render_structure_nmrealm(sk, rng, defs):
+    """Nightmare Realm: floating island over black void. Island floor baked by
+    Ben's EtherealAutoLayer auto-rules; raised platforms (P) and ruined wall
+    lines (W) rendered on Ethereal_Walls with Ben's grammar (decoded from his
+    Entry + touched-up Isles). Returns (painter, intgrids dict, autotiles dict)."""
+    g = sk.grid
+    p = TilePainter()
+    intgrid = [0] * (BLOCK_W * BLOCK_H)
+
+    # collision + island mask ('-' has no special meaning here: plain floor;
+    # platforms get floor beneath; ruined walls are walkable decor like Ben's)
+    island = [[False] * BLOCK_W for _ in range(BLOCK_H)]
+    plats = []
+    walls = []
+    seen = set()
+    for y in range(BLOCK_H):
+        for x in range(BLOCK_W):
+            ch = g[y][x]
+            if ch in WALKABLE or ch == RUINWALL:
+                intgrid[y * BLOCK_W + x] = IG_SPAWNBLOCK if ch == "," else IG_FLOOR
+                island[y][x] = True
+            elif ch == PLATFORM:
+                intgrid[y * BLOCK_W + x] = IG_WALL
+                island[y][x] = True
+            elif ch == "#":
+                intgrid[y * BLOCK_W + x] = IG_WALL if 0 < x < BLOCK_W - 1 else 0
+            if ch in (PLATFORM, RUINWALL) and (x, y) not in seen:
+                comp = [(x, y)]
+                seen.add((x, y))
+                stack = [(x, y)]
+                while stack:
+                    cx, cy = stack.pop()
+                    for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                        nx, ny = cx + dx, cy + dy
+                        if (0 <= nx < BLOCK_W and 0 <= ny < BLOCK_H
+                                and (nx, ny) not in seen and g[ny][nx] == ch):
+                            seen.add((nx, ny))
+                            stack.append((nx, ny))
+                            comp.append((nx, ny))
+                (plats if ch == PLATFORM else walls).append(comp)
+
+    # --- platforms: Ben's rectangle grammar (cap row / edged fill / 3-row face)
+    for comp in plats:
+        xs = [c[0] for c in comp]
+        ys = [c[1] for c in comp]
+        x0, x1, y0, y1 = min(xs), max(xs), min(ys), max(ys)
+        for x in range(x0, x1 + 1):
+            if x == x0:
+                p.put(NM_WALL_LAYER, x, y0, NM_PLAT_TOP_TL)
+            elif x == x1:
+                p.put(NM_WALL_LAYER, x, y0, NM_PLAT_TOP_TR)
+            else:
+                p.put(NM_WALL_LAYER, x, y0, rng.choice(NM_PLAT_TOP_MID))
+        for y in range(y0 + 1, y1 - 2):
+            for x in range(x0, x1 + 1):
+                src = (NM_PLAT_EDGE_L if x == x0 else
+                       NM_PLAT_EDGE_R if x == x1 else NM_PLAT_FILL)
+                p.put(NM_WALL_LAYER, x, y, src)
+        face_pool = [fam for fam, wgt in NM_PLAT_FACE_COLS for _ in range(wgt)]
+        for x in range(x0, x1 + 1):
+            col = (NM_PLAT_FACE_L if x == x0 else
+                   NM_PLAT_FACE_R if x == x1 else rng.choice(face_pool))
+            for i, src in enumerate(col):
+                p.put(NM_WALL_LAYER, x, y1 - 2 + i, src)
+
+    # --- ruined wall lines
+    for comp in walls:
+        xs = [c[0] for c in comp]
+        ys = [c[1] for c in comp]
+        x0, x1, y0, y1 = min(xs), max(xs), min(ys), max(ys)
+        if y0 == y1:
+            # horizontal: 3-col end caps (with top row) + crumble courses below
+            for i, cx in enumerate(range(x0, x0 + 3)):
+                p.put(NM_WALL_LAYER, cx, y0, NM_HWALL_CAP_L[i])
+                for r, ry in enumerate(NM_HWALL_CAP_ROWS):
+                    p.put(NM_WALL_LAYER, cx, y0 + 1 + r, (NM_HWALL_CAP_COLS_L[i], ry))
+            for i, cx in enumerate(range(x1 - 2, x1 + 1)):
+                p.put(NM_WALL_LAYER, cx, y0, (NM_HWALL_CAP_COLS_R[i], 320))
+                for r, ry in enumerate(NM_HWALL_CAP_ROWS):
+                    p.put(NM_WALL_LAYER, cx, y0 + 1 + r, (NM_HWALL_CAP_COLS_R[i], ry))
+            for cx in range(x0 + 3, x1 - 2):
+                col = NM_HWALL_COURSE_VAR if rng.random() < 0.15 else NM_HWALL_COURSE
+                for r, src in enumerate(col):
+                    p.put(NM_WALL_LAYER, cx, y0 + 1 + r, src)
+        else:
+            # vertical: brick column, sometimes spire-capped (spills 1 col wide)
+            p.put(NM_WALL_LAYER, x0, y0, NM_VWALL_TOP)
+            for i, cy in enumerate(range(y0 + 1, y1 - 2)):
+                p.put(NM_WALL_LAYER, x0, cy, NM_VWALL_BODY[i % 2])
+            for i, src in enumerate(NM_VWALL_BOT):
+                p.put(NM_WALL_LAYER, x0, y1 - 2 + i, src)
+            if rng.random() < 0.35 and y0 >= 4 and 1 <= x0 - 1 and x0 + 1 <= BLOCK_W - 2:
+                for i, src in enumerate(NM_SPIRE):
+                    p.put(NM_WALL_LAYER, x0 - 1 + i % 3, y0 - 4 + i // 3, src)
+
+    # island floor: EtherealAutoLayer IntGrid + rule-baked tiles (oob=island so
+    # seams continue into the neighboring block instead of baking an edge line)
+    nm_csv = [1 if island[i // BLOCK_W][i % BLOCK_W] else 0
+              for i in range(BLOCK_W * BLOCK_H)]
+    auto = bake_intgrid_rules(defs, NM_FLOOR_LAYER, island, oob=True)
+
+    return p, {"Collision": intgrid, NM_FLOOR_LAYER: nm_csv}, {NM_FLOOR_LAYER: auto}
+
+
 # ---------------------------------------------------------------------------
 # Decorator — prop stamps
 # ---------------------------------------------------------------------------
+def decorate_scratches(sk, painter, rng, pack):
+    """nmrealm ground scarring: claw/hatch decals scattered with coverage that
+    follows Ben's measured distance-to-void profile — dense halos around the
+    holes (as if something punched through this layer and kept going), fading
+    with distance. Painted on Ethereal_Floor over the baked island."""
+    from collections import deque
+    g = sk.grid
+    profile = {int(k): v for k, v in pack["scratch_profile"].items()}
+    units = pack["scratch_units"]
+    if not units:
+        return 0
+    weights = [u["weight"] for u in units]
+    avg_cells = sum(len(u["tiles"]) * u["weight"] for u in units) / sum(weights)
+    scale = {"none": 0.0, "sparse": 0.6, "normal": 1.0, "dense": 1.4}[sk.density]
+
+    # BFS distance to void ('#'), same metric the profile was measured with
+    INF = 10 ** 9
+    dist = [[INF] * BLOCK_W for _ in range(BLOCK_H)]
+    dq = deque()
+    for y in range(BLOCK_H):
+        for x in range(BLOCK_W):
+            if g[y][x] == "#":
+                dist[y][x] = 0
+                dq.append((x, y))
+    while dq:
+        x, y = dq.popleft()
+        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < BLOCK_W and 0 <= ny < BLOCK_H and dist[ny][nx] > dist[y][x] + 1:
+                dist[ny][nx] = dist[y][x] + 1
+                dq.append((nx, ny))
+
+    # patch gate: Ben paints scratches in contiguous swaths, not salt-and-pepper.
+    # A coarse random field keeps ~55% of 6x6-cell patches (boosted to preserve
+    # overall coverage) so placements pool into flowing fields.
+    PATCH = 6
+    gate = {}
+    for sy in range((BLOCK_H // PATCH) + 2):
+        for sx in range((BLOCK_W // PATCH) + 2):
+            gate[(sx, sy)] = rng.random() < 0.55
+
+    placed = 0
+    cap = max(profile)
+    for y in range(2, BLOCK_H - 2):
+        for x in range(1, BLOCK_W - 1):
+            if g[y][x] not in WALKABLE:
+                continue
+            if not gate[(x // PATCH, y // PATCH)]:
+                continue
+            cov = profile.get(min(dist[y][x], cap), 0.0) * scale / 0.55
+            if rng.random() >= cov / avg_cells:
+                continue
+            u = rng.choices(units, weights=weights, k=1)[0]
+            cells = [(x + t[0], y + t[1]) for t in u["tiles"]]
+            if any(not (0 < cx < BLOCK_W - 1 and 0 <= cy < BLOCK_H)
+                   or g[cy][cx] not in WALKABLE for cx, cy in cells):
+                continue
+            for t in u["tiles"]:
+                painter.put(NM_DETAIL_LAYER, x + t[0], y + t[1], (t[2], t[3]))
+            placed += 1
+    return placed
+
+
 def decorate(sk, painter, rng):
     with open(STYLES[sk.style]["pack"], encoding="utf-8") as f:
         pack = json.load(f)
+    scratches = 0
+    if sk.style == "nmrealm" and sk.scratches == "auto":
+        scratches = decorate_scratches(sk, painter, rng, pack)
     stamps_by_class = defaultdict(list)
     for s in pack["stamps"]:
         stamps_by_class[s["class"]].append(s)
@@ -699,7 +1015,7 @@ def decorate(sk, painter, rng):
                    if g[y][x] == "."]  # plain floor only: keep paths/seams cleaner
     n_floor = sum(1 for y in range(BLOCK_H) for x in range(BLOCK_W) if g[y][x] in WALKABLE)
 
-    preset = DENSITY_PRESETS[sk.density]
+    preset = STYLES[sk.style].get("density_presets", DENSITY_PRESETS)[sk.density]
     occupied = set()   # 8px cells already claimed by a stamp (loose spacing)
 
     def try_place(stamp, attempts=40):
@@ -742,6 +1058,8 @@ def decorate(sk, painter, rng):
             stamp = rng.choices(pool, weights=weights, k=1)[0]
             if try_place(stamp):
                 placed[cls] += 1
+    if scratches:
+        placed["scratches"] = scratches
     return placed
 
 
@@ -963,10 +1281,12 @@ def register_level(project, level, name):
 # scripts/systems/ldtk_loader.gd _render_tile_layer.
 LOADER_LAYER_Z = {
     "Background": -5, "CavesBackground": -5, "CryptTiles": -4,
-    "FloorAuto": -3, "Cave_Tiles": -3,
+    "EtherealAutoLayer": -4,
+    "FloorAuto": -3, "Cave_Tiles": -3, "Ethereal_Floor": -3,
     "Cave_Pillars": -2, "CavesShadows": -2, "CryptLayer": -2,
     "CaveEntrances": -2, "Caves_PropsShadows": -2, "CryptProps_Shadows": -2,
-    "CryptShadows": -2,
+    "CryptShadows": -2, "Ethereal_Shadows": -2, "Ethereal_Props_Shadows": -2,
+    "Ethereal_Walls": -2,
     "WallsAuto": -1,
     "Decoration": 2,
 }
@@ -1030,6 +1350,8 @@ def compile_sketch(path, project, defs, preview_only=False):
     rng = random.Random(sk.seed)
     if sk.style == "crypt":
         painter, intgrids, autotiles = render_structure_crypt(sk, rng, defs)
+    elif sk.style == "nmrealm":
+        painter, intgrids, autotiles = render_structure_nmrealm(sk, rng, defs)
     else:
         painter, intgrids, autotiles = render_structure(sk, rng, defs)
     placed = decorate(sk, painter, rng)
@@ -1046,6 +1368,21 @@ def compile_sketch(path, project, defs, preview_only=False):
         world_x = max(row, default=-600) + 700
 
     level = build_level(sk, defs, painter, intgrids, autotiles, level_uid, world_x, world_y)
+
+    # Hand-touch-up layers survive recompiles: Ben owns the nmrealm scratch
+    # layer (Ethereal_Floor), so if the block already exists on disk, carry its
+    # tiles over instead of regenerating/clearing them.
+    preserve = {"nmrealm": ["Ethereal_Floor"]}.get(sk.style, [])
+    existing_path = os.path.join(LEVELS_DIR, sk.name + ".ldtkl")
+    if preserve and os.path.exists(existing_path):
+        with open(existing_path, encoding="utf-8") as f:
+            old = json.load(f)
+        old_layers = {l["__identifier"]: l for l in old["layerInstances"]}
+        for li in level["layerInstances"]:
+            ident = li["__identifier"]
+            if ident in preserve and ident in old_layers and old_layers[ident]["gridTiles"]:
+                li["gridTiles"] = old_layers[ident]["gridTiles"]
+                print(f"     preserved {len(li['gridTiles'])} hand-painted tiles on {ident}")
 
     preview_path = os.path.join(PREVIEW_DIR, sk.name + ".png")
     render_preview(level, defs, preview_path)

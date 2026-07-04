@@ -124,10 +124,46 @@ legend, architectural rendering:
 - New crypt blocks register on the crypt row of the world view (worldY = 506).
 - Not wired to any descent rotation yet — the Catacombs descent flow doesn't exist.
 
+## Nightmare Realm Style (`style = nmrealm`)
+
+Third grammar (sketches in `blocks/nmrealm/`), mined from **Ben's reference
+blocks** — `Block_NMRealm_00_Entry` + the hand-touched `Block_NMRealm_01_Isles`
+(`tools/extract_nmrealm_style.py` → `tools/block_style_nmrealm.json`; rerun
+after Ben refines either block). Theme: a place destroyed long ago by something
+massive — claw scarring on the ground, broken walls, strange pillars, bones.
+
+Inverted world — the island floats in a black void:
+
+- `#` is **void** (black emptiness), not rock. Walkable cells are the island.
+  Interior void holes: min 3×3. Void gets Wall=2 collision (invisible edge).
+- The island surface + scalloped edges bake from the **EtherealAutoLayer**
+  IntGrid's 33 auto-rules (Ben-authored, Solid_Tileset). The layer's
+  `outOfBoundsValue=1` makes islands continue seamlessly across block seams.
+- **Ground scarring is Ben's** (`scratches = off`, the default): the claw
+  decals' direction and flow are hand-composed, so Ben paints them in LDtk as
+  a touch-up pass on `Ethereal_Floor`. **Recompiles preserve that layer** from
+  the existing .ldtkl — touch-ups survive structure regeneration. Compile
+  first, touch up second. (`scratches = auto` still exists: a machine pass
+  following the measured distance-to-hole profile — rough draft quality, the
+  decals collide.)
+- `P` = **raised platform**: rectangular only; rendered with Ben's grammar
+  (cap row / edged fill / 3-row windowed face). Min 3×4, on island floor,
+  clear of seams.
+- `W` = **ruined wall line** (straight 1-cell runs): horizontal (len ≥ 8) =
+  3-column end caps + crumble courses extending 3 rows below the line;
+  vertical (len ≥ 5) = brick column, sometimes spire-capped. Walkable decor —
+  Ben's convention gives ruins no collision.
+- Props: pillar clusters, bones, rubble from Ben's blocks (43 stamps, no
+  shadow pairing — Ben doesn't use prop shadows here). Flora is hard-
+  blacklisted. `normal` density = Ben's look.
+- Registers on the NMRealm world row (worldY = 1006). Not wired to any descent
+  rotation yet. Entry-style mega-walls stay hero content.
+
 ## Current Limitations (v1)
 
-- Caves + Crypt only. New biome = new grammar constants + stamp extraction from a few
-  hand-painted reference blocks of that biome.
+- Caves + Crypt + Nightmare Realm only. New biome = grammar + stamp extraction,
+  from hand-painted reference blocks or from the pack's premade scene (see the
+  nmrealm section — premade mining works when the pack ships Separate_Layers).
 - No ponds/pits/water (`~`/`o` reserved, not implemented) — pin them by hand in LDtk on
   a forked copy, or wait for v2.
 - Hero features (cave-mouth door, merchant gate, the Entry stump) are not generated —
