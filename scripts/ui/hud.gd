@@ -3,6 +3,23 @@ extends CanvasLayer
 ## HUD — Health bar, XP bar, level display, loot counter, instability vignette,
 ## extraction window countdown, LOOT AT RISK warning, and combo discovery popups.
 
+## ── Minifantasy UI theme (Classic set) ───────────────────────────────────────
+## Bars/panels are sourced from the Minifantasy UI Overhaul "Classic" sheet.
+## The five 40x6 capsule fills sit on a 256px column stride; panels are
+## nine-patch regions. To retheme, only these rects + UI_SHEET_PATH change.
+const UI_SHEET_PATH: String = "res://assets/minifantasy/Minifantasy_UI _Overhaul_v1.0/_Minifantasy_UI_Overhaul_Assets/Classic_Minifantasy_UI/_Classic_UI.png"
+const FILL_RED: Rect2 = Rect2(340.0, 709.0, 40.0, 6.0)
+const FILL_BLUE: Rect2 = Rect2(596.0, 709.0, 40.0, 6.0)
+const FILL_YELLOW: Rect2 = Rect2(852.0, 709.0, 40.0, 6.0)
+const FILL_GREEN: Rect2 = Rect2(1108.0, 709.0, 40.0, 6.0)
+const FILL_PURPLE: Rect2 = Rect2(1364.0, 709.0, 40.0, 6.0)
+const PANEL_SQUARE: Rect2 = Rect2(64.0, 384.0, 48.0, 48.0)  ## nine-patch, 6px borders
+const PANEL_PILL: Rect2 = Rect2(64.0, 352.0, 48.0, 16.0)    ## nine-patch, 5px borders
+const NUB_RED: Rect2 = Rect2(392.0, 709.0, 4.0, 6.0)        ## capsule end-cap gems
+const NUB_BLUE: Rect2 = Rect2(648.0, 709.0, 4.0, 6.0)
+const BOSS_BAR_W: float = 192.0
+var _ui_sheet: Texture2D = null
+
 @onready var health_bar: ProgressBar = $TopLeft/HPRow/HealthBar
 @onready var health_label: Label = $TopLeft/HPRow/HealthLabel
 @onready var xp_bar: ProgressBar = $TopLeft/XPRow/XPBar
@@ -37,15 +54,8 @@ var _guardian_bar_root: Control = null
 var _guardian_hp_bar: ProgressBar = null
 var _guardian_hp_label: Label = null
 ## ── Phase indicators (top-center) ────────────────────────────────────────────
-var _phase_label: Label = null
 var _phase_flash_label: Label = null
 var _extraction_warning_label: Label = null
-var _extraction_locked_label: Label = null
-var _extraction_locked_blink_t: float = 0.0
-## ── Instability meter (below loot label in TopLeft area) ─────────────────────
-var _instability_bar_fill: ColorRect = null
-var _instability_tier_label: Label = null
-var _instability_bg_ext: ColorRect = null  ## Extension of TopLeftBG for extra height
 ## ── Depth meter (descent mode, left edge below instability) ──────────────────
 var _depth_tracker: DepthTracker = null
 var _depth_meter_root: Control = null
@@ -78,13 +88,11 @@ func _ready() -> void:
 	GameManager.final_boss_spawned.connect(_on_final_boss_spawned)
 	GameManager.final_boss_defeated.connect(_on_final_boss_defeated)
 
+	_apply_minifantasy_theme()
 	_build_keystone_indicator()
 	_build_guardian_health_bar()
-	_build_phase_label()
 	_build_phase_flash_label()
 	_build_extraction_warning_label()
-	_build_extraction_locked_label()
-	_build_instability_meter()
 	_build_depth_meter()
 	_build_combo_discovery_popup()
 	GameManager.phase_started.connect(_on_phase_started)
@@ -128,11 +136,6 @@ func _process(delta: float) -> void:
 	## Keystone indicator visibility
 	if _keystone_indicator:
 		_keystone_indicator.visible = GameManager.player_has_keystone
-
-	## Extraction locked banner (final boss alive) — blink red-orange
-	if _extraction_locked_label != null and _extraction_locked_label.visible:
-		_extraction_locked_blink_t += delta
-		_extraction_locked_label.modulate.a = 0.55 + 0.45 * sin(_extraction_locked_blink_t * 6.0)
 
 	## Phase countdown warning / Core phase notice
 	if _extraction_warning_label != null:
@@ -179,22 +182,12 @@ func _on_loot_changed(new_value: float) -> void:
 	loot_label.text = "LOOT: %d" % int(new_value)
 
 func _on_instability_changed(new_value: float) -> void:
-	if _instability_bar_fill == null:
-		return
+	## Instability reads atmospherically — no meter. A tier-colored vignette
+	## creeps in from ~50 instability, plus the LOOT AT RISK warning at Volatile+.
 	var tier: Dictionary = LootTables.get_instability_tier(new_value)
 	var col: Color = tier.color
 
-	## Fill bar — clamped to max visual width of 140px at instability 200
-	var fill_frac: float = clampf(new_value / 200.0, 0.0, 1.0)
-	_instability_bar_fill.size.x = fill_frac * 187.0
-	_instability_bar_fill.color = col
-
-	## Tier label
-	_instability_tier_label.text = tier.name
-	_instability_tier_label.add_theme_color_override("font_color", col)
-
-	## Vignette overlays — visible at Volatile+ (stat_bonus >= 0.28)
-	var vig_alpha: float = clampf((new_value - 70.0) / 80.0, 0.0, 1.0) * 0.30
+	var vig_alpha: float = clampf((new_value - 50.0) / 100.0, 0.0, 1.0) * 0.32
 	var vig_col := Color(col.r * 0.7, col.g * 0.1, col.b * 0.1, vig_alpha)
 	vig_top.color    = vig_col
 	vig_bottom.color = vig_col
@@ -236,6 +229,136 @@ func _on_extraction_window_closed() -> void:
 	extraction_arrow_label.visible = false
 	extraction_window_bg.visible = false
 
+## ── Minifantasy UI theme ─────────────────────────────────────────────────────
+
+func _sheet() -> Texture2D:
+	if _ui_sheet == null:
+		_ui_sheet = load(UI_SHEET_PATH)
+	return _ui_sheet
+
+## Colored capsule fill for a ProgressBar (3px end caps preserved on stretch).
+func _bar_fill_stylebox(region: Rect2) -> StyleBoxTexture:
+	var sb := StyleBoxTexture.new()
+	sb.texture = _sheet()
+	sb.region_rect = region
+	sb.texture_margin_left = 3.0
+	sb.texture_margin_right = 3.0
+	return sb
+
+## Dark recessed track with a thin bronze rim; 1px content margin so the 6px
+## capsule fill sits pixel-perfect inside an 8px-tall bar.
+func _bar_track_stylebox() -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.07, 0.05, 0.04, 0.92)
+	sb.border_color = Color(0.30, 0.22, 0.14)
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(3)
+	sb.set_content_margin_all(1.0)
+	return sb
+
+## Nearest sheet capsule color for an arbitrary boss color.
+func _fill_region_for_color(c: Color) -> Rect2:
+	if c.r > 0.5 and c.b > 0.5:
+		return FILL_PURPLE
+	if c.r > 0.5 and c.g > 0.45:
+		return FILL_YELLOW
+	if c.g > 0.5:
+		return FILL_GREEN
+	if c.b > 0.5:
+		return FILL_BLUE
+	return FILL_RED
+
+## Framed nine-patch panel, inserted directly after `after` in tree order so it
+## renders behind the content that follows it.
+func _add_ui_panel(rect: Rect2, after: CanvasItem) -> NinePatchRect:
+	var p := NinePatchRect.new()
+	p.texture = _sheet()
+	p.region_rect = PANEL_SQUARE
+	p.patch_margin_left = 6
+	p.patch_margin_top = 6
+	p.patch_margin_right = 6
+	p.patch_margin_bottom = 6
+	p.position = rect.position
+	p.size = rect.size
+	p.modulate = Color(0.72, 0.66, 0.58, 0.94)  ## dim the bronze toward the cave palette
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(p)
+	if after != null:
+		move_child(p, after.get_index() + 1)
+	return p
+
+## Outlined label centered inside a bar (numbers live in the bar itself).
+func _add_bar_inner_label(bar: ProgressBar, font_size: int) -> Label:
+	var lbl := Label.new()
+	lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	lbl.add_theme_font_size_override("font_size", font_size)
+	lbl.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0))
+	lbl.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.9))
+	lbl.add_theme_constant_override("outline_size", 2)
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
+		lbl.add_theme_font_override("font", load("res://assets/fonts/m5x7.ttf"))
+	bar.add_child(lbl)
+	return lbl
+
+## Small capsule-gem ornament half-hanging off the bar's right end.
+func _add_bar_end_nub(bar: ProgressBar, region: Rect2) -> void:
+	var at := AtlasTexture.new()
+	at.atlas = _sheet()
+	at.region = region
+	var tr := TextureRect.new()
+	tr.texture = at
+	tr.stretch_mode = TextureRect.STRETCH_SCALE
+	tr.anchor_left = 1.0
+	tr.anchor_right = 1.0
+	tr.anchor_top = 0.5
+	tr.anchor_bottom = 0.5
+	tr.offset_left = -3.0
+	tr.offset_right = 5.0
+	tr.offset_top = -6.0
+	tr.offset_bottom = 6.0
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar.add_child(tr)
+
+func _apply_minifantasy_theme() -> void:
+	## Floating framed bars with the numbers inside them — no backing panel.
+	var tl_bg: ColorRect = $TopLeftBG
+	tl_bg.visible = false
+	var tl: VBoxContainer = $TopLeft
+	tl.offset_left = 4.0
+	tl.offset_top = 4.0
+	tl.offset_right = 168.0
+
+	health_bar.add_theme_stylebox_override("background", _bar_track_stylebox())
+	health_bar.add_theme_stylebox_override("fill", _bar_fill_stylebox(FILL_RED))
+	health_bar.custom_minimum_size = Vector2(160.0, 14.0)
+	health_label.visible = false
+	health_label = _add_bar_inner_label(health_bar, 12)
+	_add_bar_end_nub(health_bar, NUB_RED)
+
+	xp_bar.add_theme_stylebox_override("background", _bar_track_stylebox())
+	xp_bar.add_theme_stylebox_override("fill", _bar_fill_stylebox(FILL_BLUE))
+	xp_bar.custom_minimum_size = Vector2(160.0, 12.0)
+	level_label.visible = false
+	level_label = _add_bar_inner_label(xp_bar, 12)
+	level_label.text = "Lv1"
+	_add_bar_end_nub(xp_bar, NUB_BLUE)
+
+	extraction_bar.add_theme_stylebox_override("background", _bar_track_stylebox())
+	extraction_bar.add_theme_stylebox_override("fill", _bar_fill_stylebox(FILL_GREEN))
+	extraction_bar.custom_minimum_size = Vector2(180.0, 8.0)
+
+	## Timer/kills keep their small framed plate top-right.
+	var tr_bg: ColorRect = $TopRightBG
+	tr_bg.visible = false
+	_add_ui_panel(Rect2(566.0, 2.0, 72.0, 40.0), tr_bg)
+	var trv: VBoxContainer = $TopRight
+	trv.offset_left = -70.0
+	trv.offset_top = 7.0
+	trv.offset_right = -8.0
+
 ## ── Keystone indicator ────────────────────────────────────────────────────────
 
 func _build_keystone_indicator() -> void:
@@ -248,15 +371,16 @@ func _build_keystone_indicator() -> void:
 	_keystone_indicator = root
 	add_child(root)
 
-	var bg := ColorRect.new()
-	bg.color = Color(0.12, 0.10, 0.03, 0.90)
+	var bg := NinePatchRect.new()
+	bg.texture = _sheet()
+	bg.region_rect = PANEL_PILL
+	bg.patch_margin_left = 5
+	bg.patch_margin_top = 5
+	bg.patch_margin_right = 5
+	bg.patch_margin_bottom = 5
 	bg.size = Vector2(78.0, 16.0)
+	bg.modulate = Color(0.72, 0.66, 0.58, 0.94)
 	root.add_child(bg)
-
-	var accent := ColorRect.new()
-	accent.color = Color(0.95, 0.80, 0.12)
-	accent.size = Vector2(78.0, 1.0)
-	root.add_child(accent)
 
 	var gem := ColorRect.new()
 	gem.color = Color(1.0, 0.88, 0.10)
@@ -268,7 +392,7 @@ func _build_keystone_indicator() -> void:
 	lbl.text = "KEYSTONE"
 	lbl.position = Vector2(14.0, 2.0)
 	lbl.add_theme_font_size_override("font_size", 12)
-	lbl.add_theme_color_override("font_color", Color(1.0, 0.90, 0.22))
+	lbl.add_theme_color_override("font_color", Color(0.32, 0.20, 0.06))
 	if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
 		lbl.add_theme_font_override("font", load("res://assets/fonts/m5x7.ttf"))
 	root.add_child(lbl)
@@ -292,58 +416,38 @@ func _on_keystone_picked_up() -> void:
 func _build_guardian_health_bar() -> void:
 	## Pre-register the guardian bar so its layout is stable across runs.
 	var entry := _build_boss_bar(
-			"guardian", "GUARDIAN", Color(0.80, 0.12, 0.12), 53.0)
+			"guardian", "GUARDIAN", Color(0.80, 0.12, 0.12), 4.0)
 	_guardian_bar_root = entry.root
 	_guardian_hp_bar = entry.bar
 	_guardian_hp_label = entry.label
 
 func _build_boss_bar(id: String, display_name: String, color: Color,
 		y_offset: float) -> Dictionary:
-	## Build a prominent health bar (240×10 with a label above it) and register
-	## it in _boss_bars keyed by id. Returns the registration entry.
+	## Framed capsule bar pinned top-center, boss name + HP% centered INSIDE
+	## the bar. Registered in _boss_bars by id.
 	var root := Control.new()
 	root.name = "BossBar_" + id
-	root.position = Vector2(160.0, y_offset)
+	root.position = Vector2((640.0 - BOSS_BAR_W) * 0.5, y_offset)
 	root.visible = false
 	add_child(root)
 
-	const BAR_W: float = 320.0
-	const BAR_H: float = 13.0
-
-	var bg := ColorRect.new()
-	bg.color = Color(0.08, 0.04, 0.04, 0.92)
-	bg.size = Vector2(BAR_W + 4.0, BAR_H + 18.0)
-	bg.position = Vector2(-2.0, -2.0)
-	root.add_child(bg)
-
-	var label := Label.new()
-	label.name = "BossLabel"
-	label.text = display_name
-	label.position = Vector2(0.0, 0.0)
-	label.add_theme_font_size_override("font_size", 12)
-	label.add_theme_color_override("font_color", color)
-	if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
-		label.add_theme_font_override("font", load("res://assets/fonts/m5x7.ttf"))
-	root.add_child(label)
-
 	var bar := ProgressBar.new()
 	bar.name = "BossHPBar"
-	bar.size = Vector2(BAR_W, BAR_H)
-	bar.position = Vector2(0.0, 16.0)
+	bar.custom_minimum_size = Vector2(BOSS_BAR_W, 16.0)
+	bar.size = Vector2(BOSS_BAR_W, 16.0)
+	bar.position = Vector2(0.0, 0.0)
 	bar.min_value = 0.0
 	bar.max_value = 100.0
 	bar.value = 100.0
 	bar.show_percentage = false
-
-	var bar_bg := StyleBoxFlat.new()
-	bar_bg.bg_color = Color(color.r * 0.2, color.g * 0.2, color.b * 0.2)
-	bar.add_theme_stylebox_override("background", bar_bg)
-
-	var bar_fill := StyleBoxFlat.new()
-	bar_fill.bg_color = color
-	bar.add_theme_stylebox_override("fill", bar_fill)
-
+	bar.add_theme_stylebox_override("background", _bar_track_stylebox())
+	bar.add_theme_stylebox_override("fill",
+			_bar_fill_stylebox(_fill_region_for_color(color)))
 	root.add_child(bar)
+
+	var label := _add_bar_inner_label(bar, 12)
+	label.name = "BossLabel"
+	label.text = display_name
 
 	var entry := {
 		"root": root,
@@ -364,8 +468,7 @@ func _update_boss_bar(id: String, hp: float, max_hp: float) -> void:
 	entry.bar.value = hp
 	var hp_pct: int = int(round(hp / max_hp * 100.0))
 	if entry.label:
-		entry.label.text = "%s  %d / %d  (%d%%)" % [
-				entry.display_name, int(hp), int(max_hp), hp_pct]
+		entry.label.text = "%s  %d%%" % [entry.display_name, hp_pct]
 
 func _on_guardian_state_changed(hp: float, max_hp: float, show_bar: bool) -> void:
 	## Legacy signal for the guardian — routes through the shared bar system.
@@ -393,36 +496,21 @@ func _on_boss_state_changed(id: String, hp: float, max_hp: float, show_bar: bool
 		_update_boss_bar(id, hp, max_hp)
 
 func _next_boss_bar_y_offset(id: String) -> float:
-	## Slot policy: final boss pinned to top (y=24, above guardian). All other
-	## bosses fall below guardian at y=56 and stack downward in 18px rows.
+	## Slot policy: bars fill the top-center rows (y=4, then 22px steps).
+	## Only rows currently occupied by a VISIBLE bar are skipped.
 	if id == "final_boss":
-		return 32.0
+		return 4.0
 	var used: Dictionary = {}
 	for key in _boss_bars.keys():
 		var entry: Dictionary = _boss_bars[key]
 		if entry.root and entry.root.visible:
 			used[entry.y_offset] = true
-	var candidate: float = 75.0
+	var candidate: float = 4.0
 	while used.has(candidate):
-		candidate += 24.0
+		candidate += 22.0
 	return candidate
 
-## ── Phase label + flash ──────────────────────────────────────────────────────
-
-func _build_phase_label() -> void:
-	## Persistent phase name strip, top-center (x=140–340, y=2). Font 12 → 48px at 4×.
-	var lbl := Label.new()
-	lbl.name = "PhaseLabel"
-	lbl.text = "PHASE 1: THE THRESHOLD"
-	lbl.position = Vector2(220.0, 2.0)
-	lbl.size = Vector2(200.0, 14.0)
-	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.add_theme_font_size_override("font_size", 16)
-	lbl.modulate = Color(1.0, 1.0, 1.0, 0.75)
-	if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
-		lbl.add_theme_font_override("font", load("res://assets/fonts/m5x7.ttf"))
-	add_child(lbl)
-	_phase_label = lbl
+## ── Phase flash ──────────────────────────────────────────────────────────────
 
 func _build_phase_flash_label() -> void:
 	## Large centred flash label that briefly announces the new phase name.
@@ -443,37 +531,22 @@ func _build_phase_flash_label() -> void:
 
 func _build_extraction_warning_label() -> void:
 	## Blinking 10-second countdown before the extraction window opens.
-	## Sits one text-row below the phase label (y=15). Same centre column.
+	## Sits just below the boss-bar row, top-center.
 	var lbl := Label.new()
 	lbl.name = "ExtractionWarningLabel"
 	lbl.text = ""
-	lbl.position = Vector2(220.0, 20.0)
+	lbl.position = Vector2(220.0, 24.0)
 	lbl.size = Vector2(200.0, 12.0)
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.add_theme_font_size_override("font_size", 14)
 	lbl.add_theme_color_override("font_color", Color(1.0, 0.9, 0.1))
+	lbl.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.8))
+	lbl.add_theme_constant_override("outline_size", 2)
 	lbl.visible = false
 	if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
 		lbl.add_theme_font_override("font", load("res://assets/fonts/m5x7.ttf"))
 	add_child(lbl)
 	_extraction_warning_label = lbl
-
-func _build_extraction_locked_label() -> void:
-	## Persistent blinking banner shown while the final boss is alive.
-	## Sits below the phase countdown row (y=28). Red-orange.
-	var lbl := Label.new()
-	lbl.name = "ExtractionLockedLabel"
-	lbl.text = "EXTRACTION LOCKED — DEFEAT THE HEART"
-	lbl.position = Vector2(120.0, 37.0)
-	lbl.size = Vector2(400.0, 12.0)
-	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.add_theme_font_size_override("font_size", 15)
-	lbl.add_theme_color_override("font_color", Color(1.0, 0.35, 0.12))
-	lbl.visible = false
-	if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
-		lbl.add_theme_font_override("font", load("res://assets/fonts/m5x7.ttf"))
-	add_child(lbl)
-	_extraction_locked_label = lbl
 
 func flash_text(text: String, color: Color = Color(1.0, 0.9, 0.7),
 		duration: float = 1.5) -> void:
@@ -489,64 +562,11 @@ func flash_text(text: String, color: Color = Color(1.0, 0.9, 0.7),
 	tween.tween_property(_phase_flash_label, "modulate:a", 0.0, duration)
 
 func _on_final_boss_spawned(display_name: String) -> void:
-	if _extraction_locked_label:
-		_extraction_locked_label.visible = true
 	flash_text("BOSS INCOMING — %s" % display_name.to_upper(),
 			Color(1.0, 0.3, 0.25), 1.8)
 
 func _on_final_boss_defeated() -> void:
-	if _extraction_locked_label:
-		_extraction_locked_label.visible = false
 	flash_text("EXTRACTION UNLOCKED", Color(0.3, 1.0, 0.55), 1.5)
-
-## ── Instability meter (below loot label) ────────────────────────────────────
-
-func _build_instability_meter() -> void:
-	## Extends the TopLeftBG downward by 18px, then adds a thin bar + tier label.
-	## Bar is 140px wide × 3px tall at y=62, tier label at y=66.
-	const BAR_Y: float = 62.0
-	const BAR_W: float = 187.0
-	const BAR_H: float = 3.0
-	const FONT_PATH: String = "res://assets/fonts/m5x7.ttf"
-
-	## Extend the background panel to cover the new row
-	var bg_ext := ColorRect.new()
-	bg_ext.name = "InstabilityBGExt"
-	bg_ext.color = Color(0.0, 0.0, 0.0, 0.55)
-	bg_ext.position = Vector2(2.0, 60.0)
-	bg_ext.size = Vector2(195.0, 24.0)
-	bg_ext.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(bg_ext)
-	_instability_bg_ext = bg_ext
-
-	## Bar track (dark background)
-	var track := ColorRect.new()
-	track.color = Color(0.08, 0.08, 0.08, 0.85)
-	track.position = Vector2(4.0, BAR_Y)
-	track.size = Vector2(BAR_W, BAR_H)
-	track.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(track)
-
-	## Bar fill (starts at 0 width, colored by tier)
-	var fill := ColorRect.new()
-	fill.color = LootTables.INSTABILITY_TIERS[0].color
-	fill.position = Vector2(4.0, BAR_Y)
-	fill.size = Vector2(0.0, BAR_H)
-	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(fill)
-	_instability_bar_fill = fill
-
-	## Tier name label — right of bar
-	var tier_lbl := Label.new()
-	tier_lbl.name = "InstabilityTierLabel"
-	tier_lbl.text = "STABLE"
-	tier_lbl.position = Vector2(4.0, BAR_Y + BAR_H + 1.0)
-	tier_lbl.add_theme_font_size_override("font_size", 11)
-	tier_lbl.add_theme_color_override("font_color", LootTables.INSTABILITY_TIERS[0].color)
-	if ResourceLoader.exists(FONT_PATH):
-		tier_lbl.add_theme_font_override("font", load(FONT_PATH))
-	add_child(tier_lbl)
-	_instability_tier_label = tier_lbl
 
 ## ── Depth meter (descent mode) ───────────────────────────────────────────────
 
@@ -640,9 +660,6 @@ func set_depth_event_ticks(ticks: Array[Dictionary]) -> void:
 
 
 func _on_phase_started(phase: int) -> void:
-	## Update the persistent phase strip
-	if _phase_label:
-		_phase_label.text = "PHASE %d: %s" % [phase, GameManager.PHASE_NAMES[phase - 1]]
 	## Trigger the centred flash announcement
 	if _phase_flash_label:
 		_phase_flash_label.text = GameManager.PHASE_NAMES[phase - 1]
