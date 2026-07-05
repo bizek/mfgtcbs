@@ -223,6 +223,12 @@ verification is wanted.
 ---
 ---
 
+> **⛔ SUPERSEDED (2026-07-01):** Tasks 4.1 and 4.2 below are OBSOLETE — they pre-date the combo
+> combat system and the class overhaul. The passive tree was redesigned (Core + 3 archetype
+> branches, 59 nodes, keystones). Use `docs/passive_tree_spec.md` + prompts
+> `26_passive_tree_backend_SONNET.md` / `27_passive_tree_behaviors_OPUS.md` /
+> `28_passive_tree_hub_ui_OPUS.md` instead. Do NOT run the prompts below.
+
 ## Task 4.1 — Passive skill tree: data model, points & persistence
 **Tier:** 3 → Opus-class
 **Depends on:** 1.1 (move-speed nodes reference the new baseline)
