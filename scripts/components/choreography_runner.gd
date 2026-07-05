@@ -90,10 +90,15 @@ func _enter_phase(index: int) -> void:
 		_sprite.speed_scale = 1.0
 
 	if phase.animation != "":
-		_current_anim = phase.animation
+		## Hosts may resolve the phase's canonical anim to a variant (e.g. the player's
+		## cursor-facing "<anim>_<dir>" row). hit_frame indices are identical across rows.
+		var anim_name: String = phase.animation
+		if _host.has_method("choreo_anim_name"):
+			anim_name = _host.choreo_anim_name(phase.animation)
+		_current_anim = anim_name
 		_hit_fired = false
-		if _sprite and _sprite.sprite_frames and _sprite.sprite_frames.has_animation(phase.animation):
-			_sprite.play(phase.animation)
+		if _sprite and _sprite.sprite_frames and _sprite.sprite_frames.has_animation(anim_name):
+			_sprite.play(anim_name)
 			if phase.telegraph_speed_scale != 1.0:
 				_sprite.speed_scale = phase.telegraph_speed_scale
 			if _host.has_method("choreo_on_phase_anim"):
@@ -120,11 +125,19 @@ func tick(delta: float) -> void:
 	var phase: ChoreographyPhase = _choreo.phases[_phase_index]
 	if phase.exit_type != "wait":
 		return
-	## Evaluate branches every frame; first passing branch wins.
-	for branch in phase.branches:
-		if _evaluate_branch(branch, phase):
-			_enter_phase(branch.next_phase)
-			return
+	## Combo feel — "buffer during the swing, cancel at impact" (standard action-game input
+	## queuing): presses buffer at any time, but a branch may only cancel this phase once its
+	## hit has fired (or the anim ended / it has no hit_frame). Without the gate, a fast tap
+	## advances on frame 0 — the swing is cut before its hit_frame (no damage) and the chain
+	## visually restarts; with it, mashing advances exactly at each node's impact frame.
+	var anim_playing: bool = _sprite != null and _sprite.is_playing() \
+			and String(_sprite.animation) == _current_anim
+	if _hit_fired or phase.hit_frame < 0 or not anim_playing:
+		## Evaluate branches; first passing branch wins.
+		for branch in phase.branches:
+			if _evaluate_branch(branch, phase):
+				_enter_phase(branch.next_phase)
+				return
 	_timer -= delta
 	if _timer <= 0.0:
 		_on_phase_exit()

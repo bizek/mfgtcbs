@@ -1,15 +1,17 @@
 class_name CharacterSpriteFactory
 extends RefCounted
 ## Builds a SpriteFrames for a playable character from its CharacterData entry's
-## "sprite" metadata. Slices the front-facing direction row (dir_row) of each
-## Minifantasy True Heroes sheet into frame_size x frame_size frames.
+## "sprite" metadata, slicing each Minifantasy True Heroes sheet into
+## frame_size x frame_size frames.
 ##
 ## This is the ONLY code that touches per-character sprites — adding character #8
 ## is pure data (a "sprite" block in CharacterData.ALL) + assets, zero code change.
 ##
 ## Sheet layout contract (see docs/character_overhaul_design.md §1/§3):
 ##   rows = 4 facing directions, columns = animation frames; Die is a single row.
-##   The engine renders one facing + flip_h, so we slice dir_row (0 = Down/front).
+## ALL four facing rows are sliced (assets fully utilized — CLAUDE.md rule): every 4-row sheet
+## yields "<anim>" (the dir_row fallback) plus "<anim>_<facing>" variants per DIR_ROWS below;
+## the player picks the variant matching its cursor quadrant. Single-row sheets yield "<anim>".
 ## Mirrors the runtime-slicing pattern in enemy_guardian.gd and player_vfx_helper.gd.
 ##
 ## Anim spec shape (per docs/combat_chain_architecture.md §7):
@@ -28,6 +30,12 @@ const LOOPING_ANIMS: Array[String] = ["idle", "walk"]
 
 ## Animations player.gd plays by name — warn if a character's data omits one.
 const REQUIRED_ANIMS: Array[String] = ["idle", "walk", "attack", "damage", "death"]
+
+## Facing → sheet row. The Minifantasy oblique style draws the four rows as DIAGONAL facings,
+## not N/S/E/W: rows 0/1 are the front (face visible), rows 2/3 the back (hood/back of head).
+## Horizontal order confirmed by Ben's in-game test 2026-07-04: row 0 faces down-RIGHT,
+## row 1 down-LEFT, row 2 up-RIGHT, row 3 up-LEFT.
+const DIR_ROWS: Dictionary = {"down_right": 0, "down_left": 1, "up_right": 2, "up_left": 3}
 
 
 ## Returns a SpriteFrames with the character's animations, or null when the
@@ -65,16 +73,16 @@ static func build(char_id: String) -> SpriteFrames:
 		if sheet == null:
 			continue
 
-		var anim_sn := StringName(anim_name)
-		frames.add_animation(anim_sn)
-		frames.set_animation_loop(anim_sn, anim_name in LOOPING_ANIMS)
-		frames.set_animation_speed(anim_sn, fps)
-		for i in range(count):
-			var atlas := AtlasTexture.new()
-			atlas.atlas = sheet
-			atlas.region = Rect2(i * frame_size, dir_row * frame_size, frame_size, frame_size)
-			atlas.filter_clip = true   ## clamp sampling to the region — no edge bleed between frames
-			frames.add_frame(anim_sn, atlas)
+		var sheet_rows: int = int(sheet.get_height() / float(frame_size))
+		var loops: bool = anim_name in LOOPING_ANIMS
+		## Base name (back-compat fallback): dir_row on 4-row sheets, row 0 on single-row sheets.
+		_slice_row(frames, anim_name, sheet, count, fps, mini(dir_row, sheet_rows - 1), frame_size, loops)
+		## Directional variants — the pack's 4 rows ARE the facings; slice them all so the
+		## player can face the cursor.
+		if sheet_rows >= 4:
+			for facing in DIR_ROWS:
+				_slice_row(frames, "%s_%s" % [anim_name, facing], sheet, count, fps,
+						int(DIR_ROWS[facing]), frame_size, loops)
 		built_any = true
 
 	if not built_any:
@@ -84,6 +92,21 @@ static func build(char_id: String) -> SpriteFrames:
 		if not frames.has_animation(StringName(req)):
 			push_warning("CharacterSpriteFactory: %s is missing required anim '%s'" % [char_id, req])
 	return frames
+
+
+## Slice one sheet row into a SpriteFrames animation.
+static func _slice_row(frames: SpriteFrames, anim_name: String, sheet: Texture2D, count: int,
+		fps: float, row: int, frame_size: int, loops: bool) -> void:
+	var anim_sn := StringName(anim_name)
+	frames.add_animation(anim_sn)
+	frames.set_animation_loop(anim_sn, loops)
+	frames.set_animation_speed(anim_sn, fps)
+	for i in range(count):
+		var atlas := AtlasTexture.new()
+		atlas.atlas = sheet
+		atlas.region = Rect2(i * frame_size, row * frame_size, frame_size, frame_size)
+		atlas.filter_clip = true   ## clamp sampling to the region — no edge bleed between frames
+		frames.add_frame(anim_sn, atlas)
 
 
 ## Per-anim combat timing metadata (the optional 4th element of an anims spec), or {} if absent.

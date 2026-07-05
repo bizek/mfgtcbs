@@ -99,6 +99,7 @@ const ALL: Dictionary = {
 		"char_class":      "Paladin",
 		"description":     "An oathbound guardian who plants their feet and dares the horde to move them.",
 		"starting_weapon": "Warden's Repeater",
+		"melee_kit":       "paladin",        ## drives the combo-chain moveset (ChainFactory)
 		"passive_id":      "warden_passive",
 		"passive_name":    "Last Bastion",
 		"passive_desc":    "Armor doubles while below 50% HP.",
@@ -121,6 +122,22 @@ const ALL: Dictionary = {
 				"attack": ["PaladinAttack.png",  6, 30.0],
 				"damage": ["PaladinDmg.png",     4, 15.0],
 				"death":  ["PaladinDie.png",    20, 22.0],
+				## Combo specials (Special_Animations/ subfolders → absolute res:// paths).
+				## Timing/damage live in ChainFactory.build_paladin_* (provisional).
+				## "attack_2" re-slices the Attack sheet slower (heavier follow-through) under a
+				## distinct anim NAME so play() restarts it on back-to-back strike phases.
+				## "dictum" and "dome" both slice the same cast sheet — distinct names so each
+				## channel picks its own frame-matched _fx overlay (blades vs dome).
+				"attack_2":  ["PaladinAttack.png", 6, 22.0],
+				"bash":      ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Shield_Bash/PaladinShieldBash.png",       8, 18.0],
+				"bash_fx":   ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Shield_Bash/ShieldBashEffect.png",        8, 18.0],
+				## Hammer throw uses the DIAGONAL char sheet — its rows match the quadrant facing
+				## system (the Orthogonal sheet's N/E/S/W rows are reserved for a future 8-way pass).
+				"hammer":    ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Holy_Hammer/PaladinHolyHammerDiagonal.png", 12, 18.0],
+				"dictum":    ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Dictums/_PaladinDictum.png",             15, 20.0],
+				"dictum_fx": ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Dictums/BladesDictumEffect.png",         15, 20.0],
+				"dome":      ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Dictums/_PaladinDictum.png",             15, 20.0],
+				"dome_fx":   ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Dictums/DomeDictumEffect.png",           15, 20.0],
 			},
 		},
 	},
@@ -133,6 +150,7 @@ const ALL: Dictionary = {
 		"char_class":      "Wizard",
 		"description":     "A reckless arcanist who overcharges every spell — devastating, one misstep from ash.",
 		"starting_weapon": "Spark's Pistol",
+		"melee_kit":       "wizard",         ## drives the combo-chain moveset (ChainFactory)
 		"passive_id":      "spark_passive",
 		"passive_name":    "Arcane Overload",
 		"portrait":        "res://assets/characters/portraits/the_spark.png",
@@ -155,6 +173,18 @@ const ALL: Dictionary = {
 				"attack": ["Wizard_Attack.png",  6, 30.0],
 				"damage": ["Wizard_Dmg.png",     4, 15.0],
 				"death":  ["Wizard_Die.png",    20, 22.0],
+				## Combo specials — timing/damage in ChainFactory.build_wizard_* (provisional).
+				## Diagonal special sheets are used (rows match the quadrant facing system);
+				## Fireball/teleport projectile + torrent effect sheets are wired host-side
+				## (player.gd / ChainFactory) as world/overlay visuals, not body anims.
+				"attack_2":     ["Wizard_Attack.png",        6, 24.0],
+				"attack_fx":    ["Wizard_Attack_Effect.png", 6, 30.0],
+				"attack_2_fx":  ["Wizard_Attack_Effect.png", 6, 24.0],
+				"fireball":     ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Wizard/Special_Animations/Fireball/Wizard_Fireball_Diagonal.png",           11, 20.0],
+				"summon":       ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Wizard/Special_Animations/Fire_Familiar/Wizard_Summon_Fire_Familiar.png",  12, 18.0],
+				"teleport_out": ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Wizard/Special_Animations/Teleport/Wizard_Teleport_Start_Diagonal.png",    13, 26.0],
+				"teleport_in":  ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Wizard/Special_Animations/Teleport/Wizard_Teleport_End_Diagonal.png",      13, 26.0],
+				"torrent":      ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Wizard/Special_Animations/Fire_Torrent/Wizard_Fire_Torrent.png",           20, 30.0],
 			},
 		},
 	},
@@ -167,6 +197,7 @@ const ALL: Dictionary = {
 		"char_class":      "Rogue",
 		"description":     "A cutthroat who simply isn't where the blow lands — gone in a wisp of shadow.",
 		"starting_weapon": "Arcane Blade",
+		"melee_kit":       "rogue",          ## drives the combo-chain moveset (ChainFactory)
 		"passive_id":      "shade_passive",
 		"passive_name":    "Shadowstep",
 		"passive_desc":    "15% Dodge Chance. Dodge grants 0.5s invisibility.",
@@ -189,6 +220,17 @@ const ALL: Dictionary = {
 				"attack": ["Minifantasy_TrueHeroesRogueAttack.png",  4, 20.0],
 				"damage": ["Minifantasy_TrueHeroesRogueDmg.png",     4, 15.0],
 				"death":  ["Minifantasy_TrueHeroesRogueDie.png",    26, 26.0],
+				## Combo specials (Special_Animations/ subfolders → absolute res:// paths).
+				## Timing/damage live in ChainFactory.build_rogue_* (provisional).
+				## "attack_2" re-slices the Attack sheet at a higher fps: a distinct anim NAME so
+				## the runner's play() restarts it on back-to-back slash phases (same-anim play()
+				## doesn't restart mid-anim).
+				## The Throw Bomb package's projectile + explosion sheets are wired directly in
+				## player.gd (BOMB_PROJ_SHEETS / BOMB_EXPLOSION_SHEET) — world-anchored visuals,
+				## not body-overlay anims, so they don't slice into the character SpriteFrames.
+				"attack_2": ["Minifantasy_TrueHeroesRogueAttack.png", 4, 26.0],
+				"fan":      ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Rogue/Special_Animations/Shurikens/Minifantasy_TrueHeroesRogueShurikens.png", 15, 30.0],
+				"bomb":     ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Rogue/Special_Animations/Throw Bomb/Minifantasy_TrueHeroesRogueThrowBomb.png", 11, 18.0],
 			},
 		},
 	},
@@ -235,6 +277,7 @@ const ALL: Dictionary = {
 		"char_class":      "Blood Mage",
 		"description":     "A heretic who pays in their own blood for power no sane mage would touch.",
 		"starting_weapon": "Void Mortar",
+		"melee_kit":       "blood_mage",     ## drives the combo-chain moveset (ChainFactory)
 		"passive_id":      "cursed_passive",
 		"passive_name":    "Blood Pact",
 		"passive_desc":    "Begins each run Unsettled (+instability). +20% to all base stats.",
@@ -257,6 +300,23 @@ const ALL: Dictionary = {
 				"attack": ["Attack.png",  6, 30.0],
 				"damage": ["Dmg.png",     4, 15.0],
 				"death":  ["Die.png",    23, 24.0],
+				## Combo specials — timing/damage in ChainFactory.build_blood_mage_* (provisional).
+				## Diagonal shard-cast sheet matches the quadrant facings; the shard projectile,
+				## impact, spikes ground burst, and drain wisps are wired host-side
+				## (player.gd / ChainFactory), not body anims.
+				"attack_2":    ["Attack.png",        6, 24.0],
+				"attack_fx":   ["Attack_Effect.png", 6, 30.0],
+				"attack_2_fx": ["Attack_Effect.png", 6, 24.0],
+				"shards":       ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Blood_Mage/Special_Animations/Blood_Shard/Blood_Shards_Diagonal.png",        10, 20.0],
+				"shards_fx":    ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Blood_Mage/Special_Animations/Blood_Shard/Blood_Shards_Diagonal_Effect.png", 10, 20.0],
+				"slam":         ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Blood_Mage/Special_Animations/Blood_Slam/Blood_Slam.png",                     6, 18.0],
+				"slam_fx":      ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Blood_Mage/Special_Animations/Blood_Slam/Blood_Slam_Effect.png",              6, 18.0],
+				"spikes":       ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Blood_Mage/Special_Animations/Blood_Spikes/Blood_Spikes.png",                 8, 16.0],
+				"spikes_fx":    ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Blood_Mage/Special_Animations/Blood_Spikes/Blood_Spikes_Effect.png",          8, 16.0],
+				"extract":      ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Blood_Mage/Special_Animations/Extract_Power/Extract_Power.png",               7, 14.0],
+				"summon_blood": ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Blood_Mage/Special_Animations/Summon_Blood_Elemental/Summon_Blood_Elemental.png", 16, 18.0],
+				"vampirize":    ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Blood_Mage/Special_Animations/Vampirize/Extract_Blood.png",                    7, 14.0],
+				"consume":      ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Blood_Mage/Special_Animations/Vampirize/Consume_Blood.png",                    7, 14.0],
 			},
 		},
 	},

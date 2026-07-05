@@ -47,7 +47,7 @@ SpatialGrid rebuild → StatusEffect.tick → AbilityComponent.tick_cooldowns �
 | `docs/asset_inventory.md` | Free asset sources, palette-shift strategy, license tracking |
 | `docs/ldtk_schema.md` | LDtk schema contract: entity defs, enums, level fields, IntGrid values, layer stack — read first for any level work |
 | `docs/ldtk_workflow.md` | LDtk authoring workflow: where files live, biome asset map, how to add a level/biome, arena design principles |
-| `docs/block_sketch_workflow.md` | **Preferred path for new descent blocks**: text sketch → `tools/block_compiler.py` → .ldtkl + PNG preview. Sketch format, grid legend, validators, prop decorator |
+| `docs/block_sketch_workflow.md` | **Preferred path for new descent blocks**: text sketch → `tools/block_compiler.py` → .ldtkl + PNG preview. Sketch format, grid legend, validators, prop decorator. Use the `/blockgen` skill for the full operating procedure |
 
 ### When to read what
 
@@ -114,6 +114,12 @@ All content follows the data factory pattern: `static func create() -> Resource`
 
 - Knockback and similar forces must be gated on i-frames to avoid pinball effects.
 - New status effects must defensively handle missing keys (e.g., 'timer') on existing status entries.
+- **Character asset packs must be FULLY utilized for what they're there for.** Each Minifantasy
+  class pack ships complete kits: all four facing rows (the player faces the mouse cursor using
+  the real directional rows — never flip_h when a left/right row exists), frame-matched `_Effect`
+  overlay sheets, and special-animation packages (projectiles, directional trails, impacts,
+  explosions). Wire the pack's own pieces; never substitute another character's assets or a
+  procedural stand-in when the pack provides the real one. (Ben, 2026-07-04.)
 
 ## Key Technical Details
 

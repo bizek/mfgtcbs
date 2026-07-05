@@ -50,9 +50,22 @@ sheet. ✅ = present. "Attack*" notes a class whose attack ships as a different 
 | | Ninja_Assassin | ✅16f | ✅4f | ✅6f | ✅4f | ✅18f | Attack_Effect | Commercial |
 | | Tech-Aug. Gunslinger | ✅16f | ✅4f | **Shot 7f** | ✅4f | ✅21f | Diagonal+Ortho shots, Impact | Commercial |
 
-**Bold** = used in this overhaul. Leftovers (Barbarian, Druid, Cleric, Ninja_Assassin,
-Gunslinger) are a clean bench for future characters. A **True Villains** pack (Dark Priest,
-Demonologist, Supreme Necromancer) also exists for future antagonist-flavored unlocks.
+**Bold** = used in this overhaul. **Roster expansion target (Ben, 2026-07-04): the playable
+roster grows to match every True Heroes class we own — 12 characters total.** The five bench
+classes each become a new character (pure data + assets per the factory pattern — no engine
+code), with a combo/ability kit built from their full special-animation package (CLAUDE.md
+full-utilization rule):
+
+| Bench class | Pack | Special package on hand |
+|---|---|---|
+| Barbarian | I | Battle_Cry, Guard, Throw_Things, Thunder_Blade_Attack |
+| Druid | I | Root_Summoning, Shape_Shifting (3 forms) |
+| Cleric | II | Divine Fire, Prayers (+ IdleStart/End flourish) |
+| Ninja_Assassin | IV | Deadly_Dash, Sharpen, Smoke_Bomb, Thousand_Blades |
+| Tech-Aug. Gunslinger | IV | Desert_Storm, Fan_The_Hammer, Reload, Whip_Attack (+ ortho/diag shots, impact) |
+
+A **True Villains** pack (Dark Priest, Demonologist, Supreme Necromancer) also exists for
+future antagonist-flavored unlocks beyond the 12.
 
 ### License status — all clear for commercial use
 
