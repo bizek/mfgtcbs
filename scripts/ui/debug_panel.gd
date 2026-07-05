@@ -18,6 +18,7 @@ var _god_btn: Button       ## Kept for live label/colour updates
 var _debug_draw_btn: Button
 var _block_debug_btn: Button
 var _auto_fire_btn: Button
+var _mob_spawn_btn: Button
 
 func _ready() -> void:
 	layer = 127  ## Above everything in-game, below nothing
@@ -104,6 +105,7 @@ func _build_panel() -> void:
 		["God Mode: OFF",        _cmd_god_mode],
 		["Auto Fire: OFF",       _cmd_toggle_auto_fire],
 		["Kill All Enemies",     _cmd_kill_all],
+		["Mob Spawning: ON",     _cmd_toggle_mob_spawning],
 		["Debug Draw: OFF",      _cmd_toggle_debug_draw],
 		["Block Overlay: OFF",   _cmd_toggle_block_debug],
 	]
@@ -123,6 +125,8 @@ func _build_panel() -> void:
 			_block_debug_btn = btn
 		if d[0].begins_with("Auto Fire"):
 			_auto_fire_btn = btn
+		if d[0].begins_with("Mob Spawning"):
+			_mob_spawn_btn = btn
 
 	## ── Enemy spawn section ───────────────────────────────────────────────────
 	var sep2 := HSeparator.new()
@@ -233,6 +237,15 @@ func _cmd_kill_all() -> void:
 	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if is_instance_valid(enemy) and enemy.has_method("take_damage"):
 			enemy.take_damage(99999.0)
+
+func _cmd_toggle_mob_spawning() -> void:
+	## Kill switch for automatic wave/carrier/herald spawning. Manual spawn
+	## buttons below and scripted boss spawns are unaffected.
+	EnemySpawnManager.debug_spawning_disabled = not EnemySpawnManager.debug_spawning_disabled
+	var on: bool = not EnemySpawnManager.debug_spawning_disabled
+	if is_instance_valid(_mob_spawn_btn):
+		_mob_spawn_btn.text = "Mob Spawning: " + ("ON" if on else "OFF")
+		_mob_spawn_btn.modulate = Color.WHITE if on else Color(1.0, 0.35, 0.35)
 
 func _cmd_toggle_debug_draw() -> void:
 	var orchestrator = get_tree().current_scene.get_node_or_null("CombatOrchestrator")

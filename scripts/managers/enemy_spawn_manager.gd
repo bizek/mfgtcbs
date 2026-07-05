@@ -86,6 +86,9 @@ var active_enemies: int = 0
 var arena_bounds: Rect2 = Rect2(-320, -240, 640, 480)
 var player_ref: Node2D = null
 var spawn_enabled: bool = false
+## Debug-panel kill switch. Overrides spawn_enabled so it survives phase/run
+## transitions that re-enable spawning; manual debug_spawn* calls still work.
+var debug_spawning_disabled: bool = false
 
 ## ── LDtk zone-based spawning ─────────────────────────────────────────────────
 ## Each entry: {rect, phase, density, pool_override, min_distance_from_player}
@@ -120,7 +123,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	if not spawn_enabled or player_ref == null:
+	if not spawn_enabled or debug_spawning_disabled or player_ref == null:
 		return
 	if GameManager.current_state != GameManager.GameState.RUN_ACTIVE:
 		return
