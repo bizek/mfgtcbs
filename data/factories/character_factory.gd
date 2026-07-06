@@ -52,6 +52,13 @@ static func build_passive_modifiers(passive_id: String) -> Array[ModifierDefinit
 			mods.append(_mod("All",        "bonus",           0.20, "passive_cursed"))
 		"warden_passive":
 			pass  # Armor-doubling is a conditional query in player.get_armor() — no flat mods needed
+		"ravager_passive":
+			pass  # Bloodrage (+30% damage below half HP) toggles in player._update_bloodrage() — no flat mods
+		"whisper_passive":
+			mods.append(_mod("crit_chance",     "add", 0.10, "passive_whisper"))
+			mods.append(_mod("crit_multiplier", "add", 0.25, "passive_whisper"))
+		"deadeye_passive":
+			pass  # Calm Hands (+25% damage above 80% HP) toggles in player._update_calm_hands() — no flat mods
 	return mods
 
 

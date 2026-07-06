@@ -2,8 +2,9 @@ extends Node2D
 
 ## BloodElemental — the Blood Mage's summoned companion (Blood_Elemental package used in full:
 ## Summon intro, Idle, Move, Attack + frame-matched Attack_Effect overlay, Banish-Die outro).
-## A ground walker that lumbers beside the player and pounds the nearest enemy. One at a
-## time — the player replaces it on resummon (old one banishes).
+## A ground walker with its OWN legs: it stands its ground near the player, walks over to
+## pound anything that strays close, and only trudges after the player once left behind —
+## never glued to the player's movement. One at a time — resummon replaces (old banishes).
 ##
 ## FireFamiliar pattern: no pooling (max one alive), damage reads the player's live damage
 ## stat through DamageCalculator at strike time.
@@ -15,13 +16,18 @@ const ASSET_DIR: String = "res://assets/minifantasy/Minifantasy_True_Heroes_IV_v
 const DIR_ROWS: Dictionary = {"down_right": 0, "down_left": 1, "up_right": 2, "up_left": 3}
 
 const LIFETIME: float = 15.0
-const ATTACK_RANGE: float = 90.0
-const ATTACK_RANGE_SQ: float = ATTACK_RANGE * ATTACK_RANGE
+const WALK_SPEED: float = 55.0           ## own legs — constant-speed walking, never lerp-glued
+const CATCHUP_MULT: float = 1.6          ## heavy jog when left far behind
+const ENGAGE_RANGE: float = 110.0        ## walks over to enemies this close to ITSELF
+const ENGAGE_RANGE_SQ: float = ENGAGE_RANGE * ENGAGE_RANGE
+const LEASH_RANGE_SQ: float = 100.0 * 100.0   ## won't chase prey further than this from the player
+const STRIKE_RANGE: float = 30.0         ## pound reach
+const STRIKE_RANGE_SQ: float = STRIKE_RANGE * STRIKE_RANGE
+const HOME_FAR_SQ: float = 44.0 * 44.0   ## starts trudging after the player beyond this
+const HOME_NEAR_SQ: float = 24.0 * 24.0  ## settles once back within this (hysteresis — no jitter)
 const ATTACK_COOLDOWN: float = 1.8
 const STRIKE_DELAY: float = 12.0 / 18.0  ## attack anim frame 12 @ 18fps = the pound
 const DAMAGE_MULT: float = 0.6           ## × the player's live damage stat
-const FOLLOW_OFFSET := Vector2(22.0, 4.0)
-const FOLLOW_SPEED: float = 4.0          ## lazy-follow lerp weight (heavier than the familiar)
 
 var player_ref: Node2D = null
 var damage_type: String = "Physical"
@@ -34,6 +40,10 @@ var _life: float = LIFETIME
 var _cooldown: float = 0.0
 var _strike_timer: float = -1.0
 var _strike_target: Node2D = null
+var _hunt_target: Node2D = null
+var _rescan: float = 0.0
+var _trudging: bool = false              ## currently walking home (hysteresis state)
+var _home_side: float = 1.0              ## fixed at spawn — no side-flipping teleport anchors
 
 static var _frames_cache: SpriteFrames = null
 
@@ -53,6 +63,8 @@ func _ready() -> void:
 	_fx.animation_finished.connect(func() -> void: _fx.visible = false)
 	_sprite.animation_finished.connect(_on_anim_finished)
 	_sprite.play(&"spawn")
+	if is_instance_valid(player_ref):
+		_home_side = -1.0 if global_position.x < player_ref.global_position.x else 1.0
 
 
 func _process(delta: float) -> void:
@@ -61,13 +73,6 @@ func _process(delta: float) -> void:
 		return
 	if _state == "die" or _state == "spawn":
 		return
-
-	## Lumber along beside the player, on the side the player faces.
-	var side: float = -1.0 if String(player_ref.get("_facing")).ends_with("left") else 1.0
-	var anchor: Vector2 = player_ref.global_position \
-			+ Vector2(FOLLOW_OFFSET.x * side, FOLLOW_OFFSET.y)
-	var to_anchor: Vector2 = anchor - global_position
-	global_position = global_position.lerp(anchor, minf(FOLLOW_SPEED * delta, 1.0))
 
 	_life -= delta
 	if _life <= 0.0:
@@ -79,21 +84,58 @@ func _process(delta: float) -> void:
 		_strike_timer -= delta
 		if _strike_timer <= 0.0:
 			_resolve_strike()
-		return   ## hold facing while striking
+		return   ## hold position + facing while striking
 
 	_cooldown -= delta
-	if _cooldown <= 0.0:
-		var target: Node2D = _nearest_enemy()
-		if target:
-			_start_strike(target)
-			return
-		_cooldown = 0.25   ## nothing in range — re-scan shortly, don't scan every frame
-	## Move anim while trailing the player, Idle when settled at the anchor.
-	if to_anchor.length_squared() > 16.0:
-		_face_toward(to_anchor)
-		_play_dir(&"move")
+
+	## Hunt: walk over to prey that strays close (leashed to the player's vicinity).
+	_rescan -= delta
+	if _rescan <= 0.0:
+		_rescan = 0.3
+		_hunt_target = _nearest_prey()
+	var target: Node2D = _hunt_target
+	if target != null and (not is_instance_valid(target) or not target.get("is_alive") \
+			or player_ref.global_position.distance_squared_to(target.global_position) > LEASH_RANGE_SQ):
+		target = null
+		_hunt_target = null
+
+	if target:
+		var to_t: Vector2 = target.global_position - global_position
+		if to_t.length_squared() <= STRIKE_RANGE_SQ:
+			if _cooldown <= 0.0:
+				_start_strike(target)
+			else:
+				_face_toward(to_t)
+				_play_dir(&"idle")   ## looming over its prey between pounds
+		else:
+			_walk_toward(target.global_position, delta)
+		return
+
+	## No prey — hold ground near the player; only trudge after them once left behind.
+	var home: Vector2 = player_ref.global_position + Vector2(24.0 * _home_side, 6.0)
+	var d2: float = global_position.distance_squared_to(home)
+	if _trudging:
+		if d2 <= HOME_NEAR_SQ:
+			_trudging = false
+	elif d2 >= HOME_FAR_SQ:
+		_trudging = true
+	if _trudging:
+		_walk_toward(home, delta)
 	else:
 		_play_dir(&"idle")
+
+
+## Constant-speed walking (heavy jog when left far behind) — its own locomotion, no lerp.
+func _walk_toward(dest: Vector2, delta: float) -> void:
+	var to_dest: Vector2 = dest - global_position
+	var speed: float = WALK_SPEED
+	if player_ref and global_position.distance_squared_to(player_ref.global_position) > 110.0 * 110.0:
+		speed *= CATCHUP_MULT
+	var step: Vector2 = to_dest.limit_length(speed * delta)
+	if step.length_squared() > 0.04:
+		global_position += step
+		_face_toward(to_dest)
+	_play_dir(&"move")
 
 
 func _start_strike(target: Node2D) -> void:
@@ -112,8 +154,8 @@ func _resolve_strike() -> void:
 	_strike_target = null
 	if not is_instance_valid(target) or not target.get("is_alive"):
 		return
-	if global_position.distance_squared_to(target.global_position) > ATTACK_RANGE_SQ * 1.7:
-		return   ## it slipped well out of reach mid-swing
+	if global_position.distance_squared_to(target.global_position) > 52.0 * 52.0:
+		return   ## it slipped well out of pound reach mid-swing
 	var dmg: float = 30.0
 	var attacker: Node2D = self
 	if is_instance_valid(player_ref):
@@ -146,10 +188,11 @@ func _on_anim_finished() -> void:
 		queue_free()
 
 
-func _nearest_enemy() -> Node2D:
-	## Cheap scan gated by ATTACK_COOLDOWN / the 0.25s rescan — never per-frame.
+func _nearest_prey() -> Node2D:
+	## Nearest live enemy within engage range of the ELEMENTAL (it defends its patch of
+	## ground). Gated by the 0.3s rescan — never per-frame.
 	var best: Node2D = null
-	var best_d: float = ATTACK_RANGE_SQ
+	var best_d: float = ENGAGE_RANGE_SQ
 	for e in get_tree().get_nodes_in_group("enemies"):
 		if not is_instance_valid(e) or not e.get("is_alive"):
 			continue

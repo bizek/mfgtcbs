@@ -114,6 +114,11 @@ All content follows the data factory pattern: `static func create() -> Resource`
 
 - Knockback and similar forces must be gated on i-frames to avoid pinball effects.
 - New status effects must defensively handle missing keys (e.g., 'timer') on existing status entries.
+- **Pets/companions are autonomous entities, never lerp-glued to the player.** The standard
+  (set by FireFamiliar/BloodElemental, Ben 2026-07-05): own constant-speed locomotion with
+  catch-up, hunt prey within a player-centric leash, settle/roam with hysteresis when idle.
+  All future pets inherit these mechanics unless Ben specifies otherwise or a mod/item
+  changes the behavior.
 - **Character asset packs must be FULLY utilized for what they're there for.** Each Minifantasy
   class pack ships complete kits: all four facing rows (the player faces the mouse cursor using
   the real directional rows — never flip_h when a left/right row exists), frame-matched `_Effect`

@@ -65,6 +65,7 @@ const ALL: Dictionary = {
 		"char_class":      "Ranger",
 		"description":     "A wilds-runner who reads every battlefield for salvage.",
 		"starting_weapon": "Hunter's Bow",   ## Ranger = bow/arrows (2026-06-24)
+		"melee_kit":       "ranger",         ## drives the combo-chain moveset (ChainFactory)
 		"passive_id":      "scavenger_passive",
 		"passive_name":    "Forager's Eye",
 		"passive_desc":    "+25% Pickup Radius. +15% Loot Find.",
@@ -82,11 +83,24 @@ const ALL: Dictionary = {
 			"frame_size": 32,
 			"dir_row":    0,
 			"anims": {
-				"idle":   ["Ranger_Idle.png",                 16,  9.0],
-				"walk":   ["Ranger_walk.png",                  4, 10.0],
-				"attack": ["Ranger_SingleShot_Orthogonal.png", 10, 50.0],
-				"damage": ["Ranger_Dmg.png",                   4, 15.0],
-				"death":  ["Ranger_Die.png",                  24, 24.0],
+				"idle":   ["Ranger_Idle.png",               16,  9.0],
+				"walk":   ["Ranger_walk.png",                4, 10.0],
+				## Diagonal shot sheet — rows match the quadrant facing system (the old
+				## Orthogonal @50fps was the auto-fire fire_delay hack; combos don't need it).
+				"attack": ["Ranger_SingleShot_Diagonal.png", 10, 24.0],
+				"damage": ["Ranger_Dmg.png",                 4, 15.0],
+				"death":  ["Ranger_Die.png",                24, 24.0],
+				## Combo specials — timing/damage in ChainFactory.build_ranger_* (provisional).
+				## Arrow/knife projectiles + knife-ground impact are wired in ChainFactory;
+				## Conceal is a 2-row sheet (no facing variants — base row only, by design).
+				"double_shot": ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Ranger/Special_Animations/Double_Shot/Ranger_DoubleShot_Diagonal.png",           11, 20.0],
+				"triple_shot": ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Ranger/Special_Animations/Triple_Shot/Ranger_TripleShot.png",                    12, 20.0],
+				"knife":       ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Ranger/Special_Animations/Throwing_Knife/Throwing_Knife_Diagonal.png",           11, 20.0],
+				"melee":       ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Ranger/Special_Animations/Single_Melee_Attack/Ranger_Single_Melee_Attack.png",    5, 16.0],
+				"melee_fx":    ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Ranger/Special_Animations/Single_Melee_Attack/Single_Melee_Attack_Effect.png",    5, 16.0],
+				"melee_2":     ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Ranger/Special_Animations/Double_Melee_Attack/Ranger_Double_Melee_Attack.png",    5, 16.0],
+				"melee_2_fx":  ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Ranger/Special_Animations/Double_Melee_Attack/Double_Melee_Attack_Effect.png",    5, 16.0],
+				"conceal":     ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Ranger/Special_Animations/Conceal/Ranger_Conceal.png",                           14, 16.0],
 			},
 		},
 	},
@@ -151,6 +165,7 @@ const ALL: Dictionary = {
 		"description":     "A reckless arcanist who overcharges every spell — devastating, one misstep from ash.",
 		"starting_weapon": "Spark's Pistol",
 		"melee_kit":       "wizard",         ## drives the combo-chain moveset (ChainFactory)
+		"dash_style":      "teleport",       ## Space = blink (class-flavored dash, player.gd)
 		"passive_id":      "spark_passive",
 		"passive_name":    "Arcane Overload",
 		"portrait":        "res://assets/characters/portraits/the_spark.png",
@@ -180,7 +195,10 @@ const ALL: Dictionary = {
 				"attack_2":     ["Wizard_Attack.png",        6, 24.0],
 				"attack_fx":    ["Wizard_Attack_Effect.png", 6, 30.0],
 				"attack_2_fx":  ["Wizard_Attack_Effect.png", 6, 24.0],
+				## "fireball" = the Charge (runner crawls it at telegraph speed); "fireball_2"
+				## re-slices the same sheet fast for the Release so play() restarts the cast.
 				"fireball":     ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Wizard/Special_Animations/Fireball/Wizard_Fireball_Diagonal.png",           11, 20.0],
+				"fireball_2":   ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Wizard/Special_Animations/Fireball/Wizard_Fireball_Diagonal.png",           11, 28.0],
 				"summon":       ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Wizard/Special_Animations/Fire_Familiar/Wizard_Summon_Fire_Familiar.png",  12, 18.0],
 				"teleport_out": ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Wizard/Special_Animations/Teleport/Wizard_Teleport_Start_Diagonal.png",    13, 26.0],
 				"teleport_in":  ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Wizard/Special_Animations/Teleport/Wizard_Teleport_End_Diagonal.png",      13, 26.0],
@@ -220,6 +238,8 @@ const ALL: Dictionary = {
 				"attack": ["Minifantasy_TrueHeroesRogueAttack.png",  4, 20.0],
 				"damage": ["Minifantasy_TrueHeroesRogueDmg.png",     4, 15.0],
 				"death":  ["Minifantasy_TrueHeroesRogueDie.png",    26, 26.0],
+				## Class-flavored dash: the pack's real Dodge roll plays during Space dashes.
+				"dodge":  ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Rogue/Special_Animations/Mobility/Minifantasy_TrueHeroesRogueDodge.png", 8, 30.0],
 				## Combo specials (Special_Animations/ subfolders → absolute res:// paths).
 				## Timing/damage live in ChainFactory.build_rogue_* (provisional).
 				## "attack_2" re-slices the Attack sheet at a higher fps: a distinct anim NAME so
@@ -243,6 +263,7 @@ const ALL: Dictionary = {
 		"char_class":      "Bard",
 		"description":     "A battle-bard whose songs do the real damage — the blade is just punctuation.",
 		"starting_weapon": "Herald's Call",
+		"melee_kit":       "bard",           ## drives the combo-chain moveset (ChainFactory)
 		"passive_id":      "herald_passive",
 		"passive_name":    "Rallying Anthem",
 		"passive_desc":    "Abilities +30% damage, -20% cooldown. Extra ability slot.",
@@ -265,6 +286,18 @@ const ALL: Dictionary = {
 				"attack": ["BardAttack.png",  4, 20.0],
 				"damage": ["BardDmg.png",     4, 15.0],
 				"death":  ["BardDie.png",    25, 25.0],
+				## Combo specials — timing/damage in ChainFactory.build_bard_* (provisional).
+				## Chord projectile/impact + ballad note and mockery wisps are wired host-side;
+				## apotheosis_fx is frame-matched, song_enhance_fx is the 8f shimmer overlay.
+				"attack_2":       ["BardAttack.png", 4, 26.0],
+				"chord":          ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Dissonant_Chord/BardDissonantChordDiagonal.png", 12, 20.0],
+				"apotheosis":     ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Apotheosis/BardApotheosis.png",                  13, 18.0],
+				"apotheosis_fx":  ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Apotheosis/ApotheosisEffect.png",                13, 18.0],
+				"mockery":        ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/ViciousMockerySong.png",                   16, 18.0],
+				"song_enhance":   ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/EnhancementSong.png",                      16, 20.0],
+				"song_enhance_fx": ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/Enhancement/Enhamcement.png",              8, 10.0],
+				"song_ballad":    ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/BalladSong.png",                           16, 20.0],
+				"serenade":       ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/_BardSinging.png",                       16, 18.0],
 			},
 		},
 	},
@@ -320,6 +353,158 @@ const ALL: Dictionary = {
 			},
 		},
 	},
+
+	## ─── The Ravager ──────────────────────────────────────────────────────────
+	## Berserker brawler. Gets stronger as the blood flows — his or theirs.
+	"The Ravager": {
+		"id":              "The Ravager",
+		"display_name":    "THE RAVAGER",
+		"char_class":      "Barbarian",
+		"description":     "A mountain of scars and fury. The storm follows his blade because it's afraid to be left behind.",
+		"starting_weapon": "Arcane Blade",    ## Barbarian = melee; the combo IS the attack
+		"melee_kit":       "barbarian",       ## drives the combo-chain moveset (ChainFactory/SkillFactory)
+		"passive_id":      "ravager_passive",
+		"passive_name":    "Bloodrage",
+		"passive_desc":    "+30% Damage while below 50% HP.",
+		"portrait":        "res://assets/characters/portraits/the_ravager.png",
+		"unlock_cost":     3000,
+		"base_hp":         130.0,
+		"base_armor":      2.0,
+		"base_move_speed": 62.0,   ## heavier than the Fighter (66), quicker than the Warden (58)
+		"color":           Color(0.90, 0.48, 0.18),   ## storm-forge orange
+		"color_body":      Color(0.62, 0.34, 0.16),
+		"color_head":      Color(0.85, 0.62, 0.42),
+		## Barbarian (True Heroes I) — bare-chested berserker. Full special package wired:
+		## Battle_Cry (+frame-matched effect front layer as cry_fx), Guard, Throw_Things,
+		## Thunder_Blade (+its own 4-frame directional lightning projectile, ChainFactory).
+		"sprite": {
+			"dir":        "res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/General_Animations/",
+			"frame_size": 32,
+			"dir_row":    0,
+			"anims": {
+				"idle":   ["Minifantasy_TrueHeroesBarbarianIdle.png",   16,  9.0],
+				"walk":   ["Minifantasy_TrueHeroesBarbarianWalk.png",    4, 10.0],
+				"attack": ["Minifantasy_TrueHeroesBarbarianAttack.png",  6, 20.0],
+				"damage": ["Minifantasy_TrueHeroesBarbarianDmg.png",     4, 15.0],
+				"death":  ["Minifantasy_TrueHeroesBarbarianDie.png",    20, 22.0],
+				## Combo specials — timing/damage in ChainFactory.build_barbarian_* (provisional).
+				## "attack_2" re-slices the Attack sheet slower (heavier follow-through) under a
+				## distinct anim NAME so play() restarts it on back-to-back cleave phases.
+				"attack_2": ["Minifantasy_TrueHeroesBarbarianAttack.png",            6, 16.0],
+				## AttackBrokenGround is an EFFECT-ONLY sheet (ground cracks, no body) frame-matched
+				## to the Attack sheet — so Sunder's body is a third Attack re-slice and the cracks
+				## ride the automatic "<anim>_fx" ComboFx overlay.
+				"sunder":    ["Minifantasy_TrueHeroesBarbarianAttack.png",            6, 13.0],
+				"sunder_fx": ["Minifantasy_TrueHeroesBarbarianAttackBrokenGround.png", 6, 13.0],
+				"thunder":  ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Thunder_Blade_Attack/Minifantasy_TrueHeroesBarbarianThunderBlade.png", 17, 22.0],
+				"throw":    ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Throw_Things/Minifantasy_TrueHeroesBarbarianThrowThings.png",          16, 20.0],
+				"cry":      ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Battle_Cry/Minifantasy_TrueHeroesBarbarianBattleCry.png",              11, 14.0],
+				"cry_fx":   ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Battle_Cry/Minifantasy_TrueHeroesBarbarianBattleCryEffectFrontLayer.png", 11, 14.0],
+				"guard":        ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Guard/Minifantasy_TrueHeroesBarbarianBlockGuardUp.png",   4,  8.0],
+				## BlockImpact flashes on the ComboFx overlay each time the Guard stops a hit.
+				"guard_impact": ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Guard/Minifantasy_TrueHeroesBarbarianBlockImpact.png", 4, 20.0],
+			},
+		},
+	},
+
+	## ─── The Whisper ──────────────────────────────────────────────────────────
+	## Assassin. Fast knives, a blade storm, and never quite where you saw them.
+	"The Whisper": {
+		"id":              "The Whisper",
+		"display_name":    "THE WHISPER",
+		"char_class":      "Ninja",
+		"description":     "You won't hear the blade. You won't hear anything at all.",
+		"starting_weapon": "Arcane Blade",    ## Ninja = knives; the combo IS the attack
+		"melee_kit":       "ninja",           ## drives the combo-chain moveset (ChainFactory/SkillFactory)
+		"dash_style":      "deadly",          ## Space = Deadly Dash — strikes enemies along the path
+		"passive_id":      "whisper_passive",
+		"passive_name":    "Killing Intent",
+		"passive_desc":    "+10% Crit Chance. +25% Crit Damage.",
+		"portrait":        "res://assets/characters/portraits/the_whisper.png",
+		"unlock_cost":     4000,
+		"base_hp":         70.0,
+		"base_armor":      0.0,
+		"base_move_speed": 78.0,   ## a hair under the Shade (80) — second-fastest
+		"color":           Color(0.42, 0.50, 0.62),   ## gunmetal smoke
+		"color_body":      Color(0.24, 0.28, 0.36),
+		"color_head":      Color(0.46, 0.52, 0.62),
+		## Ninja_Assassin (True Heroes IV) — generic sheet filenames, keyed by folder. Full
+		## special package wired: Thousand_Blades (Start/Effect-overlay/End), Sharpen, Smoke_Bomb
+		## (Disappear = the vanish; Appear reserved for a reappear polish pass), Deadly_Dash
+		## (Start ghosts at launch via dash_style "deadly", End is the dash body anim).
+		"sprite": {
+			"dir":        "res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Ninja_Assassin/General_Animations/",
+			"frame_size": 32,
+			"dir_row":    0,
+			"anims": {
+				"idle":   ["Idle.png",   16,  9.0],
+				"walk":   ["Walk.png",    4, 10.0],
+				"attack": ["Attack.png",  6, 24.0],
+				"damage": ["Dmg.png",     4, 15.0],
+				"death":  ["Die.png",    18, 20.0],
+				"attack_fx":    ["Attack_Effect.png", 6, 24.0],
+				"attack_2":     ["Attack.png",        6, 18.0],
+				"attack_2_fx":  ["Attack_Effect.png", 6, 18.0],
+				## Thousand Blades: Start = crouch wind-up; "blades" re-slices Start slower as
+				## the storm-loop body while the effect-only blade nova rides blades_fx.
+				"blades_start": ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Ninja_Assassin/Special_Animations/Thousand_Blades/Thousand_Blades_Start.png",   4, 16.0],
+				"blades":       ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Ninja_Assassin/Special_Animations/Thousand_Blades/Thousand_Blades_Start.png",   4, 10.0],
+				"blades_fx":    ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Ninja_Assassin/Special_Animations/Thousand_Blades/Thousand_Blades_Effect.png", 12, 30.0],
+				"blades_end":   ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Ninja_Assassin/Special_Animations/Thousand_Blades/Thousand_Blades_End.png",     6, 18.0],
+				"sharpen":      ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Ninja_Assassin/Special_Animations/Sharpen/Sharpen.png",                        27, 24.0],
+				"smoke":        ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Ninja_Assassin/Special_Animations/Smoke_Bomb/Smoke_Bomb_Disappear.png",        16, 20.0],
+				"smoke_in":     ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Ninja_Assassin/Special_Animations/Smoke_Bomb/Smoke_Bomb_Appear.png",            8, 18.0],
+				"dash_out":     ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Ninja_Assassin/Special_Animations/Deadly_Dash/Deadly_Dash_Start.png",           4, 28.0],
+				"dodge":        ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Ninja_Assassin/Special_Animations/Deadly_Dash/Deadly_Dash_End.png",             7, 26.0],
+			},
+		},
+	},
+
+	## ─── The Deadeye ──────────────────────────────────────────────────────────
+	## Tech-augmented gunslinger. Every tap is a trigger pull; the storm never misses twice.
+	"The Deadeye": {
+		"id":              "The Deadeye",
+		"display_name":    "THE DEADEYE",
+		"char_class":      "Gunslinger",
+		"description":     "Half flesh, half firing mechanism. The desert taught the rest.",
+		"starting_weapon": "Spark's Pistol",  ## Gunslinger = sidearm; the combo IS the attack
+		"melee_kit":       "gunslinger",      ## drives the combo-chain moveset (ChainFactory/SkillFactory)
+		"passive_id":      "deadeye_passive",
+		"passive_name":    "Calm Hands",
+		"passive_desc":    "+25% Damage while above 80% HP.",
+		"portrait":        "res://assets/characters/portraits/the_deadeye.png",
+		"unlock_cost":     6000,
+		"base_hp":         85.0,
+		"base_armor":      0.0,
+		"base_move_speed": 70.0,
+		"color":           Color(0.89, 0.58, 0.28),   ## sun-scorched brass
+		"color_body":      Color(0.60, 0.38, 0.20),
+		"color_head":      Color(0.86, 0.66, 0.44),
+		## Tech-Augmented_Gunslinger (True Heroes IV) — generic sheet filenames, keyed by
+		## folder. Full special package wired: Shot ortho/diag + Projectile_Impact (bullet
+		## tracer + landing), Fan_The_Hammer (+its own impact), Desert_Storm (+the 8
+		## directional barrage strips as the host storm overlay), Reload, Whip_Attack
+		## (+frame-matched effect).
+		"sprite": {
+			"dir":        "res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Tech-Augmented_Gunslinger/General_Animations/",
+			"frame_size": 32,
+			"dir_row":    0,
+			"anims": {
+				"idle":   ["Idle.png",           16,  9.0],
+				"walk":   ["Walk.png",            4, 10.0],
+				"attack": ["Shot_Diagonal.png",   7, 24.0],
+				"damage": ["Dmg.png",             4, 15.0],
+				"death":  ["Die.png",            21, 22.0],
+				## "attack_2" re-slices the shot at a different pace so back-to-back pulls restart.
+				"attack_2": ["Shot_Diagonal.png", 7, 20.0],
+				"fan":      ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Tech-Augmented_Gunslinger/Special_Animations/Fan_The_Hammer/FTH_Diagonal.png", 15, 24.0],
+				"storm":    ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Tech-Augmented_Gunslinger/Special_Animations/Desert_Storm/DS_Diagonal.png",    14, 20.0],
+				"reload":   ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Tech-Augmented_Gunslinger/Special_Animations/Reload/Reload.png",              37, 30.0],
+				"whip":     ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Tech-Augmented_Gunslinger/Special_Animations/Whip_Attack/Whip_Attack.png",     6, 18.0],
+				"whip_fx":  ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Tech-Augmented_Gunslinger/Special_Animations/Whip_Attack/Whip_Attack_Effect.png", 6, 18.0],
+			},
+		},
+	},
 }
 
 ## Ordered list for display (unlock order).
@@ -330,5 +515,8 @@ const ORDER: Array = [
 	"The Spark",
 	"The Shade",
 	"The Herald",
+	"The Ravager",
+	"The Whisper",
 	"The Cursed",
+	"The Deadeye",
 ]

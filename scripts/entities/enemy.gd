@@ -335,6 +335,11 @@ func _physics_process(delta: float) -> void:
 		knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 800.0 * delta)
 		return
 
+	# Charmed (Bard's Serenade): fight for the player — chase and strike other enemies.
+	if status_effect_component.has_status("charmed"):
+		_process_charmed(delta)
+		return
+
 	# Shade passive: don't chase invisible player
 	if player_ref.has_method("is_invisible") and player_ref.is_invisible():
 		velocity = knockback_velocity
@@ -818,6 +823,67 @@ func apply_status(effect: String, params: Dictionary = {}) -> void:
 		duration = params["duration"]
 
 	status_effect_component.apply_status(status_def, self, 1, duration)
+
+
+# --- Charm (Bard's Charming Serenade) ---
+## While "charmed" runs, this enemy turns on its own: chases the nearest other enemy and
+## strikes it with boosted contact damage. It deals no contact damage to the player and its
+## normal attack pipeline is suspended (this branch returns before both).
+var _charm_target: Node2D = null
+var _charm_rescan: float = 0.0
+var _charm_strike_cd: float = 0.0
+const CHARM_STRIKE_RANGE: float = 22.0
+const CHARM_STRIKE_COOLDOWN: float = 0.9
+
+
+func _process_charmed(delta: float) -> void:
+	_charm_strike_cd = maxf(_charm_strike_cd - delta, 0.0)
+	_charm_rescan -= delta
+	if _charm_rescan <= 0.0:
+		_charm_rescan = 0.4
+		_charm_target = _nearest_other_enemy()
+	var target: Node2D = _charm_target
+	if target != null and (not is_instance_valid(target) or not target.get("is_alive")):
+		target = null
+		_charm_target = null
+
+	var speed_mult: float = 1.0 + modifier_component.sum_modifiers("move_speed", "bonus")
+	if status_effect_component.is_movement_disabled():
+		speed_mult = 0.0
+	if target:
+		var to_t: Vector2 = target.global_position - global_position
+		if to_t.length() <= CHARM_STRIKE_RANGE:
+			velocity = knockback_velocity
+			if _charm_strike_cd <= 0.0:
+				_charm_strike_cd = CHARM_STRIKE_COOLDOWN
+				var hit := DamageCalculator.calculate_raw_hit(
+					self, target, contact_damage * 1.5, "Physical", null,
+					combat_manager.rng if combat_manager else null)
+				if not hit.is_dodged:
+					target.take_damage(hit)
+		else:
+			velocity = to_t.normalized() * base_move_speed * maxf(speed_mult, 0.0) + knockback_velocity
+	else:
+		velocity = knockback_velocity   ## love-struck and no one to fight — stand swooning
+	move_and_slide()
+	knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 800.0 * delta)
+	if sprite and not _is_damage_anim_active and absf(velocity.x) > 0.01:
+		sprite.flip_h = velocity.x < 0
+
+
+func _nearest_other_enemy() -> Node2D:
+	## Nearest live enemy that isn't this one, within a modest search radius. Gated by the
+	## 0.4s rescan — never per-frame (300x lens).
+	var best: Node2D = null
+	var best_d: float = 160.0 * 160.0
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if e == self or not is_instance_valid(e) or not e.get("is_alive"):
+			continue
+		var d: float = global_position.distance_squared_to(e.global_position)
+		if d < best_d:
+			best_d = d
+			best = e
+	return best
 
 
 func take_damage(hit_data) -> void:

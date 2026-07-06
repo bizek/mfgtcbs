@@ -21,8 +21,8 @@ extends RefCounted
 
 ## Shared tuning (provisional)
 const CANCEL_WIN: float = 0.75      ## light-chain cancel/buffer window (forgiving; runs from phase
-                                    ## ENTRY, so post-anim grace ≈ this minus the swing length —
-                                    ## widened 0.55→0.75 after 2026-07-04 feel test)
+									## ENTRY, so post-anim grace ≈ this minus the swing length —
+									## widened 0.55→0.75 after 2026-07-04 feel test)
 const HEAVY_WIN: float = 0.55       ## Uppercut → Cataclysm follow-up window
 const WHIRL_TICK: float = 0.22      ## one Swirl rotation ≈ Whirlwind tick
 const TAUNT_TICK: float = 0.56      ## Taunt anim length (9f @ 16fps) ≈ shockwave tick
@@ -30,6 +30,12 @@ const FAN_TICK: float = 0.50        ## Rogue Fan of Blades tick (fan: 15f @ 30fp
 const DICTUM_TICK: float = 0.75     ## Paladin channel tick (dictum/dome: 15f @ 20fps = 0.75s)
 const TORRENT_TICK: float = 0.67    ## Wizard Fire Torrent tick (torrent: 20f @ 30fps ≈ 0.67s)
 const VAMP_TICK: float = 0.5        ## Blood Mage Vampirize half-cycle (7f @ 14fps = 0.5s)
+const CONCEAL_TICK: float = 0.9     ## Ranger Conceal loop (14f @ 16fps ≈ 0.875s crouch cycle)
+const SONG_TICK: float = 0.8        ## Bard song beat (16f @ 20fps = 0.8s)
+const GUARD_TICK: float = 0.4       ## Barbarian Guard stance re-check beat (the block is host-side)
+const BLADES_TICK: float = 0.4      ## Ninja Thousand Blades storm beat (blades body 4f @ 10fps)
+const STORM_TICK: float = 0.7       ## Gunslinger Desert Storm volley beat (storm body 14f @ 20fps)
+const WIZARD_CHARGE_MAX: float = 1.6   ## Fireball overcharge cap — auto-releases at full power
 const HOLD_ENTER: float = 0.18      ## hold LMB this long → enter Whirlwind
 const HOLD_KEEP: float = 0.01       ## still-held check for a channel self-loop
 
@@ -58,7 +64,7 @@ static func build_kit(kit_id: String, weapon_data: Dictionary) -> Dictionary:
 		"wizard":
 			return {
 				"light": build_wizard_light(weapon_data),
-				"heavy": build_wizard_teleport(weapon_data),
+				"heavy": build_wizard_summon(weapon_data),
 				"channel": build_wizard_torrent(weapon_data),
 			}
 		"blood_mage":
@@ -66,6 +72,36 @@ static func build_kit(kit_id: String, weapon_data: Dictionary) -> Dictionary:
 				"light": build_blood_mage_light(weapon_data),
 				"heavy": build_blood_mage_heavy(weapon_data),
 				"channel": build_blood_mage_vampirize(weapon_data),
+			}
+		"ranger":
+			return {
+				"light": build_ranger_light(weapon_data),
+				"heavy": build_ranger_heavy(weapon_data),
+				"channel": build_ranger_conceal(weapon_data),
+			}
+		"bard":
+			return {
+				"light": build_bard_light(weapon_data),
+				"heavy": build_bard_heavy(weapon_data),
+				"channel": build_bard_perform(weapon_data, "ballad"),
+			}
+		"barbarian":
+			return {
+				"light": build_barbarian_light(weapon_data),
+				"heavy": build_barbarian_heavy(weapon_data),
+				"channel": build_barbarian_guard(weapon_data),
+			}
+		"ninja":
+			return {
+				"light": build_ninja_light(weapon_data),
+				"heavy": build_ninja_burst(weapon_data),
+				"channel": build_ninja_storm(weapon_data),
+			}
+		"gunslinger":
+			return {
+				"light": build_gunslinger_light(weapon_data),
+				"heavy": build_gunslinger_fan(weapon_data),
+				"channel": build_gunslinger_desert_storm(weapon_data),
 			}
 	return {}
 
@@ -411,55 +447,76 @@ static func build_paladin_dome(weapon_data: Dictionary) -> AbilityDefinition:
 	return _ability("paladin_dome", "Dome of Rightfulness", choreo)
 
 
-# --- Wizard: light combo (LMB) ---
-## The Spark — pure ranged caster: cursor-aimed fire projectiles through the real
-## ProjectileManager (SpawnProjectilesEffect "aimed_single" reads player.attack_target, which
-## the host parks on the aim cursor). Phase indices:
-## 0 Bolt · 1 Bolt II · 2 Fireball · 3 Summon Fire Familiar.
+# --- Wizard: light combo (LMB) — tap bolts, HOLD TO CHARGE the Fireball ---
+## The Spark — tap alternates two quick bolt casts (distinct anim names so each re-fires its
+## hit frame); holding LMB from either flows into the Charge: the cast anim crawls at
+## telegraph speed while the player is slowed (greed is punishable), and releasing — or
+## overcharging past the cap — looses a Fireball scaled by charge time (player.gd builds the
+## scaled projectile on release). Phase indices: 0 Bolt A · 1 Bolt B · 2 Charge · 3 Release.
 static func build_wizard_light(weapon_data: Dictionary) -> AbilityDefinition:
 	var dmg: float = weapon_data.get("damage", 42.0)
 	var dtype: String = _damage_type(weapon_data)
 
-	# 0 — Bolt (crisp opener: quick staff bolt at the cursor). No summon branch yet.
-	var bolt := ChoreographyPhase.new()
-	bolt.animation = "attack"
-	bolt.hit_frame = 2
-	bolt.effects = [_wizard_bolt(dtype, dmg * 0.75)]
-	bolt.exit_type = "wait"
-	bolt.wait_duration = CANCEL_WIN
-	bolt.default_next = -1
-	bolt.branches = [
-		_branch_buffered("light_attack", 1),               # tap → Bolt II
+	# 0 — Bolt A (crisp cursor bolt).
+	var bolt_a := ChoreographyPhase.new()
+	bolt_a.animation = "attack"
+	bolt_a.hit_frame = 2
+	bolt_a.effects = [_wizard_bolt(dtype, dmg * 0.75)]
+	bolt_a.exit_type = "wait"
+	bolt_a.wait_duration = CANCEL_WIN
+	bolt_a.default_next = -1
+	bolt_a.branches = [
+		_branch_held("light_attack", HOLD_ENTER, 2),       # hold → Charge
+		_branch_buffered("light_attack", 1),               # tap  → Bolt B
 	]
 
-	# 1 — Bolt II (faster re-slice; gate now met → familiar available).
-	var bolt2 := ChoreographyPhase.new()
-	bolt2.animation = "attack_2"
-	bolt2.hit_frame = 2
-	bolt2.effects = [_wizard_bolt(dtype, dmg * 0.65)]
-	bolt2.exit_type = "wait"
-	bolt2.wait_duration = CANCEL_WIN
-	bolt2.default_next = -1
-	bolt2.branches = [
-		_branch_buffered("light_attack", 2),               # tap → Fireball
-		_branch_buffered("heavy_attack", 3),               # RMB → Summon Fire Familiar
+	# 1 — Bolt B (alternate cast).
+	var bolt_b := ChoreographyPhase.new()
+	bolt_b.animation = "attack_2"
+	bolt_b.hit_frame = 2
+	bolt_b.effects = [_wizard_bolt(dtype, dmg * 0.75)]
+	bolt_b.exit_type = "wait"
+	bolt_b.wait_duration = CANCEL_WIN
+	bolt_b.default_next = -1
+	bolt_b.branches = [
+		_branch_held("light_attack", HOLD_ENTER, 2),       # hold → Charge
+		_branch_buffered("light_attack", 0),               # tap  → Bolt A
 	]
 
-	# 2 — Fireball (big cast finisher: slow heavy projectile, explodes on impact; loops).
-	var fireball := ChoreographyPhase.new()
-	fireball.animation = "fireball"
-	fireball.hit_frame = 6
-	fireball.effects = [_wizard_fireball(dtype, dmg)]
-	fireball.exit_type = "wait"
-	fireball.wait_duration = CANCEL_WIN
-	fireball.default_next = -1
-	fireball.branches = [
-		_branch_buffered("heavy_attack", 3),               # RMB → Summon Fire Familiar
-		_branch_buffered("light_attack", 0),               # tap → loop to Bolt
+	# 2 — Charge (held): the fireball cast at telegraph crawl. Release → loose it; holding
+	# past the window overcharges and auto-releases at full power.
+	var charge := ChoreographyPhase.new()
+	charge.animation = "fireball"
+	charge.telegraph_speed_scale = 0.3
+	charge.hit_frame = -1
+	charge.exit_type = "wait"
+	charge.wait_duration = WIZARD_CHARGE_MAX
+	charge.default_next = 3                                 # overcharge cap → auto-release
+	charge.branches = [
+		_branch_held("light_attack", HOLD_KEEP, 3, true),  # released → Release
 	]
 
-	# 3 — Summon Fire Familiar (gated finisher; terminal). The ignition burst fires here;
-	# player.gd spawns/refreshes the FireFamiliar companion on the same hit_frame.
+	# 3 — Release: the cast snaps to full speed and the Fireball flies. The base effect here
+	# is the floor; player.gd swaps in a charge-scaled copy at the hit frame.
+	var release := ChoreographyPhase.new()
+	release.animation = "fireball_2"
+	release.hit_frame = 6
+	release.effects = [_wizard_fireball(dtype, dmg)]
+	release.exit_type = "anim_finished"
+	release.default_next = -1
+
+	var choreo := ChoreographyDefinition.new()
+	choreo.phases = [bolt_a, bolt_b, charge, release]
+	return _ability("wizard_light", "Spark Combo", choreo)
+
+
+# --- Wizard: Summon Fire Familiar (RMB tap) ---
+## Teleport moved to the DASH input (class-flavored mobility, player.gd), freeing the neutral
+## RMB tap for the familiar. Single cast; player.gd spawns/refreshes it on the hit frame.
+static func build_wizard_summon(weapon_data: Dictionary) -> AbilityDefinition:
+	var dmg: float = weapon_data.get("damage", 42.0)
+	var dtype: String = _damage_type(weapon_data)
+
 	var summon := ChoreographyPhase.new()
 	summon.animation = "summon"
 	summon.hit_frame = 8
@@ -468,36 +525,8 @@ static func build_wizard_light(weapon_data: Dictionary) -> AbilityDefinition:
 	summon.default_next = -1
 
 	var choreo := ChoreographyDefinition.new()
-	choreo.phases = [bolt, bolt2, fireball, summon]
-	return _ability("wizard_light", "Spark Combo", choreo)
-
-
-# --- Wizard: Teleport (RMB tap) ---
-## Two-phase blink: Start cast at the old spot (departure micro-burst, i-framed), player.gd
-## moves the Spark to the cursor (clamped) late in the Start anim, then the End cast plays at
-## the destination. Phase indices: 0 teleport_out · 1 teleport_in.
-static func build_wizard_teleport(weapon_data: Dictionary) -> AbilityDefinition:
-	var dmg: float = weapon_data.get("damage", 42.0)
-	var dtype: String = _damage_type(weapon_data)
-
-	var out := ChoreographyPhase.new()
-	out.animation = "teleport_out"
-	out.hit_frame = 9                                       # late — dissolve mostly done, then blink
-	out.effects = [_aoe(dtype, dmg * 0.4, 22.0)]           # departure burst at the OLD position
-	out.set_invulnerable = true
-	out.exit_type = "anim_finished"
-	out.default_next = 1
-
-	var in_p := ChoreographyPhase.new()
-	in_p.animation = "teleport_in"
-	in_p.hit_frame = -1
-	in_p.set_invulnerable = true
-	in_p.exit_type = "anim_finished"
-	in_p.default_next = -1
-
-	var choreo := ChoreographyDefinition.new()
-	choreo.phases = [out, in_p]
-	return _ability("wizard_teleport", "Teleport", choreo)
+	choreo.phases = [summon]
+	return _ability("wizard_summon", "Summon Fire Familiar", choreo)
 
 
 # --- Wizard: Fire Torrent channel (RMB hold) ---
@@ -659,6 +688,976 @@ static func build_blood_mage_vampirize(weapon_data: Dictionary) -> AbilityDefini
 	var choreo := ChoreographyDefinition.new()
 	choreo.phases = [rip, drink]
 	return _ability("blood_mage_vampirize", "Vampirize", choreo)
+
+
+# --- Ranger: light combo (LMB) ---
+## The Scavenger — the bow escalates: one arrow, two, three. Cursor-aimed volleys through the
+## real arrow projectile grids. Phase indices: 0 Shot · 1 Double Shot · 2 Triple Shot · 3 Knife.
+static func build_ranger_light(weapon_data: Dictionary) -> AbilityDefinition:
+	var dmg: float = weapon_data.get("damage", 42.0)
+	var dtype: String = _damage_type(weapon_data)
+
+	# 0 — Shot (single arrow opener).
+	var shot := ChoreographyPhase.new()
+	shot.animation = "attack"
+	shot.hit_frame = 6
+	shot.effects = [_arrow_volley(dtype, dmg * 0.8, 1, 0.0)]
+	shot.exit_type = "wait"
+	shot.wait_duration = CANCEL_WIN
+	shot.default_next = -1
+	shot.branches = [
+		_branch_buffered("light_attack", 1),               # tap → Double Shot
+	]
+
+	# 1 — Double Shot (two arrows, tight pair; gate now met → knife available).
+	var double_shot := ChoreographyPhase.new()
+	double_shot.animation = "double_shot"
+	double_shot.hit_frame = 6
+	double_shot.effects = [_arrow_volley(dtype, dmg * 0.55, 2, 10.0)]
+	double_shot.exit_type = "wait"
+	double_shot.wait_duration = CANCEL_WIN
+	double_shot.default_next = -1
+	double_shot.branches = [
+		_branch_buffered("light_attack", 2),               # tap → Triple Shot
+		_branch_buffered("heavy_attack", 3),               # RMB → Throwing Knife
+	]
+
+	# 2 — Triple Shot (fan finisher; loops back to Shot on a fresh tap).
+	var triple_shot := ChoreographyPhase.new()
+	triple_shot.animation = "triple_shot"
+	triple_shot.hit_frame = 6
+	triple_shot.effects = [_arrow_volley(dtype, dmg * 0.5, 3, 22.0)]
+	triple_shot.exit_type = "wait"
+	triple_shot.wait_duration = CANCEL_WIN
+	triple_shot.default_next = -1
+	triple_shot.branches = [
+		_branch_buffered("heavy_attack", 3),               # RMB → Throwing Knife
+		_branch_buffered("light_attack", 0),               # tap → loop to Shot
+	]
+
+	# 3 — Throwing Knife (gated finisher; terminal): heavy spinning knife that skewers
+	# through one victim and lands with the knife-on-the-ground sheet.
+	var knife := ChoreographyPhase.new()
+	knife.animation = "knife"
+	knife.hit_frame = 6
+	knife.effects = [_throwing_knife(dtype, dmg * 1.2)]
+	knife.exit_type = "anim_finished"
+	knife.default_next = -1
+
+	var choreo := ChoreographyDefinition.new()
+	choreo.phases = [shot, double_shot, triple_shot, knife]
+	return _ability("ranger_light", "Scavenger Combo", choreo)
+
+
+# --- Ranger: melee string (RMB tap) ---
+## The "back off" knives: Single Melee → Double Melee, both with frame-matched effect
+## overlays. 0 Melee · 1 Double Melee.
+static func build_ranger_heavy(weapon_data: Dictionary) -> AbilityDefinition:
+	var dmg: float = weapon_data.get("damage", 42.0)
+	var dtype: String = _damage_type(weapon_data)
+
+	var melee := ChoreographyPhase.new()
+	melee.animation = "melee"
+	melee.hit_frame = 2
+	melee.effects = [_aoe(dtype, dmg * 0.9, 26.0)]
+	melee.exit_type = "wait"
+	melee.wait_duration = HEAVY_WIN
+	melee.default_next = -1
+	melee.branches = [
+		_branch_buffered("heavy_attack", 1),               # RMB → Double Melee
+	]
+
+	var melee2 := ChoreographyPhase.new()
+	melee2.animation = "melee_2"
+	melee2.hit_frame = 2
+	melee2.effects = [_aoe(dtype, dmg * 1.3, 30.0)]
+	melee2.exit_type = "anim_finished"
+	melee2.default_next = -1
+
+	var choreo := ChoreographyDefinition.new()
+	choreo.phases = [melee, melee2]
+	return _ability("ranger_heavy", "Scavenger Melee", choreo)
+
+
+# --- Ranger: Conceal channel (RMB hold) ---
+## Crouch under the cloak: each loop refreshes the "concealed" status (player.is_invisible —
+## enemies stop chasing) while held. No damage; the payoff is disappearing from the horde.
+## Player slow applied host-side like all channels (moving while concealed is slow, fittingly).
+static func build_ranger_conceal(weapon_data: Dictionary) -> AbilityDefinition:
+	var _dmg: float = weapon_data.get("damage", 42.0)   ## unused — conceal deals no damage
+
+	var conceal := ChoreographyPhase.new()
+	conceal.animation = "conceal"
+	conceal.hit_frame = -1                                  # refresh on every loop entry
+	conceal.effects = [_concealed_status()]
+	conceal.exit_type = "wait"
+	conceal.wait_duration = CONCEAL_TICK
+	conceal.default_next = 0                                # still held → stay hidden
+	conceal.branches = [
+		_branch_held("heavy_attack", HOLD_KEEP, -1, true), # released → end
+	]
+
+	var choreo := ChoreographyDefinition.new()
+	choreo.phases = [conceal]
+	return _ability("ranger_conceal", "Conceal", choreo)
+
+
+# --- Bard: light combo (LMB) ---
+## The Herald — the blade is punctuation, the sound does the talking. Filler Strike II
+## dropped (2026-07-05 control-scheme pass): the pack has one attack sheet, so the chain is
+## Strike straight into the Chord. Phase indices: 0 Strike · 1 Dissonant Chord · 2 Apotheosis.
+static func build_bard_light(weapon_data: Dictionary) -> AbilityDefinition:
+	var dmg: float = weapon_data.get("damage", 42.0)
+	var dtype: String = _damage_type(weapon_data)
+
+	# 0 — Strike (instrument swing).
+	var strike := ChoreographyPhase.new()
+	strike.animation = "attack"
+	strike.hit_frame = 1
+	strike.effects = [_aoe(dtype, dmg * 0.9, 28.0)]
+	strike.exit_type = "wait"
+	strike.wait_duration = CANCEL_WIN
+	strike.default_next = -1
+	strike.branches = [
+		_branch_buffered("light_attack", 1),               # tap → Dissonant Chord
+	]
+
+	# 1 — Dissonant Chord (sound-bolt at the cursor; loops back on a fresh tap).
+	var chord := ChoreographyPhase.new()
+	chord.animation = "chord"
+	chord.hit_frame = 6
+	chord.effects = [_chord_bolt(dtype, dmg * 1.1)]
+	chord.exit_type = "wait"
+	chord.wait_duration = CANCEL_WIN
+	chord.default_next = -1
+	chord.branches = [
+		_branch_buffered("heavy_attack", 2),               # RMB → Apotheosis
+		_branch_buffered("light_attack", 0),               # tap → loop to Strike
+	]
+
+	# 2 — Apotheosis (gated finisher; terminal): divine burst + a self damage buff, with the
+	# frame-matched ApotheosisEffect overlay.
+	var apo := _apotheosis_phase(dtype, dmg)
+
+	var choreo := ChoreographyDefinition.new()
+	choreo.phases = [strike, chord, apo]
+	return _ability("bard_light", "Herald Combo", choreo)
+
+
+# --- Bard: heavy combo (RMB tap) ---
+## Vicious Mockery → Apotheosis: insult the crowd (AoE + damage-down debuff on everyone hit),
+## then ascend. 0 Mockery · 1 Apotheosis.
+static func build_bard_heavy(weapon_data: Dictionary) -> AbilityDefinition:
+	var dmg: float = weapon_data.get("damage", 42.0)
+	var dtype: String = _damage_type(weapon_data)
+
+	var mockery := ChoreographyPhase.new()
+	mockery.animation = "mockery"
+	mockery.hit_frame = 8
+	mockery.effects = [_aoe(dtype, dmg * 0.6, 70.0), _mocked_debuff()]
+	mockery.exit_type = "wait"
+	mockery.wait_duration = HEAVY_WIN
+	mockery.default_next = -1
+	mockery.branches = [
+		_branch_buffered("heavy_attack", 1),               # RMB → Apotheosis
+	]
+
+	var apo := _apotheosis_phase(dtype, dmg)
+
+	var choreo := ChoreographyDefinition.new()
+	choreo.phases = [mockery, apo]
+	return _ability("bard_heavy", "Herald Heavy", choreo)
+
+
+# --- Bard: Perform (RMB hold) — plays the ACTIVE song, chosen with Q ---
+## Song stances (2026-07-05 control-scheme pass): Q cycles the song in the Herald's heart
+## (player.gd rebuilds this channel), RMB-hold performs it loudly. Ballad heals per beat
+## (host-side, floating notes); Enhancement refreshes the +damage buff — either way the song
+## only works while he plays it.
+static func build_bard_perform(weapon_data: Dictionary, song: String) -> AbilityDefinition:
+	var _dmg: float = weapon_data.get("damage", 42.0)   ## unused — songs don't damage
+
+	var beat := ChoreographyPhase.new()
+	beat.animation = "song_ballad" if song == "ballad" else "song_enhance"
+	beat.hit_frame = -1                                     # fire on every beat entry
+	beat.effects = [_song_marker() if song == "ballad" else _enhancement_buff()]
+	beat.exit_type = "wait"
+	beat.wait_duration = SONG_TICK
+	beat.default_next = 0                                   # still held → keep playing
+	beat.branches = [
+		_branch_held("heavy_attack", HOLD_KEEP, -1, true), # released → end
+	]
+
+	var choreo := ChoreographyDefinition.new()
+	choreo.phases = [beat]
+	return _ability("bard_perform_" + song, "Perform: " + song.capitalize(), choreo)
+
+
+## Ballad's per-beat marker status (no modifiers — the heal itself is host-side; this keeps
+## the beat's effects non-empty and leaves a visible "song active" status on the player).
+static func _song_marker() -> ApplyStatusEffectData:
+	var status := StatusEffectDefinition.new()
+	status.status_id = "ballad_song"
+	status.is_positive = true
+	status.max_stacks = 1
+	status.base_duration = 1.2
+	status.duration_refresh_mode = "overwrite"
+	var apply := ApplyStatusEffectData.new()
+	apply.status = status
+	apply.stacks = 1
+	apply.apply_to_self = true
+	return apply
+
+
+## Charming Serenade (E skill): charmed enemies fight for the Herald — enemy.gd routes their
+## chase/strikes at other enemies while this status runs. Applied host-side to the nearest
+## few victims (with heart wisps), not broadcast to everything in range.
+static func _charm_effect() -> ApplyStatusEffectData:
+	var status := StatusEffectDefinition.new()
+	status.status_id = "charmed"
+	status.is_positive = false
+	status.max_stacks = 1
+	status.base_duration = 5.0
+	status.duration_refresh_mode = "overwrite"
+	var apply := ApplyStatusEffectData.new()
+	apply.status = status
+	apply.stacks = 1
+	apply.apply_to_self = false
+	return apply
+
+
+# --- Barbarian: light combo (LMB) ---
+## The Ravager — raw weight of steel. Two cleaves into the ground-breaking Sunder; gated
+## mid-combo RMB flows into the Thunder Blade. Phase indices:
+## 0 Cleave · 1 Cleave II · 2 Sunder · 3 Thunder Blade.
+static func build_barbarian_light(weapon_data: Dictionary) -> AbilityDefinition:
+	var dmg: float = weapon_data.get("damage", 42.0)
+	var dtype: String = _damage_type(weapon_data)
+
+	# 0 — Cleave (weighty opener). No thunder branch here (gate = depth ≥ Cleave II).
+	var cleave := ChoreographyPhase.new()
+	cleave.animation = "attack"
+	cleave.hit_frame = 2
+	cleave.effects = [_aoe(dtype, dmg * 1.0, 32.0)]
+	cleave.exit_type = "wait"
+	cleave.wait_duration = CANCEL_WIN
+	cleave.default_next = -1
+	cleave.branches = [
+		_branch_buffered("light_attack", 1),               # tap → Cleave II
+	]
+
+	# 1 — Cleave II (faster re-slice of the same sheet; gate now met → thunder available).
+	var cleave2 := ChoreographyPhase.new()
+	cleave2.animation = "attack_2"
+	cleave2.hit_frame = 2
+	cleave2.effects = [_aoe(dtype, dmg * 0.8, 32.0)]
+	cleave2.exit_type = "wait"
+	cleave2.wait_duration = CANCEL_WIN
+	cleave2.default_next = -1
+	cleave2.branches = [
+		_branch_buffered("light_attack", 2),               # tap → Sunder
+		_branch_buffered("heavy_attack", 3),               # RMB → Thunder Blade
+	]
+
+	# 2 — Sunder (ground-breaker finisher: AoE + shove; loops back to Cleave on a fresh tap).
+	var sunder := ChoreographyPhase.new()
+	sunder.animation = "sunder"
+	sunder.hit_frame = 3
+	sunder.effects = [_aoe(dtype, dmg * 1.4, 48.0), _shove()]
+	sunder.exit_type = "wait"
+	sunder.wait_duration = CANCEL_WIN
+	sunder.default_next = -1
+	sunder.branches = [
+		_branch_buffered("heavy_attack", 3),               # RMB → Thunder Blade
+		_branch_buffered("light_attack", 0),               # tap → loop to Cleave
+	]
+
+	# 3 — Thunder Blade (heavy finisher; terminal).
+	var thunder := _thunder_phase(dtype, dmg)
+
+	var choreo := ChoreographyDefinition.new()
+	choreo.phases = [cleave, cleave2, sunder, thunder]
+	return _ability("barbarian_light", "Ravager Combo", choreo)
+
+
+# --- Barbarian: heavy combo (RMB tap) ---
+## Sunder → Thunder Blade: crack the ground, then the sky answers. 0 Sunder · 1 Thunder.
+static func build_barbarian_heavy(weapon_data: Dictionary) -> AbilityDefinition:
+	var dmg: float = weapon_data.get("damage", 42.0)
+	var dtype: String = _damage_type(weapon_data)
+
+	var sunder := ChoreographyPhase.new()
+	sunder.animation = "sunder"
+	sunder.hit_frame = 3
+	sunder.effects = [_aoe(dtype, dmg * 0.7, 44.0), _shove()]
+	sunder.exit_type = "wait"
+	sunder.wait_duration = HEAVY_WIN
+	sunder.default_next = -1
+	sunder.branches = [
+		_branch_buffered("heavy_attack", 1),               # RMB → Thunder Blade
+	]
+
+	var thunder := _thunder_phase(dtype, dmg)
+
+	var choreo := ChoreographyDefinition.new()
+	choreo.phases = [sunder, thunder]
+	return _ability("barbarian_heavy", "Ravager Heavy", choreo)
+
+
+# --- Barbarian: Guard channel (RMB hold) ---
+## Sword up, feet planted: while held, ALL damage from the frontal arc is blocked outright —
+## player.take_damage checks the arc host-side and flashes the pack's BlockImpact sheet on
+## every stopped hit. (Throw Things moved to the E skill, Ben feel test 2026-07-05.) The
+## raise anim freezes on its last frame across self-loops (same-name play() is a no-op), so
+## the sword just stays up. Player slow applied host-side like all channels.
+static func build_barbarian_guard(weapon_data: Dictionary) -> AbilityDefinition:
+	var _dmg: float = weapon_data.get("damage", 42.0)   ## unused — the block deals no damage
+
+	var guard := ChoreographyPhase.new()
+	guard.animation = "guard"
+	guard.hit_frame = -1                                    # no effects; the block is host-side
+	guard.exit_type = "wait"
+	guard.wait_duration = GUARD_TICK
+	guard.default_next = 0                                  # still held → keep the sword up
+	guard.branches = [
+		_branch_held("heavy_attack", HOLD_KEEP, -1, true), # released → end
+	]
+
+	var choreo := ChoreographyDefinition.new()
+	choreo.phases = [guard]
+	return _ability("barbarian_guard", "Guard", choreo)
+
+
+## Shared Thunder Blade finisher: the lightning-wreathed swing lands a melee AoE AND looses
+## the package's own 4-frame directional lightning projectile at the cursor. The bolt is
+## Lightning by definition (the thunder is the point), independent of the weapon's element.
+static func _thunder_phase(dtype: String, dmg: float) -> ChoreographyPhase:
+	var t := ChoreographyPhase.new()
+	t.animation = "thunder"
+	t.hit_frame = 11                                        # the swing releases
+	t.effects = [_aoe(dtype, dmg * 1.2, 40.0), _thunder_bolt(dmg * 0.9)]
+	t.exit_type = "anim_finished"
+	t.default_next = -1
+	return t
+
+
+## Thunder Blade bolt: 4-frame directional lightning (the pack's own projectile grids).
+static func _thunder_bolt(hit_damage: float) -> SpawnProjectilesEffect:
+	var cfg := ProjectileConfig.new()
+	cfg.motion_type = "directional"
+	cfg.speed = 300.0
+	cfg.max_range = 230.0
+	cfg.hit_radius = 8.0
+	cfg.sprite_frames = _get_thunder_proj_frames()
+	cfg.use_directional_anims = true
+	var hit := DealDamageEffect.new()
+	hit.damage_type = "Lightning"
+	hit.base_damage = hit_damage
+	cfg.on_hit_effects = [hit]
+	var e := SpawnProjectilesEffect.new()
+	e.projectile = cfg
+	e.spawn_pattern = "aimed_single"
+	e.count = 1
+	return e
+
+
+## Battle Cry's fear-of-the-loud: enemies nearby stagger at -35% move speed for 3s.
+static func _shaken_debuff() -> ApplyStatusEffectData:
+	var status := StatusEffectDefinition.new()
+	status.status_id = "shaken"
+	status.is_positive = false
+	status.max_stacks = 1
+	status.base_duration = 3.0
+	status.duration_refresh_mode = "overwrite"
+	var slow := ModifierDefinition.new()
+	slow.target_tag = "move_speed"
+	slow.operation = "bonus"
+	slow.value = -0.35
+	slow.source_name = "shaken"
+	status.modifiers = [slow]
+	var apply := ApplyStatusEffectData.new()
+	apply.status = status
+	apply.stacks = 1
+	apply.apply_to_self = false
+	return apply
+
+
+# --- Ninja: light combo (LMB) ---
+## The Whisper — two knife-quick slashes (both with the pack's frame-matched Attack_Effect
+## gleam), looping; gated mid-combo RMB erupts into the Thousand Blades burst. Phase indices:
+## 0 Slash · 1 Slash II · 2 Storm Start · 3 Storm · 4 Storm End.
+static func build_ninja_light(weapon_data: Dictionary) -> AbilityDefinition:
+	var dmg: float = weapon_data.get("damage", 42.0)
+	var dtype: String = _damage_type(weapon_data)
+
+	# 0 — Slash (knife-quick opener). No storm branch here (gate = depth ≥ Slash II).
+	var slash := ChoreographyPhase.new()
+	slash.animation = "attack"
+	slash.hit_frame = 2
+	slash.effects = [_aoe(dtype, dmg * 0.9, 26.0)]
+	slash.exit_type = "wait"
+	slash.wait_duration = CANCEL_WIN
+	slash.default_next = -1
+	slash.branches = [
+		_branch_buffered("light_attack", 1),               # tap → Slash II
+	]
+
+	# 1 — Slash II (faster re-slice; gate now met → storm available; loops back on a tap).
+	var slash2 := ChoreographyPhase.new()
+	slash2.animation = "attack_2"
+	slash2.hit_frame = 2
+	slash2.effects = [_aoe(dtype, dmg * 0.7, 26.0)]
+	slash2.exit_type = "wait"
+	slash2.wait_duration = CANCEL_WIN
+	slash2.default_next = -1
+	slash2.branches = [
+		_branch_buffered("heavy_attack", 2),               # RMB → Thousand Blades burst
+		_branch_buffered("light_attack", 0),               # tap → loop to Slash
+	]
+
+	var phases: Array[ChoreographyPhase] = [slash, slash2]
+	phases.append_array(_blade_burst_phases(dtype, dmg, 2))
+
+	var choreo := ChoreographyDefinition.new()
+	choreo.phases = phases
+	return _ability("ninja_light", "Whisper Combo", choreo)
+
+
+# --- Ninja: Thousand Blades burst (RMB tap) ---
+## Crouch → one blade storm → flourish out. 0 Start · 1 Storm · 2 End.
+static func build_ninja_burst(weapon_data: Dictionary) -> AbilityDefinition:
+	var dmg: float = weapon_data.get("damage", 42.0)
+	var dtype: String = _damage_type(weapon_data)
+	var choreo := ChoreographyDefinition.new()
+	choreo.phases = _blade_burst_phases(dtype, dmg, 0)
+	return _ability("ninja_burst", "Thousand Blades", choreo)
+
+
+## Shared burst trio starting at `base` index: Start (wind-up crouch, no hit) → Storm (the
+## blade nova, Thousand_Blades_Effect riding the ComboFx overlay) → End (flourish, smaller hit).
+static func _blade_burst_phases(dtype: String, dmg: float, base: int) -> Array[ChoreographyPhase]:
+	var start := ChoreographyPhase.new()
+	start.animation = "blades_start"
+	start.hit_frame = -1
+	start.exit_type = "anim_finished"
+	start.default_next = base + 1
+
+	var storm := ChoreographyPhase.new()
+	storm.animation = "blades"
+	storm.hit_frame = 2
+	storm.effects = [_aoe(dtype, dmg * 1.4, 50.0)]
+	storm.exit_type = "anim_finished"
+	storm.default_next = base + 2
+
+	var end := ChoreographyPhase.new()
+	end.animation = "blades_end"
+	end.hit_frame = 1
+	end.effects = [_aoe(dtype, dmg * 0.6, 40.0)]
+	end.exit_type = "anim_finished"
+	end.default_next = -1
+
+	return [start, storm, end]
+
+
+# --- Ninja: Thousand Blades storm channel (RMB hold) ---
+## The sustained version: crouch in, then the storm ticks while held, flourishing out on
+## release — the first channel with a real intro and outro. Player slow applied host-side.
+## 0 Start · 1 Storm loop · 2 End.
+static func build_ninja_storm(weapon_data: Dictionary) -> AbilityDefinition:
+	var dmg: float = weapon_data.get("damage", 42.0)
+	var dtype: String = _damage_type(weapon_data)
+
+	var start := ChoreographyPhase.new()
+	start.animation = "blades_start"
+	start.hit_frame = -1
+	start.exit_type = "anim_finished"
+	start.default_next = 1
+
+	var storm := ChoreographyPhase.new()
+	storm.animation = "blades"
+	storm.hit_frame = 2
+	storm.effects = [_aoe(dtype, dmg * 0.5, 50.0)]          # per-tick (lower; repeats)
+	storm.exit_type = "wait"
+	storm.wait_duration = BLADES_TICK
+	storm.default_next = 1                                  # still held → keep storming
+	storm.branches = [
+		_branch_held("heavy_attack", HOLD_KEEP, 2, true),  # released → flourish out
+	]
+
+	var end := ChoreographyPhase.new()
+	end.animation = "blades_end"
+	end.hit_frame = 1
+	end.effects = [_aoe(dtype, dmg * 0.6, 45.0)]
+	end.exit_type = "anim_finished"
+	end.default_next = -1
+
+	var choreo := ChoreographyDefinition.new()
+	choreo.phases = [start, storm, end]
+	return _ability("ninja_storm", "Thousand Blades Storm", choreo)
+
+
+## Smoke Bomb conceal: same "concealed" status the Ranger's cloak uses (player.is_invisible —
+## enemies stop chasing) but one long vanish that lasts until the Whisper ATTACKS (host drops
+## the status on any damaging combo/skill/dash-strike; the duration is just the safety cap).
+static func _smoke_conceal() -> ApplyStatusEffectData:
+	var status := StatusEffectDefinition.new()
+	status.status_id = "concealed"
+	status.is_positive = true
+	status.max_stacks = 1
+	status.base_duration = 8.0
+	status.duration_refresh_mode = "overwrite"
+	var apply := ApplyStatusEffectData.new()
+	apply.status = status
+	apply.stacks = 1
+	apply.apply_to_self = true
+	return apply
+
+
+# --- Gunslinger: light combo (LMB) ---
+## The Deadeye — every tap is a trigger pull: two alternating shot casts (distinct names so
+## each re-fires), each loosing one fast bullet with the pack's impact burst; gated mid-combo
+## RMB fans the hammer. Phase indices: 0 Shot · 1 Shot II · 2 Fan the Hammer.
+static func build_gunslinger_light(weapon_data: Dictionary) -> AbilityDefinition:
+	var dmg: float = weapon_data.get("damage", 42.0)
+	var dtype: String = _damage_type(weapon_data)
+
+	# 0 — Shot (single crisp bullet at the cursor).
+	var shot := ChoreographyPhase.new()
+	shot.animation = "attack"
+	shot.hit_frame = 3
+	shot.effects = [_gun_bullet(dtype, dmg * 0.85)]
+	shot.exit_type = "wait"
+	shot.wait_duration = CANCEL_WIN
+	shot.default_next = -1
+	shot.branches = [
+		_branch_buffered("light_attack", 1),               # tap → Shot II
+	]
+
+	# 1 — Shot II (alternate pull; gate now met → fan available; loops back on a tap).
+	var shot2 := ChoreographyPhase.new()
+	shot2.animation = "attack_2"
+	shot2.hit_frame = 3
+	shot2.effects = [_gun_bullet(dtype, dmg * 0.85)]
+	shot2.exit_type = "wait"
+	shot2.wait_duration = CANCEL_WIN
+	shot2.default_next = -1
+	shot2.branches = [
+		_branch_buffered("heavy_attack", 2),               # RMB → Fan the Hammer
+		_branch_buffered("light_attack", 0),               # tap → loop to Shot
+	]
+
+	# 2 — Fan the Hammer (gated finisher; terminal).
+	var fan := _fan_hammer_phase(dtype, dmg)
+
+	var choreo := ChoreographyDefinition.new()
+	choreo.phases = [shot, shot2, fan]
+	return _ability("gunslinger_light", "Deadeye Combo", choreo)
+
+
+# --- Gunslinger: Fan the Hammer (RMB tap) ---
+## The whole cylinder at once: 5 bullets in a wide fan, each landing with the FTH impact.
+static func build_gunslinger_fan(weapon_data: Dictionary) -> AbilityDefinition:
+	var dmg: float = weapon_data.get("damage", 42.0)
+	var dtype: String = _damage_type(weapon_data)
+	var choreo := ChoreographyDefinition.new()
+	choreo.phases = [_fan_hammer_phase(dtype, dmg)]
+	return _ability("gunslinger_fan", "Fan the Hammer", choreo)
+
+
+static func _fan_hammer_phase(dtype: String, dmg: float) -> ChoreographyPhase:
+	var fan := ChoreographyPhase.new()
+	fan.animation = "fan"
+	fan.hit_frame = 6                                       # the hammer blurs
+	fan.effects = [_fan_bullets(dtype, dmg * 0.45)]
+	fan.exit_type = "anim_finished"
+	fan.default_next = -1
+	return fan
+
+
+# --- Gunslinger: Desert Storm channel (RMB hold) ---
+## Lead pours toward the cursor while held: each loop volleys a tight bullet cone, with the
+## pack's directional Desert Storm barrage strip blazing ahead of the Deadeye (host overlay,
+## torrent-style). Player slow applied host-side like all channels.
+static func build_gunslinger_desert_storm(weapon_data: Dictionary) -> AbilityDefinition:
+	var dmg: float = weapon_data.get("damage", 42.0)
+	var dtype: String = _damage_type(weapon_data)
+
+	var storm := ChoreographyPhase.new()
+	storm.animation = "storm"
+	storm.hit_frame = 5                                     # the barrels open up
+	storm.effects = [_storm_bullets(dtype, dmg * 0.35)]    # per-tick cone (lower; repeats)
+	storm.exit_type = "wait"
+	storm.wait_duration = STORM_TICK
+	storm.default_next = 0                                  # still held → keep firing
+	storm.branches = [
+		_branch_held("heavy_attack", HOLD_KEEP, -1, true), # released → end
+	]
+
+	var choreo := ChoreographyDefinition.new()
+	choreo.phases = [storm]
+	return _ability("gunslinger_storm", "Desert Storm", choreo)
+
+
+# --- Gunslinger projectile builders (Shot / Fan_The_Hammer packages) ---
+
+const GUNSLINGER_ASSET_DIR: String = "res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Tech-Augmented_Gunslinger/"
+static var _bullet_frames: SpriteFrames = null
+static var _bullet_impact_frames: SpriteFrames = null
+static var _fth_impact_frames: SpriteFrames = null
+
+
+## One fast bullet at the cursor. Bullets have no in-flight sheet in the pack (they're meant
+## to read as near-hitscan) — the tracer is the impact burst's first spark frame, and the
+## landing plays the full Projectile_Impact sheet.
+static func _gun_bullet(dtype: String, hit_damage: float) -> SpawnProjectilesEffect:
+	var e := SpawnProjectilesEffect.new()
+	e.projectile = _bullet_config(dtype, hit_damage, _get_bullet_impact_frames())
+	e.spawn_pattern = "aimed_single"
+	e.count = 1
+	return e
+
+
+## Fan the Hammer: 5 bullets in a wide fan, FTH's own impact sheet on each landing.
+static func _fan_bullets(dtype: String, per_bullet: float) -> SpawnProjectilesEffect:
+	var e := SpawnProjectilesEffect.new()
+	e.projectile = _bullet_config(dtype, per_bullet, _get_fth_impact_frames())
+	e.spawn_pattern = "spread"
+	e.count = 5
+	e.spread_angle = 44.0
+	return e
+
+
+## Desert Storm tick: a tight 3-bullet cone toward the cursor.
+static func _storm_bullets(dtype: String, per_bullet: float) -> SpawnProjectilesEffect:
+	var e := SpawnProjectilesEffect.new()
+	e.projectile = _bullet_config(dtype, per_bullet, _get_bullet_impact_frames())
+	e.spawn_pattern = "spread"
+	e.count = 3
+	e.spread_angle = 22.0
+	return e
+
+
+static func _bullet_config(dtype: String, hit_damage: float, impact: SpriteFrames) -> ProjectileConfig:
+	var cfg := ProjectileConfig.new()
+	cfg.motion_type = "directional"
+	cfg.speed = 460.0
+	cfg.max_range = 250.0
+	cfg.hit_radius = 6.0
+	cfg.sprite_frames = _get_bullet_frames()
+	var hit := DealDamageEffect.new()
+	hit.damage_type = dtype
+	hit.base_damage = hit_damage
+	cfg.on_hit_effects = [hit]
+	cfg.impact_sprite_frames = impact
+	cfg.impact_animation = "impact"
+	return cfg
+
+
+## Tracer: the first spark frame of Projectile_Impact on the SpriteFrames' stock "default"
+## animation (non-directional projectiles play "default"; the manager rotates the sprite).
+static func _get_bullet_frames() -> SpriteFrames:
+	if _bullet_frames:
+		return _bullet_frames
+	var tex: Texture2D = load(GUNSLINGER_ASSET_DIR + "General_Animations/Projectile_Impact.png")
+	var frames := SpriteFrames.new()
+	var cell := AtlasTexture.new()
+	cell.atlas = tex
+	cell.region = Rect2(0, 0, 32, 32)
+	cell.filter_clip = true
+	frames.add_frame(&"default", cell)
+	_bullet_frames = frames
+	return frames
+
+
+static func _get_bullet_impact_frames() -> SpriteFrames:
+	if _bullet_impact_frames:
+		return _bullet_impact_frames
+	_bullet_impact_frames = _oneshot_row_frames(GUNSLINGER_ASSET_DIR + "General_Animations/Projectile_Impact.png", 20.0)
+	return _bullet_impact_frames
+
+
+static func _get_fth_impact_frames() -> SpriteFrames:
+	if _fth_impact_frames:
+		return _fth_impact_frames
+	_fth_impact_frames = _oneshot_row_frames(GUNSLINGER_ASSET_DIR + "Special_Animations/Fan_The_Hammer/FTH_Projectile_Impact.png", 24.0)
+	return _fth_impact_frames
+
+
+# --- Barbarian projectile builder (Thunder_Blade_Attack package) ---
+
+const BARBARIAN_ASSET_DIR: String = "res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/"
+static var _thunder_proj_frames: SpriteFrames = null
+
+
+## The four ThunderBladeProjectilesFrameN.png files are each a 3×3 directional grid — one
+## animation FRAME per file, so each direction gets a looping 4-frame crackling bolt.
+static func _get_thunder_proj_frames() -> SpriteFrames:
+	if _thunder_proj_frames:
+		return _thunder_proj_frames
+	var frames := SpriteFrames.new()
+	frames.clear_all()
+	var sheets: Array = []
+	for n in range(1, 5):
+		sheets.append(load(BARBARIAN_ASSET_DIR
+				+ "Special_Animations/Thunder_Blade_Attack/Minifantasy_TrueHeroesBarbarianThunderBladeProjectilesFrame%d.png" % n))
+	for dir_name in GRID8_CELLS:
+		var anim := StringName(dir_name)
+		frames.add_animation(anim)
+		frames.set_animation_loop(anim, true)
+		frames.set_animation_speed(anim, 12.0)
+		var c: Vector2i = GRID8_CELLS[dir_name]
+		for tex in sheets:
+			if tex == null:
+				continue
+			var cell := AtlasTexture.new()
+			cell.atlas = tex
+			cell.region = Rect2(c.x * 32, c.y * 32, 32, 32)
+			cell.filter_clip = true
+			frames.add_frame(anim, cell)
+	_thunder_proj_frames = frames
+	return frames
+
+
+# --- Ranger/Bard builders ---
+
+const RANGER_ASSET_DIR: String = "res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Ranger/"
+const BARD_ASSET_DIR: String = "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/"
+static var _arrow_frames: SpriteFrames = null
+static var _knife_frames: SpriteFrames = null
+static var _knife_impact_frames: SpriteFrames = null
+static var _chord_frames: SpriteFrames = null
+static var _chord_impact_frames: SpriteFrames = null
+
+## 3×3 directional grid cells shared by all single-frame projectile sheets.
+const GRID8_CELLS: Dictionary = {
+	"e": Vector2i(2, 1), "se": Vector2i(2, 2), "s": Vector2i(1, 2), "sw": Vector2i(0, 2),
+	"w": Vector2i(0, 1), "nw": Vector2i(0, 0), "n": Vector2i(1, 0), "ne": Vector2i(2, 0),
+}
+
+
+static func _arrow_volley(dtype: String, per_arrow: float, count: int, spread: float) -> SpawnProjectilesEffect:
+	var cfg := ProjectileConfig.new()
+	cfg.motion_type = "directional"
+	cfg.speed = 300.0
+	cfg.max_range = 240.0
+	cfg.hit_radius = 6.0
+	cfg.sprite_frames = _grid8_frames(RANGER_ASSET_DIR + "General_Animations/Single_Arrow_Projectile.png", "_arrow_frames")
+	cfg.use_directional_anims = true
+	var hit := DealDamageEffect.new()
+	hit.damage_type = dtype
+	hit.base_damage = per_arrow
+	cfg.on_hit_effects = [hit]
+	var e := SpawnProjectilesEffect.new()
+	e.projectile = cfg
+	e.spawn_pattern = "aimed_single" if count == 1 else "spread"
+	e.count = count
+	e.spread_angle = spread
+	return e
+
+
+## Heavy spinning knife: 8-way tumble (ortho+diagonal 4-row sheets), pierces one victim,
+## lands with the Knife_On_The_Ground sheet as its impact.
+static func _throwing_knife(dtype: String, hit_damage: float) -> SpawnProjectilesEffect:
+	var cfg := ProjectileConfig.new()
+	cfg.motion_type = "directional"
+	cfg.speed = 260.0
+	cfg.max_range = 210.0
+	cfg.hit_radius = 8.0
+	cfg.pierce_count = 1
+	cfg.sprite_frames = _get_knife_frames()
+	cfg.use_directional_anims = true
+	var hit := DealDamageEffect.new()
+	hit.damage_type = dtype
+	hit.base_damage = hit_damage
+	cfg.on_hit_effects = [hit]
+	cfg.impact_sprite_frames = _get_knife_impact_frames()
+	cfg.impact_animation = "impact"
+	var e := SpawnProjectilesEffect.new()
+	e.projectile = cfg
+	e.spawn_pattern = "aimed_single"
+	e.count = 1
+	return e
+
+
+static func _chord_bolt(dtype: String, hit_damage: float) -> SpawnProjectilesEffect:
+	var cfg := ProjectileConfig.new()
+	cfg.motion_type = "directional"
+	cfg.speed = 250.0
+	cfg.max_range = 210.0
+	cfg.hit_radius = 8.0
+	cfg.sprite_frames = _grid8_frames(BARD_ASSET_DIR + "Special_Animations/Dissonant_Chord/DissonantChordProjectile.png", "_chord_frames")
+	cfg.use_directional_anims = true
+	var hit := DealDamageEffect.new()
+	hit.damage_type = dtype
+	hit.base_damage = hit_damage
+	cfg.on_hit_effects = [hit]
+	cfg.impact_sprite_frames = _get_chord_impact_frames()
+	cfg.impact_animation = "impact"
+	var e := SpawnProjectilesEffect.new()
+	e.projectile = cfg
+	e.spawn_pattern = "aimed_single"
+	e.count = 1
+	return e
+
+
+static func _apotheosis_phase(dtype: String, dmg: float) -> ChoreographyPhase:
+	var apo := ChoreographyPhase.new()
+	apo.animation = "apotheosis"
+	apo.hit_frame = 8
+	apo.effects = [_aoe(dtype, dmg * 1.6, 60.0), _timed_damage_buff("apotheosis", 0.20, 6.0)]
+	apo.exit_type = "anim_finished"
+	apo.default_next = -1
+	return apo
+
+
+## "Concealed": while refreshed, player.is_invisible() — enemies stop chasing. Duration
+## outlasts the conceal loop tick so the stealth never blinks between refreshes.
+static func _concealed_status() -> ApplyStatusEffectData:
+	var status := StatusEffectDefinition.new()
+	status.status_id = "concealed"
+	status.is_positive = true
+	status.max_stacks = 1
+	status.base_duration = 1.2
+	status.duration_refresh_mode = "overwrite"
+	var apply := ApplyStatusEffectData.new()
+	apply.status = status
+	apply.stacks = 1
+	apply.apply_to_self = true
+	return apply
+
+
+## Vicious Mockery: enemies hit sing along at -20% damage for 4s (applied to targets, not self).
+static func _mocked_debuff() -> ApplyStatusEffectData:
+	var status := StatusEffectDefinition.new()
+	status.status_id = "mocked"
+	status.is_positive = false
+	status.max_stacks = 1
+	status.base_duration = 4.0
+	status.duration_refresh_mode = "overwrite"
+	var dmg_mod := ModifierDefinition.new()
+	dmg_mod.target_tag = "damage"
+	dmg_mod.operation = "bonus"
+	dmg_mod.value = -0.20
+	dmg_mod.source_name = "mocked"
+	status.modifiers = [dmg_mod]
+	var apply := ApplyStatusEffectData.new()
+	apply.status = status
+	apply.stacks = 1
+	apply.apply_to_self = false
+	return apply
+
+
+## Enhancement Song: short damage buff refreshed every beat — fades quickly once you stop playing.
+static func _enhancement_buff() -> ApplyStatusEffectData:
+	return _timed_damage_buff("enhancement_song", 0.15, 1.2)
+
+
+## Shared shape for self-applied +damage statuses (blood_power / apotheosis / enhancement_song).
+static func _timed_damage_buff(id: String, amount: float, duration: float) -> ApplyStatusEffectData:
+	var buff := StatusEffectDefinition.new()
+	buff.status_id = id
+	buff.is_positive = true
+	buff.max_stacks = 1
+	buff.base_duration = duration
+	buff.duration_refresh_mode = "overwrite"
+	var dmg_mod := ModifierDefinition.new()
+	dmg_mod.target_tag = "damage"
+	dmg_mod.operation = "bonus"
+	dmg_mod.value = amount
+	dmg_mod.source_name = id
+	buff.modifiers = [dmg_mod]
+	var apply := ApplyStatusEffectData.new()
+	apply.status = buff
+	apply.stacks = 1
+	apply.apply_to_self = true
+	return apply
+
+
+## Shared 3×3-grid slicer for single-frame directional projectile sheets, cached per sheet.
+static var _grid8_cache: Dictionary = {}
+static func _grid8_frames(path: String, cache_key: String) -> SpriteFrames:
+	if _grid8_cache.has(cache_key):
+		return _grid8_cache[cache_key]
+	var tex: Texture2D = load(path)
+	var frames := SpriteFrames.new()
+	frames.clear_all()
+	for dir_name in GRID8_CELLS:
+		var anim := StringName(dir_name)
+		frames.add_animation(anim)
+		frames.set_animation_loop(anim, true)
+		var cell := AtlasTexture.new()
+		cell.atlas = tex
+		var c: Vector2i = GRID8_CELLS[dir_name]
+		cell.region = Rect2(c.x * 32, c.y * 32, 32, 32)
+		cell.filter_clip = true
+		frames.add_frame(anim, cell)
+	_grid8_cache[cache_key] = frames
+	return frames
+
+
+## Knife tumble: ortho sheet rows = cardinal travel, diagonal sheet rows = diagonals
+## (HolyHammer row-mapping convention — swap rows here if a scrub shows a mismatch).
+static func _get_knife_frames() -> SpriteFrames:
+	if _knife_frames:
+		return _knife_frames
+	var frames := SpriteFrames.new()
+	frames.clear_all()
+	var ortho_rows: Dictionary = {"n": 0, "e": 1, "s": 2, "w": 3}
+	var diag_rows: Dictionary = {"ne": 0, "se": 1, "sw": 2, "nw": 3}
+	_slice_dir_rows(frames, RANGER_ASSET_DIR + "Special_Animations/Throwing_Knife/Knife_Projectile_Orthogonal.png", ortho_rows, 4, 12.0)
+	_slice_dir_rows(frames, RANGER_ASSET_DIR + "Special_Animations/Throwing_Knife/Knife_Projectile_Diagonal.png", diag_rows, 4, 12.0)
+	_knife_frames = frames
+	return frames
+
+
+static func _slice_dir_rows(frames: SpriteFrames, path: String, rows: Dictionary,
+		count: int, fps: float) -> void:
+	var tex: Texture2D = load(path)
+	if tex == null:
+		return
+	for dir_name in rows:
+		var anim := StringName(dir_name)
+		frames.add_animation(anim)
+		frames.set_animation_loop(anim, true)
+		frames.set_animation_speed(anim, fps)
+		for i in range(count):
+			var cell := AtlasTexture.new()
+			cell.atlas = tex
+			cell.region = Rect2(i * 32, int(rows[dir_name]) * 32, 32, 32)
+			cell.filter_clip = true
+			frames.add_frame(anim, cell)
+
+
+static func _get_knife_impact_frames() -> SpriteFrames:
+	if _knife_impact_frames:
+		return _knife_impact_frames
+	_knife_impact_frames = _oneshot_row_frames(RANGER_ASSET_DIR + "Special_Animations/Throwing_Knife/Knife_On_The_Ground.png", 12.0)
+	return _knife_impact_frames
+
+
+static func _get_chord_impact_frames() -> SpriteFrames:
+	if _chord_impact_frames:
+		return _chord_impact_frames
+	_chord_impact_frames = _oneshot_row_frames(BARD_ASSET_DIR + "Special_Animations/Dissonant_Chord/DissonantChordImpact.png", 16.0)
+	return _chord_impact_frames
+
+
+## Single-row 32px sheet → one-shot "impact" animation.
+static func _oneshot_row_frames(path: String, fps: float) -> SpriteFrames:
+	var tex: Texture2D = load(path)
+	var frames := SpriteFrames.new()
+	frames.clear_all()
+	frames.add_animation(&"impact")
+	frames.set_animation_loop(&"impact", false)
+	frames.set_animation_speed(&"impact", fps)
+	if tex:
+		for i in range(int(tex.get_width() / 32.0)):
+			var cell := AtlasTexture.new()
+			cell.atlas = tex
+			cell.region = Rect2(i * 32, 0, 32, 32)
+			cell.filter_clip = true
+			frames.add_frame(&"impact", cell)
+	return frames
 
 
 # --- Blood Mage builders (Blood_Shard package + the pact buff) ---

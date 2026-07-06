@@ -67,6 +67,8 @@ var _base_proj_hit_radius: float = 8.0
 
 ## Character passive
 var _passive_id: String = "none"
+var _bloodrage_on: bool = false   ## Ravager Bloodrage: tracked so the modifier only toggles on threshold crossings
+var _calm_hands_on: bool = false  ## Deadeye Calm Hands: same threshold-toggle pattern, top of the health bar
 
 ## State
 var god_mode: bool = false
@@ -108,6 +110,7 @@ var _dash_dir: Vector2 = Vector2.ZERO    ## locked-in dash direction
 var _dash_speed_current: float = 0.0     ## dash_speed snapshotted at dash start
 var _dash_charges: int = 1               ## currently available charges
 var _dash_cooldown_timer: float = 0.0    ## counts down to the next charge refill
+var _dash_anim_timer: float = 0.0        ## dash anim (Dodge roll / teleport_in) holds walk/idle off
 var _last_move_dir: Vector2 = Vector2.RIGHT  ## fallback dash direction when no input is held
 
 ## Orbit orbs (Lightning Orb weapon)
@@ -167,6 +170,26 @@ const BOMB_ARC_H: float = 14.0
 ## directional 64px torrent flame sheet (4 facing rows, drawn ahead of the caster).
 const TELEPORT_RANGE: float = 100.0
 const TORRENT_FORWARD: float = 36.0
+## Barbarian Throw Things: the junk lands at the cursor, clamped to a hurl range. The thrown
+## slab itself is cropped from the ThrowThings sheet's release frame (the pack draws it there —
+## no separate projectile asset ships) and arced to the landing point as a world visual.
+const THROW_RANGE: float = 120.0
+## Barbarian Guard (RMB-hold channel): sword up — ALL damage from the frontal arc is blocked
+## outright (take_damage), with the pack's BlockImpact flashing on each stopped hit.
+const GUARD_BLOCK_ARC: float = 2.62   ## ~150° frontal arc (radians)
+## Gunslinger Desert Storm: the pack's directional barrage strips (8 files, 16f @ 96px cells)
+## blaze ahead of the Deadeye toward the cursor while the channel pours, torrent-style.
+const STORM_FX_DIR: String = "res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Tech-Augmented_Gunslinger/Special_Animations/Desert_Storm/Projectile_Impacts/"
+const STORM_FX_FILES: Dictionary = {
+	"e": "DS_Projectile_Impact_E.png", "se": "DS_Projectile_Impact_S-E.png",
+	"s": "DS_Projectile_Impact_S.png", "sw": "DS_Projectile_Impact_S-W.png",
+	"w": "DS_Projectile_Impact_W.png", "nw": "DS_Projectile_Impact_N-W.png",
+	"n": "DS_Projectile_Impact_N.png", "ne": "DS_Projectile_Impact_N-E.png",
+}
+const STORM_FORWARD: float = 52.0
+var _storm_fx: AnimatedSprite2D = null
+const THROW_SHEET: String = "res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Throw_Things/Minifantasy_TrueHeroesBarbarianThrowThings.png"
+const THROW_JUNK_REGION: Rect2 = Rect2(499, 13, 13, 8)   ## the airborne slab in row 0, frame 15
 const TORRENT_FX_SHEET: String = "res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Wizard/Special_Animations/Fire_Torrent/Fire_Torrent_Effect.png"
 var _fire_familiar: Node2D = null
 var _torrent_fx: AnimatedSprite2D = null
@@ -180,6 +203,20 @@ const DRAIN_WISP_SHEET: String = "res://assets/minifantasy/Minifantasy_True_Hero
 var _blood_elemental: Node2D = null
 var _vamp_fx: AnimatedSprite2D = null
 var _vamp_hit: bool = false              ## last extract beat found blood to drink
+## Bard kit (The Herald): Ballad heal-per-beat + the loose Songs effect sheets.
+const BALLAD_HEAL_FRAC: float = 0.01     ## Ballad beat heals 1% max HP
+const BALLAD_NOTE_SHEET: String = "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/Ballad/BalladEnchant1.png"
+const MOCKERY_WISP_SHEET: String = "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/Vicious_Mockery/ViciousMockery.png"
+const CHARM_HEART_SHEET: String = "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/Ballad/BalladEnchant2.png"
+const CHARM_MAX_TARGETS: int = 3
+const CHARM_RANGE: float = 110.0
+## Control-scheme pass (2026-07-05): kit id + class dash + Bard song stance + Wizard charge.
+var _kit_id: String = ""
+var _dash_style: String = ""             ## "" = standard dash; "teleport" = Spark blink
+var _active_song: String = "ballad"      ## Bard stance (Q cycles; Perform plays it)
+var _charge_start_ms: int = -1           ## Wizard Fireball charge start (real-time ms)
+const WIZARD_CHARGE_SLOW: float = -0.4   ## move_speed penalty while charging (the greed tax)
+const FIREBALL_MULT_MAX: float = 2.0     ## full overcharge doubles the Fireball
 ## Reach cap: base hit zones (ChainFactory) are ~half the "loved" size; full Reach mods scale them
 ## up to ~2× = the end-of-the-road size. Capped so it tops out there instead of growing forever.
 const MELEE_RANGE_MAX: float = 2.0
@@ -383,6 +420,34 @@ func _apply_passive_mods() -> void:
 		modifier_component.add_modifier(mod)
 	if _passive_id == "cursed_passive":
 		health.setup(get_stat("max_hp"))
+
+
+## Ravager Bloodrage: the +damage modifier exists only while below half HP.
+func _update_bloodrage() -> void:
+	var raging: bool = health.current_hp < health.max_hp * 0.5
+	if raging == _bloodrage_on:
+		return
+	_bloodrage_on = raging
+	if raging:
+		_add_modifier("damage", "bonus", 0.30, "passive_bloodrage")
+	else:
+		modifier_component.remove_by_source_prefix("passive_bloodrage")
+	print("[RAVAGER] bloodrage %s (hp %.1f/%.1f, damage stat %.1f)" % [
+			"ON" if raging else "off", health.current_hp, health.max_hp, get_stat("damage")])
+
+
+## Deadeye Calm Hands: the +damage modifier exists only while above 80% HP.
+func _update_calm_hands() -> void:
+	var calm: bool = health.current_hp > health.max_hp * 0.8
+	if calm == _calm_hands_on:
+		return
+	_calm_hands_on = calm
+	if calm:
+		_add_modifier("damage", "bonus", 0.25, "passive_calm_hands")
+	else:
+		modifier_component.remove_by_source_prefix("passive_calm_hands")
+	print("[DEADEYE] calm hands %s (hp %.1f/%.1f, damage stat %.1f)" % [
+			"ON" if calm else "off", health.current_hp, health.max_hp, get_stat("damage")])
 
 
 # --- Mod loading ---
@@ -632,6 +697,14 @@ func _physics_process(delta: float) -> void:
 	if not is_alive:
 		return
 
+	# Ravager Bloodrage: +30% damage below half HP (warden-style conditional passive;
+	# polled here because heals bypass player.take_damage — one compare per frame).
+	if _passive_id == "ravager_passive":
+		_update_bloodrage()
+	# Deadeye Calm Hands: +25% damage above 80% HP — the mirror image of Bloodrage.
+	elif _passive_id == "deadeye_passive":
+		_update_calm_hands()
+
 	# Iframe countdown
 	if _iframes_timer > 0.0:
 		_iframes_timer -= delta
@@ -684,12 +757,14 @@ func _physics_process(delta: float) -> void:
 		sprite.position = position.round() - position
 	knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 1400.0 * delta)
 
+	_dash_anim_timer = maxf(_dash_anim_timer - delta, 0.0)
 	if sprite:
 		_update_facing()
 		## Legacy mirror-flip only for baked frames without directional rows.
 		if not _has_dir_anims and input_dir.x != 0:
 			sprite.flip_h = input_dir.x < 0
-		if not _attack_anim_active and not _damage_anim_active and not _is_dying:
+		if not _attack_anim_active and not _damage_anim_active and not _is_dying \
+				and _dash_anim_timer <= 0.0:
 			if input_dir.length_squared() > 0:
 				_play_anim("walk")
 			else:
@@ -856,6 +931,9 @@ func _load_combo() -> void:
 	var char_id: String = ProgressionManager.selected_character
 	var char_data: Dictionary = CharacterData.ALL.get(char_id, {})
 	var kit_id: String = char_data.get("melee_kit", "")
+	_kit_id = kit_id
+	_dash_style = char_data.get("dash_style", "")
+	_active_song = "ballad"
 	if kit_id != "":
 		var kit: Dictionary = ChainFactory.build_kit(kit_id, _weapon_data)
 		set_combo_ability(kit.get("light"))
@@ -865,9 +943,13 @@ func _load_combo() -> void:
 		set_combo_ability(null)
 		_combo_heavy = null
 		_combo_channel = null
-	## RMB specials are combo abilities now, not numbered skills.
+	## RMB specials are combo abilities; Q/E skills load from SkillFactory per kit.
 	if skill_component:
 		skill_component.clear()
+		if kit_id != "":
+			var skills: Dictionary = SkillFactory.build_kit_skills(kit_id, _weapon_data)
+			for slot in skills:
+				skill_component.set_skill(slot, skills[slot])
 
 
 func _tick_combo() -> void:
@@ -877,6 +959,14 @@ func _tick_combo() -> void:
 	if choreography_runner == null or choreography_runner.is_running():
 		_rmb_pending = false   ## a combo started under us — drop any pending neutral RMB
 		return
+
+	## Q/E skills (control-scheme pass 2026-07-05). Q: instant stance actions (Bard song
+	## cycle — no runner); E: SkillComponent skill through the shared runner.
+	if InputMap.has_action("skill_q") and Input.is_action_just_pressed("skill_q"):
+		_on_skill_q()
+	if InputMap.has_action("skill_e") and Input.is_action_just_pressed("skill_e") \
+			and skill_component and skill_component.has_skill("skill_e"):
+		skill_component.trigger("skill_e")
 
 	if Input.is_action_just_pressed("light_attack"):
 		## Consume the opening tap so the first cancel window doesn't read it as an advance.
@@ -900,6 +990,20 @@ func _tick_combo() -> void:
 			if _combo_heavy != null:
 				choreography_runner.start(_combo_heavy, [self])
 			_rmb_pending = false
+
+
+func _on_skill_q() -> void:
+	## Non-bard kits: Q is a normal skill slot fired through the shared runner, like E.
+	if _kit_id != "bard":
+		if skill_component and skill_component.has_skill("skill_q"):
+			skill_component.trigger("skill_q")
+		return
+	## Bard: cycle the song stance — Perform (RMB hold) plays whichever song is active.
+	_active_song = "enhance" if _active_song == "ballad" else "ballad"
+	_combo_channel = ChainFactory.build_bard_perform(_weapon_data, _active_song)
+	## Feedback pop: a note for the Ballad, a heart-shimmer for the Enhancement.
+	_spawn_oneshot_fx(BALLAD_NOTE_SHEET if _active_song == "ballad" else CHARM_HEART_SHEET,
+			global_position + Vector2(0, -20), 12.0)
 
 
 func _start_taunt_channel() -> void:
@@ -931,6 +1035,13 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 	##    per call), targeting nearby enemies, knockback away from the player.
 	##  • anything else — fire on the nearby-enemy set.
 	var reach: float = _melee_range()
+	## Aggression breaks stealth: any damaging effect fired drops "concealed" (Smoke Bomb
+	## lasts until the attack; the Ranger's channel is unaffected — its beats deal no damage).
+	if status_effect_component.has_status("concealed"):
+		for eff in effects:
+			if eff is AreaDamageEffect or eff is SpawnProjectilesEffect or eff is DealDamageEffect:
+				status_effect_component.force_remove_status("concealed", self)
+				break
 	## Bomb detonation: this callback IS the hit_frame moment — swap the tossed bomb for the
 	## package explosion at its world landing spot.
 	var is_bomb: bool = sprite != null and String(sprite.animation).begins_with("bomb")
@@ -941,6 +1052,9 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 	if sprite != null and String(sprite.animation).begins_with("hammer"):
 		_spawn_holy_hammers(reach)
 	var cur_anim: String = String(sprite.animation) if sprite else ""
+	## Barbarian Sunder: the broken ground stays broken — leave a fading crack decal.
+	if cur_anim.begins_with("sunder"):
+		_spawn_sunder_cracks()
 	## Companion summons: the ignition burst also spawns/refreshes the kit's companion.
 	## (Order matters — "summon_blood" must not fall into the generic "summon" case.)
 	if cur_anim.begins_with("summon_blood"):
@@ -948,6 +1062,7 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 	elif cur_anim.begins_with("summon"):
 		_spawn_fire_familiar()
 	var is_torrent: bool = cur_anim.begins_with("torrent")
+	var is_throw: bool = cur_anim.begins_with("throw")
 	var is_teleport: bool = cur_anim.begins_with("teleport_out")
 	var is_extract: bool = cur_anim.begins_with("extract")
 	var is_spikes: bool = cur_anim.begins_with("spikes")
@@ -990,7 +1105,46 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 			var t_aim: Vector2 = get_global_mouse_position() - global_position
 			if t_aim.length_squared() >= 1.0:
 				center = _get_aim_target(global_position + t_aim.normalized() * TORRENT_FORWARD)
+		elif is_throw:
+			## Throw Things: the junk lands where you point, up to a hurl's reach.
+			var j_aim: Vector2 = get_global_mouse_position() - global_position
+			if j_aim.length() > THROW_RANGE:
+				j_aim = j_aim.normalized() * THROW_RANGE
+			center = _get_aim_target(global_position + j_aim)
+			_spawn_thrown_junk(global_position + j_aim)
 		EffectDispatcher.execute_effects(self_effects, self, [center], ability, combat_manager)
+
+	## Charged Fireball release: swap the base projectile for one scaled by how long the
+	## charge was held (damage up to ×2; blast radius and visual grow with the square root).
+	if cur_anim.begins_with("fireball_2") and _charge_start_ms >= 0:
+		var charge_t: float = float(Time.get_ticks_msec() - _charge_start_ms) / 1000.0
+		_charge_start_ms = -1
+		var mult: float = clampf(1.0 + charge_t / ChainFactory.WIZARD_CHARGE_MAX, 1.0, FIREBALL_MULT_MAX)
+		var scaled_fb: SpawnProjectilesEffect = ChainFactory._wizard_fireball(
+				ChainFactory._damage_type(_weapon_data), _weapon_data.get("damage", 42.0) * mult)
+		scaled_fb.projectile.impact_aoe_radius *= sqrt(mult)
+		scaled_fb.projectile.visual_scale = Vector2.ONE * sqrt(mult)
+		proj_effects = [scaled_fb]
+
+	## Charming Serenade: charm is capped to the nearest few victims (hearts overhead), not
+	## broadcast through the generic enemy dispatch below.
+	if cur_anim.begins_with("serenade"):
+		var charm_apply: Resource = null
+		for eff in enemy_effects:
+			if eff is ApplyStatusEffectData:
+				charm_apply = eff
+				break
+		if charm_apply:
+			enemy_effects.erase(charm_apply)
+			var victims: Array = _nearby_enemies(CHARM_RANGE * reach)
+			victims.sort_custom(func(a, b) -> bool:
+				return global_position.distance_squared_to(a.global_position) \
+						< global_position.distance_squared_to(b.global_position))
+			for i in range(mini(CHARM_MAX_TARGETS, victims.size())):
+				var v: Node2D = victims[i]
+				if v.status_effect_component:
+					v.status_effect_component.apply_status(charm_apply.status, self, 1)
+				_spawn_oneshot_fx(CHARM_HEART_SHEET, v.global_position + Vector2(0, -14), 12.0)
 
 	if not proj_effects.is_empty():
 		## Cursor-aimed casts (Wizard/Blood Mage projectiles): "aimed_single"/"spread" read
@@ -1017,6 +1171,16 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 		var victims: Array = _nearby_enemies(50.0 * reach)
 		if not victims.is_empty():
 			_spawn_drain_wisp(victims[0].global_position)
+	## Bard Ballad beat: the song restores (floating note over the Herald).
+	if cur_anim.begins_with("song_ballad"):
+		health.apply_healing(health.max_hp * BALLAD_HEAL_FRAC)
+		_spawn_oneshot_fx(BALLAD_NOTE_SHEET, global_position + Vector2(0, -20), 12.0)
+	## Vicious Mockery: taunt wisps over the nearest victims (the debuff itself rides the
+	## normal enemy-effects dispatch below).
+	if cur_anim.begins_with("mockery"):
+		var mocked: Array = _nearby_enemies(70.0 * reach)
+		for i in range(mini(3, mocked.size())):
+			_spawn_oneshot_fx(MOCKERY_WISP_SHEET, mocked[i].global_position + Vector2(0, -14), 12.0)
 
 	if not enemy_effects.is_empty():
 		var enemies: Array = _nearby_enemies(90.0 * reach)
@@ -1048,6 +1212,15 @@ func choreo_on_phase_anim(phase: ChoreographyPhase) -> void:
 	var reach: float = _melee_range()
 	var radius: float = _node_hit_radius(phase) * reach   ## effective hit-zone radius (incl. capped Reach)
 
+	## Wizard Fireball charge: the clock starts and the greed tax (slow) applies; the release
+	## phase lifts the slow (the scaled shot itself resolves in choreo_fire_effects).
+	if anim == "fireball":
+		_charge_start_ms = Time.get_ticks_msec()
+		modifier_component.remove_by_source_prefix("combo_charge")
+		_add_modifier("move_speed", "bonus", WIZARD_CHARGE_SLOW, "combo_charge")
+	elif anim == "fireball_2":
+		modifier_component.remove_by_source_prefix("combo_charge")
+
 	## Big-impact nodes with no _fx sheet (Taunt, Paladin Hammer) ring out a procedural
 	## shockwave at the hit-zone radius instead.
 	if anim == "taunt" or anim == "hammer":
@@ -1070,6 +1243,14 @@ func choreo_on_phase_anim(phase: ChoreographyPhase) -> void:
 		return
 	if _torrent_fx:
 		_torrent_fx.visible = false   ## any non-torrent node ends the flame
+	## Gunslinger Desert Storm: directional barrage strip ahead of the shooter.
+	if anim == "storm":
+		if _combo_fx:
+			_combo_fx.visible = false
+		_show_storm_fx()
+		return
+	if _storm_fx:
+		_storm_fx.visible = false     ## any non-storm node ends the barrage
 	## Blood Mage Vampirize: Floating_Blood hovers over the Cursed through both channel beats.
 	if anim == "vampirize" or anim == "consume":
 		if _combo_fx:
@@ -1324,6 +1505,116 @@ func _spawn_drain_wisp(at: Vector2) -> void:
 	wisp.animation_finished.connect(wisp.queue_free)
 
 
+## Generic one-shot for loose single-row 32px effect sheets (ballad notes, mockery wisps).
+## Sunder aftermath: the crack sheet's LAST frame lingers as a world-anchored ground decal
+## (hold, then fade) so the slam reads as impact, not a blink (Ben feedback 2026-07-05).
+## Drawn below bodies; matches the live ComboFx overlay scale so cracks == hit zone.
+func _spawn_sunder_cracks() -> void:
+	if sprite == null or sprite.sprite_frames == null:
+		return
+	var fx_anim: String = "sunder_fx_" + _facing
+	if not sprite.sprite_frames.has_animation(fx_anim):
+		fx_anim = "sunder_fx"
+		if not sprite.sprite_frames.has_animation(fx_anim):
+			return
+	var last: int = sprite.sprite_frames.get_frame_count(fx_anim) - 1
+	var decal := Sprite2D.new()
+	decal.texture = sprite.sprite_frames.get_frame_texture(fx_anim, last)
+	decal.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	decal.z_index = -1   ## ground layer — bodies walk over the cracks
+	var s: float = _combo_fx.scale.x if (_combo_fx and _combo_fx.visible) else 1.0
+	decal.scale = Vector2(s, s)
+	get_tree().current_scene.add_child(decal)
+	decal.global_position = global_position
+	var tw := decal.create_tween()
+	tw.tween_interval(0.6)
+	tw.tween_property(decal, "modulate:a", 0.0, 0.9)
+	tw.tween_callback(decal.queue_free)
+
+
+## Throw Things visual: the slab cropped from the throw sheet tumbles from the Ravager's
+## hands to the landing point, then vanishes as the landing burst hits.
+func _spawn_thrown_junk(land: Vector2) -> void:
+	var tex := AtlasTexture.new()
+	tex.atlas = load(THROW_SHEET)
+	tex.region = THROW_JUNK_REGION
+	tex.filter_clip = true
+	var junk := Sprite2D.new()
+	junk.texture = tex
+	junk.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	junk.z_index = 2
+	get_tree().current_scene.add_child(junk)
+	var from: Vector2 = global_position + Vector2(0.0, -8.0)   ## leaves at chest height
+	junk.global_position = from
+	junk.rotation = (land - from).angle()
+	var tw := junk.create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(junk, "global_position", land, 0.16)
+	tw.tween_property(junk, "rotation", junk.rotation + TAU, 0.16)   ## one full tumble
+	tw.chain().tween_callback(junk.queue_free)
+
+
+## Desert Storm overlay: 8-direction barrage strips, restarted every volley beat, aimed at
+## the cursor's octant, parked a strip's reach ahead of the Deadeye.
+func _show_storm_fx() -> void:
+	if _storm_fx == null:
+		var sf := SpriteFrames.new()
+		sf.clear_all()
+		for dir_name in STORM_FX_FILES:
+			var anim := StringName(dir_name)
+			sf.add_animation(anim)
+			sf.set_animation_loop(anim, false)
+			sf.set_animation_speed(anim, 24.0)
+			var tex: Texture2D = load(STORM_FX_DIR + String(STORM_FX_FILES[dir_name]))
+			if tex:
+				for i in range(int(tex.get_width() / 96.0)):
+					var cell := AtlasTexture.new()
+					cell.atlas = tex
+					cell.region = Rect2(i * 96, 0, 96, 96)
+					cell.filter_clip = true
+					sf.add_frame(anim, cell)
+		_storm_fx = AnimatedSprite2D.new()
+		_storm_fx.name = "StormFx"
+		_storm_fx.z_index = 1
+		_storm_fx.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		_storm_fx.sprite_frames = sf
+		add_child(_storm_fx)
+	var aim: Vector2 = get_global_mouse_position() - global_position
+	if aim.length_squared() < 1.0:
+		aim = Vector2.RIGHT
+	var names: Array = ["e", "se", "s", "sw", "w", "nw", "n", "ne"]
+	var octant: int = wrapi(int(roundf(aim.angle() / (PI / 4.0))), 0, 8)
+	_storm_fx.position = aim.normalized() * STORM_FORWARD
+	_storm_fx.visible = true
+	_storm_fx.stop()
+	_storm_fx.play(StringName(names[octant]))
+
+
+func _spawn_oneshot_fx(sheet_path: String, at: Vector2, fps: float) -> void:
+	if not ResourceLoader.exists(sheet_path):
+		return
+	var tex: Texture2D = load(sheet_path)
+	var fx := AnimatedSprite2D.new()
+	var sf := SpriteFrames.new()
+	sf.clear_all()
+	sf.add_animation(&"play")
+	sf.set_animation_loop(&"play", false)
+	sf.set_animation_speed(&"play", fps)
+	for i in range(int(tex.get_width() / 32.0)):
+		var cell := AtlasTexture.new()
+		cell.atlas = tex
+		cell.region = Rect2(i * 32, 0, 32, 32)
+		cell.filter_clip = true
+		sf.add_frame(&"play", cell)
+	fx.sprite_frames = sf
+	fx.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	fx.z_index = 1
+	get_tree().current_scene.add_child(fx)
+	fx.global_position = at
+	fx.play(&"play")
+	fx.animation_finished.connect(fx.queue_free)
+
+
 func _show_vamp_fx() -> void:
 	## Floating_Blood loops above the Cursed while Vampirize channels.
 	if _vamp_fx == null:
@@ -1468,8 +1759,10 @@ func choreo_on_end() -> void:
 	if _vamp_fx:
 		_vamp_fx.visible = false
 	_vamp_hit = false
-	## Drop the Taunt channel slow if it was active (no-op otherwise).
+	## Drop the channel slow / charge tax if active (no-ops otherwise).
 	modifier_component.remove_by_source_prefix("combo_taunt")
+	modifier_component.remove_by_source_prefix("combo_charge")
+	_charge_start_ms = -1
 	## Only drop invulnerability if a dash isn't currently granting it.
 	if _dash_timer <= 0.0:
 		is_invulnerable = false
@@ -1542,18 +1835,82 @@ func _try_dash(input_dir: Vector2) -> void:
 	## Dash-cancels an in-progress combo.
 	if choreography_runner and choreography_runner.is_running():
 		choreography_runner.interrupt()
+	## Class-flavored dash: the Spark blinks instead of sprinting (Teleport package on the
+	## mobility input — instant, no tap/hold latency).
+	if _dash_style == "teleport":
+		_teleport_dash(dir.normalized())
+		return
 	_dash_dir = dir.normalized()
 	_dash_speed_current = get_stat("dash_speed")
 	_dash_timer = DASH_DURATION
 	is_invulnerable = true
 	_set_dash_phasing(true)  # slip through enemy bodies for the dash window
 	_dash_charges -= 1
+	## Class-flavored dash anim (e.g. the Shade's real Dodge roll) when the pack ships one.
+	if sprite and sprite.sprite_frames and sprite.sprite_frames.has_animation("dodge"):
+		_dash_anim_timer = 0.27
+		_play_anim("dodge")
+	## Deadly Dash (the Whisper): the launch crouch ghosts at the departure point and every
+	## enemy along the dash corridor takes a knife on the way through.
+	if _dash_style == "deadly":
+		_spawn_teleport_ghost("dash_out")
+		_deadly_dash_strike(_dash_dir)
 	## Start the refill clock if it isn't already running (don't reset a charge mid-refill).
 	if _dash_cooldown_timer <= 0.0:
 		_dash_cooldown_timer = _dash_cooldown_seconds()
 	if sprite and not _has_dir_anims and absf(_dash_dir.x) > 0.01:
 		sprite.flip_h = _dash_dir.x < 0
 	_spawn_dash_vfx()
+
+
+func _teleport_dash(dir: Vector2) -> void:
+	## Instant blink: Start cast ghosts at the departure point, End cast plays on arrival.
+	## Same charge/cooldown economy as a normal dash; brief i-frames cover the reappearance.
+	_spawn_teleport_ghost()
+	global_position += dir * TELEPORT_RANGE * 0.9
+	is_invulnerable = true
+	get_tree().create_timer(0.25).timeout.connect(func() -> void:
+		if is_alive and _dash_timer <= 0.0:
+			is_invulnerable = false)
+	_dash_charges -= 1
+	if _dash_cooldown_timer <= 0.0:
+		_dash_cooldown_timer = _dash_cooldown_seconds()
+	_dash_anim_timer = 0.45
+	_play_anim("teleport_in")
+	_spawn_dash_vfx()
+
+
+func _spawn_teleport_ghost(anim: String = "teleport_out") -> void:
+	## One-shot copy of the player's frames playing a departure cast at the old spot
+	## (Spark's Teleport Start, the Whisper's Deadly Dash launch crouch).
+	if sprite == null or sprite.sprite_frames == null \
+			or not sprite.sprite_frames.has_animation(anim):
+		return
+	var ghost := AnimatedSprite2D.new()
+	ghost.sprite_frames = sprite.sprite_frames
+	ghost.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	ghost.z_index = sprite.z_index
+	get_tree().current_scene.add_child(ghost)
+	ghost.global_position = global_position
+	ghost.play(choreo_anim_name(anim))
+	ghost.animation_finished.connect(ghost.queue_free)
+
+
+## Deadly Dash: knife everything in the dash corridor (segment from launch to the expected
+## dash end). One pass at dash start — cheap, no per-frame sweep.
+func _deadly_dash_strike(dir: Vector2) -> void:
+	## Knifing through the crowd is very much an attack — it breaks Smoke Bomb stealth too.
+	if status_effect_component.has_status("concealed"):
+		status_effect_component.force_remove_status("concealed", self)
+	var corridor: float = _dash_speed_current * DASH_DURATION * 0.8   ## ease-out shortens the run
+	var to: Vector2 = global_position + dir * corridor
+	var dmg: float = get_stat("damage") * 0.8
+	var dtype: String = ChainFactory._damage_type(_weapon_data)
+	for en in _nearby_enemies(corridor + 30.0):
+		var closest: Vector2 = Geometry2D.get_closest_point_to_segment(en.global_position, global_position, to)
+		if en.global_position.distance_squared_to(closest) <= 18.0 * 18.0:
+			var hit: HitData = DamageCalculator.calculate_raw_hit(self, en, dmg, dtype)
+			en.take_damage(hit)
 
 
 func _spawn_dash_vfx() -> void:
@@ -1592,8 +1949,11 @@ func is_dead() -> bool:
 
 
 func is_invisible() -> bool:
-	## Shade dodge triggers brief invisibility
-	return status_effect_component.has_status("shade_invisible") if status_effect_component else false
+	## Shade dodge invisibility, or the Ranger's Conceal channel (refreshed while held).
+	if status_effect_component == null:
+		return false
+	return status_effect_component.has_status("shade_invisible") \
+			or status_effect_component.has_status("concealed")
 
 
 func apply_knockback(force: Vector2) -> void:
@@ -1612,6 +1972,10 @@ func take_damage(hit_data) -> void:
 	if _iframes_timer > 0.0:
 		return
 	if is_invulnerable:
+		return
+	## Ravager Guard: while the sword is up (RMB-hold channel), frontal hits are stopped cold.
+	if _is_guard_blocking(hit_data):
+		_on_guard_block()
 		return
 	# NOTE: Dodge is handled by DamageCalculator Step 4 — all incoming hits
 	# already went through the pipeline. If the hit wasn't dodged, it reaches here.
@@ -1638,6 +2002,39 @@ func take_damage(hit_data) -> void:
 			_play_anim("damage")
 	if ExtractionManager.is_channeling and amount > 10.0:
 		ExtractionManager.interrupt_channel()
+
+
+## True while the Guard channel is up AND the hit comes from the frontal arc (facing = the
+## cursor, same as every aimed action). Sourceless hits (auras, DoTs) are not blockable.
+func _is_guard_blocking(hit_data) -> bool:
+	if sprite == null or not String(sprite.animation).begins_with("guard"):
+		return false
+	if choreography_runner == null or not choreography_runner.is_running():
+		return false
+	var src: Node2D = hit_data.source if hit_data is HitData else null
+	if src == null or not is_instance_valid(src):
+		return false
+	var to_attacker: Vector2 = src.global_position - global_position
+	var facing: Vector2 = get_global_mouse_position() - global_position
+	if to_attacker.length_squared() < 1.0 or facing.length_squared() < 1.0:
+		return true   ## point-blank overlap — the sword is up, call it blocked
+	return absf(facing.angle_to(to_attacker)) <= GUARD_BLOCK_ARC * 0.5
+
+
+## Blocked-hit feedback: the pack's BlockImpact sheet flashes on the ComboFx overlay.
+func _on_guard_block() -> void:
+	if _combo_fx == null or _combo_fx.sprite_frames == null:
+		return
+	var anim: String = "guard_impact_" + _facing
+	if not _combo_fx.sprite_frames.has_animation(anim):
+		anim = "guard_impact"
+		if not _combo_fx.sprite_frames.has_animation(anim):
+			return
+	_combo_fx.position = Vector2.ZERO
+	_combo_fx.scale = Vector2.ONE
+	_combo_fx.flip_h = false
+	_combo_fx.visible = true
+	_combo_fx.play(anim)
 
 
 func _on_sprite_animation_finished() -> void:

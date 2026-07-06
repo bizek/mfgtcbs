@@ -40,7 +40,7 @@ static func _get_slash_frames(variant: String) -> SpriteFrames:
 		return null
 	var sheet: Texture2D = load(path)
 	var frames := SpriteFrames.new()
-	frames.add_animation("default")
+	## Fresh SpriteFrames already carries an empty "default" — reuse it (re-adding errors).
 	frames.set_animation_loop("default", false)
 	frames.set_animation_speed("default", SLASH_FPS)
 	for col in SLASH_FRAME_COUNT:
@@ -83,7 +83,7 @@ static func _get_ember_impact_frames() -> SpriteFrames:
 		return null
 	var sheet: Texture2D = load(PATH)
 	var frames := SpriteFrames.new()
-	frames.add_animation("default")
+	## Fresh SpriteFrames already carries an empty "default" — reuse it (re-adding errors).
 	frames.set_animation_loop("default", false)
 	frames.set_animation_speed("default", 16.0)  ## 8 frames at 16fps — snappy impact burst
 	for col in 8:

@@ -314,8 +314,9 @@ static func _get_projectile_sprite_frames() -> SpriteFrames:
 	atlas.region = Rect2(0, 0, 32, 32)
 	atlas.filter_clip = true
 	var frames := SpriteFrames.new()
-	frames.clear_all()   ## SpriteFrames.new() ships a "default" anim; drop it before re-adding
-	frames.add_animation("default")
+	## clear_all() keeps (re-creates) an empty "default" animation — adding it again errors,
+	## which trips the debugger on every projectile-weapon build. Reuse the built-in one.
+	frames.clear_all()
 	frames.set_animation_loop("default", false)
 	frames.add_frame("default", atlas)
 	_projectile_sprite_frames = frames
@@ -330,8 +331,8 @@ static func _get_frost_projectile_sprite_frames() -> SpriteFrames:
 		return null
 	var sheet: Texture2D = load(TEX_PATH)
 	var frames := SpriteFrames.new()
-	# Shard variation 1 — Loop row at y=8, 8 frames of 8×8
-	frames.add_animation("default")
+	# Shard variation 1 — Loop row at y=8, 8 frames of 8×8 (fresh SpriteFrames already
+	# carries an empty "default" — re-adding it errors and trips the debugger)
 	frames.set_animation_loop("default", true)
 	frames.set_animation_speed("default", 10.0)
 	for col in 8:
@@ -372,8 +373,7 @@ static func _get_frost_impact_sprite_frames() -> SpriteFrames:
 		return null
 	var sheet: Texture2D = load(TEX_PATH)
 	var frames := SpriteFrames.new()
-	frames.clear_all()   ## SpriteFrames.new() ships a "default" anim; drop it before re-adding
-	frames.add_animation("default")
+	## Fresh SpriteFrames already carries an empty "default" — reuse it (re-adding errors).
 	frames.set_animation_loop("default", false)
 	frames.set_animation_speed("default", 15.0)  ## 15 fps — crisp 1-second burst
 	for col in 15:

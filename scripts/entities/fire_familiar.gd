@@ -1,9 +1,12 @@
 extends Node2D
 
 ## FireFamiliar — the Wizard's summoned companion (Fire_Familiar package used in full:
-## Summon&Spawn intro, Fly&Idle hover, Attack + frame-matched Attack_Effect overlay,
-## Disperse&Die outro). Hovers beside the player, periodically scorching the nearest enemy.
+## Summon&Spawn intro, Fly&Idle, Attack + frame-matched Attack_Effect overlay,
+## Disperse&Die outro). A free-flying melee hunter: it chases prey near the player under
+## its own wings and bites, roaming a lazy orbit when there's nothing to burn.
 ## One at a time — the player replaces it on resummon (old one disperses).
+## Future mod idea (Ben 2026-07-05): a leash item that makes it fly AT your side and adds
+## a ranged cast (extra projectile / one of the Wizard fire spells) instead of hunting.
 ##
 ## OrbitOrb/HolyHammer pattern: no pooling (max one alive), damage reads the player's live
 ## damage stat through DamageCalculator at strike time.
@@ -15,13 +18,16 @@ const ASSET_DIR: String = "res://assets/minifantasy/Minifantasy_True_Heroes_III_
 const DIR_ROWS: Dictionary = {"down_right": 0, "down_left": 1, "up_right": 2, "up_left": 3}
 
 const LIFETIME: float = 15.0
-const ATTACK_RANGE: float = 110.0
-const ATTACK_RANGE_SQ: float = ATTACK_RANGE * ATTACK_RANGE
+const FLY_SPEED: float = 75.0            ## own wings — constant-speed flight, never lerp-glued
+const CATCHUP_MULT: float = 1.8          ## wing-boost when left far behind
+const HUNT_RADIUS: float = 150.0         ## hunts prey this close to the PLAYER (the leash)
+const HUNT_RADIUS_SQ: float = HUNT_RADIUS * HUNT_RADIUS
+const STRIKE_RANGE: float = 24.0         ## melee bite — it flies TO the prey first
+const STRIKE_RANGE_SQ: float = STRIKE_RANGE * STRIKE_RANGE
 const ATTACK_COOLDOWN: float = 1.5
 const STRIKE_DELAY: float = 4.0 / 14.0   ## attack anim frame 4 @ 14fps = the bite
 const DAMAGE_MULT: float = 0.5           ## × the player's live damage stat
-const HOVER_OFFSET := Vector2(18.0, -14.0)
-const FOLLOW_SPEED: float = 5.0          ## lazy-follow lerp weight
+const HOME_RADIUS: float = 30.0          ## lazy roam orbit around the player when no prey
 
 var player_ref: Node2D = null
 var damage_type: String = "Fire"
@@ -34,6 +40,9 @@ var _life: float = LIFETIME
 var _cooldown: float = 0.0
 var _strike_timer: float = -1.0          ## >0 while an attack anim runs; fires at 0
 var _strike_target: Node2D = null
+var _hunt_target: Node2D = null
+var _rescan: float = 0.0
+var _orbit_angle: float = 0.0
 var _bob: float = 0.0
 
 static var _frames_cache: SpriteFrames = null
@@ -65,13 +74,6 @@ func _process(delta: float) -> void:
 	if _state == "spawn":
 		return   ## _on_anim_finished flips us to "fly"
 
-	## Hover beside the player with a light bob, on the side the player faces.
-	_bob += delta * 3.0
-	var side: float = -1.0 if String(player_ref.get("_facing")).ends_with("left") else 1.0
-	var anchor: Vector2 = player_ref.global_position \
-			+ Vector2(HOVER_OFFSET.x * side, HOVER_OFFSET.y + sin(_bob) * 2.0)
-	global_position = global_position.lerp(anchor, minf(FOLLOW_SPEED * delta, 1.0))
-
 	_life -= delta
 	if _life <= 0.0:
 		disperse()
@@ -82,19 +84,54 @@ func _process(delta: float) -> void:
 		_strike_timer -= delta
 		if _strike_timer <= 0.0:
 			_resolve_strike()
-		return   ## hold facing while striking
+		return   ## hold position + facing while striking
 
 	_cooldown -= delta
-	if _cooldown <= 0.0:
-		var target: Node2D = _nearest_enemy()
-		if target:
-			_start_strike(target)
+	_bob += delta * 3.0
+
+	## The familiar is its own creature: it hunts prey near the player under its own wings,
+	## flying to targets and biting, and roams a lazy orbit when there's nothing to burn.
+	_rescan -= delta
+	if _rescan <= 0.0:
+		_rescan = 0.3
+		_hunt_target = _nearest_prey()
+	var target: Node2D = _hunt_target
+	if target != null and (not is_instance_valid(target) or not target.get("is_alive")):
+		target = null
+		_hunt_target = null
+
+	if target:
+		var to_t: Vector2 = target.global_position - global_position
+		if to_t.length_squared() <= STRIKE_RANGE_SQ:
+			if _cooldown <= 0.0:
+				_start_strike(target)
+			else:
+				## circling its prey between bites
+				_face_toward(to_t)
+				_play_dir(&"fly")
 		else:
-			_cooldown = 0.25   ## nothing in range — re-scan shortly, don't scan every frame
-			_face_toward(player_ref.get_global_mouse_position() - global_position)
-			_play_dir(&"fly")
+			_fly_toward(target.global_position, delta)
 	else:
-		_play_dir(&"fly")
+		## No prey — roam a slow, bobbing orbit around the player.
+		_orbit_angle += delta * 1.2
+		var home: Vector2 = player_ref.global_position + Vector2(0.0, -10.0) \
+				+ Vector2(cos(_orbit_angle), sin(_orbit_angle) * 0.6) * HOME_RADIUS \
+				+ Vector2(0.0, sin(_bob) * 2.0)
+		_fly_toward(home, delta)
+
+
+## Constant-speed flight (with a catch-up boost when left behind) — reads as real movement,
+## unlike a lerp glued to the player.
+func _fly_toward(dest: Vector2, delta: float) -> void:
+	var to_dest: Vector2 = dest - global_position
+	var speed: float = FLY_SPEED
+	if player_ref and global_position.distance_squared_to(player_ref.global_position) > 120.0 * 120.0:
+		speed *= CATCHUP_MULT
+	var step: Vector2 = to_dest.limit_length(speed * delta)
+	if step.length_squared() > 0.04:
+		global_position += step
+		_face_toward(to_dest)
+	_play_dir(&"fly")
 
 
 func _start_strike(target: Node2D) -> void:
@@ -114,8 +151,8 @@ func _resolve_strike() -> void:
 	_strike_target = null
 	if not is_instance_valid(target) or not target.get("is_alive"):
 		return
-	if global_position.distance_squared_to(target.global_position) > ATTACK_RANGE_SQ * 1.7:
-		return   ## it slipped well out of reach mid-swing
+	if global_position.distance_squared_to(target.global_position) > 48.0 * 48.0:
+		return   ## it slipped well out of bite reach mid-swing
 	var dmg: float = 30.0
 	var attacker: Node2D = self
 	if is_instance_valid(player_ref):
@@ -143,14 +180,16 @@ func _on_anim_finished() -> void:
 		queue_free()
 
 
-func _nearest_enemy() -> Node2D:
-	## Cheap scan gated by ATTACK_COOLDOWN / the 0.25s rescan — never per-frame.
+func _nearest_prey() -> Node2D:
+	## Nearest live enemy within the hunt leash (measured from the PLAYER, so the familiar
+	## never wanders off-screen). Gated by the 0.3s rescan — never per-frame.
+	var origin: Vector2 = player_ref.global_position if is_instance_valid(player_ref) else global_position
 	var best: Node2D = null
-	var best_d: float = ATTACK_RANGE_SQ
+	var best_d: float = HUNT_RADIUS_SQ
 	for e in get_tree().get_nodes_in_group("enemies"):
 		if not is_instance_valid(e) or not e.get("is_alive"):
 			continue
-		var d: float = global_position.distance_squared_to(e.global_position)
+		var d: float = origin.distance_squared_to(e.global_position)
 		if d < best_d:
 			best_d = d
 			best = e
