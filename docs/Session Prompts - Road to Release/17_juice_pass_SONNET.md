@@ -15,7 +15,7 @@ A focused game-feel pass on the moments that sell the game. Audit what exists fi
 
 <requirements>
 Implement, each individually toggleable in code for tuning:
-- **Hit-stop**: 2–4 frame freeze on player crits and on elite/boss kills (Engine.time_scale dip or per-entity pause — pick the approach that can't soft-lock if interrupted; restore via timer that survives scene pause).
+- **Hit-stop**: 2–4 frame freeze on player crits and on elite/boss kills (Engine.time_scale dip or per-entity pause — pick the approach that can't soft-lock if interrupted; restore via timer that survives scene pause). **P1, non-negotiable (design-audit D6): combo FINISHER impacts get the strongest hit-stop + shake in the game — the finisher landing in a crowd is the game's pitch moment. Wire it off the per-kit finisher markers (see passive_tree_spec.md §6.2), not hardcoded phase names.**
 - **Screen shake**: small on player damage taken, medium on AoE/explosive kills, large on boss telegraph impacts — capped so chained explosions don't compound past the max.
 - **Boss intro**: on `boss_should_spawn`, a short beat — camera nudge toward spawn, name banner ("Heart of the Deep" style, 3× scaled font), brief enemy-spawn suppression window if trivially available (skip if it needs new spawn-manager surgery).
 - **Extraction fanfare**: portal extraction complete gets a distinct flash/zoom beat before the success screen.

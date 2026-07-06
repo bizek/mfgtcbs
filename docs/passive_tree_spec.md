@@ -1,7 +1,9 @@
 # Passive Skill Tree — Design Spec
 
-**Status:** Designed 2026-07-01 (Ben + Fable session). Supersedes the passive-tree sketch in
-`docs/Session Prompts - Road to Release/deliberate-pacing-dash-passive-tree.md` (Tasks 4.1/4.2).
+**Status:** Designed 2026-07-01 (Ben + Fable session). Updated 2026-07-06 for the 10-character
+combo-kit roster (affinities, generalized Might keystone, combo-projectile stat audit).
+Supersedes the passive-tree sketch in
+`docs/Archived Session Prompts - Completed/deliberate-pacing-dash-passive-tree.md` (Tasks 4.1/4.2).
 Implementation prompts: `docs/Session Prompts - Road to Release/26–28_passive_tree_*.md`.
 
 This is the last unbuilt piece of the deliberate-pacing roadmap (Phases 1–3 shipped: rebalance,
@@ -22,7 +24,13 @@ dash, level-up mobility routes — see `docs/pacing_rebalance.md`, `docs/dash.md
 | Effects | All stat nodes = `ModifierDefinition`s applied to the player's `ModifierComponent` at run start, after character base + passive so percentages stack correctly. Behavior nodes = hidden permanent `StatusEffectDefinition` with `trigger_listeners` (established TriggerComponent pattern), plus 2 small player.gd hooks (§6). |
 
 ### Class → branch affinity (flavor only, no mechanical lock)
-Sellsword/Warden → Might · Scavenger/Shade → Finesse · Spark/Herald/Cursed → Arcana.
+*(Updated 2026-07-06 for the 10-character roster — see `data/characters.gd`; Druid/Cleric slots
+provisional until those characters ship.)*
+
+- **Might** — Sellsword (Fighter) · Warden (Paladin) · Ravager (Barbarian) · *Cleric (planned)*
+- **Finesse** — Scavenger (Ranger) · Shade (Rogue) · Whisper (Ninja) · Deadeye (Gunslinger)
+- **Arcana** — Spark (Wizard) · Herald (Bard) · Cursed (Blood Mage) · *Druid (planned)*
+
 The hub UI may show the selected character's affinity as a subtle highlight; nothing is gated by class.
 
 ---
@@ -70,6 +78,14 @@ level-up upgrades. All stat keys below exist in `player.gd::_base_stats` or reso
 Operation column: `bonus` = percent modifier, `add` = flat. Stat names are the exact
 `ModifierDefinition` target tags.
 
+> **Combo-kit audit (added 2026-07-06):** every character now runs a combo kit and drops weapon
+> auto-fire (`player.gd` `set_combo_ability` — "the combo IS the attack"). During prompt 26,
+> verify that `projectile_count`, `pierce`, and `projectile_size` nodes (f_split_shot, f_fletcher,
+> a_broad_bolts, a_elementalist, b_spellblade) actually affect combo-fired projectiles
+> (arrows/shurikens/fireballs routed through ChainFactory → EffectDispatcher). If a stat is dead
+> under combos, either wire it through the combo projectile path or swap the node's stat for a
+> live one — do not ship dead nodes.
+
 ### Core (11 nodes, tier 0, always available)
 
 | id | Name | Effect per rank | Ranks |
@@ -104,7 +120,7 @@ Operation column: `bonus` = percent modifier, `add` = flat. Stat names are the e
 | m_warlord | **Warlord** (notable) | +8% damage AND +8% crit_multiplier | 2 | 3 |
 | m_titan_grip | Titan Grip | +6% damage | 2 | 3 |
 | m_second_wind | **Second Wind** (notable) | on_hit_received while below 30% HP: +25% move_speed for 2s (internal cooldown 8s) *(trigger)* | 1 | 3 |
-| m_keystone | **KEYSTONE — Berserker's Cadence** | Completing a melee combo finisher (Tempest / Cataclysm / Taunt loop tick counts once per 3s) grants **Frenzy**: +25% attack_speed, +15% move_speed for 3s *(hook §6.2)* | 1 | 4 |
+| m_keystone | **KEYSTONE — Berserker's Cadence** | Completing any combo **finisher** (per-kit — every class kit marks its finisher/channel phases, see §6.2; channel ticks count once per 3s) grants **Frenzy**: +25% attack_speed, +15% move_speed for 3s *(hook §6.2)* | 1 | 4 |
 
 ### Finesse (ranged / mobility / crit) — 15 nodes
 
@@ -237,8 +253,12 @@ a_scholar, a_sage.
   via a flag set during `_apply_passive_tree()`), apply the Slipstream status
   (StatusEffectDefinition with the two modifiers, 2.5s). No `on_dash` trigger exists — direct
   apply is the clean path.
-- **Berserker's Cadence**: in the combo runner's finisher-completion path (choreo_on_end for
-  Tempest/Cataclysm nodes, Taunt tick with a 3s internal cooldown), same flag-gated status apply.
+- **Berserker's Cadence**: in the combo runner's finisher-completion path, same flag-gated status
+  apply. **Do NOT hardcode Fighter phase names** (Tempest/Cataclysm/Taunt) — all 10 kits have their
+  own finishers. Instead, mark finisher phases in the kit data (an `is_finisher` flag on the
+  `ChoreographyPhase` or a per-kit finisher list in ChainFactory) and fire the keystone from the
+  generic phase-completion path in `choreography_runner.gd`/player combo wiring. Channel-loop
+  finishers (Taunt-style held phases) count once per 3s internal cooldown.
 - **Bloodletter / Second Wind / Opportunist / Ignition / Volatile Souls**: pure
   TriggerListenerDefinition data on hidden statuses — no player.gd edits. Verify each trigger's
   chance/condition fields against `trigger_component.gd` before authoring; Volatile Souls reuses

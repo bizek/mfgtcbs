@@ -1,8 +1,13 @@
-# Execution Plan — Road to Release (M1–M7)
+# Execution Plan — Road to Release (M1–M7 + M2.5)
 
-Generated 2026-06-10 by Prompto. Each numbered file in this folder is a self-contained
-session prompt. Paste one prompt per fresh Claude Code session in this repo (CLAUDE.md
-auto-loads, so prompts reference repo files instead of inlining them).
+Generated 2026-06-10 by Prompto. **Audited + updated 2026-07-06**: prompts 01–03 and 05–08 are
+done (archived to `docs/Archived Session Prompts - Completed/` with an `rtr_` prefix);
+**04 (win state) was skipped and is still open**; new Phase M2.5 added for the combo-combat /
+class-identity consolidation (pacing pass 2, roster completion, passive tree 26–28, class
+mod + level-up rework); prompts 13/16/18/19/20/21/25 revised for the 10-class combo-kit
+combat model. Each numbered file in this folder is a self-contained session prompt. Paste one
+prompt per fresh Claude Code session in this repo (CLAUDE.md auto-loads, so prompts reference
+repo files instead of inlining them).
 
 ## How to Use
 
@@ -17,18 +22,35 @@ Run phases in order. Tasks inside a phase marked ∥ can run in parallel session
 
 ## Phases
 
-### Phase M1 — Close out the core loop
-- 01 [HAIKU] Commit the dirty working tree in grouped conventional commits
-- 02 [SONNET] ∥ Wire boss spawning from LdtkLevelDirector (replace the log stub)
-- 03 [SONNET] ∥ Author 3–4 new inner block variants + altar markers
-- 04 [SONNET] Win state: win flow, credits, account flag (after 02)
+### Phase M1 — Close out the core loop ✅ (except 04)
+- ~~01 [HAIKU] Commit cleanup~~ ✅
+- ~~02 [SONNET] Boss spawning from LdtkLevelDirector~~ ✅
+- ~~03 [SONNET] Inner block variants + altar markers~~ ✅ (block compiler now generates blocks)
+- 04 [SONNET] **STILL OPEN** — Win state: win flow, credits, account flag (audit 2026-07-06:
+  no win/credits/game-cleared code exists in scripts). Tasks 10, 21, 22, 25 reference it.
 - **HUMAN (Ben):** paint `PropCollision` IntGrid layer in the LDtk GUI (see `docs/ldtk_schema.md` §2.1)
 
-### Phase M2 — Character Overhaul
-- 05 [OPUS] Archetype design doc — map 7 characters to True Heroes sprite sets (Ben reviews/approves)
-- 06 [OPUS] Per-character sprite pipeline (SpriteFrames swap, animation states) — after 05
-- 07 [SONNET] Identity alignment — rename, passives, starting weapons — after 05, ∥ with 06
-- 08 [SONNET] Hub surfaces — portraits, roster panel, launch panel — after 06+07
+### Phase M2 — Character Overhaul ✅
+- ~~05–08~~ ✅ — and the scope grew beyond the original plan: 10 characters live with per-class
+  combo kits (LMB chains, RMB specials, Q/E skills, class dashes), manual cursor-aim default,
+  quadrant facing. See `docs/character_overhaul_design.md`, `docs/combat_chain_architecture.md`.
+
+### Phase M2.5 — Combat & class identity (added 2026-07-06; run before M5 balance work)
+- 29 [SONNET] ∥ Pacing second pass — a further ~15–20% slowdown, "even more methodical"
+- 30 [OPUS] Roster completion — The Druid + The Cleric (12/12; kit design needs Ben's approval)
+- 26 [SONNET] ∥ Passive tree backend (data, points, save/load, run-start apply)
+- 27 [OPUS] Passive tree behavior nodes — after 26
+- 28 [OPUS] Passive tree hub UI — after 26 (affinity table benefits from 30)
+- 34 [OPUS] Class gear & rarity system — class-locked themed weapons, 2 trinket slots,
+  green/blue/purple, smart-loot bias (D1 RESOLVED — design in `design_audit_2026-07-06.md` §3.1)
+  — after 30
+- 31 [OPUS] Class mod & upgrade architecture — two-layer model + `class_mod_system.md` design
+  doc (Ben approves) + Fighter pilot — after 34 **(the audit's remaining decisions feed
+  10/16/17/25/26/33)**
+- 32 [SONNET] ∥ Class mods full content pass — after 31
+- 33 [SONNET] ∥ Level-up rework: class filtering + ability upgrades — after 31
+- **HUMAN (Ben):** approve Druid/Cleric kits (30) and the class-mod design doc (31); playtest
+  the pacing pass (29) and passive tree branches (26–28)
 
 ### Phase M3 — Product shell
 - 09 [SONNET] Settings system core (audio buses, display, ConfigFile persistence, UI)
@@ -42,10 +64,10 @@ Run phases in order. Tasks inside a phase marked ∥ can run in parallel session
 - 14 [OPUS] Audio system architecture + core implementation — after 09 (needs buses)
 - 15 [SONNET] Full SFX/music wiring pass — after 14 + assets on disk
 
-### Phase M5 — Feel + onboarding
-- 16 [SONNET] ∥ First-run onboarding tooltips
+### Phase M5 — Feel + onboarding (requires M2.5 done — tuning/copy target the final combat model)
+- 16 [SONNET] ∥ First-run onboarding tooltips (rewritten for combo/skill/dash inputs)
 - 17 [SONNET] ∥ Juice pass (hit-stop, shake, boss intro, extraction fanfare)
-- 18 [SONNET] Balance instrumentation + tuning — after Ben playtests with 16+17 in
+- 18 [SONNET] Balance instrumentation + tuning — after 29 + 31–33 and Ben's playtests with 16+17 in
 - **HUMAN (Ben):** playtests with fresh-eyes friends between 17 and 18
 
 ### Phase M6 — Controller support
@@ -69,7 +91,10 @@ Run phases in order. Tasks inside a phase marked ∥ can run in parallel session
 
 ## Dependency Chains (strict)
 
-- 02 → 04 (win flow triggers off boss-gated portal extraction)
-- 05 → 06 → 08 and 05 → 07 → 08 (design doc feeds both implementation tracks)
+- ~~02~~ → 04 (win flow triggers off boss-gated portal extraction — 02 done, 04 unblocked)
+- 26 → 27, 26 → 28 (passive tree backend before behaviors/UI)
+- 30 → 34 → 31 → 32 and 31 → 33 (all 12 classes → gear/rarity system → class-mod design doc;
+  approved doc before content + level-up rework)
+- 29 + 31–33 → 18 (tune against the final pace and mod/upgrade pools)
 - 09 → 10, 09 → 14 → 15 (settings buses before audio; menu links settings)
 - 19 → 20, 21+23 → 24

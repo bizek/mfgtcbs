@@ -8,7 +8,7 @@ Make every menu and hub panel fully navigable on controller — required for the
 </goal>
 
 <context>
-- Surfaces: main menu (task 10), settings (09/12), pause menu, all six hub panels (Armory, Workshop, Research, Roster, Records, Launch), level-up screen, merchant shop, insurance panel, game-over and extraction-success screens.
+- Surfaces: main menu (task 10), settings (09/12), pause menu, all hub panels (Armory, Workshop, Research, Roster, Records, Launch, and the Passive Tree panel from task 28 — its scrollable node grid needs focus-follows-scroll care), level-up screen, merchant shop, insurance panel, game-over and extraction-success screens.
 - Godot focus system does most of the work: ensure every interactive Control has sensible `focus_neighbor_*`/focus mode, an initial focus is grabbed when each panel opens, and ScrollContainers follow focus (`ensure_control_visible`).
 - Scene changes via MCP tools; many panels build rows dynamically in script — set focus config in code where rows are generated.
 - Glyph hint: a small bottom-bar label per screen ("Ⓐ Confirm Ⓑ Back" / "Enter Confirm, Esc Back") that switches based on the last input device (track keyboard-vs-joypad from `_input`; switch on `Input.joy_connection_changed` too).
