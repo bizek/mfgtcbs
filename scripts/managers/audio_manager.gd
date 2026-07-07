@@ -317,7 +317,7 @@ func _entity_pos(entity: Variant) -> Variant:
 
 # ── EventBus handlers ─────────────────────────────────────────────────────────
 
-func _on_hit_dealt(_source: Variant, target: Variant, hit_data: Variant) -> void:
+func _on_hit_dealt(source: Variant, target: Variant, hit_data: Variant) -> void:
 	var damage_type: String = "Physical"
 	if hit_data is HitData:
 		damage_type = hit_data.damage_type
@@ -325,6 +325,24 @@ func _on_hit_dealt(_source: Variant, target: Variant, hit_data: Variant) -> void
 		damage_type = hit_data.get("damage_type", "Physical")
 	var sound_id: String = SoundTable.HIT_SOUND_BY_DAMAGE_TYPE.get(damage_type, "sfx_hit_physical")
 	play(sound_id, _entity_pos(target))
+	_play_swing_sfx(source, hit_data)
+
+
+## Weapon swing feel (P1 "weapon fire"): HitData.ability threads the AbilityDefinition through
+## from ChainFactory's per-kit combos, whose ability_id always ends "_light"/"_heavy" for the
+## base melee combo (per kit dispatcher table). Special skill/channel abilities (fan, summon,
+## torrent, storm, etc.) don't match either suffix and are silent here by design — they're
+## sfx_channel_loop/sfx_projectile_fire territory (P2, not yet wired).
+func _play_swing_sfx(source: Variant, hit_data: Variant) -> void:
+	if not (hit_data is HitData):
+		return
+	var ability: AbilityDefinition = hit_data.ability
+	if ability == null or not ability.tags.has("Combo"):
+		return
+	if ability.ability_id.ends_with("_light"):
+		play("sfx_swing_light", _entity_pos(source))
+	elif ability.ability_id.ends_with("_heavy"):
+		play("sfx_swing_heavy", _entity_pos(source))
 
 
 func _on_crit(_source: Variant, _target: Variant, _hit_data: Variant) -> void:

@@ -16,43 +16,86 @@ extends RefCounted
 ##   loop             bool           — true = plays on the dedicated loop player (default false)
 ##
 ## Sound IDs follow docs/audio_asset_manifest.md (sfx_*, mus_*, amb_*).
-## Placeholder files are synthesized WAVs, clearly named placeholder_*.wav —
-## replace the paths here when real assets land (see docs/audio_pipeline.md).
+## Task 15: real CC0 assets (Kenney.nl SFX packs + OpenGameArt.org CC0 music),
+## sourced and licensed per docs/asset_inventory.md. Remaining P2 entries with
+## no good-fit free asset are left pointing at nonexistent paths — AudioManager
+## no-ops on missing files, and docs/audio_asset_manifest.md lists them as TODO.
 
 const ALL: Dictionary = {
+	# ── Combat: weapon swings (P1 — "weapon fire") ───────────────────────────
+	"sfx_swing_light": {
+		"streams": [
+			"res://assets/audio/sfx/combat/swing_light_0.ogg",
+			"res://assets/audio/sfx/combat/swing_light_1.ogg",
+			"res://assets/audio/sfx/combat/swing_light_2.ogg",
+		],
+		"volume_db": -9.0, "max_per_frame": 3, "positional": true,
+	},
+	"sfx_swing_heavy": {
+		"streams": [
+			"res://assets/audio/sfx/combat/swing_heavy_0.ogg",
+			"res://assets/audio/sfx/combat/swing_heavy_1.ogg",
+			"res://assets/audio/sfx/combat/swing_heavy_2.ogg",
+		],
+		"volume_db": -6.0, "max_per_frame": 2, "positional": true,
+	},
+
 	# ── Combat: hits by damage type (P1) ─────────────────────────────────────
 	"sfx_hit_physical": {
-		"streams": ["res://assets/audio/sfx/combat/placeholder_hit_physical.wav"],
+		"streams": [
+			"res://assets/audio/sfx/combat/hit_physical_0.ogg",
+			"res://assets/audio/sfx/combat/hit_physical_1.ogg",
+			"res://assets/audio/sfx/combat/hit_physical_2.ogg",
+		],
 		"volume_db": -8.0, "max_per_frame": 3, "positional": true,
 	},
 	"sfx_hit_fire": {
-		"streams": ["res://assets/audio/sfx/combat/placeholder_hit_fire.wav"],
-		"volume_db": -8.0, "max_per_frame": 3, "positional": true,
+		"streams": [
+			"res://assets/audio/sfx/combat/hit_fire_0.ogg",
+			"res://assets/audio/sfx/combat/hit_fire_1.ogg",
+			"res://assets/audio/sfx/combat/hit_fire_2.ogg",
+		],
+		"volume_db": -10.0, "max_per_frame": 3, "positional": true,
 	},
 	"sfx_hit_cryo": {
-		"streams": ["res://assets/audio/sfx/combat/placeholder_hit_cryo.wav"],
+		"streams": [
+			"res://assets/audio/sfx/combat/hit_cryo_0.ogg",
+			"res://assets/audio/sfx/combat/hit_cryo_1.ogg",
+			"res://assets/audio/sfx/combat/hit_cryo_2.ogg",
+		],
 		"volume_db": -8.0, "max_per_frame": 3, "positional": true,
 	},
 	"sfx_hit_shock": {
-		"streams": ["res://assets/audio/sfx/combat/placeholder_hit_shock.wav"],
-		"volume_db": -8.0, "max_per_frame": 3, "positional": true,
+		"streams": [
+			"res://assets/audio/sfx/combat/hit_shock_0.ogg",
+			"res://assets/audio/sfx/combat/hit_shock_1.ogg",
+			"res://assets/audio/sfx/combat/hit_shock_2.ogg",
+		],
+		"volume_db": -11.0, "max_per_frame": 3, "positional": true,
 	},
 	"sfx_hit_void": {
-		"streams": ["res://assets/audio/sfx/combat/placeholder_hit_void.wav"],
-		"volume_db": -8.0, "max_per_frame": 3, "positional": true,
+		"streams": [
+			"res://assets/audio/sfx/combat/hit_void_0.ogg",
+			"res://assets/audio/sfx/combat/hit_void_1.ogg",
+			"res://assets/audio/sfx/combat/hit_void_2.ogg",
+		],
+		"volume_db": -9.0, "max_per_frame": 3, "positional": true,
 	},
 
 	# ── Combat: crit / kill / deaths (P1) ────────────────────────────────────
 	"sfx_crit": {
-		"streams": ["res://assets/audio/sfx/combat/placeholder_crit.wav"],
+		"streams": ["res://assets/audio/sfx/combat/crit.ogg"],
 		"volume_db": -6.0, "max_per_frame": 2, "min_interval_ms": 50,
 	},
 	"sfx_kill": {
-		"streams": ["res://assets/audio/sfx/combat/placeholder_kill.wav"],
-		"volume_db": -7.0, "max_per_frame": 2, "min_interval_ms": 60,
+		"streams": ["res://assets/audio/sfx/combat/kill.ogg"],
+		"volume_db": -8.0, "max_per_frame": 2, "min_interval_ms": 60,
 	},
 	"sfx_death_enemy_normal": {
-		"streams": ["res://assets/audio/sfx/combat/placeholder_death_enemy.wav"],
+		"streams": [
+			"res://assets/audio/sfx/combat/death_enemy_normal_0.ogg",
+			"res://assets/audio/sfx/combat/death_enemy_normal_1.ogg",
+		],
 		"volume_db": -9.0, "max_per_frame": 2, "positional": true,
 	},
 	"sfx_death_enemy_elite": {
@@ -61,24 +104,24 @@ const ALL: Dictionary = {
 	},
 	"sfx_death_enemy_boss": {
 		"streams": ["res://assets/audio/sfx/combat/death_enemy_boss.ogg"],
-		"volume_db": -4.0,
+		"volume_db": -3.0,
 	},
 	"sfx_death_player": {
-		"streams": ["res://assets/audio/sfx/combat/placeholder_death_player.wav"],
+		"streams": ["res://assets/audio/sfx/combat/death_player.ogg"],
 		"volume_db": -4.0, "max_per_frame": 1, "pitch_variance": 0.0,
 	},
 
-	# ── Combat: mitigation (P2 — table-ready, files pending) ─────────────────
+	# ── Combat: mitigation (P2 — real assets) ────────────────────────────────
 	"sfx_block": {
 		"streams": ["res://assets/audio/sfx/combat/block.ogg"],
 		"volume_db": -9.0, "positional": true,
 	},
 	"sfx_dodge": {
 		"streams": ["res://assets/audio/sfx/combat/dodge.ogg"],
-		"volume_db": -9.0, "positional": true,
+		"volume_db": -11.0, "positional": true,
 	},
 
-	# ── Status applications (P2 — table-ready, files pending) ────────────────
+	# ── Status applications (P2 — no good-fit free asset yet, TODO) ─────────
 	"sfx_status_burn_apply": {
 		"streams": ["res://assets/audio/sfx/status/burn_apply.ogg"],
 		"volume_db": -10.0, "positional": true, "min_interval_ms": 80,
@@ -100,31 +143,37 @@ const ALL: Dictionary = {
 		"volume_db": -10.0, "positional": true, "min_interval_ms": 80,
 	},
 
-	# ── Pickups (P1) ─────────────────────────────────────────────────────────
+	# ── Pickups (P1: xp/currency/weapon; P2: mod/keystone — real assets) ────
 	"sfx_pickup_xp": {
-		"streams": ["res://assets/audio/sfx/pickup/placeholder_pickup_xp.wav"],
+		"streams": [
+			"res://assets/audio/sfx/pickup/pickup_xp_0.ogg",
+			"res://assets/audio/sfx/pickup/pickup_xp_1.ogg",
+		],
 		"volume_db": -10.0, "max_per_frame": 2, "min_interval_ms": 45,
 	},
 	"sfx_pickup_currency": {
-		"streams": ["res://assets/audio/sfx/pickup/placeholder_pickup_currency.wav"],
+		"streams": [
+			"res://assets/audio/sfx/pickup/pickup_currency_0.ogg",
+			"res://assets/audio/sfx/pickup/pickup_currency_1.ogg",
+		],
 		"volume_db": -9.0, "max_per_frame": 2, "min_interval_ms": 45,
 	},
 	"sfx_pickup_weapon": {
-		"streams": ["res://assets/audio/sfx/pickup/placeholder_pickup_weapon.wav"],
+		"streams": ["res://assets/audio/sfx/pickup/pickup_weapon.ogg"],
 		"volume_db": -6.0, "max_per_frame": 1,
 	},
 	"sfx_pickup_mod": {
 		"streams": ["res://assets/audio/sfx/pickup/pickup_mod.ogg"],
-		"volume_db": -6.0, "max_per_frame": 1,
+		"volume_db": -8.0, "max_per_frame": 1,
 	},
 	"sfx_pickup_keystone": {
 		"streams": ["res://assets/audio/sfx/pickup/pickup_keystone.ogg"],
-		"volume_db": -5.0, "max_per_frame": 1,
+		"volume_db": -6.0, "max_per_frame": 1,
 	},
 
-	# ── Progression / UI (P1 + P2) ───────────────────────────────────────────
+	# ── Progression / UI (P1: level_up; P2: rest — real assets) ─────────────
 	"sfx_level_up": {
-		"streams": ["res://assets/audio/sfx/ui/placeholder_level_up.wav"],
+		"streams": ["res://assets/audio/sfx/ui/level_up.ogg"],
 		"volume_db": -4.0, "max_per_frame": 1, "pitch_variance": 0.0,
 	},
 	"sfx_upgrade_select": {
@@ -151,8 +200,12 @@ const ALL: Dictionary = {
 		"streams": ["res://assets/audio/sfx/ui/ui_error.ogg"],
 		"volume_db": -8.0,
 	},
+	"sfx_ui_cancel": {
+		"streams": ["res://assets/audio/sfx/ui/ui_cancel.ogg"],
+		"volume_db": -8.0,
+	},
 
-	# ── Extraction lifecycle (P1: complete; P2: rest) ────────────────────────
+	# ── Extraction lifecycle (P1: complete; P2: rest — real assets) ─────────
 	"sfx_extraction_warning": {
 		"streams": ["res://assets/audio/sfx/extraction/extraction_warning.ogg"],
 		"volume_db": -5.0, "max_per_frame": 1, "pitch_variance": 0.0,
@@ -163,10 +216,10 @@ const ALL: Dictionary = {
 	},
 	"sfx_extraction_channel_loop": {
 		"streams": ["res://assets/audio/sfx/extraction/extraction_channel_hum.ogg"],
-		"volume_db": -10.0, "pitch_variance": 0.0, "loop": true,
+		"volume_db": -12.0, "pitch_variance": 0.0, "loop": true,
 	},
 	"sfx_extraction_channel_complete": {
-		"streams": ["res://assets/audio/sfx/extraction/placeholder_extraction_complete.wav"],
+		"streams": ["res://assets/audio/sfx/extraction/extraction_channel_complete.ogg"],
 		"volume_db": -4.0, "max_per_frame": 1, "pitch_variance": 0.0,
 	},
 	"sfx_extraction_interrupted": {
@@ -174,7 +227,7 @@ const ALL: Dictionary = {
 		"volume_db": -6.0, "pitch_variance": 0.0,
 	},
 
-	# ── Boss (P2) ────────────────────────────────────────────────────────────
+	# ── Boss (P2 — real asset) ───────────────────────────────────────────────
 	"sfx_boss_intro": {
 		"streams": ["res://assets/audio/sfx/combat/boss_intro.ogg"],
 		"volume_db": -3.0, "max_per_frame": 1, "pitch_variance": 0.0,
@@ -185,12 +238,12 @@ const ALL: Dictionary = {
 ## (finished → replay), so tracks work whether or not import loop points are set.
 const MUSIC: Dictionary = {
 	"mus_hub": {
-		"stream": "res://assets/audio/music/placeholder_hub.wav",
+		"stream": "res://assets/audio/music/hub.ogg",
 		"volume_db": -8.0,
 	},
 	"mus_caves": {
-		"stream": "res://assets/audio/music/placeholder_caves.wav",
-		"volume_db": -8.0,
+		"stream": "res://assets/audio/music/caves.ogg",
+		"volume_db": -6.0,
 	},
 	"mus_catacombs": {
 		"stream": "res://assets/audio/music/catacombs.ogg",
@@ -209,7 +262,7 @@ const MUSIC: Dictionary = {
 		"volume_db": -8.0,
 	},
 	"mus_boss": {
-		"stream": "res://assets/audio/music/placeholder_boss.wav",
+		"stream": "res://assets/audio/music/boss.ogg",
 		"volume_db": -7.0,
 	},
 }
