@@ -15,6 +15,10 @@ run/main_scene="res://scenes/hub.tscn"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 config/icon="res://icon.svg"
 
+[audio]
+
+buses/default_bus_layout="uid://jano7swspvg0"
+
 [autoload]
 
 GameManager="*res://scripts/managers/game_manager.gd"
@@ -28,6 +32,7 @@ LootTables="*res://data/loot_tables.gd"
 MCPScreenshot="*res://addons/godot_mcp/mcp_screenshot_service.gd"
 MCPInputService="*res://addons/godot_mcp/mcp_input_service.gd"
 MCPGameInspector="*res://addons/godot_mcp/mcp_game_inspector_service.gd"
+Settings="*res://scripts/managers/settings.gd"
 
 [display]
 
