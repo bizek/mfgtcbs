@@ -45,6 +45,10 @@ var deaths: int = 0
 var deepest_phase: int = 0
 var total_kills: int = 0
 var most_loot_extracted: float = 0.0
+var total_gold_earned: float = 0.0  ## Cumulative resources earned across all runs (achievements)
+
+## Unlocked achievement IDs (see data/achievements.gd). Owning manager is AchievementManager.
+var achievements_unlocked: Array = []
 
 ## Character roster
 var selected_character: String = "The Drifter"
@@ -78,6 +82,8 @@ func save_data() -> void:
 		"deepest_phase":          deepest_phase,
 		"total_kills":            total_kills,
 		"most_loot_extracted":    most_loot_extracted,
+		"total_gold_earned":      total_gold_earned,
+		"achievements_unlocked":  achievements_unlocked,
 		"selected_character":     selected_character,
 		"unlocked_characters":    unlocked_characters,
 		"owned_mods":             owned_mods,
@@ -120,6 +126,8 @@ func load_data() -> void:
 	deepest_phase         = int(result.get("deepest_phase", 0))
 	total_kills           = int(result.get("total_kills", 0))
 	most_loot_extracted   = float(result.get("most_loot_extracted", 0.0))
+	total_gold_earned     = float(result.get("total_gold_earned", 0.0))
+	achievements_unlocked = result.get("achievements_unlocked", [])
 	selected_character    = str(result.get("selected_character", "The Drifter"))
 	unlocked_characters   = result.get("unlocked_characters", ["The Drifter"])
 	## Always ensure The Drifter is unlocked (safety net for old save files)
@@ -159,6 +167,8 @@ func reset_save() -> void:
 	deepest_phase          = 0
 	total_kills            = 0
 	most_loot_extracted    = 0.0
+	total_gold_earned      = 0.0
+	achievements_unlocked  = []
 	selected_character     = "The Drifter"
 	unlocked_characters    = ["The Drifter"]
 	game_cleared           = false
@@ -227,6 +237,7 @@ func get_hub_tier() -> int:
 ## Call after a successful extraction. Adds resources and records stats.
 func record_extraction(resources_earned: int, kills_this_run: int, phase: int, loot_value: float = 0.0) -> void:
 	resources += resources_earned
+	total_gold_earned += resources_earned
 	successful_extractions += 1
 	total_runs += 1
 	total_kills += kills_this_run
@@ -249,6 +260,7 @@ func record_win(char_id: String) -> void:
 func record_death(loot_value: int, kills_this_run: int, phase: int) -> void:
 	var penalty: int = int(loot_value * 0.25)
 	resources += penalty
+	total_gold_earned += penalty
 	deaths += 1
 	total_runs += 1
 	total_kills += kills_this_run
