@@ -56,6 +56,10 @@ var unlocked_characters: Array = ["The Drifter"]
 var game_cleared: bool = false
 var cleared_characters: Array = []
 
+## First-run onboarding — set true once a first Caves run ends (extraction or
+## death). Gates the FirstRunOverlay tooltip cues (scripts/ui/first_run_overlay.gd).
+var first_run_complete: bool = false
+
 func _ready() -> void:
 	load_data()
 
@@ -81,6 +85,7 @@ func save_data() -> void:
 		"character_loadouts":     character_loadouts,
 		"game_cleared":           game_cleared,
 		"cleared_characters":     cleared_characters,
+		"first_run_complete":     first_run_complete,
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file:
@@ -125,6 +130,7 @@ func load_data() -> void:
 	character_loadouts = result.get("character_loadouts", {})
 	game_cleared = bool(result.get("game_cleared", false))
 	cleared_characters = result.get("cleared_characters", [])
+	first_run_complete = bool(result.get("first_run_complete", false))
 
 ## Returns true if a save file exists on disk (used by the main menu to gate Continue).
 func has_save() -> bool:
@@ -157,6 +163,7 @@ func reset_save() -> void:
 	unlocked_characters    = ["The Drifter"]
 	game_cleared           = false
 	cleared_characters     = []
+	first_run_complete     = false
 	save_data()
 
 ## Returns true if the player owns Extraction Intel I (timed zone revealed at run start).

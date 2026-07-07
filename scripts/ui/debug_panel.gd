@@ -108,6 +108,7 @@ func _build_panel() -> void:
 		["Mob Spawning: ON",     _cmd_toggle_mob_spawning],
 		["Debug Draw: OFF",      _cmd_toggle_debug_draw],
 		["Block Overlay: OFF",   _cmd_toggle_block_debug],
+		["Reset First-Run",      _cmd_reset_first_run],
 	]
 
 	for d in defs:
@@ -188,6 +189,12 @@ func _cmd_power_up() -> void:
 func _cmd_give_resources() -> void:
 	ProgressionManager.resources += 10000
 	ProgressionManager.resources_changed.emit(ProgressionManager.resources)
+
+func _cmd_reset_first_run() -> void:
+	## Clears the onboarding flag so the next run re-triggers the FirstRunOverlay cues.
+	## Takes effect on the next run (HUD reads the flag once at _ready()).
+	ProgressionManager.first_run_complete = false
+	ProgressionManager.save_data()
 
 func _cmd_skip_extraction() -> void:
 	GameManager.debug_open_extraction()

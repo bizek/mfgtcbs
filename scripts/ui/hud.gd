@@ -46,6 +46,7 @@ func _ts(base_size: int) -> int:
 
 var player_ref: Node2D = null
 var _blink_timer: float = 0.0
+var _first_run_overlay: FirstRunOverlay = null
 
 ## ── Keystone indicator (top-right area, shown when player holds a keystone) ──
 var _keystone_indicator: Control = null
@@ -99,6 +100,7 @@ func _ready() -> void:
 	_build_extraction_warning_label()
 	_build_depth_meter()
 	_build_combo_discovery_popup()
+	_build_first_run_overlay()
 	GameManager.phase_started.connect(_on_phase_started)
 
 func setup(player: Node2D) -> void:
@@ -109,6 +111,8 @@ func setup(player: Node2D) -> void:
 	_on_health_changed(player_ref.health.current_hp, player_ref.health.max_hp)
 	_on_xp_changed(player_ref.xp, player_ref._xp_to_next_level())
 	level_label.text = "Lv%d" % player_ref.level
+	if _first_run_overlay != null:
+		_first_run_overlay.setup(player)
 
 func _process(delta: float) -> void:
 	_blink_timer += delta
@@ -683,6 +687,16 @@ func _build_combo_discovery_popup() -> void:
 	var popup = ComboDiscoveryPopup.new()
 	popup.name = "ComboDiscoveryPopup"
 	add_child(popup)
+
+## ── First-run onboarding overlay ──────────────────────────────────────────────
+
+func _build_first_run_overlay() -> void:
+	## Instantiate the first-run tooltip overlay as a child of this HUD.
+	## No-ops internally once ProgressionManager.first_run_complete is true.
+	var overlay = FirstRunOverlay.new()
+	overlay.name = "FirstRunOverlay"
+	add_child(overlay)
+	_first_run_overlay = overlay
 
 func _update_extraction_arrow() -> void:
 	if ExtractionManager.extraction_point == null or not is_instance_valid(ExtractionManager.extraction_point):
