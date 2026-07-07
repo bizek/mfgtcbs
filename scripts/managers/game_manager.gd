@@ -235,7 +235,12 @@ func on_player_died() -> void:
 	ProgressionManager.save_data()
 	player_died.emit()
 
+const EXTRACTION_FANFARE_DELAY: float = 0.45  ## room for MainArena's flash/zoom beat before pause+success screen
+
 func on_extraction_complete() -> void:
+	## Let the extraction fanfare (flash/zoom, wired off ExtractionManager.extraction_complete
+	## directly in MainArena) play before the run pauses and the success screen appears.
+	await get_tree().create_timer(EXTRACTION_FANFARE_DELAY, true, false, true).timeout
 	if phase_number > ProgressionManager.run_stats.get("deepest_phase", 0):
 		ProgressionManager.run_stats["deepest_phase"] = phase_number
 	current_state = GameState.EXTRACTION_SUCCESS
