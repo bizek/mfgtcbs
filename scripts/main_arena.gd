@@ -33,6 +33,34 @@ var _camera: Camera2D = null
 var _active_channeling_type: String = ""
 var _debug_all_extractions_active: bool = false
 
+## ── Game-feel: hit-stop / screen shake tuning (each independently toggleable) ──
+const HITSTOP_ENABLED: bool = true
+const SHAKE_ENABLED: bool = true
+const HITSTOP_TIME_SCALE: float = 0.0       ## true freeze; nothing in the codebase divides by delta
+const HITSTOP_CRIT_FRAMES: int = 2          ## player crit
+const HITSTOP_ELITE_KILL_FRAMES: int = 3    ## elite kill
+const HITSTOP_BOSS_KILL_FRAMES: int = 4     ## miniboss/final-boss kill
+const HITSTOP_FINISHER_FRAMES: int = 6      ## combo finisher landing — strongest in the game (design-audit D6)
+var _hitstop_locks: int = 0
+
+const SHAKE_SMALL_INTENSITY: float = 2.0    ## player takes damage
+const SHAKE_SMALL_DURATION: float = 0.10
+const SHAKE_MEDIUM_INTENSITY: float = 6.0   ## AoE/explosive kill
+const SHAKE_MEDIUM_DURATION: float = 0.18
+const SHAKE_LARGE_INTENSITY: float = 10.0   ## boss telegraph impact
+const SHAKE_LARGE_DURATION: float = 0.30
+const SHAKE_FINISHER_INTENSITY: float = 14.0 ## combo finisher landing
+const SHAKE_FINISHER_DURATION: float = 0.35
+const SHAKE_MAX_INTENSITY: float = 14.0     ## hard cap — chained explosions can't compound past this
+var _active_shake_intensity: float = 0.0
+var _shake_tween: Tween = null
+
+## Extraction fanfare — must fit inside GameManager.EXTRACTION_FANFARE_DELAY
+const EXTRACTION_FLASH_DURATION: float = 0.30
+const EXTRACTION_ZOOM_IN_DURATION: float = 0.14
+const EXTRACTION_ZOOM_OUT_DURATION: float = 0.22
+const EXTRACTION_ZOOM_PUNCH: float = 1.10
+
 ## LDtk mode — set when use_ldtk_level_1 flag is active
 var _using_ldtk: bool = false
 var _using_descent: bool = false
@@ -87,6 +115,9 @@ func _ready() -> void:
 
 	# Listen to EventBus for loot drops and screen shake (replaces old CombatManager signals)
 	EventBus.on_kill.connect(_on_entity_killed)
+	EventBus.on_crit.connect(_on_player_crit)
+	EventBus.on_hit_dealt.connect(_on_hit_dealt_for_feel)
+	EventBus.on_finisher_hit.connect(_on_finisher_hit)
 
 	# Wire UI to player
 	hud.setup(player)
@@ -430,7 +461,27 @@ func _on_ldtk_boss_should_spawn(boss_id: String, spawn_pos: Vector2) -> void:
 	if clamped_pos.distance_to(spawn_pos) > 1.0:
 		push_warning("[MainArena] boss_should_spawn: spawn_pos %s outside level bounds — clamped to %s" \
 				% [spawn_pos, clamped_pos])
+	_boss_intro_beat(boss_id, clamped_pos)
 	EnemySpawnManager.spawn_named_boss_at(boss_id, clamped_pos)
+
+
+## Boss intro beat: camera nudge toward the spawn point + a 3×-scaled name banner (reuses
+## HUD's existing flash_text, the same machinery as the final-boss "BOSS INCOMING" flash).
+## No spawn-suppression window — EnemySpawnManager has no trivially-reachable pause toggle
+## (would need real spawn-manager surgery; skipped per task scope).
+func _boss_intro_beat(boss_id: String, spawn_pos: Vector2) -> void:
+	var def: EnemyDefinition = EnemyRegistry.get_def(boss_id)
+	var display_name: String = def.enemy_name if def and def.enemy_name != "" else boss_id.capitalize()
+	if hud and hud.has_method("flash_text"):
+		hud.flash_text("BOSS INCOMING — %s" % display_name.to_upper(), Color(1.0, 0.3, 0.25), 1.8)
+	if _camera != null and is_instance_valid(_camera) and is_instance_valid(player):
+		var dir: Vector2 = spawn_pos - player.global_position
+		dir = dir.normalized() if dir.length() > 1.0 else Vector2.ZERO
+		var nudge: Vector2 = dir * 14.0
+		var nt := create_tween()
+		nt.tween_property(_camera, "offset", nudge, 0.25).set_trans(Tween.TRANS_SINE)
+		nt.tween_property(_camera, "offset", Vector2.ZERO, 0.35).set_trans(Tween.TRANS_SINE)
+	_shake_camera(SHAKE_LARGE_INTENSITY * 0.6, 0.2)
 
 
 func _get_level_bounds() -> Rect2:
@@ -541,6 +592,7 @@ func _on_any_extraction_complete() -> void:
 		_locked.on_extraction_complete()
 	_active_channeling_type = ""
 	ExtractionManager.channel_duration = 4.0
+	_extraction_fanfare()
 
 func _on_any_extraction_interrupted() -> void:
 	if _locked:
@@ -601,10 +653,23 @@ func _on_entity_killed(killer: Node, victim: Node) -> void:
 	if not victim.is_in_group("enemies"):
 		return
 	## Boss kills get a heavier shake + a few bonus drops so it feels like a payoff.
+	var is_elite_kill: bool = victim.get("is_elite") == true
+	var is_explosive_kill: bool = victim.get("status_effect_component") \
+			and (victim.status_effect_component.has_status("elite_exploding") \
+			or victim.status_effect_component.has_status("void_touched"))
 	if victim.is_in_group("final_boss"):
 		_shake_camera(12.0, 1.0)
+		_request_hitstop(HITSTOP_BOSS_KILL_FRAMES)
 	elif victim.is_in_group("bosses"):
 		_shake_camera(8.0, 0.6)
+		_request_hitstop(HITSTOP_BOSS_KILL_FRAMES)
+	elif is_explosive_kill:
+		_shake_camera(SHAKE_MEDIUM_INTENSITY, SHAKE_MEDIUM_DURATION)
+		if is_elite_kill:
+			_request_hitstop(HITSTOP_ELITE_KILL_FRAMES)
+	elif is_elite_kill:
+		_shake_camera(3.0, 0.12)
+		_request_hitstop(HITSTOP_ELITE_KILL_FRAMES)
 	else:
 		_shake_camera(3.0, 0.12)
 
@@ -754,13 +819,101 @@ func _spawn_resource_reward(pos: Vector2, amount: float) -> void:
 
 
 func _shake_camera(intensity: float = 3.0, duration: float = 0.12) -> void:
+	if not SHAKE_ENABLED:
+		return
 	if _camera == null or not is_instance_valid(_camera):
 		return
-	intensity *= Settings.screen_shake
-	var shake_offset := Vector2(randf_range(-intensity, intensity), randf_range(-intensity, intensity))
-	var tween := create_tween()
-	tween.tween_property(_camera, "offset", shake_offset, duration * 0.25)
-	tween.tween_property(_camera, "offset", Vector2.ZERO, duration * 0.75)
+	if get_tree().paused:
+		return
+	## Cap so chained explosions can't compound past the strongest tier, and never let a
+	## weaker shake interrupt/restart a stronger one already playing.
+	var capped: float = minf(intensity, SHAKE_MAX_INTENSITY) * Settings.screen_shake
+	if capped <= 0.0:
+		return
+	if _shake_tween != null and _shake_tween.is_valid() and capped <= _active_shake_intensity:
+		return
+	if _shake_tween != null and _shake_tween.is_valid():
+		_shake_tween.kill()
+	_active_shake_intensity = capped
+	var shake_offset := Vector2(randf_range(-capped, capped), randf_range(-capped, capped))
+	_shake_tween = create_tween()
+	_shake_tween.tween_property(_camera, "offset", shake_offset, duration * 0.25)
+	_shake_tween.tween_property(_camera, "offset", Vector2.ZERO, duration * 0.75)
+	_shake_tween.tween_callback(func(): _active_shake_intensity = 0.0)
+
+
+## ── Hit-stop: brief Engine.time_scale freeze. Lock-counted so overlapping requests (e.g. a
+## crit landing during a finisher) don't restore early; _exit_tree is a safety net against a
+## scene change interrupting the countdown and leaving time_scale stuck at 0.
+func _request_hitstop(frames: int) -> void:
+	if not HITSTOP_ENABLED or frames <= 0:
+		return
+	if get_tree().paused:
+		return
+	Engine.time_scale = HITSTOP_TIME_SCALE
+	_hitstop_locks += 1
+	var duration: float = float(frames) / 60.0
+	## ignore_time_scale=true — must tick in real time while time_scale is dipped to 0.
+	var timer := get_tree().create_timer(duration, true, false, true)
+	timer.timeout.connect(_on_hitstop_expired)
+
+
+func _on_hitstop_expired() -> void:
+	_hitstop_locks = maxi(_hitstop_locks - 1, 0)
+	if _hitstop_locks == 0:
+		Engine.time_scale = 1.0
+
+
+func _exit_tree() -> void:
+	Engine.time_scale = 1.0
+
+
+func _on_player_crit(source, _target, _hit_data) -> void:
+	if source == player:
+		_request_hitstop(HITSTOP_CRIT_FRAMES)
+
+
+func _on_hit_dealt_for_feel(_source, target, _hit_data) -> void:
+	## Small shake when the player takes damage.
+	if target == player:
+		_shake_camera(SHAKE_SMALL_INTENSITY, SHAKE_SMALL_DURATION)
+
+
+func _on_finisher_hit(_entity: Node2D) -> void:
+	## P1 (design-audit D6): the finisher landing in a crowd is the pitch moment — strongest
+	## hit-stop + shake in the game.
+	_request_hitstop(HITSTOP_FINISHER_FRAMES)
+	_shake_camera(SHAKE_FINISHER_INTENSITY, SHAKE_FINISHER_DURATION)
+
+
+## Public hook for boss telegraph impacts (large shake). Called by choreography/telegraph code
+## when a boss attack's hit lands.
+func on_boss_telegraph_impact() -> void:
+	_shake_camera(SHAKE_LARGE_INTENSITY, SHAKE_LARGE_DURATION)
+
+
+func _extraction_fanfare() -> void:
+	if _camera == null or not is_instance_valid(_camera):
+		return
+	var flash_alpha: float = 0.55 * Settings.screen_flash_intensity
+	if flash_alpha > 0.0:
+		var flash := ColorRect.new()
+		flash.color = Color(1.0, 1.0, 1.0, flash_alpha)
+		flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		flash.set_anchors_preset(Control.PRESET_FULL_RECT)
+		flash.z_index = 100
+		flash.process_mode = Node.PROCESS_MODE_ALWAYS
+		hud.add_child(flash)
+		var ft := create_tween()
+		ft.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+		ft.tween_property(flash, "modulate:a", 0.0, EXTRACTION_FLASH_DURATION)
+		ft.tween_callback(flash.queue_free)
+	var base_zoom: Vector2 = _camera.zoom
+	var zt := create_tween()
+	zt.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	zt.tween_property(_camera, "zoom", base_zoom * EXTRACTION_ZOOM_PUNCH, EXTRACTION_ZOOM_IN_DURATION) \
+			.set_trans(Tween.TRANS_SINE)
+	zt.tween_property(_camera, "zoom", base_zoom, EXTRACTION_ZOOM_OUT_DURATION).set_trans(Tween.TRANS_SINE)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
