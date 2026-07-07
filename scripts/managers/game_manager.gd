@@ -57,6 +57,25 @@ const PHASE_DURATIONS: Array = [180.0, 210.0, 240.0, 210.0, 240.0]
 const PHASE_NAMES: Array = ["The Threshold", "The Descent", "The Deep", "The Abyss", "The Core"]
 const MAX_PHASES: int = 5
 
+## Descent mode: spatial depth (0.0-1.0, from DepthTracker), pushed once/frame by
+## MainArena. phase_number still advances on the wall-clock timer below (other
+## code depends on phase_started firing — carrier/herald resets, miniboss arm),
+## but combat/loot scaling should read get_effective_phase() instead of
+## phase_number directly, so difficulty tracks the player's block position
+## instead of how long the run has been running.
+var descent_depth_progress: float = 0.0
+
+func set_descent_depth(progress: float) -> void:
+	descent_depth_progress = clampf(progress, 0.0, 1.0)
+
+## Returns the phase tier (1-5) that combat/loot scaling should use. In descent
+## mode this is derived from spatial depth; everywhere else it's the wall-clock
+## phase_number.
+func get_effective_phase() -> int:
+	if not use_descent_mode:
+		return phase_number
+	return clampi(int(descent_depth_progress * float(MAX_PHASES)) + 1, 1, MAX_PHASES)
+
 ## Difficulty scaling — time-based for prototype
 const DIFFICULTY_SCALE_PERIOD: float = 30.0
 const DIFFICULTY_SCALE_RATE: float = 0.15

@@ -229,12 +229,14 @@ func _process(delta: float) -> void:
 		_check_extraction_zones(ppos)
 
 	# Depth atmosphere — lerp world modulate darker as player descends
-	if _depth_canvas_mod != null and _depth_tracker != null:
+	if _depth_tracker != null:
 		var t: float = _depth_tracker.depth_progress
-		_depth_canvas_mod.color = Color(
-			lerpf(1.0, 0.30, t),
-			lerpf(1.0, 0.25, t),
-			lerpf(1.0, 0.40, t))
+		GameManager.set_descent_depth(t)
+		if _depth_canvas_mod != null:
+			_depth_canvas_mod.color = Color(
+				lerpf(1.0, 0.30, t),
+				lerpf(1.0, 0.25, t),
+				lerpf(1.0, 0.40, t))
 
 
 func _register_new_enemies() -> void:
@@ -682,7 +684,7 @@ func _on_entity_killed(killer: Node, victim: Node) -> void:
 	var pos: Vector2 = victim.global_position
 	var etype: String = victim.get("enemy_id") if victim.get("enemy_id") else "fodder"
 	var is_elite: bool = victim.get("is_elite") == true
-	var phase: int = GameManager.phase_number
+	var phase: int = GameManager.get_effective_phase()
 
 	## Boss reward payouts.
 	if victim.is_in_group("final_boss"):
