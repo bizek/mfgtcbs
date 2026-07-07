@@ -18,6 +18,7 @@ extends Node
 ##   choreo_set_flags(untargetable: bool, invulnerable: bool) -> void
 ##   choreo_on_start(ability: AbilityDefinition) -> void
 ##   choreo_on_end() -> void
+##   choreo_on_finisher_hit() -> void  (optional; called when an is_finisher phase's hit lands)
 
 var _host = null                      ## untyped for duck-typed host dispatch
 var _sprite: AnimatedSprite2D = null
@@ -175,6 +176,8 @@ func _on_phase_exit() -> void:
 
 
 func _fire(phase: ChoreographyPhase) -> void:
+	if phase.is_finisher and _host.has_method("choreo_on_finisher_hit"):
+		_host.choreo_on_finisher_hit()
 	if phase.effects.is_empty():
 		return
 	_host.choreo_fire_effects(phase.effects, _targets, _ability)

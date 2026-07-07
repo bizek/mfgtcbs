@@ -18,6 +18,7 @@ signal on_interrupt(source, target)
 signal on_reflect(source, target, hit_data)
 signal on_absorb(entity, hit_data, absorbed: float)
 signal on_friendly_fire(source, target, hit_data)
+signal on_finisher_hit(entity: Node2D)  ## a combo finisher phase's hit landed (see ChoreographyPhase.is_finisher)
 
 # --- Status events ---
 signal on_status_applied(source, target, status_id: String, stacks: int)

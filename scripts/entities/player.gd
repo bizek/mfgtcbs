@@ -1742,6 +1742,10 @@ func choreo_on_start(_ability: AbilityDefinition) -> void:
 	is_attacking = true
 
 
+func choreo_on_finisher_hit() -> void:
+	EventBus.on_finisher_hit.emit(self)
+
+
 func choreo_on_end() -> void:
 	_attack_anim_active = false
 	is_attacking = false
