@@ -1,6 +1,6 @@
 extends CanvasLayer
 
-## PauseMenu — ESC opens/closes. Shows Resume + Debug Panel toggle.
+## PauseMenu — ESC / controller Start opens/closes. Shows Resume + Debug Panel toggle.
 ## process_mode = ALWAYS so it runs while tree is paused.
 
 const SettingsPanelScript := preload("res://scripts/ui/settings_panel.gd")
@@ -17,9 +17,7 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not (event is InputEventKey) or not event.pressed or event.echo:
-		return
-	if event.keycode != KEY_ESCAPE:
+	if not event.is_action_pressed("pause") or event.is_echo():
 		return
 
 	## Don't open during game-over, extraction success, or level-up screens

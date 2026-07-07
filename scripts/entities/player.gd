@@ -90,6 +90,13 @@ var _pending_targets: Array = []
 ## When set, the shot aims/renders toward the cursor instead of the resolved enemy.
 var _pending_aim_dir: Vector2 = Vector2.ZERO
 
+## Controller right-stick aim. When the stick is deflected past its InputMap deadzone, aiming
+## switches to the stick direction and holds it while the stick is idle (a combo/swing needs a
+## stable facing, not a snap back to center). Mouse motion switches aiming back to the cursor.
+var _controller_aim_dir: Vector2 = Vector2.ZERO
+var _using_controller_aim: bool = false
+const CONTROLLER_AIM_DISTANCE: float = 350.0  ## world units; ~matches on-screen mouse reach
+
 ## Knockback
 var knockback_velocity: Vector2 = Vector2.ZERO
 
@@ -346,11 +353,41 @@ func _setup_combo_fx(frames: SpriteFrames) -> void:
 	_combo_fx.sprite_frames = frames
 
 
+func _input(event: InputEvent) -> void:
+	## Mouse motion hands aiming back to the cursor; the right stick (polled in
+	## _physics_process) hands it back to the controller. Whichever moved most recently wins.
+	if event is InputEventMouseMotion:
+		_using_controller_aim = false
+
+
+## Poll the right stick once per physics frame (deadzone applied by the aim_* InputMap actions).
+## Deflection updates and holds the aim direction; releasing the stick keeps the last direction
+## instead of snapping back to the cursor, since a melee swing needs a stable facing.
+func _update_controller_aim() -> void:
+	var stick: Vector2 = Vector2(
+		Input.get_action_strength("aim_right") - Input.get_action_strength("aim_left"),
+		Input.get_action_strength("aim_down") - Input.get_action_strength("aim_up")
+	)
+	if stick.length_squared() > 0.0:
+		_controller_aim_dir = stick.normalized()
+		_using_controller_aim = true
+
+
+## The world point every aim/facing calculation reads instead of the raw mouse position — the
+## mouse cursor normally, or a fixed-distance point in the held controller-stick direction.
+## Downstream call sites only use direction (normalized/limit_length) or clamp to their own
+## range, so the fixed distance here is a stand-in reach, not a hard game-rule range.
+func _get_aim_world_position() -> Vector2:
+	if _using_controller_aim and _controller_aim_dir != Vector2.ZERO:
+		return global_position + _controller_aim_dir * CONTROLLER_AIM_DISTANCE
+	return get_global_mouse_position()
+
+
 ## Facing follows the aim cursor, not movement — combat reads from where you're pointing.
 ## The cursor's QUADRANT picks the row (the rows are diagonal facings): south of the player
 ## always shows a front row, north always a back row — never inverted.
 func _update_facing() -> void:
-	var to_mouse: Vector2 = get_global_mouse_position() - global_position
+	var to_mouse: Vector2 = _get_aim_world_position() - global_position
 	if to_mouse.length_squared() < 4.0:
 		return   ## cursor on top of the player — keep the last facing
 	_facing = ("down" if to_mouse.y >= 0.0 else "up") \
@@ -714,6 +751,8 @@ func _physics_process(delta: float) -> void:
 				_hit_flash_tween = null
 			sprite.modulate = Color.WHITE
 
+	_update_controller_aim()
+
 	# Movement (CC-aware)
 	var move_blocked: bool = status_effect_component.is_disabled() or status_effect_component.is_movement_disabled()
 	var input_dir := Vector2.ZERO
@@ -821,7 +860,7 @@ func _tick_manual_fire(delta: float) -> void:
 	## Orbit weapons are passive (orbs self-manage their hits) — nothing to fire manually.
 	if aa.tags.has("Orbit"):
 		return
-	var aim_pos: Vector2 = get_global_mouse_position()
+	var aim_pos: Vector2 = _get_aim_world_position()
 	var aim_dir: Vector2 = aim_pos - global_position
 	aim_dir = aim_dir.normalized() if aim_dir.length_squared() > 0.0 else _last_move_dir
 	## Lock in the aim direction so _on_auto_attack / _fire_pending_shot render toward the
@@ -904,7 +943,7 @@ func _get_aim_target(aim_pos: Vector2 = Vector2.INF) -> Node2D:
 		_aim_marker.name = "ManualAimMarker"
 		_aim_marker.top_level = true
 		get_tree().current_scene.add_child(_aim_marker)
-	_aim_marker.global_position = aim_pos if aim_pos != Vector2.INF else get_global_mouse_position()
+	_aim_marker.global_position = aim_pos if aim_pos != Vector2.INF else _get_aim_world_position()
 	return _aim_marker
 
 
@@ -1102,12 +1141,12 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 		if is_bomb:
 			center = _get_aim_target(_bomb_land)
 		elif is_torrent:
-			var t_aim: Vector2 = get_global_mouse_position() - global_position
+			var t_aim: Vector2 = _get_aim_world_position() - global_position
 			if t_aim.length_squared() >= 1.0:
 				center = _get_aim_target(global_position + t_aim.normalized() * TORRENT_FORWARD)
 		elif is_throw:
 			## Throw Things: the junk lands where you point, up to a hurl's reach.
-			var j_aim: Vector2 = get_global_mouse_position() - global_position
+			var j_aim: Vector2 = _get_aim_world_position() - global_position
 			if j_aim.length() > THROW_RANGE:
 				j_aim = j_aim.normalized() * THROW_RANGE
 			center = _get_aim_target(global_position + j_aim)
@@ -1340,7 +1379,7 @@ func _start_bomb_toss() -> void:
 		_bomb_toss.sprite_frames = sf
 		_bomb_toss.animation_finished.connect(_on_bomb_anim_finished)
 		add_child(_bomb_toss)
-	var aim: Vector2 = get_global_mouse_position() - global_position
+	var aim: Vector2 = _get_aim_world_position() - global_position
 	if aim.length_squared() < 1.0:
 		aim = Vector2.DOWN
 	_bomb_start = global_position
@@ -1390,7 +1429,7 @@ func _do_teleport() -> void:
 	## Blink to the cursor (clamped). The departure burst already fired at the old spot; the
 	## teleport_in phase plays at the destination. CharacterBody2D depenetrates on the next
 	## move_and_slide if the landing point clips a wall edge.
-	var aim: Vector2 = get_global_mouse_position() - global_position
+	var aim: Vector2 = _get_aim_world_position() - global_position
 	if aim.length_squared() < 1.0:
 		return
 	global_position += aim.limit_length(TELEPORT_RANGE)
@@ -1421,7 +1460,7 @@ func _show_torrent_fx() -> void:
 					sf.add_frame(anim, cell)
 		_torrent_fx.sprite_frames = sf
 		add_child(_torrent_fx)
-	var aim: Vector2 = get_global_mouse_position() - global_position
+	var aim: Vector2 = _get_aim_world_position() - global_position
 	if aim.length_squared() >= 1.0:
 		_torrent_fx.position = aim.normalized() * TORRENT_FORWARD
 	_torrent_fx.visible = true
@@ -1579,7 +1618,7 @@ func _show_storm_fx() -> void:
 		_storm_fx.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		_storm_fx.sprite_frames = sf
 		add_child(_storm_fx)
-	var aim: Vector2 = get_global_mouse_position() - global_position
+	var aim: Vector2 = _get_aim_world_position() - global_position
 	if aim.length_squared() < 1.0:
 		aim = Vector2.RIGHT
 	var names: Array = ["e", "se", "s", "sw", "w", "nw", "n", "ne"]
@@ -2019,7 +2058,7 @@ func _is_guard_blocking(hit_data) -> bool:
 	if src == null or not is_instance_valid(src):
 		return false
 	var to_attacker: Vector2 = src.global_position - global_position
-	var facing: Vector2 = get_global_mouse_position() - global_position
+	var facing: Vector2 = _get_aim_world_position() - global_position
 	if to_attacker.length_squared() < 1.0 or facing.length_squared() < 1.0:
 		return true   ## point-blank overlap — the sword is up, call it blocked
 	return absf(facing.angle_to(to_attacker)) <= GUARD_BLOCK_ARC * 0.5
