@@ -2,7 +2,61 @@
 
 ## Status
 
-Pre-implementation spec. As of 2026-05-02, no audio assets have shipped — no `assets/audio/` directory exists, no AudioManager autoload is registered in `project.godot`, and no AudioStreamPlayer nodes appear in any scene. This doc is the agreed plan that audio implementation will follow.
+**Implemented 2026-07-06** (task 14). `AudioManager` autoload (`scripts/managers/audio_manager.gd`) + data-driven sound table (`data/factories/sound_table.gd`) are live. P1 combat/pickup/level-up/extraction-complete sounds and hub/caves/boss music are wired end-to-end using synthesized `placeholder_*.wav` stand-ins under `assets/audio/`. Remaining manifest entries (task 15) are wired by editing only the sound table. Sections below marked *(spec)* describe intent that is not yet exercised (biomes 2–5 music files, ducking).
+
+## How to Add a Sound (the recipe)
+
+1. Drop the audio file under `assets/audio/` (see Asset Layout; OGG for real assets, placeholders are WAV).
+2. Add an entry to `SoundTable.ALL` in `data/factories/sound_table.gd`:
+   ```gdscript
+   "sfx_my_sound": {
+       "streams": ["res://assets/audio/sfx/combat/my_sound.ogg"],  # >1 path = random variation
+       "volume_db": -8.0,        # base loudness offset
+       "pitch_variance": 0.08,   # ±8% random pitch (default; 0.0 for jingles/stingers)
+       "max_per_frame": 2,       # K: same-sound cap per frame (default 2)
+       "min_interval_ms": 30,    # cross-frame retrigger throttle (default 30)
+       "positional": true,       # true = plays from the AudioStreamPlayer2D pool at a world pos
+   },
+   ```
+3. Trigger it:
+   - **Combat events**: if the trigger is an EventBus signal AudioManager already handles (hits, crit, kill, death, block, dodge, status apply, pickup), just add the ID to the relevant lookup map at the bottom of `sound_table.gd` (`HIT_SOUND_BY_DAMAGE_TYPE`, `STATUS_SOUND`, `PICKUP_SOUND`). No code.
+   - **New signal**: connect it in `AudioManager._connect_signals()` and call `play(id, world_pos)`.
+   - **UI / non-EventBus moments**: call `AudioManager.play_ui("sfx_my_sound")` from the UI script.
+4. Music: add to `SoundTable.MUSIC` and either point a level's `music_id` at it (`data/factories/level_data.gd`) or call `AudioManager.play_music("mus_x")` at the scene hook.
+
+Missing file → one `push_warning` at first play, then silent no-op. The game runs fine with zero assets present.
+
+## Runtime Architecture (as built)
+
+- **Pools** (created once in `_ready()`, zero node churn): 10 `AudioStreamPlayer` (global/UI SFX) + 16 `AudioStreamPlayer2D` (positional combat SFX, `max_distance` 480) + 2 music players (crossfade pair) + 1 dedicated loop player (extraction hum). Hard voice ceiling: 29.
+- **Positional vs global split**: hits, enemy deaths, statuses, block/dodge = positional (they happen at enemy positions, off-screen combat attenuates). Crit, kill confirm, player death, pickups, level-up, extraction, UI, music = global (player-centric feedback).
+- **Limiter** (the zero-cooldown / horde-frame defense, precedent: CombatFeedbackManager's composite buffering):
+  - per sound: at most `max_per_frame` (K, default 2, hits 3) instances per frame;
+  - each extra same-frame instance plays at −2 dB (stack falloff);
+  - across frames: `min_interval_ms` throttle (default 30 ms);
+  - pools cap total voices regardless.
+  - Loudest realistic frame (AoE kill on a horde + pickup vacuum): 3 hit + 2 death ≤ 5 positional voices; 2 crit + 2 kill + 2 pickup + 1 level-up ≤ 7 global voices — well under the 26 SFX-voice ceiling and, with −6…−10 dB base volumes, under clipping on the SFX bus.
+- **Pool acquisition**: round-robin, prefer idle, steal oldest when saturated. Music/loop players are never stolen (separate pools).
+- **Music**: `play_music(id)` crossfades over 1.5 s via the two-player pair; same-ID calls no-op. Looping is manual (`finished` → replay) so tracks loop whether or not import loop points are set. Boss flow: `final_boss_spawned` → save current track, cut to `mus_boss`; `final_boss_defeated` → boss death SFX + restore biome track.
+- **Settings**: AudioManager only plays into the existing `Master/Music/SFX` buses; `Settings` (task 09) owns bus volumes/mute, so the sliders affect everything with no extra wiring.
+
+### Wired triggers (task 14 proof set)
+
+| Trigger | Sound |
+|---|---|
+| `EventBus.on_hit_dealt` | `sfx_hit_{physical,fire,cryo,shock,void}` via `HIT_SOUND_BY_DAMAGE_TYPE` (engine types `Ice`→cryo, `Lightning`→shock, `True`→physical) |
+| `EventBus.on_crit` / `on_kill` | `sfx_crit`, `sfx_kill` |
+| `EventBus.on_death` | `sfx_death_player` / `sfx_death_enemy_elite` / `sfx_death_enemy_normal` |
+| `EventBus.on_block` / `on_dodge` / `on_status_applied` | table-ready (files pending, task 15) |
+| `EventBus.on_pickup` (now emitted by all five pickup scripts) | `sfx_pickup_{xp,currency,weapon,mod,keystone}` |
+| `UpgradeManager.level_up_ready` | `sfx_level_up` |
+| `GameManager.run_started` | biome music via `LevelData.get_music_id(current_level)` |
+| `GameManager.final_boss_spawned` / `final_boss_defeated` | `mus_boss` in/out + `sfx_boss_intro` / `sfx_death_enemy_boss` |
+| `GameManager.extraction_window_opened` / `extraction_successful` / `player_died` | warning / complete + music fade-outs |
+| `ExtractionManager` channel started/interrupted/complete | hum loop lifecycle |
+| `hub.gd` / `main_menu.gd` `_ready()` | `AudioManager.play_music("mus_hub")` (direct call — non-EventBus moment) |
+
+Placeholder assets are synthesized WAVs named `placeholder_*.wav` — replace by dropping real OGGs and updating the table paths.
 
 ---
 
@@ -163,9 +217,9 @@ The damage type strings coming off `hit_data` are the engine's canonical set: `"
 
 ## SFX Player Pool
 
-AudioManager owns a fixed pool of AudioStreamPlayer nodes (not AudioStreamPlayer2D — the game is small enough that positional falloff is not needed for SFX; everything is audible). Pool size: **16 players** for combat SFX + **2 players** for music (current track, crossfade target) + **1 player** for extraction channel hum (looping). Total: 19 nodes, created in `_ready()`, never destroyed.
+Superseded by the "Runtime Architecture (as built)" section above: the shipped design splits SFX into a **10-player global pool** (`AudioStreamPlayer`) and a **16-player positional pool** (`AudioStreamPlayer2D`) so off-screen horde combat attenuates instead of stacking at full volume, plus 2 music players and 1 loop player — 29 nodes total, created in `_ready()`, never destroyed.
 
-Pool acquisition is round-robin with fallback: try the next slot; if it's playing a non-music stream, steal it (lower-priority sounds are expendable during heavy combat). Music players are never stolen.
+Pool acquisition is round-robin with fallback: prefer an idle slot; if the whole pool is busy, steal the next slot round-robin (lower-priority sounds are expendable during heavy combat). Music and loop players live outside the SFX pools and are never stolen.
 
 ---
 
@@ -215,7 +269,7 @@ When the settings menu ships, expose three sliders (0–100) and one mute toggle
 | SFX volume | `AudioServer.set_bus_volume_db(2, linear_to_db(v))` |
 | Mute all | `AudioServer.set_bus_mute(0, true/false)` |
 
-Store the three float values (0.0–1.0, not dB) in `ProgressionManager`'s settings save dictionary under keys `"vol_master"`, `"vol_music"`, `"vol_sfx"`. AudioManager applies saved values at startup. The settings menu spec will decide exact UI layout; AudioManager just exposes `set_master_volume(v: float)`, `set_music_volume(v: float)`, `set_sfx_volume(v: float)` as its public API.
+As shipped (task 09), volume settings live in the `Settings` autoload (`scripts/managers/settings.gd`, persisted to `user://settings.cfg`), not ProgressionManager. `Settings` applies bus volumes at startup and on slider change; AudioManager deliberately has no volume API — it only plays into the buses, so the sliders and mute affect everything with zero coupling.
 
 Use `linear_to_db()` for conversion. Do not store dB values — sliders in linear space are more intuitive.
 
