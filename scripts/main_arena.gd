@@ -180,6 +180,12 @@ func _ready() -> void:
 		var entity_inspector: CanvasLayer = InspectorScript.new()
 		add_child(entity_inspector)
 
+		var ReportManagerScript := preload("res://scripts/systems/run_report_manager.gd")
+		var run_report: Node = ReportManagerScript.new()
+		run_report.name = "RunReportManager"
+		add_child(run_report)
+		run_report.setup(player, _depth_tracker)
+
 	# Start run
 	GameManager.start_run()
 
