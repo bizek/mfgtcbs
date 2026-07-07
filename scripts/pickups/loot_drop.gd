@@ -78,4 +78,5 @@ func _collect() -> void:
 	GameManager.add_instability(inst_amount)
 	var size_name: String = size.capitalize()
 	GameManager.run_loot_manifest.append({ "type": "resource", "name": size_name + " Resource", "value": value, "rarity": size })
+	EventBus.on_pickup.emit(_target, "currency")
 	queue_free()

@@ -3,6 +3,10 @@
 **Tier:** 2 → Sonnet-class
 **Depends on:** nothing open (pacing Phases 1–3 shipped)
 **Blocks:** 27 (behaviors), 28 (hub UI)
+**Design-audit inputs (docs/design_audit_2026-07-06.md):** D3 — rename colliding node names
+before shipping (m_second_wind ↔ level-up "Second Wind", m_juggernaut ↔ "Juggernaut" evolution,
+f_deadeye ↔ The Deadeye character; pick new names, update the spec). D7 — the run-end
+(death AND extraction) screens must show passive points banked this run.
 
 ```
 You are working in a Godot 4.6.1 GDScript survivor/extraction game (Extraction Survivors,
@@ -36,6 +40,11 @@ IMPLEMENT (per spec sections 2, 3, 4, 5.1, 5.2, 5.3, 6.1):
    allocated stat node's effects list into ModifierDefinitions on modifier_component,
    multiplying value × ranks. Confirm dash (dash_speed/dash_cooldown/dash_charges) and
    melee_range nodes actually move gameplay — those stats are already get_stat()-driven.
+   COMBO-KIT AUDIT (spec §4 note): every character now runs a combo kit and drops weapon
+   auto-fire. Verify projectile_count / pierce / projectile_size nodes affect combo-fired
+   projectiles (ChainFactory arrows/shurikens/fireballs); if a stat is dead under combos,
+   wire it through the combo projectile path or swap the node's stat — never ship dead nodes.
+   Report what you found in docs/passive_tree.md.
 5. xp_gain hook (spec §6.1) — in the player XP-gain path, multiply gained XP by
    1.0 + modifier_component.sum_modifiers("xp_gain", "bonus").
 

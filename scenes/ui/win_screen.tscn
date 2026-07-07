@@ -1,0 +1,65 @@
+[gd_scene format=3 uid="uid://b4pmk4137mjn2"]
+
+[ext_resource type="Script" uid="uid://dkato0kpnnw2" path="res://scripts/ui/win_screen.gd" id="1_1cgod"]
+
+[node name="WinScreen" type="CanvasLayer" unique_id=2103898451]
+layer = 10
+script = ExtResource("1_1cgod")
+
+[node name="Background" type="ColorRect" parent="." unique_id=694878266]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.05, 0.08, 0.02, 0.9)
+
+[node name="VBox" type="VBoxContainer" parent="." unique_id=889062974]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -230.0
+offset_top = -170.0
+offset_right = 230.0
+offset_bottom = 170.0
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="VBox" unique_id=1764178569]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
+theme_override_font_sizes/font_size = 24
+text = "GAME CLEARED"
+horizontal_alignment = 1
+
+[node name="SubtitleLabel" type="Label" parent="VBox" unique_id=1891749404]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "You escaped the Cave and silenced what guarded it."
+horizontal_alignment = 1
+
+[node name="KillsLabel" type="Label" parent="VBox" unique_id=1344528577]
+layout_mode = 2
+theme_override_font_sizes/font_size = 19
+text = "Kills: 0"
+horizontal_alignment = 1
+
+[node name="TimeLabel" type="Label" parent="VBox" unique_id=336822534]
+layout_mode = 2
+theme_override_font_sizes/font_size = 19
+text = "Time: 0:00"
+horizontal_alignment = 1
+
+[node name="CharacterLabel" type="Label" parent="VBox" unique_id=1504253029]
+layout_mode = 2
+theme_override_font_sizes/font_size = 19
+text = "Cleared with: The Drifter"
+horizontal_alignment = 1
+
+[node name="Spacer" type="Control" parent="VBox" unique_id=1320413948]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+
+[node name="ContinueButton" type="Button" parent="VBox" unique_id=242932160]
+layout_mode = 2
+theme_override_font_sizes/font_size = 19
+text = "CONTINUE"

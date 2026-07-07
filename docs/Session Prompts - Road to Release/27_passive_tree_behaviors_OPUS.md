@@ -39,11 +39,13 @@ before authoring — chance, conditions, internal cooldowns):
   - f_keystone Slipstream: in player.gd's dash-start block, if the keystone flag is set (set
     the flag in _apply_passive_tree()), apply the Slipstream status (+30% attack_speed, +15%
     damage, 2.5s).
-  - m_keystone Berserker's Cadence: in the combo finisher-completion path (choreo_on_end for
-    Tempest/Cataclysm; Taunt loop counts once per 3s internal cooldown), same flag-gated apply
-    of Frenzy (+25% attack_speed, +15% move_speed, 3s). The combo runner is
-    scripts/components/choreography_runner.gd + player.gd's combo wiring — find where finisher
-    phases end.
+  - m_keystone Berserker's Cadence: fires on completing ANY kit's combo finisher — all 10
+    classes have combo kits now, so DO NOT hardcode Fighter phase names (Tempest/Cataclysm/
+    Taunt). Mark finisher phases in the kit data (an is_finisher flag on ChoreographyPhase, or
+    a per-kit finisher list in ChainFactory) and hook the generic phase-completion path in
+    scripts/components/choreography_runner.gd + player.gd's combo wiring. Channel-loop
+    finishers (Taunt-style held phases) count once per 3s internal cooldown. Flag-gated apply
+    of Frenzy (+25% attack_speed, +15% move_speed, 3s).
 - a_catalyst (GO/NO-GO): statuses you apply last +20% longer. Implement ONLY if the
   EffectDispatcher apply-status path can read a "status_duration" bonus from the SOURCE's
   modifiers in ≤~5 clean lines. If not, REMOVE the node from PassiveTreeData and note it in

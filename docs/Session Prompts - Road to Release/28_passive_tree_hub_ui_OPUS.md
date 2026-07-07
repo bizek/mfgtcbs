@@ -34,8 +34,10 @@ PANEL REQUIREMENTS (spec §5.4):
   Notables and keystones visually distinct (larger and/or bordered).
 - Click an available node → ProgressionManager.allocate() → live-refresh points + ALL node
   states (a tier-gate can open mid-session). Respec button → refund_all() → full refresh.
-- Optional flavor if cheap: subtle highlight on the selected character's affinity branch
-  (Sellsword/Warden→Might, Scavenger/Shade→Finesse, Spark/Herald/Cursed→Arcana).
+- Optional flavor if cheap: subtle highlight on the selected character's affinity branch —
+  read the mapping from docs/passive_tree_spec.md §1 (10 characters: Sellsword/Warden/Ravager→
+  Might, Scavenger/Shade/Whisper/Deadeye→Finesse, Spark/Herald/Cursed→Arcana). Drive it from a
+  small data table so adding Druid/Cleric later is a one-line change.
 
 CONSTRAINTS:
 - Typed GDScript; never := on untyped array access.

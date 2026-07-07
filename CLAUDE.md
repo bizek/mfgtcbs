@@ -63,6 +63,10 @@ SpatialGrid rebuild → StatusEffect.tick → AbilityComponent.tick_cooldowns �
 | **Extraction mechanics** | `engine_reference.md` → "Extraction System" section |
 | **Level / map authoring** | `ldtk_schema.md` + `ldtk_workflow.md` |
 
+## Project Orientation
+
+- When reading project state, verify against actual source files rather than trusting docs, which are often stale (e.g., loader status).
+
 ## Content Creation — The Pattern
 
 All content follows the data factory pattern: `static func create() -> Resource`. Register in the appropriate registry. The engine wires everything automatically.
@@ -93,11 +97,27 @@ All content follows the data factory pattern: `static func create() -> Resource`
 - **3x viewport scaling.** All UI text sizes must account for this.
 - After implementing spatial/positioning features, verify coordinates are within arena bounds (±800 x ±600).
 
+## Godot Notes
+
+- F8/F9 in Godot are built-in Stop/Pause hotkeys, not crashes; do not diagnose them as errors and avoid binding features to these keys.
+
 ## Godot Scene Files (.tscn)
 
 - Do NOT hand-edit .tscn files to add/remove nodes on instanced sub-scenes — Godot silently strips unowned nodes on save.
 - Always use the Godot MCP editor tools for scene structure changes.
 - When changing UI, account for the 3x viewport scaling (text/font sizes must be large enough to remain readable).
+
+## Editing Rules
+
+- Before editing scenes or loaders, confirm you are targeting the correct file/scene (e.g., not Base Camp/Map.tscn) and never auto-generate new random IDs that overwrite previously-committed scenes.
+
+## Verification
+
+- Always verify changes live in the Godot MCP editor before reporting them as working; do not claim features work until confirmed in-engine (e.g., dash phasing, manual fire, animations).
+
+## Level Generation
+
+- Do not auto-generate/scatter decorations (props, scratches) with collision unless explicitly requested; keep decorative passes non-colliding and hand touch-ups to the user.
 
 ## UI Panel Changes
 

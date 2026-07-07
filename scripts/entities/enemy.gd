@@ -15,6 +15,11 @@ const HEALTH_ORB_SCENE_PATH: String = "res://scenes/pickups/health_orb.tscn"
 ## factories. See docs/pacing_rebalance.md.
 const MOVE_SPEED_SCALE: float = 0.6
 
+## Kill pop — white flash + scale punch on the death frame (game-feel pass).
+const KILL_POP_ENABLED: bool = true
+const KILL_POP_SCALE: float = 1.35
+const KILL_POP_DURATION: float = 0.12
+
 ## Base stats (set by setup_from_enemy_def or @export for legacy scenes)
 @export var max_hp: float = 30.0
 @export var base_move_speed: float = 25.0  ## legacy-scene default; data enemies override via setup_from_enemy_def
@@ -1025,14 +1030,33 @@ func _on_health_died(_entity: Node2D) -> void:
 	_drop_xp()
 	_drop_health()
 
+	_kill_pop()
+
 	# Death animation (plays before despawn; collision/contact already inert via is_alive=false)
 	if sprite and sprite.sprite_frames and sprite.sprite_frames.has_animation("death"):
 		sprite.play("death")
 		await sprite.animation_finished
 	else:
 		_spawn_death_effect()
+		if sprite:
+			## No death anim to wait on — hold the frame briefly so the pop is visible
+			## before the node frees.
+			await get_tree().create_timer(KILL_POP_DURATION).timeout
 
 	queue_free()
+
+
+func _kill_pop() -> void:
+	if not KILL_POP_ENABLED or not sprite:
+		return
+	if _hit_tween and _hit_tween.is_valid():
+		_hit_tween.kill()
+	var base_scale: Vector2 = sprite.scale
+	sprite.modulate = Color(4.0, 4.0, 4.0, 1.0)
+	sprite.scale = base_scale * KILL_POP_SCALE
+	var t := create_tween()
+	t.tween_property(sprite, "modulate", _base_modulate, KILL_POP_DURATION)
+	t.parallel().tween_property(sprite, "scale", base_scale, KILL_POP_DURATION)
 
 
 func _drop_carrier_loot() -> void:

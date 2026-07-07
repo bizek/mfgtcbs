@@ -9,7 +9,8 @@ Instrument the descent for balance data, then apply a tuning pass combining the 
 
 <context>
 - Formulas + intended curves: `docs/core_framework_decisions.md` (damage, XP, phase timing, enemy scaling, instability, economy) — this is the source of intent; tuning means moving numbers toward those curves.
-- Run shape: 10-block Caves descent, merchant ~50% depth, boss-gated portal. 7 overhauled characters (M2).
+- Run shape: 10-block Caves descent, merchant ~50% depth, boss-gated portal. 10 combo-kit characters (12 once Druid/Cleric ship) — per-character outlier analysis must account for kit differences (melee vs ranged combo kits), not just stats.
+- Run AFTER the second pacing pass (task 29) and the class mod/level-up rework (tasks 31–33) — tuning against the old pace or the generic mod pool would be wasted work.
 - Existing debug tooling: `GameManager.debug_mode`, F1–F5, debug panel, entity inspector.
 
 **BEN'S PLAYTEST NOTES:** [PASTE PLAYTEST NOTES HERE — per-character feel, difficulty spikes, boring stretches, merchant pricing reactions, boss difficulty]

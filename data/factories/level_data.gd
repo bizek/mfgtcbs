@@ -14,6 +14,10 @@ extends RefCounted
 const LEVELS: Dictionary = {
 	1: {
 		"name": "The Cave",
+		## Last biome shipped in v1 — clearing its Phase 5 boss gate and extracting triggers
+		## the win flow. Move this flag to whichever level ships last as new biomes land.
+		"is_final_biome": true,
+		"music_id": "mus_caves",
 		"floor_path": "res://assets/minifantasy/Minifantasy_DeepCaves_v2.0/Minifantasy_DeepCaves_Assets/PremadeScene/SeparateLayers/Premade_h-floor.png",
 		## Per-phase wave composition (index 0 = phase 1). Weights must sum to 1.0.
 		"wave_composition": [
@@ -48,24 +52,28 @@ const LEVELS: Dictionary = {
 
 	2: {
 		"name": "The Catacombs",
+		"music_id": "mus_catacombs",
 		"floor_path": "",
 		"wave_composition": [],
 		"scene_map": {},
 	},
 	3: {
 		"name": "The Nightmare Realm",
+		"music_id": "mus_nightmare_realm",
 		"floor_path": "",
 		"wave_composition": [],
 		"scene_map": {},
 	},
 	4: {
 		"name": "The Threshold",
+		"music_id": "mus_threshold",
 		"floor_path": "",
 		"wave_composition": [],
 		"scene_map": {},
 	},
 	5: {
 		"name": "The Inferno",
+		"music_id": "mus_inferno",
 		"floor_path": "res://assets/minifantasy/Minifantasy_Hellscape_v1.0/Minifantasy_Hellscape_Assets/_Premade Scene/Separate Layers/Premade_l-ground.png",
 		"wave_composition": [],
 		"scene_map": {},
@@ -93,6 +101,16 @@ static func get_level_name(level_id: int) -> String:
 	return get_level(level_id).get("name", "Unknown")
 
 
+## Music track ID (SoundTable.MUSIC key) for this level's biome.
+static func get_music_id(level_id: int) -> String:
+	return get_level(level_id).get("music_id", "mus_caves")
+
+
 ## Returns true if the level has a defined wave_composition (not just stubs).
 static func is_configured(level_id: int) -> bool:
 	return not get_wave_composition(level_id).is_empty()
+
+
+## Returns true if clearing this level's Phase 5 boss gate and extracting is the win condition.
+static func is_final_biome(level_id: int) -> bool:
+	return get_level(level_id).get("is_final_biome", false)

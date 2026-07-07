@@ -137,16 +137,17 @@ func _process(delta: float) -> void:
 		spawn_timer = base_spawn_interval / (difficulty * channel_pressure)
 
 	## ── Carrier spawn (solo runs, scarce) ────────────────────────────────────
-	if GameManager.phase_number >= 3 and carrier_scene != null:
+	var effective_phase_now: int = GameManager.get_effective_phase()
+	if effective_phase_now >= 3 and carrier_scene != null:
 		_carrier_timer -= delta
 		if _carrier_timer <= 0.0:
-			var carrier_count: int = 2 if GameManager.phase_number >= 4 else 1
+			var carrier_count: int = 2 if effective_phase_now >= 4 else 1
 			for _i in range(carrier_count):
 				_spawn_enemy_at_edge("carrier", carrier_scene, false)
 			_carrier_timer = CARRIER_INTERVAL
 
 	## ── Herald spawn (always arrives with a pack) ────────────────────────────
-	if GameManager.phase_number >= 3 and herald_scene != null:
+	if effective_phase_now >= 3 and herald_scene != null:
 		_herald_timer -= delta
 		if _herald_timer <= 0.0:
 			_spawn_herald_pack()
@@ -257,7 +258,7 @@ func _spawn_wave() -> void:
 		return
 
 	var difficulty: float = GameManager.difficulty_multiplier
-	var phase_idx: int = clampi(GameManager.phase_number - 1, 0, 4)
+	var phase_idx: int = clampi(GameManager.get_effective_phase() - 1, 0, 4)
 	var count: int = mini(int(enemies_per_spawn * difficulty * PHASE_SPAWN_MULT[phase_idx]), max_enemies - active_enemies)
 
 	for _i in range(count):
@@ -266,7 +267,7 @@ func _spawn_wave() -> void:
 		_spawn_single_enemy()
 
 func _pick_enemy_type() -> String:
-	var phase_idx: int = clampi(GameManager.phase_number - 1, 0, 4)
+	var phase_idx: int = clampi(GameManager.get_effective_phase() - 1, 0, 4)
 	## Use level-specific composition when available; fall back to generic.
 	var composition: Array = _level_wave_composition if not _level_wave_composition.is_empty() \
 			else WAVE_COMPOSITION
@@ -489,7 +490,7 @@ func _get_scene_for_id(enemy_id: String) -> PackedScene:
 ## ── Difficulty helper ────────────────────────────────────────────────────────
 
 func _get_effective_difficulty() -> float:
-	var phase_idx: int = clampi(GameManager.phase_number - 1, 0, 4)
+	var phase_idx: int = clampi(GameManager.get_effective_phase() - 1, 0, 4)
 	return GameManager.difficulty_multiplier * GameManager.get_instability_multiplier() * PHASE_HP_MULT[phase_idx]
 
 
@@ -518,7 +519,7 @@ func _get_spawn_position() -> Vector2:
 
 func _get_zone_spawn_position() -> Vector2:
 	## Build weighted list of zones eligible for the current phase.
-	var phase_tag: String = "Phase" + str(GameManager.phase_number)
+	var phase_tag: String = "Phase" + str(GameManager.get_effective_phase())
 	var eligible: Array = []
 	var total_weight: float = 0.0
 	for z in _spawn_zones:
@@ -580,6 +581,6 @@ func _get_edge_spawn_position() -> Vector2:
 ## Elite chance: 5% base, +0.4% every 30 seconds, +3% per phase beyond phase 1,
 ## +instability tier bonus (up to +20% at Critical), soft cap 50%
 func _get_elite_chance() -> float:
-	var phase_bonus: float = (GameManager.phase_number - 1) * 0.03
+	var phase_bonus: float = (GameManager.get_effective_phase() - 1) * 0.03
 	var instability_bonus: float = GameManager.get_instability_elite_bonus()
 	return clampf(0.05 + (GameManager.run_time / 30.0) * 0.004 + phase_bonus + instability_bonus, 0.05, 0.50)

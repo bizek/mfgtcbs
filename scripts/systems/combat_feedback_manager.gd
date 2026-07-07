@@ -28,6 +28,22 @@ const TYPE_COLORS := {
 	"True": Color.WHITE,
 }
 
+# Deuteranopia-safe alternate palette (accessibility: colorblind_mode).
+# Fire/Lightning are the pair most likely to collide for red-green colorblind
+# players, so Fire shifts to orange and Lightning to a cooler amber-yellow.
+const TYPE_COLORS_COLORBLIND := {
+	"Physical": Color.WHITE,
+	"Fire": Color(1.0, 0.55, 0.0),
+	"Lightning": Color(1.0, 0.95, 0.35),
+	"Ice": Color(0.3, 0.6, 1.0),
+	"Void": Color(0.6, 0.55, 1.0),
+	"True": Color.WHITE,
+}
+
+
+func _type_colors() -> Dictionary:
+	return TYPE_COLORS_COLORBLIND if Settings.colorblind_mode else TYPE_COLORS
+
 # Crit styling
 const CRIT_SCALE_MAX := 1.5
 const CRIT_FLOAT_DURATION := 0.78
@@ -301,6 +317,8 @@ func _on_hit_dealt(_source: Variant, target: Variant, hit_data: Variant) -> void
 		return
 	if _is_headless():
 		return
+	if not Settings.damage_numbers_enabled:
+		return
 	var amount: float
 	if hit_data is HitData:
 		amount = hit_data.amount
@@ -311,8 +329,8 @@ func _on_hit_dealt(_source: Variant, target: Variant, hit_data: Variant) -> void
 	var color := DAMAGE_COLOR
 	if hit_data is HitData and hit_data.ability and hit_data.ability.get("priority") and hit_data.ability.priority > 0:
 		color = ABILITY_COLOR
-	if hit_data is HitData and TYPE_COLORS.has(hit_data.damage_type):
-		color = TYPE_COLORS[hit_data.damage_type]
+	if hit_data is HitData and _type_colors().has(hit_data.damage_type):
+		color = _type_colors()[hit_data.damage_type]
 	var is_crit := false
 	if hit_data is HitData and hit_data.is_crit:
 		is_crit = true

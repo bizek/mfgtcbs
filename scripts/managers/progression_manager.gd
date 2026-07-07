@@ -50,6 +50,16 @@ var most_loot_extracted: float = 0.0
 var selected_character: String = "The Drifter"
 var unlocked_characters: Array = ["The Drifter"]
 
+## Win state — account-level flag set the first time any character clears the final
+## biome's boss gate and extracts. Per-character tracking lists which characters have
+## done it (a character can appear more than once is not tracked; presence is enough).
+var game_cleared: bool = false
+var cleared_characters: Array = []
+
+## First-run onboarding — set true once a first Caves run ends (extraction or
+## death). Gates the FirstRunOverlay tooltip cues (scripts/ui/first_run_overlay.gd).
+var first_run_complete: bool = false
+
 func _ready() -> void:
 	load_data()
 
@@ -73,6 +83,9 @@ func save_data() -> void:
 		"owned_mods":             owned_mods,
 		"weapon_mods":            weapon_mods,
 		"character_loadouts":     character_loadouts,
+		"game_cleared":           game_cleared,
+		"cleared_characters":     cleared_characters,
+		"first_run_complete":     first_run_complete,
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file:
@@ -115,6 +128,43 @@ func load_data() -> void:
 	owned_mods   = result.get("owned_mods",  [])
 	weapon_mods  = result.get("weapon_mods", {})
 	character_loadouts = result.get("character_loadouts", {})
+	game_cleared = bool(result.get("game_cleared", false))
+	cleared_characters = result.get("cleared_characters", [])
+	first_run_complete = bool(result.get("first_run_complete", false))
+
+## Returns true if a save file exists on disk (used by the main menu to gate Continue).
+func has_save() -> bool:
+	return FileAccess.file_exists(SAVE_PATH)
+
+## Wipes the save file and resets all in-memory progression to defaults, then
+## writes the fresh state immediately. Used by the main menu's New Game flow
+## when overwriting an existing save.
+func reset_save() -> void:
+	if FileAccess.file_exists(SAVE_PATH):
+		DirAccess.remove_absolute(SAVE_PATH)
+	resources             = 0
+	run_stats              = {}
+	unlocked_weapons       = []
+	selected_weapon        = "Hurled Steel"
+	selected_weapon_2      = ""
+	selected_weapon_3      = ""
+	character_loadouts     = {}
+	hub_upgrades           = []
+	total_resources_spent  = 0
+	owned_mods             = []
+	weapon_mods            = {}
+	total_runs             = 0
+	successful_extractions = 0
+	deaths                 = 0
+	deepest_phase          = 0
+	total_kills            = 0
+	most_loot_extracted    = 0.0
+	selected_character     = "The Drifter"
+	unlocked_characters    = ["The Drifter"]
+	game_cleared           = false
+	cleared_characters     = []
+	first_run_complete     = false
+	save_data()
 
 ## Returns true if the player owns Extraction Intel I (timed zone revealed at run start).
 func has_extraction_intel() -> bool:
@@ -186,6 +236,14 @@ func record_extraction(resources_earned: int, kills_this_run: int, phase: int, l
 		most_loot_extracted = loot_value
 	save_data()
 	resources_changed.emit(resources)
+
+## Call when a run clears the final biome's boss gate and extracts. Idempotent —
+## a second (or later) win with any character is always safe to call again.
+func record_win(char_id: String) -> void:
+	game_cleared = true
+	if char_id not in cleared_characters:
+		cleared_characters.append(char_id)
+	save_data()
 
 ## Call on death. Awards 25% of carried loot as penalized meta resources.
 func record_death(loot_value: int, kills_this_run: int, phase: int) -> void:

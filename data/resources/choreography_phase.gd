@@ -21,3 +21,9 @@ extends Resource
 ## What comes next
 @export var default_next: int = -1                    ## Phase index (-1 = end choreography)
 @export var branches: Array[ChoreographyBranch] = []  ## Conditional branching (evaluated during "wait" exit type)
+
+## Combo feel
+@export var is_finisher: bool = false                  ## Landing this phase's hit is a kit's payoff
+                                                        ## moment (Cataclysm, Bomb, Holy Hammer, ...).
+                                                        ## ChoreographyRunner fires choreo_on_finisher_hit()
+                                                        ## on the host when this phase's effects land.

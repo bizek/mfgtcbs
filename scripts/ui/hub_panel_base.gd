@@ -40,7 +40,11 @@ func _ready() -> void:
 	var style := get_theme_stylebox("panel").duplicate() as StyleBoxFlat
 	style.border_color = accent_color
 	add_theme_stylebox_override("panel", style)
-	$TitleBar/CloseButton.pressed.connect(func(): close_requested.emit())
+	$TitleBar/CloseButton.pressed.connect(func():
+		AudioManager.play_ui("sfx_ui_panel_close")
+		close_requested.emit())
+	if not Engine.is_editor_hint():
+		AudioManager.play_ui("sfx_ui_panel_open")
 
 	## Amber accent rule — 2px strip at the bottom edge of the title bar.
 	var accent_rule := ColorRect.new()

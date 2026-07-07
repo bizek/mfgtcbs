@@ -152,6 +152,7 @@ static func build_fighter_light(weapon_data: Dictionary) -> AbilityDefinition:
 	tempest.exit_type = "wait"
 	tempest.wait_duration = CANCEL_WIN
 	tempest.default_next = -1
+	tempest.is_finisher = true
 	tempest.branches = [
 		_branch_buffered("heavy_attack", 4),               # RMB → Cataclysm
 		_branch_buffered("light_attack", 0),               # tap → loop to Attack
@@ -268,6 +269,7 @@ static func build_rogue_light(weapon_data: Dictionary) -> AbilityDefinition:
 	fan.exit_type = "wait"
 	fan.wait_duration = CANCEL_WIN
 	fan.default_next = -1
+	fan.is_finisher = true
 	fan.branches = [
 		_branch_buffered("heavy_attack", 3),               # RMB → Bomb
 		_branch_buffered("light_attack", 0),               # tap → loop to Slash
@@ -373,6 +375,7 @@ static func build_paladin_light(weapon_data: Dictionary) -> AbilityDefinition:
 	bash.exit_type = "wait"
 	bash.wait_duration = CANCEL_WIN
 	bash.default_next = -1
+	bash.is_finisher = true
 	bash.branches = [
 		_branch_buffered("heavy_attack", 4),               # RMB → Holy Hammer
 		_branch_buffered("light_attack", 0),               # tap → loop to Strike
@@ -597,6 +600,7 @@ static func build_blood_mage_light(weapon_data: Dictionary) -> AbilityDefinition
 	volley.exit_type = "wait"
 	volley.wait_duration = CANCEL_WIN
 	volley.default_next = -1
+	volley.is_finisher = true
 	volley.branches = [
 		_branch_buffered("heavy_attack", 4),               # RMB → Summon Blood Elemental
 		_branch_buffered("light_attack", 0),               # tap → loop to Shard
@@ -619,6 +623,7 @@ static func build_blood_mage_light(weapon_data: Dictionary) -> AbilityDefinition
 	summon.effects = [_aoe(dtype, dmg * 0.4, 24.0)]
 	summon.exit_type = "anim_finished"
 	summon.default_next = -1
+	summon.is_finisher = true
 
 	var choreo := ChoreographyDefinition.new()
 	choreo.phases = [shard, shard2, volley, extract, summon]
@@ -730,6 +735,7 @@ static func build_ranger_light(weapon_data: Dictionary) -> AbilityDefinition:
 	triple_shot.exit_type = "wait"
 	triple_shot.wait_duration = CANCEL_WIN
 	triple_shot.default_next = -1
+	triple_shot.is_finisher = true
 	triple_shot.branches = [
 		_branch_buffered("heavy_attack", 3),               # RMB → Throwing Knife
 		_branch_buffered("light_attack", 0),               # tap → loop to Shot
@@ -743,6 +749,7 @@ static func build_ranger_light(weapon_data: Dictionary) -> AbilityDefinition:
 	knife.effects = [_throwing_knife(dtype, dmg * 1.2)]
 	knife.exit_type = "anim_finished"
 	knife.default_next = -1
+	knife.is_finisher = true
 
 	var choreo := ChoreographyDefinition.new()
 	choreo.phases = [shot, double_shot, triple_shot, knife]
@@ -967,6 +974,7 @@ static func build_barbarian_light(weapon_data: Dictionary) -> AbilityDefinition:
 	sunder.exit_type = "wait"
 	sunder.wait_duration = CANCEL_WIN
 	sunder.default_next = -1
+	sunder.is_finisher = true
 	sunder.branches = [
 		_branch_buffered("heavy_attack", 3),               # RMB → Thunder Blade
 		_branch_buffered("light_attack", 0),               # tap → loop to Cleave
@@ -1038,6 +1046,7 @@ static func _thunder_phase(dtype: String, dmg: float) -> ChoreographyPhase:
 	t.effects = [_aoe(dtype, dmg * 1.2, 40.0), _thunder_bolt(dmg * 0.9)]
 	t.exit_type = "anim_finished"
 	t.default_next = -1
+	t.is_finisher = true
 	return t
 
 
@@ -1148,6 +1157,7 @@ static func _blade_burst_phases(dtype: String, dmg: float, base: int) -> Array[C
 	storm.effects = [_aoe(dtype, dmg * 1.4, 50.0)]
 	storm.exit_type = "anim_finished"
 	storm.default_next = base + 2
+	storm.is_finisher = true
 
 	var end := ChoreographyPhase.new()
 	end.animation = "blades_end"
@@ -1271,6 +1281,7 @@ static func _fan_hammer_phase(dtype: String, dmg: float) -> ChoreographyPhase:
 	fan.effects = [_fan_bullets(dtype, dmg * 0.45)]
 	fan.exit_type = "anim_finished"
 	fan.default_next = -1
+	fan.is_finisher = true
 	return fan
 
 
@@ -1507,6 +1518,7 @@ static func _apotheosis_phase(dtype: String, dmg: float) -> ChoreographyPhase:
 	apo.effects = [_aoe(dtype, dmg * 1.6, 60.0), _timed_damage_buff("apotheosis", 0.20, 6.0)]
 	apo.exit_type = "anim_finished"
 	apo.default_next = -1
+	apo.is_finisher = true
 	return apo
 
 
@@ -1880,6 +1892,7 @@ static func _cataclysm_phase(dtype: String, dmg: float) -> ChoreographyPhase:
 	c.effects = [_aoe(dtype, dmg * 1.8, 55.0)]
 	c.exit_type = "anim_finished"
 	c.default_next = -1
+	c.is_finisher = true
 	return c
 
 
@@ -1894,6 +1907,7 @@ static func _hammer_phase(dtype: String, dmg: float) -> ChoreographyPhase:
 	h.effects = [_aoe(dtype, dmg * 0.8, 30.0)]
 	h.exit_type = "anim_finished"
 	h.default_next = -1
+	h.is_finisher = true
 	return h
 
 
@@ -1922,6 +1936,7 @@ static func _bomb_phase(dtype: String, dmg: float) -> ChoreographyPhase:
 	b.effects = [_aoe(dtype, dmg * 1.8, 16.0), _blast_wave()]
 	b.exit_type = "anim_finished"
 	b.default_next = -1
+	b.is_finisher = true
 	return b
 
 

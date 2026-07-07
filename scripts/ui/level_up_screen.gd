@@ -111,7 +111,9 @@ func _build_weapon_cache(pixel_font: FontFile) -> void:
 
 func _on_weapon_swap_pressed(weapon_id: String) -> void:
 	if not GameManager.spend_loot(WEAPON_SWAP_COST):
+		AudioManager.play_ui("sfx_ui_error")
 		return
+	AudioManager.play_ui("sfx_ui_purchase")
 	player_ref.drop_current_weapon()
 	player_ref.switch_weapon(weapon_id)
 	visible = false
@@ -120,12 +122,14 @@ func _on_weapon_swap_pressed(weapon_id: String) -> void:
 func _on_reroll_pressed() -> void:
 	if _rerolls_remaining <= 0:
 		return
+	AudioManager.play_ui("sfx_ui_click")
 	_rerolls_remaining -= 1
 	_choices = UpgradeManager.generate_choices(3)
 	_show_choices()
 
 func _on_choice_pressed(index: int) -> void:
 	var upgrade: Dictionary = _choices[index]
+	AudioManager.play_ui("sfx_upgrade_select")
 	UpgradeManager.apply_upgrade(upgrade, player_ref)
 	upgrade_selected.emit(upgrade)
 	visible = false
