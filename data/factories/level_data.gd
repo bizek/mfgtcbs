@@ -14,6 +14,9 @@ extends RefCounted
 const LEVELS: Dictionary = {
 	1: {
 		"name": "The Cave",
+		## Last biome shipped in v1 — clearing its Phase 5 boss gate and extracting triggers
+		## the win flow. Move this flag to whichever level ships last as new biomes land.
+		"is_final_biome": true,
 		"floor_path": "res://assets/minifantasy/Minifantasy_DeepCaves_v2.0/Minifantasy_DeepCaves_Assets/PremadeScene/SeparateLayers/Premade_h-floor.png",
 		## Per-phase wave composition (index 0 = phase 1). Weights must sum to 1.0.
 		"wave_composition": [
@@ -96,3 +99,8 @@ static func get_level_name(level_id: int) -> String:
 ## Returns true if the level has a defined wave_composition (not just stubs).
 static func is_configured(level_id: int) -> bool:
 	return not get_wave_composition(level_id).is_empty()
+
+
+## Returns true if clearing this level's Phase 5 boss gate and extracting is the win condition.
+static func is_final_biome(level_id: int) -> bool:
+	return get_level(level_id).get("is_final_biome", false)

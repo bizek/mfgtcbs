@@ -1,0 +1,103 @@
+[gd_scene format=3 uid="uid://ddlh3lcx57wm8"]
+
+[ext_resource type="Script" uid="uid://cwvwpflkaxy7" path="res://scripts/ui/credits.gd" id="1_oap8i"]
+
+[node name="Credits" type="Control" unique_id=565821057]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_oap8i")
+
+[node name="Background" type="ColorRect" parent="." unique_id=1071982355]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.02, 0.02, 0.03, 1)
+
+[node name="Scroll" type="ScrollContainer" parent="." unique_id=688382079]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Roll" type="VBoxContainer" parent="Scroll" unique_id=812409583]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 14
+
+[node name="TopPad" type="Control" parent="Scroll/Roll" unique_id=934056275]
+custom_minimum_size = Vector2(0, 180)
+layout_mode = 2
+
+[node name="GameTitle" type="Label" parent="Scroll/Roll" unique_id=1756523160]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
+theme_override_font_sizes/font_size = 28
+text = "EXTRACTION SURVIVORS"
+horizontal_alignment = 1
+
+[node name="ClearedLabel" type="Label" parent="Scroll/Roll" unique_id=1848275933]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "You made it out."
+horizontal_alignment = 1
+
+[node name="Spacer1" type="Control" parent="Scroll/Roll" unique_id=986713929]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+
+[node name="DevHeader" type="Label" parent="Scroll/Roll" unique_id=521869292]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.85, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "DESIGN & DEVELOPMENT"
+horizontal_alignment = 1
+
+[node name="DevName" type="Label" parent="Scroll/Roll" unique_id=2006214420]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Ben"
+horizontal_alignment = 1
+
+[node name="Spacer2" type="Control" parent="Scroll/Roll" unique_id=921559106]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+
+[node name="ArtHeader" type="Label" parent="Scroll/Roll" unique_id=1947466483]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.85, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "ART & ASSETS"
+horizontal_alignment = 1
+
+[node name="ArtCredit" type="Label" parent="Scroll/Roll" unique_id=1557964008]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Minifantasy asset packs by Krishna Palacio"
+horizontal_alignment = 1
+
+[node name="Spacer3" type="Control" parent="Scroll/Roll" unique_id=2131972082]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+
+[node name="ThanksLabel" type="Label" parent="Scroll/Roll" unique_id=1787541559]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Thank you for playing."
+horizontal_alignment = 1
+
+[node name="BottomPad" type="Control" parent="Scroll/Roll" unique_id=1920033693]
+custom_minimum_size = Vector2(0, 200)
+layout_mode = 2
+
+[node name="SkipButton" type="Button" parent="." unique_id=21698928]
+layout_mode = 0
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -90.0
+offset_top = -40.0
+offset_right = -20.0
+offset_bottom = -14.0
+text = "SKIP"

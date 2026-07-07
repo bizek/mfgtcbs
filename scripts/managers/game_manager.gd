@@ -67,6 +67,7 @@ var loot_carried: float = 0.0
 var instability: float = 0.0
 var peak_instability: float = 0.0  ## High-water mark for results screen
 var last_run_loot: float = 0.0  ## Preserved after extraction clears loot_carried
+var last_run_was_win: bool = false  ## True if the just-completed extraction cleared the final biome
 
 ## Weapons picked up during this run. Cleared on new run; unlocked in ProgressionManager
 ## on successful extraction. Lost on death (same risk as other loot).
@@ -155,6 +156,7 @@ func start_run() -> void:
 	guardian_killed_this_phase = false
 	final_boss_alive = false
 	active_extraction_type = "timed"
+	last_run_was_win = false
 
 	## Cursed passive: start every run in the Unsettled instability tier
 	var char_id: String = ProgressionManager.selected_character
@@ -238,6 +240,10 @@ func on_extraction_complete() -> void:
 		ProgressionManager.run_stats["deepest_phase"] = phase_number
 	current_state = GameState.EXTRACTION_SUCCESS
 	set_paused(true)
+	## Win condition: cleared the final biome's Phase 5 boss gate and extracted.
+	last_run_was_win = phase_number >= MAX_PHASES and LevelData.is_final_biome(current_level)
+	if last_run_was_win:
+		ProgressionManager.record_win(ProgressionManager.selected_character)
 	## Preserve loot value for results screen before clearing
 	last_run_loot = loot_carried
 	## Apply locked extraction loot bonus based on phase depth

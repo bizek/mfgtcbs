@@ -18,6 +18,8 @@ func _ready() -> void:
 	GameManager.extraction_successful.connect(_on_extraction_successful)
 
 func _on_extraction_successful() -> void:
+	if GameManager.last_run_was_win:
+		return  ## WinScreen takes over instead of the normal results screen
 	if _loot_scroll != null and is_instance_valid(_loot_scroll):
 		_loot_scroll.queue_free()
 	_loot_scroll = null
