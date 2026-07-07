@@ -214,6 +214,25 @@ MiniFantasy packs are visual only — no SFX included. SFX requires external sou
 
 **Verdict: COVERED (external sources).** Same strategy as before — free SFX libraries are extensive.
 
+**Committed audio assets (task 15, 2026-07-06):**
+
+| File(s) | Source | License | Notes |
+|---|---|---|---|
+| `assets/audio/sfx/combat/hit_physical_*.ogg`, `swing_light_*.ogg` | Kenney.nl — Impact Sounds (`impactPunch_medium`, `impactMetal_light`) | CC0 | No attribution required |
+| `assets/audio/sfx/combat/hit_cryo_*.ogg`, `block.ogg` | Kenney.nl — Impact Sounds (`impactGlass_light`, `impactPlate_medium`) | CC0 | |
+| `assets/audio/sfx/combat/swing_heavy_*.ogg`, `death_enemy_normal_*.ogg`, `death_enemy_elite.ogg` | Kenney.nl — Impact Sounds (`impactBell_heavy`, `impactSoft_heavy`, `impactPlate_heavy`) | CC0 | |
+| `assets/audio/sfx/combat/hit_fire_*.ogg`, `boss_intro.ogg`, `death_enemy_boss.ogg`, `hit_void_*.ogg` | Kenney.nl — Sci-fi Sounds (`explosionCrunch`, `lowFrequency_explosion`, `forceField`) | CC0 | |
+| `assets/audio/sfx/combat/hit_shock_*.ogg`, `death_player.ogg`, `sfx/pickup/pickup_xp_*.ogg`, `pickup_mod.ogg`, `pickup_keystone.ogg`, `sfx/ui/level_up.ogg`, `sfx/extraction/extraction_warning.ogg`, `extraction_channel_start.ogg`, `extraction_channel_complete.ogg`, `extraction_interrupted.ogg` | Kenney.nl — Digital Audio (`zap`, `lowThreeTone`, `powerUp`, `twoTone`, `zapThreeToneUp`, `phaserUp`, `lowDown`) | CC0 | |
+| `assets/audio/sfx/combat/crit.ogg`, `kill.ogg`, `sfx/ui/upgrade_select.ogg`, `ui_panel_open.ogg`, `ui_panel_close.ogg`, `ui_purchase.ogg`, `ui_error.ogg`, `ui_cancel.ogg` | Kenney.nl — Interface Sounds (`confirmation`, `bong`, `select`, `open`, `close`, `error`, `back`) | CC0 | |
+| `assets/audio/sfx/ui/ui_click.ogg` | Kenney.nl — UI Audio (`click1`) | CC0 | |
+| `assets/audio/sfx/combat/dodge.ogg`, `sfx/pickup/pickup_currency_*.ogg`, `pickup_weapon.ogg` | Kenney.nl — RPG Audio (`cloth1`, `handleCoins`, `drawKnife1`) | CC0 | |
+| `assets/audio/sfx/extraction/extraction_channel_hum.ogg` | Kenney.nl — Sci-fi Sounds (`spaceEngineLow`) | CC0 | Used as loopable hum stand-in; not a true drone — revisit if it doesn't read as "channeling" in playtest |
+| `assets/audio/music/hub.ogg` | OpenGameArt.org — "Contemplation" | CC0 | Converted from source MP3 to OGG Vorbis via ffmpeg |
+| `assets/audio/music/caves.ogg` | OpenGameArt.org — "Loopable Dungeon Ambience" | CC0 | ~94s loop; loop-seam not ear-verified by the agent (no audio playback) — Ben should confirm no pop before ship |
+| `assets/audio/music/boss.ogg` | OpenGameArt.org — "Basilisk Boss Battle Loop" | CC0 | ~33s loop; same loop-seam caveat as above |
+
+All Kenney.nl packs above ship under a blanket CC0 license (no per-file attribution required, but Kenney credit is good practice). OpenGameArt CC0 tracks likewise require no attribution. No CC-BY assets were used.
+
 ---
 
 ## Asset Pipeline Summary

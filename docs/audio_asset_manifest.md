@@ -2,14 +2,16 @@
 
 Complete enumeration of sound-worthy events across all game systems. Organized by category, with EventBus signal triggers and implementation notes.
 
+**Status (2026-07-06, task 15):** All P1 entries wired to real CC0 assets (Kenney.nl + OpenGameArt.org, see `docs/asset_inventory.md` §7-8). Most P2 entries wired too. Remaining gaps have no good-fit free asset yet — see the TODO block at the end of this file. ✅ = wired to a real asset; unmarked P2 rows with no note are still open.
+
 ---
 
 ## Combat SFX — Weapon Fire & Combo Hits
 
 | ID | Category | Trigger | Priority | Notes |
 |---|---|---|---|---|
-| `sfx_swing_light` | Combat | `ChainFactory` light swing phase (hit_frame) | P1 | Light attack impact; all 10 kits share one sound family. Used by: Fighter Attack, Rogue Slash, Paladin Strike, Wizard Bolt, Blood Mage Shard, Ranger Shot, Bard Strike, Barbarian Cleave, Ninja Slash, Gunslinger Shot. Needs 2–3 variations (quick, crisp). |
-| `sfx_swing_heavy` | Combat | `ChainFactory` heavy swing phase (hit_frame) | P1 | Heavy finisher impact (Cataclysm, Bomb, Hammer, Thunder Blade, etc.). Needs 2–3 variations (impact + rumble). |
+| ✅ `sfx_swing_light` | Combat | `ChainFactory` light swing phase (hit_frame) | P1 | Light attack impact; all 10 kits share one sound family. Used by: Fighter Attack, Rogue Slash, Paladin Strike, Wizard Bolt, Blood Mage Shard, Ranger Shot, Bard Strike, Barbarian Cleave, Ninja Slash, Gunslinger Shot. Needs 2–3 variations (quick, crisp). |
+| ✅ `sfx_swing_heavy` | Combat | `ChainFactory` heavy swing phase (hit_frame) | P1 | Heavy finisher impact (Cataclysm, Bomb, Hammer, Thunder Blade, etc.). Needs 2–3 variations (impact + rumble). |
 | `sfx_channel_loop` | Combat | `ChainFactory` channel phase tick (per beat) | P2 | Looped ability tick for held-RMB channels (Taunt shockwave, Fan of Blades, Dome, Torrent, Vampirize, Conceal, Song, Guard, Thousand Blades Storm, Desert Storm). Soft, repetitive. One loop sound per channel family (shockwave, projectile, song, etc.) — 5–6 variations. |
 | `sfx_projectile_fire` | Combat | `SpawnProjectilesEffect` on hit_frame (beam, artillery, summon projectiles) | P2 | Ranged weapon fire (Ember Beam ticks, Void Mortar fuse, Wizard Fireball release, Blood Shard, Chord bolt, Arrow volleys, Gun bullets, Thunder bolt). Varies by spell family. Needs 3–4 family variants (arcane whoosh, fire crackle, ice whistle, lightning snap). |
 | `sfx_melee_swing_arc` | Combat | `AreaDamageEffect` on melee arc swing | P2 | Generic melee whoosh (Rogue Fan finisher, Paladin bash, Barbarian Sunder shove). Light, atmospheric. One family suffices. |
@@ -20,14 +22,14 @@ Complete enumeration of sound-worthy events across all game systems. Organized b
 
 | ID | Category | Trigger | Priority | Notes |
 |---|---|---|---|---|
-| `sfx_hit_physical` | Combat | `EventBus.on_hit_dealt` where `damage_type == "Physical"` | P1 | Physical impact sound. Ship-critical. Needs 2–3 impact variations (dull thud, sharp crack, heavy thump). |
-| `sfx_hit_fire` | Combat | `EventBus.on_hit_dealt` where `damage_type == "Fire"` | P1 | Fire impact (crackle + burn). Needs 2–3 variants. |
-| `sfx_hit_cryo` | Combat | `EventBus.on_hit_dealt` where `damage_type == "Cryo"` | P1 | Ice impact (sharp sting, freeze sparkle). Needs 2–3 variants. |
-| `sfx_hit_shock` | Combat | `EventBus.on_hit_dealt` where `damage_type == "Shock"` | P1 | Lightning impact (zap, chain crackle). Needs 2–3 variants. |
-| `sfx_hit_void` | Combat | `EventBus.on_hit_dealt` where `damage_type == "Void"` | P1 | Void/distortion impact (eerie whoosh, dark warble). Needs 2–3 variants. |
-| `sfx_crit` | Combat | `EventBus.on_crit` | P1 | Crit sound (ping, chime, satisfying pop). Plays on top of hit sound. Ship-critical. |
-| `sfx_block` | Combat | `EventBus.on_block` | P2 | Shield/armor deflection. Played when damage is mitigated. |
-| `sfx_dodge` | Combat | `EventBus.on_dodge` | P2 | Dodge/evasion whoosh (swift, clean). Tied to player's dodge passive (Shade) or dodge triggers. |
+| ✅ `sfx_hit_physical` | Combat | `EventBus.on_hit_dealt` where `damage_type == "Physical"` | P1 | Physical impact sound. Ship-critical. Needs 2–3 impact variations (dull thud, sharp crack, heavy thump). |
+| ✅ `sfx_hit_fire` | Combat | `EventBus.on_hit_dealt` where `damage_type == "Fire"` | P1 | Fire impact (crackle + burn). Needs 2–3 variants. |
+| ✅ `sfx_hit_cryo` | Combat | `EventBus.on_hit_dealt` where `damage_type == "Cryo"` | P1 | Ice impact (sharp sting, freeze sparkle). Needs 2–3 variants. |
+| ✅ `sfx_hit_shock` | Combat | `EventBus.on_hit_dealt` where `damage_type == "Shock"` | P1 | Lightning impact (zap, chain crackle). Needs 2–3 variants. |
+| ✅ `sfx_hit_void` | Combat | `EventBus.on_hit_dealt` where `damage_type == "Void"` | P1 | Void/distortion impact (eerie whoosh, dark warble). Needs 2–3 variants. |
+| ✅ `sfx_crit` | Combat | `EventBus.on_crit` | P1 | Crit sound (ping, chime, satisfying pop). Plays on top of hit sound. Ship-critical. |
+| ✅ `sfx_block` | Combat | `EventBus.on_block` | P2 | Shield/armor deflection. Played when damage is mitigated. |
+| ✅ `sfx_dodge` | Combat | `EventBus.on_dodge` | P2 | Dodge/evasion whoosh (swift, clean). Tied to player's dodge passive (Shade) or dodge triggers. |
 | `sfx_status_burn_apply` | Combat | `EventBus.on_status_applied` where `status_id == "burning"` | P2 | Burning applied to enemy (ignition spark). |
 | `sfx_status_burn_tick` | Combat | Enemy's StatusEffectComponent tick while Burning | P2 | Ongoing burn damage sound (fire crackle). Low-volume loop or single tick. |
 | `sfx_status_chill_apply` | Combat | `EventBus.on_status_applied` where `status_id == "chilled"` | P2 | Frost applied (ice crystallize). |
@@ -41,11 +43,11 @@ Complete enumeration of sound-worthy events across all game systems. Organized b
 
 | ID | Category | Trigger | Priority | Notes |
 |---|---|---|---|---|
-| `sfx_kill` | Combat | `EventBus.on_kill` | P1 | Enemy death — player scored the kill. Satisfying, celebratory. Ship-critical. |
-| `sfx_death_enemy_normal` | Combat | `EventBus.on_death` where victim is normal enemy | P1 | Normal enemy death. Varied from elite. Needs 2 variations (generic grunt vs. specialized enemy type). |
-| `sfx_death_enemy_elite` | Combat | `EventBus.on_death` where victim is elite enemy | P2 | Elite enemy death (deeper, more dramatic than normal). Varies from normal + boss. |
-| `sfx_death_enemy_boss` | Combat | `EventBus.on_death` where victim is boss | P2 | Boss enemy death (epic, memorable). Triggers `GameManager.on_boss_death` signal if available. |
-| `sfx_death_player` | Combat | `EventBus.on_death` where victim is player | P1 | Player death. Stinger or sad tone. Ship-critical. |
+| ✅ `sfx_kill` | Combat | `EventBus.on_kill` | P1 | Enemy death — player scored the kill. Satisfying, celebratory. Ship-critical. |
+| ✅ `sfx_death_enemy_normal` | Combat | `EventBus.on_death` where victim is normal enemy | P1 | Normal enemy death. Varied from elite. Needs 2 variations (generic grunt vs. specialized enemy type). |
+| ✅ `sfx_death_enemy_elite` | Combat | `EventBus.on_death` where victim is elite enemy | P2 | Elite enemy death (deeper, more dramatic than normal). Varies from normal + boss. |
+| ✅ `sfx_death_enemy_boss` | Combat | `EventBus.on_death` where victim is boss | P2 | Boss enemy death (epic, memorable). Triggers `GameManager.on_boss_death` signal if available. |
+| ✅ `sfx_death_player` | Combat | `EventBus.on_death` where victim is player | P1 | Player death. Stinger or sad tone. Ship-critical. |
 
 ---
 
@@ -91,11 +93,11 @@ Complete enumeration of sound-worthy events across all game systems. Organized b
 
 | ID | Category | Trigger | Priority | Notes |
 |---|---|---|---|---|
-| `sfx_pickup_xp` | Pickup | `EventBus.on_pickup` where `pickup_type == "xp"` | P1 | XP pickup chime. Short, satisfying. Ship-critical. Needs 1–2 variations (soft vs. "leveling up soon" higher pitch). |
-| `sfx_pickup_currency` | Pickup | `EventBus.on_pickup` where `pickup_type == "currency"` | P1 | Money/gold pickup clink. Similar to XP but distinct (cash register tone). |
-| `sfx_pickup_weapon` | Pickup | `EventBus.on_pickup` where `pickup_type == "weapon"` | P1 | Weapon drop (metallic shine, magical glow if legendary). Distinct from currency. |
-| `sfx_pickup_mod` | Pickup | `EventBus.on_pickup` where `pickup_type == "mod"` | P2 | Mod pickup (glow, tech sparkle). |
-| `sfx_pickup_keystone` | Pickup | `EventBus.on_pickup` where `pickup_type == "keystone"` | P2 | Keystone/upgrade pickup (crystalline chime, special resonance). |
+| ✅ `sfx_pickup_xp` | Pickup | `EventBus.on_pickup` where `pickup_type == "xp"` | P1 | XP pickup chime. Short, satisfying. Ship-critical. Needs 1–2 variations (soft vs. "leveling up soon" higher pitch). |
+| ✅ `sfx_pickup_currency` | Pickup | `EventBus.on_pickup` where `pickup_type == "currency"` | P1 | Money/gold pickup clink. Similar to XP but distinct (cash register tone). |
+| ✅ `sfx_pickup_weapon` | Pickup | `EventBus.on_pickup` where `pickup_type == "weapon"` | P1 | Weapon drop (metallic shine, magical glow if legendary). Distinct from currency. |
+| ✅ `sfx_pickup_mod` | Pickup | `EventBus.on_pickup` where `pickup_type == "mod"` | P2 | Mod pickup (glow, tech sparkle). |
+| ✅ `sfx_pickup_keystone` | Pickup | `EventBus.on_pickup` where `pickup_type == "keystone"` | P2 | Keystone/upgrade pickup (crystalline chime, special resonance). |
 
 ---
 
@@ -103,8 +105,8 @@ Complete enumeration of sound-worthy events across all game systems. Organized b
 
 | ID | Category | Trigger | Priority | Notes |
 |---|---|---|---|---|
-| `sfx_level_up` | UI | `GameManager.on_level_up` or UpgradeManager panel opens | P1 | Level-up fanfare (ascending notes, celebratory). Ship-critical. |
-| `sfx_upgrade_select` | UI | Player clicks an upgrade choice on the UpgradeManager panel | P2 | Selection confirm sound (soft chime). |
+| ✅ `sfx_level_up` | UI | `GameManager.on_level_up` or UpgradeManager panel opens | P1 | Level-up fanfare (ascending notes, celebratory). Ship-critical. |
+| ✅ `sfx_upgrade_select` | UI | Player clicks an upgrade choice on the UpgradeManager panel | P2 | Selection confirm sound (soft chime). |
 
 ---
 
@@ -112,11 +114,11 @@ Complete enumeration of sound-worthy events across all game systems. Organized b
 
 | ID | Category | Trigger | Priority | Notes |
 |---|---|---|---|---|
-| `sfx_extraction_warning` | Extraction | `GameManager.extraction_window_opened` | P2 | Warning tone (alarm, alert rising tone). Alerts the player extraction is available. |
-| `sfx_extraction_channel_start` | Extraction | `ExtractionManager.extraction_channel_started` | P2 | Extraction channeling begins (magical warmth, hum onset). Short intro. |
-| `sfx_extraction_channel_loop` | Extraction | ExtractionManager ticks during extraction (loopable hum) | P2 | Loopable background hum while channeling. Sustained, meditative. ~1–2s loop. |
-| `sfx_extraction_channel_complete` | Extraction | `ExtractionManager.extraction_complete` + `GameManager.extraction_successful` | P1 | Extraction success (magical surge, triumphant chime). Plays as hum stops. |
-| `sfx_extraction_interrupted` | Extraction | `ExtractionManager.extraction_interrupted` | P2 | Extraction interrupted (harsh buzz, failure tone). Played when channel is broken. |
+| ✅ `sfx_extraction_warning` | Extraction | `GameManager.extraction_window_opened` | P2 | Warning tone (alarm, alert rising tone). Alerts the player extraction is available. |
+| ✅ `sfx_extraction_channel_start` | Extraction | `ExtractionManager.extraction_channel_started` | P2 | Extraction channeling begins (magical warmth, hum onset). Short intro. |
+| ✅ `sfx_extraction_channel_loop` | Extraction | ExtractionManager ticks during extraction (loopable hum) | P2 | Loopable background hum while channeling. Sustained, meditative. ~1–2s loop. Stand-in asset (`spaceEngineLow`) — not a purpose-made drone, revisit if it doesn't read as "channeling." |
+| ✅ `sfx_extraction_channel_complete` | Extraction | `ExtractionManager.extraction_complete` + `GameManager.extraction_successful` | P1 | Extraction success (magical surge, triumphant chime). Plays as hum stops. |
+| ✅ `sfx_extraction_interrupted` | Extraction | `ExtractionManager.extraction_interrupted` | P2 | Extraction interrupted (harsh buzz, failure tone). Played when channel is broken. |
 
 ---
 
@@ -124,13 +126,13 @@ Complete enumeration of sound-worthy events across all game systems. Organized b
 
 | ID | Category | Trigger | Priority | Notes |
 |---|---|---|---|---|
-| `sfx_ui_click` | UI | Any hub panel button clicked (shop, armory, codex, etc.) | P2 | Button click (soft pop, satisfying). One generic sound for all non-purchase actions. |
-| `sfx_ui_hover` | UI | Mouse hovers over interactive element | P2 | Hover highlight (subtle whoosh or tone). Optional — can skip if click-only feedback is sufficient. |
-| `sfx_ui_panel_open` | UI | Hub panel transitions open | P2 | Panel slide/fade-in sound (whoosh, swish). One for all panels. |
-| `sfx_ui_panel_close` | UI | Hub panel transitions closed | P2 | Panel slide/fade-out sound (reverse whoosh). |
-| `sfx_ui_purchase` | UI | Player completes a transaction (buy weapon, buy mod, level-up purchase) | P2 | Purchase confirmation (cash register, satisfying chime). Distinct from generic click. |
-| `sfx_ui_error` | UI | Invalid action (insufficient currency, unavailable action, etc.) | P2 | Error beep (negative buzz, "nope" tone). |
-| `sfx_ui_cancel` | UI | Player cancels an action or closes a menu | P2 | Cancel sound (soft decline tone, back-button sound). |
+| ✅ `sfx_ui_click` | UI | Any hub panel button clicked (shop, armory, codex, etc.) | P2 | Button click (soft pop, satisfying). One generic sound for all non-purchase actions. Table entry ready; hub panel scripts still need `AudioManager.play_ui()` call sites wired (see TODO). |
+| `sfx_ui_hover` | UI | Mouse hovers over interactive element | P2 | Hover highlight (subtle whoosh or tone). Optional — can skip if click-only feedback is sufficient. Skipped per manifest note. |
+| ✅ `sfx_ui_panel_open` | UI | Hub panel transitions open | P2 | Panel slide/fade-in sound (whoosh, swish). One for all panels. Table entry ready; call sites pending (see TODO). |
+| ✅ `sfx_ui_panel_close` | UI | Hub panel transitions closed | P2 | Panel slide/fade-out sound (reverse whoosh). Table entry ready; call sites pending (see TODO). |
+| ✅ `sfx_ui_purchase` | UI | Player completes a transaction (buy weapon, buy mod, level-up purchase) | P2 | Purchase confirmation (cash register, satisfying chime). Distinct from generic click. Table entry ready; call sites pending (see TODO). |
+| ✅ `sfx_ui_error` | UI | Invalid action (insufficient currency, unavailable action, etc.) | P2 | Error beep (negative buzz, "nope" tone). Table entry ready; call sites pending (see TODO). |
+| ✅ `sfx_ui_cancel` | UI | Player cancels an action or closes a menu | P2 | Cancel sound (soft decline tone, back-button sound). Table entry ready; call sites pending (see TODO). |
 
 ---
 
@@ -147,7 +149,7 @@ Complete enumeration of sound-worthy events across all game systems. Organized b
 
 | ID | Category | Trigger | Priority | Notes |
 |---|---|---|---|---|
-| `sfx_boss_intro` | Boss | `GameManager.final_boss_spawned` or boss enters arena | P2 | Boss entrance sound (stinger, dramatic music sting, or SFX layer). Short, memorable. |
+| ✅ `sfx_boss_intro` | Boss | `GameManager.final_boss_spawned` or boss enters arena | P2 | Boss entrance sound (stinger, dramatic music sting, or SFX layer). Short, memorable. |
 | `sfx_boss_phase_transition` | Boss | Boss changes phases (end phase 1 → phase 2, etc.) | P2 | Phase transition cue (whoosh, energy surge, warning tone). One per boss or per phase family. |
 
 ---
@@ -156,13 +158,34 @@ Complete enumeration of sound-worthy events across all game systems. Organized b
 
 | ID | Category | Trigger | Priority | Notes |
 |---|---|---|---|---|
-| `mus_hub` | Music | Hub/base camp active; no extraction channel running | P1 | Hub background loop (calm, contemplative). 2–3 min loopable track. Ship-critical. |
-| `mus_caves` | Music | Phase 1–4 in Caves biome active | P1 | Caves ambient track (dark dungeon mood, sparse, tense). Loopable, 15+ min. |
+| ✅ `mus_hub` | Music | Hub/base camp active; no extraction channel running | P1 | Hub background loop (calm, contemplative). 2–3 min loopable track. Ship-critical. |
+| ✅ `mus_caves` | Music | Phase 1–4 in Caves biome active | P1 | Caves ambient track (dark dungeon mood, sparse, tense). Loopable, 15+ min. Committed track loops at ~94s (shorter than spec) — acceptable for now, revisit if the seam is audible. |
 | `mus_catacombs` | Music | Phase 1–4 in Catacombs biome active | P2 | Catacombs ambient (heavier, slower pulse than Caves). Loopable. |
 | `mus_nightmare_realm` | Music | Phase 1–4 in Nightmare Realm biome active | P2 | Nightmare Realm (unsettling, chaotic energy). Loopable. |
 | `mus_threshold` | Music | Phase 1–4 in Threshold biome active | P2 | Threshold (climactic, building tension). Loopable. |
 | `mus_inferno` | Music | Phase 1–4 in Inferno biome active | P2 | Inferno (intense, aggressive). Loopable. |
-| `mus_boss` | Music | Boss encounter active (final_boss_spawned) | P2 | Boss music layer or full track (epic, memorable). Replaces or layers over biome music. One track or per-boss stinger. |
+| ✅ `mus_boss` | Music | Boss encounter active (final_boss_spawned) | P2 | Boss music layer or full track (epic, memorable). Replaces or layers over biome music. One track or per-boss stinger. Committed track loops at ~33s — short for a boss encounter; revisit if it feels repetitive. |
+
+---
+
+## TODO — Missing Assets (task 15 gaps for Ben)
+
+No good-fit free CC0/CC-BY asset was found for these in the time available. Table entries exist and point at nonexistent files (AudioManager no-ops silently); drop a file at the given path and the sound goes live with zero code changes.
+
+| ID(s) | Path(s) | Why it's open |
+|---|---|---|
+| `sfx_status_burn_apply`, `sfx_status_chill_apply`, `sfx_status_frozen`, `sfx_status_shocked_apply`, `sfx_status_void_apply` | `assets/audio/sfx/status/*.ogg` | No short, subtle "status applied" stingers found in the Kenney packs pulled for this pass; worth a dedicated OpenGameArt/Kenney search pass. |
+| `sfx_status_burn_tick` | *(no table entry yet)* | Needs a StatusEffectComponent tick hook in addition to an asset — not started. |
+| `sfx_channel_loop`, `sfx_projectile_fire`, `sfx_melee_swing_arc` | *(no table entries yet)* | Need per-family variants (5-6 for channels, 3-4 for projectiles) and EffectDispatcher/ChoreographyRunner hook sites — bigger scope than a data-only pass. |
+| `sfx_dash_generic`, `sfx_dash_teleport`, `sfx_dash_deadly`, `sfx_dash_dodge_roll` | *(no table entries yet)* | Not wired; dash call sites (`player.dash()`) need EventBus or direct-call hookup. |
+| `sfx_skill_*` (7 entries), `sfx_pet_*` (6 entries) | *(no table entries yet)* | Per-ability/per-pet hookup, out of scope for this pass. |
+| `sfx_boss_phase_transition` | *(no table entry yet)* | No per-phase transition signal currently emitted by boss choreography. |
+| `sfx_merchant_open`, `sfx_altar_interact` | *(no table entries yet)* | Merchant purchase/error sounds are wired (`sfx_ui_purchase`/`sfx_ui_error`); the greeting/altar stingers themselves are unassigned. |
+| `sfx_ui_hover` | *(intentionally skipped)* | Manifest marks this optional; click-only feedback is sufficient. |
+| `amb_caves_drip`, `amb_caves_wind`, `amb_threshold_hum`, `amb_inferno_crackle` | *(no table entries yet)* | Lowest-priority polish per the manifest; not started. |
+| `mus_catacombs`, `mus_nightmare_realm`, `mus_threshold`, `mus_inferno` | `assets/audio/music/{catacombs,nightmare_realm,threshold,inferno}.ogg` | Biomes 2-5 aren't shipped yet (per `docs/audio_pipeline.md` step 6, "add one track per biome as each biome ships"). |
+
+**Loop-seam QA needed (agent has no audio playback):** `mus_caves` and `mus_boss` are third-party OpenGameArt loops — Ben should listen for a pop/click at the loop point before ship. `mus_hub` (converted from MP3) tapers to near-silence at both ends and is very unlikely to pop.
 
 ---
 

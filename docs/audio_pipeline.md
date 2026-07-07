@@ -2,7 +2,7 @@
 
 ## Status
 
-**Implemented 2026-07-06** (task 14). `AudioManager` autoload (`scripts/managers/audio_manager.gd`) + data-driven sound table (`data/factories/sound_table.gd`) are live. P1 combat/pickup/level-up/extraction-complete sounds and hub/caves/boss music are wired end-to-end using synthesized `placeholder_*.wav` stand-ins under `assets/audio/`. Remaining manifest entries (task 15) are wired by editing only the sound table. Sections below marked *(spec)* describe intent that is not yet exercised (biomes 2–5 music files, ducking).
+**Implemented 2026-07-06** (task 14), **real assets wired 2026-07-06** (task 15). `AudioManager` autoload (`scripts/managers/audio_manager.gd`) + data-driven sound table (`data/factories/sound_table.gd`) are live. All P1 manifest entries (5 hit types, crit, kill, deaths, weapon swings, pickups, level-up, extraction success) plus hub/caves/boss music are wired to real CC0 assets (Kenney.nl SFX packs, OpenGameArt.org CC0 music — see `docs/asset_inventory.md` §7-8 for the per-file source table). Most P2 entries are wired too (block/dodge, boss intro, mod/keystone pickups, UI sounds, extraction lifecycle). Task-14 synthesized `placeholder_*.wav` files have been deleted. Remaining gaps (status effect cues, biomes 2–5 music, ambient layers) have no good-fit free asset yet and are left as table entries pointing at nonexistent files — AudioManager no-ops on missing files. Sections below marked *(spec)* describe intent that is not yet exercised (biomes 2–5 music files, ducking).
 
 ## How to Add a Sound (the recipe)
 
@@ -44,10 +44,11 @@ Missing file → one `push_warning` at first play, then silent no-op. The game r
 
 | Trigger | Sound |
 |---|---|
-| `EventBus.on_hit_dealt` | `sfx_hit_{physical,fire,cryo,shock,void}` via `HIT_SOUND_BY_DAMAGE_TYPE` (engine types `Ice`→cryo, `Lightning`→shock, `True`→physical) |
+| `EventBus.on_hit_dealt` | `sfx_hit_{physical,fire,cryo,shock,void}` via `HIT_SOUND_BY_DAMAGE_TYPE` (engine types `Ice`→cryo, `Lightning`→shock, `True`→physical). Also plays `sfx_swing_{light,heavy}` at the attacker's position when `hit_data.ability` is a ChainFactory combo (tag `"Combo"`, `ability_id` ending `_light`/`_heavy`) — see `_play_swing_sfx()` in audio_manager.gd |
 | `EventBus.on_crit` / `on_kill` | `sfx_crit`, `sfx_kill` |
 | `EventBus.on_death` | `sfx_death_player` / `sfx_death_enemy_elite` / `sfx_death_enemy_normal` |
-| `EventBus.on_block` / `on_dodge` / `on_status_applied` | table-ready (files pending, task 15) |
+| `EventBus.on_block` / `on_dodge` | `sfx_block`, `sfx_dodge` |
+| `EventBus.on_status_applied` | table-ready (no good-fit free asset yet, task 15 left open) |
 | `EventBus.on_pickup` (now emitted by all five pickup scripts) | `sfx_pickup_{xp,currency,weapon,mod,keystone}` |
 | `UpgradeManager.level_up_ready` | `sfx_level_up` |
 | `GameManager.run_started` | biome music via `LevelData.get_music_id(current_level)` |
