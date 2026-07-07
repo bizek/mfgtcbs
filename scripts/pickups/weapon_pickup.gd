@@ -116,4 +116,5 @@ func _collect() -> void:
 		return
 	_collected = true
 	GameManager.add_collected_weapon(weapon_id, rarity)
+	EventBus.on_pickup.emit(_target, "weapon")
 	queue_free()

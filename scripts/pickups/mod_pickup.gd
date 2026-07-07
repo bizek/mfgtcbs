@@ -108,6 +108,7 @@ func _collect() -> void:
 	if _collected or mod_id.is_empty():
 		return
 	_collected = true
+	EventBus.on_pickup.emit(_target, "mod")
 
 	## Try to auto-equip into an open weapon slot on the player's current weapon
 	if _try_auto_equip():

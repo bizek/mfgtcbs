@@ -49,4 +49,5 @@ func _collect(player: Node2D) -> void:
 	_collected = true
 	if player.has_method("add_xp"):
 		player.add_xp(xp_value)
+	EventBus.on_pickup.emit(player, "xp")
 	queue_free()

@@ -46,6 +46,8 @@ func _ready() -> void:
 	_build_button_panel()
 	_build_version_label()
 	_build_toast()
+	## Title shares the hub track — the crossfade into the hub is then a no-op.
+	AudioManager.play_music("mus_hub")
 
 func _process(delta: float) -> void:
 	if _toast_timer > 0.0:

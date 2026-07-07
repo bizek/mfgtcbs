@@ -89,6 +89,7 @@ func _ready() -> void:
 	_build_stations()
 	_build_player()
 	_build_ui()
+	AudioManager.play_music("mus_hub")
 
 # ── Room ──────────────────────────────────────────────────────────────────────
 
