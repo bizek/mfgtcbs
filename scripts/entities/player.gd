@@ -240,6 +240,7 @@ func _ready() -> void:
 	_apply_character_sprite()
 	_load_equipped_weapon()
 	_apply_passive_mods()
+	_apply_passive_tree()
 	_load_weapon_mods()
 	_load_combo()
 	_update_pickup_radius()
@@ -457,6 +458,28 @@ func _apply_passive_mods() -> void:
 		modifier_component.add_modifier(mod)
 	if _passive_id == "cursed_passive":
 		health.setup(get_stat("max_hp"))
+
+
+## Apply permanent stat modifiers from the passive skill tree (data/passive_tree.gd).
+## Called after character passives so stacking order is: base → character passive → tree.
+## Behavior nodes (keystones, triggers) are authored but inert until prompt 27.
+func _apply_passive_tree() -> void:
+	for node_id: String in ProgressionManager.passive_allocations:
+		var ranks: int = int(ProgressionManager.passive_allocations[node_id])
+		if ranks <= 0:
+			continue
+		var node: Dictionary = PassiveTreeData.NODES.get(node_id, {})
+		if node.is_empty() or node.has("behavior"):
+			continue
+		for eff: Dictionary in node.get("effects", []):
+			var mod := ModifierDefinition.new()
+			mod.target_tag = eff["stat"]
+			mod.operation  = eff["op"]
+			mod.value      = float(eff["value"]) * float(ranks)
+			mod.source_name = "passive_tree"
+			modifier_component.add_modifier(mod)
+	## Re-sync max_hp so tree additions are reflected before the run starts.
+	health.setup(get_stat("max_hp"))
 
 
 ## Ravager Bloodrage: the +damage modifier exists only while below half HP.
@@ -1189,8 +1212,25 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 		## Cursor-aimed casts (Wizard/Blood Mage projectiles): "aimed_single"/"spread" read
 		## source.attack_target — park it on the aim cursor, then route through the normal
 		## projectile pipeline.
+		## Sync live projectile stats (projectile_count, pierce, projectile_size) into a
+		## per-fire duplicate so passive tree and upgrade nodes apply to combo projectiles.
+		var proj_count: int = int(get_stat("projectile_count"))
+		var pierce_bonus: int = int(get_stat("pierce"))
+		var size_mult: float = get_stat("projectile_size")
+		var live_proj: Array = []
+		for eff in proj_effects:
+			if eff is SpawnProjectilesEffect:
+				var e: SpawnProjectilesEffect = eff.duplicate(true)
+				e.count = proj_count
+				if e.projectile.pierce_count != -1:
+					e.projectile.pierce_count = e.projectile.pierce_count + pierce_bonus
+				e.projectile.visual_scale = e.projectile.visual_scale * size_mult
+				e.projectile.hit_radius   = e.projectile.hit_radius * size_mult
+				live_proj.append(e)
+			else:
+				live_proj.append(eff)
 		attack_target = _get_aim_target()
-		EffectDispatcher.execute_effects(proj_effects, self, [self], ability, combat_manager)
+		EffectDispatcher.execute_effects(live_proj, self, [self], ability, combat_manager)
 
 	if not buff_effects.is_empty():
 		EffectDispatcher.execute_effects(buff_effects, self, [self], ability, combat_manager)
@@ -2152,7 +2192,8 @@ func heal(amount: float) -> void:
 func add_xp(amount: float) -> void:
 	if not is_alive:
 		return
-	xp += amount
+	var xp_mult: float = 1.0 + modifier_component.sum_modifiers("xp_gain", "bonus")
+	xp += amount * xp_mult
 	var xp_needed := _xp_to_next_level()
 	while xp >= xp_needed:
 		xp -= xp_needed

@@ -107,7 +107,7 @@ func _on_extraction_successful() -> void:
 	visible = true
 	play_again_button.grab_focus.call_deferred()
 
-	ProgressionManager.record_extraction(resources_earned, GameManager.kills, GameManager.phase_number, GameManager.last_run_loot)
+	ProgressionManager.record_extraction(resources_earned, GameManager.kills, GameManager.phase_number, GameManager.last_run_loot, _get_player_level() - 1)
 	AchievementManager.check_run_end("extraction")
 
 func _loot(parent: VBoxContainer, text: String, col: Color, font_size: int) -> void:

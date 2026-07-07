@@ -38,7 +38,7 @@ func _on_player_died() -> void:
 	visible = true
 	restart_button.grab_focus.call_deferred()
 
-	ProgressionManager.record_death(loot_value, GameManager.kills, GameManager.phase_number)
+	ProgressionManager.record_death(loot_value, GameManager.kills, GameManager.phase_number, _get_player_level() - 1)
 	AchievementManager.check_run_end("death")
 
 func _get_player_level() -> int:

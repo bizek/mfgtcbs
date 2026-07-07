@@ -50,6 +50,11 @@ var total_gold_earned: float = 0.0  ## Cumulative resources earned across all ru
 ## Unlocked achievement IDs (see data/achievements.gd). Owning manager is AchievementManager.
 var achievements_unlocked: Array = []
 
+## Passive skill tree — see data/passive_tree.gd and docs/passive_tree.md
+var passive_points: int = 0
+var passive_allocations: Dictionary = {}   ## {node_id: ranks}
+var lifetime_passive_points: int = 0
+
 ## Character roster
 var selected_character: String = "The Drifter"
 var unlocked_characters: Array = ["The Drifter"]
@@ -92,6 +97,9 @@ func save_data() -> void:
 		"game_cleared":           game_cleared,
 		"cleared_characters":     cleared_characters,
 		"first_run_complete":     first_run_complete,
+		"passive_points":         passive_points,
+		"passive_allocations":    passive_allocations,
+		"lifetime_passive_points": lifetime_passive_points,
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file:
@@ -139,6 +147,9 @@ func load_data() -> void:
 	game_cleared = bool(result.get("game_cleared", false))
 	cleared_characters = result.get("cleared_characters", [])
 	first_run_complete = bool(result.get("first_run_complete", false))
+	passive_points = int(result.get("passive_points", 0))
+	passive_allocations = result.get("passive_allocations", {})
+	lifetime_passive_points = int(result.get("lifetime_passive_points", 0))
 
 ## Returns true if a save file exists on disk (used by the main menu to gate Continue).
 func has_save() -> bool:
@@ -174,6 +185,9 @@ func reset_save() -> void:
 	game_cleared           = false
 	cleared_characters     = []
 	first_run_complete     = false
+	passive_points         = 0
+	passive_allocations    = {}
+	lifetime_passive_points = 0
 	save_data()
 
 ## Returns true if the player owns Extraction Intel I (timed zone revealed at run start).
@@ -235,7 +249,9 @@ func get_hub_tier() -> int:
 	return 0
 
 ## Call after a successful extraction. Adds resources and records stats.
-func record_extraction(resources_earned: int, kills_this_run: int, phase: int, loot_value: float = 0.0) -> void:
+## levels_gained = player.level - 1 at run end; banked as passive points.
+func record_extraction(resources_earned: int, kills_this_run: int, phase: int, loot_value: float = 0.0, levels_gained: int = 0) -> void:
+	bank_passive_points(levels_gained)
 	resources += resources_earned
 	total_gold_earned += resources_earned
 	successful_extractions += 1
@@ -257,7 +273,9 @@ func record_win(char_id: String) -> void:
 	save_data()
 
 ## Call on death. Awards 25% of carried loot as penalized meta resources.
-func record_death(loot_value: int, kills_this_run: int, phase: int) -> void:
+## levels_gained = player.level - 1 at run end; banked as passive points.
+func record_death(loot_value: int, kills_this_run: int, phase: int, levels_gained: int = 0) -> void:
+	bank_passive_points(levels_gained)
 	var penalty: int = int(loot_value * 0.25)
 	resources += penalty
 	total_gold_earned += penalty
@@ -390,3 +408,78 @@ func select_character(char_id: String) -> bool:
 	selected_character = char_id
 	save_data()
 	return true
+
+
+# ─── Passive skill tree ────────────────────────────────────────────────────────
+
+func get_passive_points() -> int:
+	return passive_points
+
+func get_node_ranks(node_id: String) -> int:
+	return int(passive_allocations.get(node_id, 0))
+
+## Total ranks spent in a given branch (used for tier-gate and bridge checks).
+func branch_ranks(branch: String) -> int:
+	var total: int = 0
+	for node_id: String in passive_allocations:
+		if PassiveTreeData.NODES.get(node_id, {}).get("branch") == branch:
+			total += int(passive_allocations[node_id])
+	return total
+
+## True if the node can be purchased right now (points, max_ranks, tier gate).
+## Behavior nodes are purchasable — they're just inert until prompt 27.
+func can_allocate(node_id: String) -> bool:
+	var node: Dictionary = PassiveTreeData.NODES.get(node_id, {})
+	if node.is_empty():
+		return false
+	var current_ranks: int = get_node_ranks(node_id)
+	if current_ranks >= int(node.get("max_ranks", 1)):
+		return false
+	var cost: int = int(node.get("cost", 1))
+	if passive_points < cost:
+		return false
+	## Rank 2+ only need the point check above; no tier re-gate (spec §3).
+	if current_ranks > 0:
+		return true
+	## First rank: apply tier gate.
+	var branch: String = node.get("branch", "core")
+	if branch == "core":
+		return true
+	if branch == "bridge":
+		var bridges: Array = node.get("bridges", [])
+		for adj: String in bridges:
+			if branch_ranks(adj) >= 4:
+				return true
+		return false
+	## Normal branch node: needs 3 × tier ranks already spent in that branch.
+	var tier: int = int(node.get("tier", 0))
+	return branch_ranks(branch) >= tier * 3
+
+## Spend points to allocate one rank. Returns true on success.
+func allocate(node_id: String) -> bool:
+	if not can_allocate(node_id):
+		return false
+	var cost: int = int(PassiveTreeData.NODES[node_id].get("cost", 1))
+	passive_points -= cost
+	passive_allocations[node_id] = get_node_ranks(node_id) + 1
+	save_data()
+	return true
+
+## Return all spent points and clear every allocation.
+func refund_all() -> void:
+	var refund: int = 0
+	for node_id: String in passive_allocations:
+		var node: Dictionary = PassiveTreeData.NODES.get(node_id, {})
+		refund += int(node.get("cost", 1)) * int(passive_allocations[node_id])
+	passive_points += refund
+	passive_allocations.clear()
+	save_data()
+
+## Bank passive points earned at run end (called from record_extraction / record_death).
+func bank_passive_points(levels_gained: int) -> void:
+	var pts: int = maxi(levels_gained, 0)
+	if pts <= 0:
+		return
+	passive_points += pts
+	lifetime_passive_points += pts
+	## save_data() is always called by the caller (record_extraction/record_death) after this.

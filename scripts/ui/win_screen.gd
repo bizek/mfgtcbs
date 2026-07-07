@@ -40,11 +40,17 @@ func _on_extraction_successful() -> void:
 	time_label.text = "Time: %d:%02d" % [minutes, seconds]
 	character_label.text = "Cleared with: %s" % ProgressionManager.selected_character
 
-	ProgressionManager.record_extraction(resources_earned, GameManager.kills, GameManager.phase_number, GameManager.last_run_loot)
+	ProgressionManager.record_extraction(resources_earned, GameManager.kills, GameManager.phase_number, GameManager.last_run_loot, _get_player_level() - 1)
 	AchievementManager.check_run_end("extraction")
 
 	visible = true
 	continue_button.grab_focus.call_deferred()
+
+func _get_player_level() -> int:
+	var player := get_tree().get_first_node_in_group("player")
+	if player:
+		return player.level
+	return 1
 
 func _on_continue() -> void:
 	visible = false
