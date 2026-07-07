@@ -201,8 +201,9 @@ func stop_spawning() -> void:
 func _on_phase_started(phase: int) -> void:
 	_carrier_timer = CARRIER_INTERVAL * 0.8
 	_herald_timer = HERALD_INTERVAL
-	## Arm miniboss on Phase 3 entry
-	if phase == 3:
+	## Arm miniboss on Phase 3 entry — but NOT in descent mode, where the miniboss is
+	## triggered by reaching 50% depth (see MainArena._on_descent_depth_milestone).
+	if phase == 3 and not GameManager.use_descent_mode:
 		_miniboss_spawn_delay = MINIBOSS_SPAWN_DELAY
 		_miniboss_spawned_this_phase = false
 	elif phase != 3:
@@ -338,12 +339,19 @@ func _spawn_boss_bypass_cap(enemy_id: String, scene: PackedScene, pos: Vector2) 
 	return enemy
 
 func _spawn_miniboss() -> void:
-	## Phase 3 miniboss — Warped Colossus. Spawns at an arena edge.
-	## Reuses brute_scene; the EnemyDefinition provides 2.4× sprite scale and boss tint.
+	## Phase 3 miniboss — Warped Colossus. Classic arena mode only (wall-clock
+	## trigger); descent mode spawns it via spawn_miniboss_at() instead, near the
+	## player's actual block (see MainArena._on_descent_depth_milestone).
+	spawn_miniboss_at(_get_edge_spawn_position())
+
+func spawn_miniboss_at(pos: Vector2) -> Node2D:
+	## Spawn the Warped Colossus at a given world position. Reuses brute_scene;
+	## the EnemyDefinition provides 2.4× sprite scale and boss tint. Used by both
+	## the Phase 3 timer (classic arena) and the descent depth-milestone trigger.
 	var scene: PackedScene = brute_scene
 	if scene == null:
-		return
-	_spawn_boss_bypass_cap("warped_colossus", scene, _get_edge_spawn_position())
+		return null
+	return _spawn_boss_bypass_cap("warped_colossus", scene, pos)
 
 func _spawn_final_boss() -> void:
 	## Phase 5 final boss (classic arena) — spawns at arena center for drama.

@@ -77,6 +77,9 @@ var _portal_block_index: int = -1
 var _descent_boss_spawn_pos: Vector2 = Vector2.ZERO
 var _descent_boss_spawned: bool = false
 
+## Descent miniboss — Warped Colossus ambush at the halfway depth milestone
+var _descent_miniboss_spawned: bool = false
+
 
 func _ready() -> void:
 	# Build engine status effect definitions
@@ -440,6 +443,7 @@ func _setup_ldtk_descent() -> void:
 	add_child(_depth_tracker)
 	_depth_tracker.setup(_block_manager, player)
 	_depth_tracker.block_entered.connect(_on_descent_block_entered)
+	_depth_tracker.depth_milestone_reached.connect(_on_descent_depth_milestone)
 	hud.setup_depth_tracker(_depth_tracker)
 
 	## Event spawn manager — places Merchant and SummonAltar at block anchors
@@ -517,6 +521,22 @@ func _on_descent_block_entered(block_index: int) -> void:
 		return
 	_descent_boss_spawned = true
 	EnemySpawnManager.spawn_final_boss_at(_descent_boss_spawn_pos)
+
+
+func _on_descent_depth_milestone(percent: float) -> void:
+	## Ambush the player with the Warped Colossus at the halfway depth mark —
+	## replaces the old wall-clock Phase-3 trigger, which fired regardless of
+	## how far the player had actually descended. Spawns just ahead of the
+	## player (deeper into the descent column) instead of a descent-bounds edge.
+	if _descent_miniboss_spawned or not is_equal_approx(percent, 0.5):
+		return
+	_descent_miniboss_spawned = true
+	var bounds: Rect2 = _get_level_bounds()
+	var spawn_pos := Vector2(player.global_position.x, player.global_position.y + 200.0)
+	spawn_pos.x = clampf(spawn_pos.x, bounds.position.x + 20.0, bounds.end.x - 20.0)
+	spawn_pos.y = clampf(spawn_pos.y, bounds.position.y + 20.0, bounds.end.y - 20.0)
+	_boss_intro_beat("warped_colossus", spawn_pos)
+	EnemySpawnManager.spawn_miniboss_at(spawn_pos)
 
 
 func _on_descent_boss_defeated() -> void:
