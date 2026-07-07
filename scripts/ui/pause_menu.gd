@@ -3,8 +3,11 @@ extends CanvasLayer
 ## PauseMenu — ESC opens/closes. Shows Resume + Debug Panel toggle.
 ## process_mode = ALWAYS so it runs while tree is paused.
 
+const SettingsPanelScript := preload("res://scripts/ui/settings_panel.gd")
+
 var _panel: ColorRect
 var _debug_panel_ref: Node = null  ## Set by main_arena if debug mode is on
+var _settings_panel: Control = null
 
 func _ready() -> void:
 	layer = 126  ## Below debug panel (127), above game
@@ -31,7 +34,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			and state != GameManager.GameState.EXTRACTING:
 		return
 
-	_toggle_pause()
+	if _settings_panel and _settings_panel.visible:
+		_close_settings()
+	else:
+		_toggle_pause()
 	get_viewport().set_input_as_handled()
 
 
@@ -97,6 +103,13 @@ func _build_menu() -> void:
 	resume_btn.pressed.connect(_close)
 	vbox.add_child(resume_btn)
 
+	## Settings button
+	var settings_btn := Button.new()
+	settings_btn.text = "Settings"
+	settings_btn.add_theme_font_size_override("font_size", 14)
+	settings_btn.pressed.connect(_open_settings)
+	vbox.add_child(settings_btn)
+
 	## Debug panel button (only if debug mode)
 	if GameManager.debug_mode:
 		var debug_btn := Button.new()
@@ -120,3 +133,18 @@ func _build_menu() -> void:
 func _toggle_debug_panel() -> void:
 	if _debug_panel_ref and _debug_panel_ref.has_method("_toggle_panel"):
 		_debug_panel_ref._toggle_panel()
+
+
+func _open_settings() -> void:
+	_panel.visible = false
+	if _settings_panel == null:
+		_settings_panel = SettingsPanelScript.new()
+		_settings_panel.close_requested.connect(_close_settings)
+		add_child(_settings_panel)
+	_settings_panel.visible = true
+
+
+func _close_settings() -> void:
+	if _settings_panel:
+		_settings_panel.visible = false
+	_panel.visible = true

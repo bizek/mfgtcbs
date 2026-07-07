@@ -756,6 +756,7 @@ func _spawn_resource_reward(pos: Vector2, amount: float) -> void:
 func _shake_camera(intensity: float = 3.0, duration: float = 0.12) -> void:
 	if _camera == null or not is_instance_valid(_camera):
 		return
+	intensity *= Settings.screen_shake
 	var shake_offset := Vector2(randf_range(-intensity, intensity), randf_range(-intensity, intensity))
 	var tween := create_tween()
 	tween.tween_property(_camera, "offset", shake_offset, duration * 0.25)
