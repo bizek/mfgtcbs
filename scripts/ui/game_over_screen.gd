@@ -36,8 +36,10 @@ func _on_player_died() -> void:
 
 	restart_button.text = "Return to Hub"
 	visible = true
+	restart_button.grab_focus.call_deferred()
 
 	ProgressionManager.record_death(loot_value, GameManager.kills, GameManager.phase_number)
+	AchievementManager.check_run_end("death")
 
 func _get_player_level() -> int:
 	var player := get_tree().get_first_node_in_group("player")

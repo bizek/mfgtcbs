@@ -105,8 +105,10 @@ func _on_extraction_successful() -> void:
 
 	play_again_button.text = "Return to Hub"
 	visible = true
+	play_again_button.grab_focus.call_deferred()
 
 	ProgressionManager.record_extraction(resources_earned, GameManager.kills, GameManager.phase_number, GameManager.last_run_loot)
+	AchievementManager.check_run_end("extraction")
 
 func _loot(parent: VBoxContainer, text: String, col: Color, font_size: int) -> void:
 	var lbl := Label.new()

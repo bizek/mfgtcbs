@@ -80,6 +80,9 @@ var _resource_label: Label
 var _active_station_id: String = ""
 var _panel_layer: CanvasLayer
 var _active_panel: Control = null
+var _active_panel_id: String = ""
+var _glyph_bar: GlyphBar
+const _STATION_ORDER: Array[String] = ["launch", "armory", "workshop", "research", "records", "roster"]
 
 var _torch_flames: Array[ColorRect] = []  ## flame rects for flicker animation
 var _flicker_timer: float = 0.0
@@ -90,6 +93,7 @@ func _ready() -> void:
 	_build_player()
 	_build_ui()
 	AudioManager.play_music("mus_hub")
+	AchievementManager.check_thresholds()
 
 # ── Room ──────────────────────────────────────────────────────────────────────
 
@@ -317,6 +321,15 @@ func _build_ui() -> void:
 	_interact_prompt.visible = false
 	_panel_layer.add_child(_interact_prompt)
 
+	## Bottom-of-screen controller/keyboard hint bar — shared across roaming
+	## and every panel so players always see how to interact/close/switch.
+	_glyph_bar = GlyphBar.build([])
+	_glyph_bar.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	_glyph_bar.offset_top = -14.0
+	_glyph_bar.offset_bottom = 0.0
+	_panel_layer.add_child(_glyph_bar)
+	InputGlyphs.device_changed.connect(func(_v: bool): _refresh_glyph_bar())
+
 	ProgressionManager.resources_changed.connect(_on_resources_changed)
 
 func _on_resources_changed(_amount: int) -> void:
@@ -330,10 +343,12 @@ func _process(delta: float) -> void:
 		_flicker_timer = 0.0
 		_flicker_torches()
 	if _active_panel != null:
+		_handle_panel_switch()
 		return
 	_handle_movement(delta)
 	_update_proximity()
 	_handle_interact()
+	_handle_panel_switch()
 
 func _flicker_torches() -> void:
 	for flame in _torch_flames:
@@ -390,10 +405,31 @@ func _update_proximity() -> void:
 			_station_bg_rects[i].color = Color(col.r, col.g, col.b, 0.22)
 		else:
 			_station_bg_rects[i].color = Color(0, 0, 0, 0)
+	_refresh_glyph_bar()
 
 func _handle_interact() -> void:
 	if Input.is_action_just_pressed("interact") and not _active_station_id.is_empty():
 		_open_panel(_active_station_id)
+
+## Shoulder-button (LB/RB) station switching — the discoverable controller-
+## friendly alternative to walking between stations. Works both while roaming
+## (jumps straight to a panel without walking) and while a panel is already
+## open (swaps it for the next one). Bound to menu_switch_prev/next, which are
+## joypad-only (see project.godot) — deliberately NOT light_attack/heavy_attack,
+## since those are also bound to mouse buttons 1/2 and would otherwise fire a
+## panel switch on every unrelated mouse click in the hub.
+func _handle_panel_switch() -> void:
+	if Input.is_action_just_pressed("menu_switch_prev"):
+		_switch_panel(-1)
+	elif Input.is_action_just_pressed("menu_switch_next"):
+		_switch_panel(1)
+
+func _switch_panel(direction: int) -> void:
+	var current_id: String = _active_panel_id if _active_panel != null else _active_station_id
+	var idx: int = _STATION_ORDER.find(current_id)
+	var next_idx: int = (idx + direction + _STATION_ORDER.size()) % _STATION_ORDER.size() if idx != -1 else 0
+	_close_panel()
+	_open_panel(_STATION_ORDER[next_idx])
 
 # ── Panel system ──────────────────────────────────────────────────────────────
 
@@ -411,12 +447,29 @@ func _open_panel(station_id: String) -> void:
 	panel.populate(ProgressionManager)
 	panel.close_requested.connect(_close_panel)
 	_active_panel = panel
+	_active_panel_id = station_id
 	_interact_prompt.visible = false
+	## Prefer the panel's real first content control over hub_panel_base's
+	## CloseButton fallback, now that populate() has built the actual rows.
+	UINav.focus_first(panel)
+	_refresh_glyph_bar()
 
 func _close_panel() -> void:
 	if _active_panel:
 		_active_panel.queue_free()
 		_active_panel = null
+		_active_panel_id = ""
 	## Roster selection may have changed the character — refresh the hub avatar.
 	if _displayed_char_id != ProgressionManager.selected_character:
 		_apply_player_visual()
+	_refresh_glyph_bar()
+
+func _refresh_glyph_bar() -> void:
+	if _glyph_bar == null:
+		return
+	if _active_panel != null:
+		_glyph_bar.set_pairs([["confirm", "Select"], ["back", "Close"], ["switch", "Switch Panel"]])
+	elif not _active_station_id.is_empty():
+		_glyph_bar.set_pairs([["interact", "Interact"], ["switch", "Jump to Panel"]])
+	else:
+		_glyph_bar.set_pairs([])
