@@ -49,11 +49,13 @@ func _toggle_pause() -> void:
 
 
 func _open() -> void:
+	AudioManager.play_ui("sfx_ui_panel_open")
 	_panel.visible = true
 	GameManager.set_paused(true)
 
 
 func _close() -> void:
+	AudioManager.play_ui("sfx_ui_panel_close")
 	_panel.visible = false
 	GameManager.set_paused(false)
 
@@ -107,7 +109,9 @@ func _build_menu() -> void:
 	var settings_btn := Button.new()
 	settings_btn.text = "Settings"
 	settings_btn.add_theme_font_size_override("font_size", 14)
-	settings_btn.pressed.connect(_open_settings)
+	settings_btn.pressed.connect(func():
+		AudioManager.play_ui("sfx_ui_click")
+		_open_settings())
 	vbox.add_child(settings_btn)
 
 	## Debug panel button (only if debug mode)

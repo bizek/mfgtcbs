@@ -185,7 +185,9 @@ func _build_ui(offers: Array[Dictionary]) -> void:
 		leave_btn.add_theme_font_override("font", _pixel_font)
 	leave_btn.add_theme_font_size_override("font_size", 15)
 	leave_btn.add_theme_color_override("font_color", Color(0.58, 0.55, 0.40))
-	leave_btn.pressed.connect(func(): closed.emit())
+	leave_btn.pressed.connect(func():
+		AudioManager.play_ui("sfx_ui_cancel")
+		closed.emit())
 	panel.add_child(leave_btn)
 
 
@@ -233,12 +235,14 @@ func _build_offer_row(offer: Dictionary) -> HBoxContainer:
 func _on_buy(offer: Dictionary, row: HBoxContainer, btn: Button) -> void:
 	var price: int = int(offer.get("price", 0))
 	if not GameManager.spend_loot(float(price)):
+		AudioManager.play_ui("sfx_ui_error")
 		## Flash row to indicate insufficient loot
 		var t := row.create_tween()
 		t.tween_property(row, "modulate", Color(1.0, 0.3, 0.3), 0.05)
 		t.tween_property(row, "modulate", Color(1.0, 1.0, 1.0), 0.22)
 		return
 
+	AudioManager.play_ui("sfx_ui_purchase")
 	if _loot_counter != null:
 		_loot_counter.text = "Loot: %d" % int(GameManager.loot_carried)
 
