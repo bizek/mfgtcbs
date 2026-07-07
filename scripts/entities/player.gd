@@ -2060,7 +2060,8 @@ func _on_sprite_frame_changed() -> void:
 func _start_hit_flash() -> void:
 	if _hit_flash_tween and _hit_flash_tween.is_valid():
 		_hit_flash_tween.kill()
-	sprite.modulate = Color(5.0, 5.0, 5.0, 1.0)
+	var overbright: float = 1.0 + 4.0 * Settings.screen_flash_intensity
+	sprite.modulate = Color(overbright, overbright, overbright, 1.0)
 	_hit_flash_tween = create_tween()
 	_hit_flash_tween.tween_property(sprite, "modulate", Color.WHITE, 0.07)
 	var blinks: int = int((IFRAME_DURATION - 0.07) / 0.14)

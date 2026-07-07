@@ -20,6 +20,10 @@ const NUB_BLUE: Rect2 = Rect2(648.0, 709.0, 4.0, 6.0)
 const BOSS_BAR_W: float = 192.0
 var _ui_sheet: Texture2D = null
 
+## Scales a base font size by the accessibility text-size setting (Small/Normal/Large).
+func _ts(base_size: int) -> int:
+	return int(roundf(base_size * Settings.get_text_scale()))
+
 @onready var health_bar: ProgressBar = $TopLeft/HPRow/HealthBar
 @onready var health_label: Label = $TopLeft/HPRow/HealthLabel
 @onready var xp_bar: ProgressBar = $TopLeft/XPRow/XPBar
@@ -293,7 +297,7 @@ func _add_bar_inner_label(bar: ProgressBar, font_size: int) -> Label:
 	lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	lbl.add_theme_font_size_override("font_size", font_size)
+	lbl.add_theme_font_size_override("font_size", _ts(font_size))
 	lbl.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0))
 	lbl.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.9))
 	lbl.add_theme_constant_override("outline_size", 2)
@@ -391,7 +395,7 @@ func _build_keystone_indicator() -> void:
 	var lbl := Label.new()
 	lbl.text = "KEYSTONE"
 	lbl.position = Vector2(14.0, 2.0)
-	lbl.add_theme_font_size_override("font_size", 12)
+	lbl.add_theme_font_size_override("font_size", _ts(12))
 	lbl.add_theme_color_override("font_color", Color(0.32, 0.20, 0.06))
 	if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
 		lbl.add_theme_font_override("font", load("res://assets/fonts/m5x7.ttf"))
@@ -521,7 +525,7 @@ func _build_phase_flash_label() -> void:
 	lbl.position = Vector2(120.0, 147.0)
 	lbl.size = Vector2(400.0, 40.0)
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.add_theme_font_size_override("font_size", 27)
+	lbl.add_theme_font_size_override("font_size", _ts(27))
 	lbl.add_theme_color_override("font_color", Color(1.0, 0.9, 0.7))
 	lbl.modulate.a = 0.0
 	if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
@@ -538,7 +542,7 @@ func _build_extraction_warning_label() -> void:
 	lbl.position = Vector2(220.0, 24.0)
 	lbl.size = Vector2(200.0, 12.0)
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.add_theme_font_size_override("font_size", 14)
+	lbl.add_theme_font_size_override("font_size", _ts(14))
 	lbl.add_theme_color_override("font_color", Color(1.0, 0.9, 0.1))
 	lbl.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.8))
 	lbl.add_theme_constant_override("outline_size", 2)
