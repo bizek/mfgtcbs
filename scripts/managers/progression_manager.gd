@@ -39,6 +39,11 @@ var owned_mods: Array = []
 ## Equipped mods per weapon — { "weapon_id": ["mod_id_slot0", "mod_id_slot1"] }
 ## Empty string "" means the slot is empty.
 var weapon_mods: Dictionary = {}
+## Equipped CLASS mods per character — { "char_id": ["classmod_slot0", …] } (task 31).
+## Class mods belong to a CLASS, not a weapon, so they equip per-character; loadouts stay
+## isolated when the player switches character. owned_mods (above) still holds every mod
+## instance — generic AND class — so the collection / insurance / save flow is one list.
+var character_mods: Dictionary = {}
 var total_runs: int = 0
 var successful_extractions: int = 0
 var deaths: int = 0
@@ -93,6 +98,7 @@ func save_data() -> void:
 		"unlocked_characters":    unlocked_characters,
 		"owned_mods":             owned_mods,
 		"weapon_mods":            weapon_mods,
+		"character_mods":         character_mods,
 		"character_loadouts":     character_loadouts,
 		"game_cleared":           game_cleared,
 		"cleared_characters":     cleared_characters,
@@ -143,6 +149,7 @@ func load_data() -> void:
 		unlocked_characters.append("The Drifter")
 	owned_mods   = result.get("owned_mods",  [])
 	weapon_mods  = result.get("weapon_mods", {})
+	character_mods = result.get("character_mods", {})   ## defensive: absent in pre-task-31 saves
 	character_loadouts = result.get("character_loadouts", {})
 	game_cleared = bool(result.get("game_cleared", false))
 	cleared_characters = result.get("cleared_characters", [])
@@ -172,6 +179,7 @@ func reset_save() -> void:
 	total_resources_spent  = 0
 	owned_mods             = []
 	weapon_mods            = {}
+	character_mods         = {}
 	total_runs             = 0
 	successful_extractions = 0
 	deaths                 = 0
@@ -378,6 +386,55 @@ func remove_weapon_mod(weapon_id: String, slot: int) -> void:
 	if not existing.is_empty():
 		owned_mods.append(existing)
 	weapon_mods[weapon_id][slot] = ""
+	save_data()
+
+## ── Class-mod loadout (task 31) ──────────────────────────────────────────────
+## Class mods equip per-character (not per-weapon). Storage mirrors weapon_mods: an array of
+## slot strings per char_id, "" for empty. owned_mods is the shared inventory for both layers.
+
+## How many class-mod slots a character has. Flat for now; task 34's class gear rarity is slated
+## to drive this later (see docs/class_mod_system.md). Kept as a func so callers don't hardcode.
+const CLASS_MOD_SLOTS: int = 2
+
+func class_mod_slots(_char_id: String = "") -> int:
+	return CLASS_MOD_SLOTS
+
+## Equipped class-mod ids for a character (may include "" for empty slots).
+func get_character_mods(char_id: String) -> Array:
+	return character_mods.get(char_id, [])
+
+## Class-mod ids equipped for a character that are actually valid for its kit — the set the
+## player installs into the combo. Filters defensively so a stale/foreign id can never leak in.
+func get_active_class_mods(char_id: String) -> Array:
+	var out: Array = []
+	for mod_id in get_character_mods(char_id):
+		if mod_id is String and not (mod_id as String).is_empty() \
+				and ModApplicability.class_applies(mod_id, char_id):
+			out.append(mod_id)
+	return out
+
+## Equip a class mod into a character slot (0-indexed). Consumes one copy from owned_mods.
+func set_character_mod(char_id: String, slot: int, mod_id: String) -> void:
+	if not character_mods.has(char_id):
+		character_mods[char_id] = []
+	while character_mods[char_id].size() <= slot:
+		character_mods[char_id].append("")
+	character_mods[char_id][slot] = mod_id
+	var idx: int = owned_mods.find(mod_id)
+	if idx >= 0:
+		owned_mods.remove_at(idx)
+	save_data()
+
+## Remove a class mod from a character slot (0-indexed) and return it to owned_mods.
+func remove_character_mod(char_id: String, slot: int) -> void:
+	if not character_mods.has(char_id):
+		return
+	if slot >= character_mods[char_id].size():
+		return
+	var existing: String = character_mods[char_id][slot]
+	if not existing.is_empty():
+		owned_mods.append(existing)
+	character_mods[char_id][slot] = ""
 	save_data()
 
 ## Returns true if the character is already unlocked.

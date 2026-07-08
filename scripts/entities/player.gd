@@ -1033,11 +1033,20 @@ func _load_combo() -> void:
 	_kit_id = kit_id
 	_dash_style = char_data.get("dash_style", "")
 	_active_song = "ballad"
+	## Class mods (task 31): the ids equipped for THIS character that belong to THIS kit. Applied
+	## to the freshly-built kit/skills at build time via the ClassModFactory seam. Rebuilt every
+	## _load_combo, so kit mutations never accumulate; player modifiers carry "classmod_" so they
+	## can be stripped on the next rebuild / weapon switch.
+	var class_mods: Array = ProgressionManager.get_active_class_mods(char_id)
+	modifier_component.remove_by_source_prefix("classmod_")
 	if kit_id != "":
 		var kit: Dictionary = ChainFactory.build_kit(kit_id, _weapon_data)
+		ClassModFactory.apply_to_kit(kit_id, kit, class_mods)
 		set_combo_ability(kit.get("light"))
 		_combo_heavy = kit.get("heavy")
 		_combo_channel = kit.get("channel")
+		for m in ClassModFactory.build_modifiers(kit_id, class_mods):
+			modifier_component.add_modifier(m)
 	else:
 		set_combo_ability(null)
 		_combo_heavy = null
@@ -1047,6 +1056,7 @@ func _load_combo() -> void:
 		skill_component.clear()
 		if kit_id != "":
 			var skills: Dictionary = SkillFactory.build_kit_skills(kit_id, _weapon_data)
+			ClassModFactory.apply_to_skills(kit_id, skills, class_mods)
 			for slot in skills:
 				skill_component.set_skill(slot, skills[slot])
 

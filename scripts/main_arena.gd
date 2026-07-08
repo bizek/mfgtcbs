@@ -768,7 +768,14 @@ func _spawn_loot_drop(pos: Vector2, phase: int) -> void:
 	add_child(drop)
 
 func _spawn_mod_drop(pos: Vector2, rarity: String = "common") -> void:
-	var mod_ids: Array = ModData.ORDER
+	## Two-layer mod model (task 31): only roll mods that DO something for the character the
+	## player is currently running — applicable generic mods + this class's own class mods. An
+	## unusable mod can never drop mid-run. Falls back to the full generic order if the pool is
+	## somehow empty (e.g. an unknown character id).
+	var char_id: String = ProgressionManager.selected_character
+	var mod_ids: Array = ModApplicability.droppable_pool(char_id)
+	if mod_ids.is_empty():
+		mod_ids = ModData.ORDER
 	if mod_ids.is_empty():
 		return
 	var mod_id: String = mod_ids[randi() % mod_ids.size()]

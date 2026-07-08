@@ -25,9 +25,10 @@ func _ready() -> void:
 	collision_mask  = 1   ## player body (bit 0)
 	monitoring      = true
 
-	## Resolve tint from mod data
-	if ModData.ALL.has(mod_id):
-		_tint = ModData.ALL[mod_id].get("color", _tint)
+	## Resolve tint from mod data (either layer — generic or class)
+	var mdata: Dictionary = ModApplicability.get_mod(mod_id)
+	if not mdata.is_empty():
+		_tint = mdata.get("color", _tint)
 
 	## Collision circle
 	var shape := CollisionShape2D.new()
@@ -42,7 +43,7 @@ func _ready() -> void:
 func _build_label() -> void:
 	if mod_id.is_empty():
 		return
-	var display: String = ModData.ALL.get(mod_id, {}).get("name", mod_id)
+	var display: String = ModApplicability.get_mod(mod_id).get("name", mod_id)
 	var rarity_color: Color = LootTables.RARITY_COLORS.get(rarity, Color.WHITE)
 	var lbl := Label.new()
 	lbl.text = "[" + rarity.to_upper() + "] " + display
@@ -110,14 +111,16 @@ func _collect() -> void:
 	_collected = true
 	EventBus.on_pickup.emit(_target, "mod")
 
-	## Try to auto-equip into an open weapon slot on the player's current weapon
-	if _try_auto_equip():
+	## Class mods belong to a CLASS, not the equipped weapon — never auto-equip them into a weapon
+	## slot. They bag and are installed per-character in the armory (task 31). Generic mods keep
+	## the auto-equip-into-open-weapon-slot convenience.
+	if not ModApplicability.is_class_mod(mod_id) and _try_auto_equip():
 		queue_free()
 		return
 
-	## No open slot — goes into the loot bag (extractable)
+	## No open slot (or a class mod) — goes into the loot bag (extractable)
 	GameManager.add_collected_mod(mod_id, rarity)
-	var mod_name: String = ModData.ALL.get(mod_id, {}).get("name", mod_id)
+	var mod_name: String = ModApplicability.get_mod(mod_id).get("name", mod_id)
 	var rarity_color: Color = LootTables.RARITY_COLORS.get(rarity, Color(0.85, 0.55, 1.0))
 	_show_notification("BAGGED: " + mod_name, rarity_color)
 	queue_free()
@@ -154,8 +157,8 @@ func _try_auto_equip() -> bool:
 			if player.has_method("reload_mods"):
 				player.reload_mods()
 
-			var mod_name: String = ModData.ALL.get(mod_id, {}).get("name", mod_id)
-			_show_notification("MOD EQUIPPED: " + mod_name, ModData.ALL.get(mod_id, {}).get("color", _tint))
+			var mdata: Dictionary = ModApplicability.get_mod(mod_id)
+			_show_notification("MOD EQUIPPED: " + mdata.get("name", mod_id), mdata.get("color", _tint))
 			return true
 
 	return false
