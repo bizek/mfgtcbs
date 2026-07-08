@@ -115,7 +115,9 @@ func _rebuild_rows() -> void:
 		items.append({"id": w, "type": "weapon", "display": "[Weapon] " + display})
 
 	for m in GameManager.collected_mods:
-		items.append({"id": m, "type": "mod", "display": "[Mod] " + m})
+		## Unified lookup so class mods (task 31) show their name, not the raw id.
+		var m_name: String = ModApplicability.get_mod(m).get("name", m)
+		items.append({"id": m, "type": "mod", "display": "[Mod] " + m_name})
 
 	for weapon_id in GameManager.run_equipped_mods:
 		for slot in GameManager.run_equipped_mods[weapon_id]:

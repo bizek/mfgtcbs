@@ -64,6 +64,9 @@ var _active_slot:     int  = 1
 var _mod_picking:     bool = false
 var _mod_target_slot: int  = 0
 var _weapon_picking:  bool = false
+## Class-mod picker (task 31) — inline like the weapon picker, edits the current character.
+var _class_mod_picking:     bool = false
+var _class_mod_target_slot: int  = 0
 
 ## Codex overlay
 var _codex_panel: CodexGridPanel = null
@@ -125,6 +128,10 @@ func _build_armory() -> void:
 		_build_weapon_picker(vbox)
 		return
 
+	if _class_mod_picking:
+		_build_class_mod_picker(vbox)
+		return
+
 	## ── Section header
 	var hdr := HBoxContainer.new()
 	hdr.add_theme_constant_override("separation", 5)
@@ -160,6 +167,10 @@ func _build_armory() -> void:
 	## ── Weapon cards
 	for slot in range(1, slot_count + 1):
 		_build_weapon_card(vbox, slot)
+
+	## ── Class-mod card (task 31): per-character combo mods, independent of the weapon slots
+	if not Engine.is_editor_hint():
+		_build_class_mod_card(vbox)
 
 	## Push footer down
 	var spacer := Control.new()
@@ -442,6 +453,187 @@ func _build_weapon_picker(parent: Control) -> void:
 	parent.add_child(back)
 
 
+# ── Class-mod card + picker (task 31) ─────────────────────────────────────────
+## Class mods equip per-character (ProgressionManager.character_mods), not per-weapon. This card
+## sits below the weapon cards; each slot opens an inline picker of the OWNED class mods that
+## belong to the current character's kit. Class mods never touch weapon_mods, so codex combo
+## discovery is unaffected.
+
+func _build_class_mod_card(parent: Control) -> void:
+	var char_id: String = str(_pm.selected_character)
+	var kit_id: String  = ModApplicability.kit_of(char_id)
+	if kit_id.is_empty():
+		return
+	var slots: int      = _pm.class_mod_slots(char_id)
+	var equipped: Array = _pm.get_character_mods(char_id)
+
+	## Section rule
+	var rule := ColorRect.new()
+	rule.custom_minimum_size   = Vector2(0, 1)
+	rule.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rule.color                 = Color(0.40, 0.30, 0.55, 0.55)   ## violet accent, class layer
+	parent.add_child(rule)
+
+	var hdr := HBoxContainer.new()
+	hdr.add_theme_constant_override("separation", 5)
+	hdr.custom_minimum_size = Vector2(0, 14)
+	parent.add_child(hdr)
+	_lbl(hdr, "CLASS MODS", FS_SM, Color(0.62, 0.48, 0.85))
+	var owned_ct: int = _owned_class_mod_count(char_id)
+	var sp := Control.new()
+	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hdr.add_child(sp)
+	_lbl(hdr, "%d OWNED" % owned_ct, FS_XS, C_T2)
+
+	## Slot buttons
+	var mr := HBoxContainer.new()
+	mr.add_theme_constant_override("separation", 3)
+	mr.custom_minimum_size = Vector2(0, 18)
+	parent.add_child(mr)
+
+	for mi in range(slots):
+		var mod_id: String    = str(equipped[mi]) if mi < equipped.size() else ""
+		var has_mod: bool     = not mod_id.is_empty()
+		var mdata: Dictionary = ClassModData.ALL.get(mod_id, {}) if has_mod else {}
+		var mod_name: String  = mdata.get("name", mod_id) if has_mod else ""
+		var mod_col: Color    = mdata.get("color", C_T1) if has_mod else Color(0.40, 0.32, 0.52)
+
+		var mb := Button.new()
+		mb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		mb.alignment             = HORIZONTAL_ALIGNMENT_LEFT
+		mb.focus_mode            = Control.FOCUS_ALL
+		mb.add_theme_font_override("font", FONT)
+		mb.add_theme_font_size_override("font_size", FS_XS)
+		if has_mod:
+			mb.text = "◈ " + mod_name
+			mb.add_theme_color_override("font_color", mod_col)
+			mb.add_theme_color_override("font_hover_color", mod_col.lightened(0.3))
+		else:
+			mb.text = "+ CLASS SLOT"
+			mb.add_theme_color_override("font_color", C_T2)
+			mb.add_theme_color_override("font_hover_color", C_T1)
+		_style_btn_mod(mb, mod_col, has_mod)
+		var ci := mi
+		mb.pressed.connect(func():
+			_class_mod_picking     = true
+			_class_mod_target_slot = ci
+			populate(_pm)
+		)
+		mr.add_child(mb)
+
+
+func _owned_class_mod_count(char_id: String) -> int:
+	var n: int = 0
+	for mid in _pm.owned_mods:
+		if ModApplicability.is_class_mod(mid) and ModApplicability.class_applies(mid, char_id):
+			n += 1
+	return n
+
+
+func _build_class_mod_picker(parent: Control) -> void:
+	var char_id: String = str(_pm.selected_character)
+
+	## Header
+	var hdr_hbox := HBoxContainer.new()
+	hdr_hbox.add_theme_constant_override("separation", 5)
+	parent.add_child(hdr_hbox)
+	_lbl(hdr_hbox, "INSTALL CLASS MOD — SLOT %02d" % (_class_mod_target_slot + 1), FS_MD,
+		Color(0.62, 0.48, 0.85))
+
+	var rule := ColorRect.new()
+	rule.custom_minimum_size   = Vector2(0, 1)
+	rule.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rule.color                 = Color(0.40, 0.30, 0.55, 0.75)
+	parent.add_child(rule)
+
+	## Clear-slot option when the slot is filled
+	var equipped: Array = _pm.get_character_mods(char_id)
+	var cur: String = str(equipped[_class_mod_target_slot]) if _class_mod_target_slot < equipped.size() else ""
+	if not cur.is_empty():
+		var clear_btn := Button.new()
+		clear_btn.text = "✕ CLEAR SLOT"
+		clear_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		clear_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		clear_btn.add_theme_font_override("font", FONT)
+		clear_btn.add_theme_font_size_override("font_size", FS_SM)
+		clear_btn.add_theme_color_override("font_color", C_RED_HI)
+		_style_btn_flat(clear_btn, Color(0, 0, 0, 0), C_RED_LO)
+		clear_btn.pressed.connect(func():
+			_pm.remove_character_mod(char_id, _class_mod_target_slot)
+			_class_mod_picking = false
+			populate(_pm)
+		)
+		parent.add_child(clear_btn)
+
+	## Owned class mods for this kit (deduped with counts)
+	var counts: Dictionary = {}
+	for mid in _pm.owned_mods:
+		if ModApplicability.is_class_mod(mid) and ModApplicability.class_applies(mid, char_id):
+			counts[mid] = counts.get(mid, 0) + 1
+	var mod_ids: Array = counts.keys()
+	mod_ids.sort()
+
+	if mod_ids.is_empty():
+		_lbl(parent, "No class mods owned for this class.", FS_SM, C_T2)
+	else:
+		for mod_id: String in mod_ids:
+			var mdata: Dictionary = ClassModData.ALL.get(mod_id, {})
+			var mod_col: Color    = mdata.get("color", Color.WHITE)
+			var count: int        = counts[mod_id]
+			var already: bool     = mod_id in equipped
+
+			var row := VBoxContainer.new()
+			parent.add_child(row)
+
+			var btn := Button.new()
+			var name_txt: String = mdata.get("name", mod_id)
+			btn.text = ("◈ %s  ×%d" % [name_txt, count]) if count > 1 else ("◈ " + name_txt)
+			btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+			btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			btn.add_theme_font_override("font", FONT)
+			btn.add_theme_font_size_override("font_size", FS_MD)
+			btn.add_theme_color_override("font_color", mod_col if not already else mod_col.darkened(0.35))
+			btn.add_theme_color_override("font_hover_color", mod_col.lightened(0.25))
+			_style_btn_mod(btn, mod_col, true)
+			row.add_child(btn)
+
+			var desc: String = mdata.get("desc", "")
+			if not desc.is_empty():
+				var dl := Label.new()
+				dl.text = "  " + desc + ("   [equipped elsewhere]" if already else "")
+				dl.add_theme_font_override("font", FONT)
+				dl.add_theme_font_size_override("font_size", FS_XS)
+				dl.add_theme_color_override("font_color", C_T2)
+				row.add_child(dl)
+
+			var cap_mid: String = mod_id
+			btn.pressed.connect(func():
+				_pm.set_character_mod(char_id, _class_mod_target_slot, cap_mid)
+				_class_mod_picking = false
+				populate(_pm)
+			)
+
+	## Spacer + back
+	var spc := Control.new()
+	spc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	parent.add_child(spc)
+
+	var back := Button.new()
+	back.text = "← BACK"
+	back.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	back.add_theme_font_override("font", FONT)
+	back.add_theme_font_size_override("font_size", FS_MD)
+	back.add_theme_color_override("font_color", C_T1)
+	back.add_theme_color_override("font_hover_color", C_T0)
+	_style_btn_flat(back, Color(0, 0, 0, 0), Color(0.18, 0.14, 0.10, 0.60))
+	back.pressed.connect(func():
+		_class_mod_picking = false
+		populate(_pm)
+	)
+	parent.add_child(back)
+
+
 # ── Footer ────────────────────────────────────────────────────────────────────
 
 func _build_footer(parent: Control) -> void:
@@ -546,8 +738,11 @@ func _build_mod_picker() -> void:
 
 	_picker_header.text = "INSTALL MOD  slot %d  /  %s" % [_mod_target_slot + 1, weapon_id]
 
+	## Only GENERIC mods belong in a weapon slot — class mods have their own per-character card.
 	var counts: Dictionary = {}
 	for mid in pm.owned_mods:
+		if ModApplicability.is_class_mod(mid):
+			continue
 		counts[mid] = counts.get(mid, 0) + 1
 
 	var mod_ids: Array = counts.keys()
@@ -575,12 +770,18 @@ func _build_mod_picker() -> void:
 
 	var cap_equipped: Array = _pm.get_weapon_mods(weapon_id).duplicate()
 
+	## Grey (but never hide/destroy) generic mods that do nothing for the current character's kit
+	## — the switch-character edge case (task 31). They stay equippable; they just don't bite.
+	var picker_char: String = str(_pm.selected_character)
+
 	for mod_id in mod_ids:
 		var mdata: Dictionary = ModData.ALL.get(mod_id, {})
 		var mod_name: String  = mdata.get("name", mod_id)
 		var mod_col: Color    = mdata.get("color", Color.WHITE)
 		var count: int        = counts[mod_id]
 		var desc: String      = mdata.get("desc", "")
+		var applicable: bool  = ModApplicability.generic_applies(mod_id, picker_char)
+		var shown_col: Color  = mod_col if applicable else mod_col.darkened(0.5)
 
 		var row := VBoxContainer.new()
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -592,17 +793,17 @@ func _build_mod_picker() -> void:
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.add_theme_font_override("font", FONT)
 		btn.add_theme_font_size_override("font_size", FS_MD)
-		btn.add_theme_color_override("font_color", mod_col)
-		btn.add_theme_color_override("font_hover_color", mod_col.lightened(0.25))
-		_style_btn_mod(btn, mod_col, true)
+		btn.add_theme_color_override("font_color", shown_col)
+		btn.add_theme_color_override("font_hover_color", shown_col.lightened(0.25))
+		_style_btn_mod(btn, shown_col, true)
 		row.add_child(btn)
 
-		if not desc.is_empty():
+		if not desc.is_empty() or not applicable:
 			var desc_lbl := Label.new()
-			desc_lbl.text = "  " + desc
+			desc_lbl.text = ("  " + desc) if applicable else "  (no effect for this class)"
 			desc_lbl.add_theme_font_override("font", FONT)
 			desc_lbl.add_theme_font_size_override("font_size", FS_XS)
-			desc_lbl.add_theme_color_override("font_color", C_T2)
+			desc_lbl.add_theme_color_override("font_color", C_T2 if applicable else C_RED_LO.lightened(0.4))
 			desc_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			row.add_child(desc_lbl)
 
