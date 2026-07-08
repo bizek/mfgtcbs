@@ -59,6 +59,11 @@ static func build_passive_modifiers(passive_id: String) -> Array[ModifierDefinit
 			mods.append(_mod("crit_multiplier", "add", 0.25, "passive_whisper"))
 		"deadeye_passive":
 			pass  # Calm Hands (+25% damage above 80% HP) toggles in player._update_calm_hands() — no flat mods
+		"verdant_passive":
+			mods.append(_mod("max_hp", "bonus", 0.25, "passive_verdant"))
+			# Primal Vigor's regen-while-safe polls in player._physics_process — no flat mod
+		"devout_passive":
+			pass  # Last Rites (heal 4 on kill) fires in player._on_kill_siphon — no flat mods
 	return mods
 
 

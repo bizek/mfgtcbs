@@ -455,6 +455,44 @@ func can_allocate(node_id: String) -> bool:
 	var tier: int = int(node.get("tier", 0))
 	return branch_ranks(branch) >= tier * 3
 
+## True if the node's tier/bridge gate is satisfied right now (ignores points and
+## max_ranks). Lets the hub UI distinguish a tier-locked node from a merely
+## unaffordable one without re-implementing the gate rule. Nodes with ≥1 rank
+## already purchased always report their gate as met.
+func node_gate_met(node_id: String) -> bool:
+	var node: Dictionary = PassiveTreeData.NODES.get(node_id, {})
+	if node.is_empty():
+		return false
+	if get_node_ranks(node_id) > 0:
+		return true
+	var branch: String = node.get("branch", "core")
+	if branch == "core":
+		return true
+	if branch == "bridge":
+		for adj: String in node.get("bridges", []):
+			if branch_ranks(adj) >= 4:
+				return true
+		return false
+	var tier: int = int(node.get("tier", 0))
+	return branch_ranks(branch) >= tier * 3
+
+## Human-readable requirement string for a gated node, e.g. "REQ 6 MIGHT" or
+## "REQ 4 FINESSE / ARCANA". Empty for core nodes or nodes whose gate is met.
+func node_gate_text(node_id: String) -> String:
+	var node: Dictionary = PassiveTreeData.NODES.get(node_id, {})
+	if node.is_empty():
+		return ""
+	var branch: String = node.get("branch", "core")
+	if branch == "core":
+		return ""
+	if branch == "bridge":
+		var bs: Array = node.get("bridges", [])
+		if bs.size() == 2:
+			return "REQ 4 %s / %s" % [str(bs[0]).to_upper(), str(bs[1]).to_upper()]
+		return ""
+	var tier: int = int(node.get("tier", 0))
+	return "REQ %d %s" % [tier * 3, branch.to_upper()]
+
 ## Spend points to allocate one rank. Returns true on success.
 func allocate(node_id: String) -> bool:
 	if not can_allocate(node_id):

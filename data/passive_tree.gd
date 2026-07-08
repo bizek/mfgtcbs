@@ -335,7 +335,7 @@ const NODES: Dictionary = {
 		"name": "Catalyst", "branch": "arcana", "tier": 3, "cost": 2, "max_ranks": 1,
 		"kind": "notable",
 		"desc": "Statuses you apply last +20% longer",
-		"behavior": "catalyst",
+		"effects": [{"stat": "status_duration", "op": "bonus", "value": 0.20}],
 	},
 	"a_runeward": {
 		"name": "Runeward", "branch": "arcana", "tier": 3, "cost": 1, "max_ranks": 2,

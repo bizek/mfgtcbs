@@ -36,6 +36,16 @@ static func build_kit_skills(kit_id: String, weapon_data: Dictionary) -> Diction
 				"skill_q": build_gunslinger_reload(weapon_data),
 				"skill_e": build_gunslinger_whip(weapon_data),
 			}
+		"druid":
+			return {
+				"skill_q": build_druid_regrowth(weapon_data),
+				"skill_e": build_druid_thornburst(weapon_data),
+			}
+		"cleric":
+			return {
+				"skill_q": build_cleric_sanctuary(weapon_data),
+				"skill_e": build_cleric_guardians(weapon_data),
+			}
 	return {}
 
 
@@ -188,6 +198,86 @@ static func build_gunslinger_whip(weapon_data: Dictionary) -> AbilityDefinition:
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
 	return _ability("gunslinger_whip", "Whip Attack", phase, 6.0)
+
+
+## Regrowth (Druid, Q): a nature mend — the host routes the bare HealEffect onto the Verdant.
+## Uses "attack_2" as a neutral gesture (root_cast/pray_* names carry host side-effects).
+static func build_druid_regrowth(_weapon_data: Dictionary) -> AbilityDefinition:
+	var phase := ChoreographyPhase.new()
+	phase.animation = "attack_2"
+	phase.hit_frame = 3
+	phase.effects = [ChainFactory._self_heal(0.15)]        ## 15% max HP burst
+	phase.exit_type = "anim_finished"
+	phase.default_next = -1
+	return _ability("druid_regrowth", "Regrowth", phase, 12.0)
+
+
+## Thornburst (Druid, E): a bramble nova — AoE Nature damage + shove around the Verdant.
+static func build_druid_thornburst(weapon_data: Dictionary) -> AbilityDefinition:
+	var dmg: float = weapon_data.get("damage", 42.0)
+	var dtype: String = _damage_type(weapon_data)
+
+	var nova := AreaDamageEffect.new()
+	nova.damage_type = dtype
+	nova.base_damage = dmg * 1.3
+	nova.aoe_radius = 58.0
+
+	var phase := ChoreographyPhase.new()
+	phase.animation = "attack"
+	phase.hit_frame = 1
+	phase.effects = [nova, ChainFactory._shove()]
+	phase.exit_type = "anim_finished"
+	phase.default_next = -1
+	return _ability("druid_thornburst", "Thornburst", phase, 6.0)
+
+
+## Sanctuary (Cleric, Q): pray — a self-heal plus "blessed" (−20% damage taken for 5s). The
+## "pray_heal" body plays the HealingWords overlay; the host routes the HealEffect onto the Devout.
+static func build_cleric_sanctuary(_weapon_data: Dictionary) -> AbilityDefinition:
+	var blessed := StatusEffectDefinition.new()
+	blessed.status_id = "blessed"
+	blessed.is_positive = true
+	blessed.max_stacks = 1
+	blessed.base_duration = 5.0
+	blessed.duration_refresh_mode = "overwrite"
+	var ward := ModifierDefinition.new()
+	ward.target_tag = "damage_taken"
+	ward.operation = "bonus"
+	ward.value = -0.20
+	ward.source_name = "blessed"
+	blessed.modifiers = [ward]
+	var apply := ApplyStatusEffectData.new()
+	apply.status = blessed
+	apply.stacks = 1
+	apply.apply_to_self = true
+
+	var phase := ChoreographyPhase.new()
+	phase.animation = "pray_heal"
+	phase.hit_frame = 11
+	phase.effects = [ChainFactory._self_heal(0.12), apply]
+	phase.exit_type = "anim_finished"
+	phase.default_next = -1
+	return _ability("cleric_sanctuary", "Sanctuary", phase, 12.0)
+
+
+## Spirit Guardians (Cleric, E): summon the guardian pet. The "pray_guardian" body triggers the
+## host spawn (player._spawn_spirit_guardian); the small holy pulse both reads on cast and ensures
+## choreo_fire_effects fires so the spawn hook runs.
+static func build_cleric_guardians(weapon_data: Dictionary) -> AbilityDefinition:
+	var dmg: float = weapon_data.get("damage", 42.0)
+
+	var pulse := AreaDamageEffect.new()
+	pulse.damage_type = "Fire"
+	pulse.base_damage = dmg * 0.3
+	pulse.aoe_radius = 26.0
+
+	var phase := ChoreographyPhase.new()
+	phase.animation = "pray_guardian"
+	phase.hit_frame = 11
+	phase.effects = [pulse]
+	phase.exit_type = "anim_finished"
+	phase.default_next = -1
+	return _ability("cleric_guardians", "Spirit Guardians", phase, 14.0)
 
 
 # --- helpers ---

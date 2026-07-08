@@ -18,6 +18,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	skip_button.pressed.connect(_return_to_hub)
 	_apply_font()
+	skip_button.grab_focus.call_deferred()
 
 func _apply_font() -> void:
 	if not ResourceLoader.exists(FONT_PATH):
@@ -38,7 +39,9 @@ func _process(delta: float) -> void:
 		_return_to_hub()
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed or event is InputEventMouseButton and event.pressed:
+	if (event is InputEventKey and event.pressed) \
+			or (event is InputEventMouseButton and event.pressed) \
+			or (event is InputEventJoypadButton and event.pressed):
 		_return_to_hub()
 
 func _return_to_hub() -> void:

@@ -53,6 +53,7 @@ var _listening_action: String = ""  ## non-empty while capturing a rebind
 var _bind_buttons: Dictionary = {}  ## action -> Button (updates label on rebind)
 var _conflict_row: HBoxContainer = null
 var _pending_conflict: Dictionary = {}  ## {action, event, conflict_action}
+var _tabs: TabContainer = null
 
 
 func _ready() -> void:
@@ -91,6 +92,24 @@ func populate(_pm: Node) -> void:
 	pass
 
 
+## LB/RB cycle tabs — a TabContainer's tab strip isn't reachable by plain
+## D-pad focus navigation, so this is the controller path. Bound to
+## menu_switch_prev/next (joypad-only, see project.godot) rather than
+## light_attack/heavy_attack, which are also bound to mouse buttons 1/2 and
+## would otherwise flip tabs on every unrelated click in this panel.
+func _unhandled_input(event: InputEvent) -> void:
+	if Engine.is_editor_hint() or not is_visible_in_tree() or _tabs == null:
+		return
+	if _listening_action != "":
+		return  ## rebind capture owns input right now
+	if event.is_action_pressed("menu_switch_prev"):
+		_tabs.current_tab = (_tabs.current_tab - 1 + _tabs.get_tab_count()) % _tabs.get_tab_count()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("menu_switch_next"):
+		_tabs.current_tab = (_tabs.current_tab + 1) % _tabs.get_tab_count()
+		get_viewport().set_input_as_handled()
+
+
 func _build_ui() -> void:
 	var content := _base.get_content()
 
@@ -99,17 +118,40 @@ func _build_ui() -> void:
 	tabs.offset_left   = 6.0
 	tabs.offset_top    = 4.0
 	tabs.offset_right  = -6.0
-	tabs.offset_bottom = -4.0
+	tabs.offset_bottom = -18.0
 	tabs.add_theme_font_override("font", FONT)
 	tabs.add_theme_font_size_override("font_size", FS_SM)
 	tabs.add_theme_color_override("font_selected_color", C_AMBER_HI)
 	tabs.add_theme_color_override("font_unselected_color", C_T2)
 	content.add_child(tabs)
+	_tabs = tabs
 
 	tabs.add_child(_build_audio_tab())
 	tabs.add_child(_build_display_tab())
 	tabs.add_child(_build_controls_tab())
 	tabs.add_child(_build_accessibility_tab())
+
+	var footer_hbox := HBoxContainer.new()
+	footer_hbox.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	footer_hbox.offset_top = -14.0
+	footer_hbox.alignment = BoxContainer.ALIGNMENT_END
+	footer_hbox.add_theme_constant_override("separation", 8)
+	content.add_child(footer_hbox)
+
+	var version: String = ProjectSettings.get_setting("application/config/version", "0.0.0")
+	var version_lbl := Label.new()
+	version_lbl.text = "v%s" % version
+	version_lbl.add_theme_font_override("font", FONT)
+	version_lbl.add_theme_font_size_override("font_size", FS_XS)
+	version_lbl.add_theme_color_override("font_color", C_T2)
+	footer_hbox.add_child(version_lbl)
+
+	var glyph_bar := GlyphBar.build([["confirm", "Adjust"], ["back", "Close"], ["switch", "Switch Tab"]])
+	var glyph_spacer := Control.new()
+	glyph_spacer.custom_minimum_size = Vector2(0, 0)
+	glyph_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	footer_hbox.add_child(glyph_spacer)
+	footer_hbox.add_child(glyph_bar)
 
 
 func _build_scroll_vbox(tab_name: String) -> VBoxContainer:
@@ -141,6 +183,7 @@ func _build_audio_tab() -> Control:
 	_checkbox_row(vbox, "Mute All", Settings.muted,
 		func(v: bool): Settings.set_muted(v))
 
+	UINav.wire_scroll_follow(vbox.get_parent() as ScrollContainer)
 	return vbox.get_parent()
 
 
@@ -154,6 +197,7 @@ func _build_display_tab() -> Control:
 	_slider_row(vbox, "Screen Shake", Settings.screen_shake,
 		func(v: float): Settings.set_screen_shake(v))
 
+	UINav.wire_scroll_follow(vbox.get_parent() as ScrollContainer)
 	return vbox.get_parent()
 
 
@@ -184,6 +228,7 @@ func _build_controls_tab() -> Control:
 		_refresh_bind_buttons()
 	)
 
+	UINav.wire_scroll_follow(vbox.get_parent() as ScrollContainer)
 	return vbox.get_parent()
 
 
@@ -331,6 +376,7 @@ func _build_accessibility_tab() -> Control:
 		func(v: bool): Settings.set_colorblind_mode(v))
 	_lbl(vbox, "* Text Size applies on next run/hub reload.", FS_XS, C_T2)
 
+	UINav.wire_scroll_follow(vbox.get_parent() as ScrollContainer)
 	return vbox.get_parent()
 
 

@@ -1,6 +1,6 @@
 # Hub Reference
 
-The hub is a single room with six interactive stations. The player walks between them between runs. Getting from "run just ended" to "next run starting" is intentionally fast — under 60 seconds if the player wants to go straight in.
+The hub is a single room with seven interactive stations. The player walks between them between runs. Getting from "run just ended" to "next run starting" is intentionally fast — under 60 seconds if the player wants to go straight in.
 
 ---
 
@@ -31,6 +31,9 @@ Purchase permanent hub upgrades:
 | Extraction Intel II | Preview which extraction types appear in the next run. |
 
 Script: `hub_workshop_panel.gd`.
+
+### Passives
+Spend banked **passive points** into the passive skill tree (Core + Might / Finesse / Arcana branches + 3 bridges). Points are earned per character level gained during a run (banked on both extraction and death). Nodes show name, effect, cost, rank/max, and state — available / locked (tier gate: "REQ N BRANCH") / maxed. Notables (◆) and keystones (★) are visually distinct. Respec is free (`refund_all`). The selected character's affinity branch is subtly highlighted. Reads the `PassiveTreeData` node table and the ProgressionManager passive API; all gate logic lives in ProgressionManager (`node_gate_met` / `node_gate_text`), zero progression logic in the panel. Script: `hub_passives_panel.gd` (code-built panel, reuses `hub_panel_base.tscn`). See `docs/passive_tree_spec.md` and `docs/passive_tree.md`.
 
 ### Records
 Run statistics and personal bests: runs completed, extractions, deaths, kills, deepest phase reached, loot records. Read-only. Script: `hub_records_panel.gd`.

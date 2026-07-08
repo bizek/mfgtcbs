@@ -48,6 +48,8 @@ func _ready() -> void:
 	_build_toast()
 	## Title shares the hub track — the crossfade into the hub is then a no-op.
 	AudioManager.play_music("mus_hub")
+	var tree_panel := preload("res://scripts/ui/passive_tree_debug_panel.gd").new()
+	add_child(tree_panel)
 
 func _process(delta: float) -> void:
 	if _toast_timer > 0.0:
@@ -235,8 +237,12 @@ func _on_new_game_pressed() -> void:
 func _on_settings_pressed() -> void:
 	if ResourceLoader.exists("res://scripts/ui/settings_panel.gd"):
 		var panel: Control = (load("res://scripts/ui/settings_panel.gd") as GDScript).new()
-		panel.close_requested.connect(func(): panel.queue_free())
+		panel.close_requested.connect(func():
+			panel.queue_free()
+			_menu_buttons[0].grab_focus.call_deferred()
+		)
 		add_child(panel)
+		UINav.focus_first(panel)
 	else:
 		_show_toast("Settings — coming soon")
 

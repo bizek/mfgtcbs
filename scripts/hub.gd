@@ -49,6 +49,7 @@ const _PANEL_SCENES := {
 ## Script paths for panels that build their UI entirely in code (no .tscn needed).
 const _PANEL_SCRIPTS := {
 	"research": "res://scripts/ui/hub_research_panel.gd",
+	"passives": "res://scripts/ui/hub_passives_panel.gd",
 }
 
 ## Station definitions: id, display name, accent color, world position, visual size, tagline.
@@ -66,6 +67,8 @@ const STATIONS: Array[Dictionary] = [
 	 "pos": Vector2(472, 264), "size": Vector2(56, 48), "desc": "view stats"},
 	{"id": "roster",    "name": "ROSTER",     "color": Color(0.45, 0.52, 0.95),
 	 "pos": Vector2(408, 160), "size": Vector2(24, 24), "desc": "select character"},
+	{"id": "passives",  "name": "PASSIVES",   "color": Color(0.64, 0.46, 0.93),
+	 "pos": Vector2(160, 160), "size": Vector2(24, 24), "desc": "spend passive points"},
 ]
 
 var _player_body: CharacterBody2D
@@ -82,7 +85,7 @@ var _panel_layer: CanvasLayer
 var _active_panel: Control = null
 var _active_panel_id: String = ""
 var _glyph_bar: GlyphBar
-const _STATION_ORDER: Array[String] = ["launch", "armory", "workshop", "research", "records", "roster"]
+const _STATION_ORDER: Array[String] = ["launch", "armory", "workshop", "research", "records", "roster", "passives"]
 
 var _torch_flames: Array[ColorRect] = []  ## flame rects for flicker animation
 var _flicker_timer: float = 0.0

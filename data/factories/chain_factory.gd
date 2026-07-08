@@ -35,6 +35,8 @@ const SONG_TICK: float = 0.8        ## Bard song beat (16f @ 20fps = 0.8s)
 const GUARD_TICK: float = 0.4       ## Barbarian Guard stance re-check beat (the block is host-side)
 const BLADES_TICK: float = 0.4      ## Ninja Thousand Blades storm beat (blades body 4f @ 10fps)
 const STORM_TICK: float = 0.7       ## Gunslinger Desert Storm volley beat (storm body 14f @ 20fps)
+const HOUND_TICK: float = 0.3        ## Druid Hound Frenzy melee beat (hound_attack 4f @ 14fps ≈ 0.29s)
+const PRAY_TICK: float = 0.9         ## Cleric Healing Words prayer beat (pray 22f @ 20fps = 1.1s cast)
 const WIZARD_CHARGE_MAX: float = 1.6   ## Fireball overcharge cap — auto-releases at full power
 const HOLD_ENTER: float = 0.18      ## hold LMB this long → enter Whirlwind
 const HOLD_KEEP: float = 0.01       ## still-held check for a channel self-loop
@@ -102,6 +104,18 @@ static func build_kit(kit_id: String, weapon_data: Dictionary) -> Dictionary:
 				"light": build_gunslinger_light(weapon_data),
 				"heavy": build_gunslinger_fan(weapon_data),
 				"channel": build_gunslinger_desert_storm(weapon_data),
+			}
+		"druid":
+			return {
+				"light": build_druid_light(weapon_data),
+				"heavy": build_druid_root(weapon_data),
+				"channel": build_druid_hound(weapon_data),
+			}
+		"cleric":
+			return {
+				"light": build_cleric_light(weapon_data),
+				"heavy": build_cleric_heavy(weapon_data),
+				"channel": build_cleric_heal(weapon_data),
 			}
 	return {}
 
@@ -1307,6 +1321,337 @@ static func build_gunslinger_desert_storm(weapon_data: Dictionary) -> AbilityDef
 	var choreo := ChoreographyDefinition.new()
 	choreo.phases = [storm]
 	return _ability("gunslinger_storm", "Desert Storm", choreo)
+
+
+# --- Druid: light combo (LMB) ---
+## The Verdant — nature strikes that finish by flickering into a form: the Beast maul (morph →
+## claw) or, gated mid-combo, the Owl swoop. Forms-as-stances (design §2.8): the morph sheets are
+## the finisher wind-ups; the form's own Attack sheet is the strike. Phase indices:
+## 0 Claw · 1 Claw II · 2 Beast morph · 3 Beast Maul · 4 Owl morph · 5 Owl Swoop.
+static func build_druid_light(weapon_data: Dictionary) -> AbilityDefinition:
+	var dmg: float = weapon_data.get("damage", 42.0)
+	var dtype: String = _damage_type(weapon_data)
+
+	# 0 — Claw (crisp opener). No form branch here (gate = depth ≥ Claw II).
+	var claw := ChoreographyPhase.new()
+	claw.animation = "attack"
+	claw.hit_frame = 1
+	claw.effects = [_aoe(dtype, dmg * 0.9, 28.0)]
+	claw.exit_type = "wait"
+	claw.wait_duration = CANCEL_WIN
+	claw.default_next = -1
+	claw.branches = [
+		_branch_buffered("light_attack", 2),               # tap → Beast morph (into the maul)
+	]
+
+	# 1 — (unused index kept for readability) — collapsed; see phases array below.
+
+	# 2 — Beast morph (wind-up, no hit): the Verdant flickers into the Forest Beast.
+	var morph_beast := ChoreographyPhase.new()
+	morph_beast.animation = "morph_beast"
+	morph_beast.hit_frame = -1
+	morph_beast.exit_type = "anim_finished"
+	morph_beast.default_next = 3
+
+	# 3 — Beast Maul (finisher: heavy claw AoE + shove; loops back to Claw on a fresh tap).
+	var maul := ChoreographyPhase.new()
+	maul.animation = "beast_attack"
+	maul.hit_frame = 2
+	maul.effects = [_aoe(dtype, dmg * 1.3, 46.0), _shove()]
+	maul.exit_type = "wait"
+	maul.wait_duration = CANCEL_WIN
+	maul.default_next = -1
+	maul.is_finisher = true
+	maul.branches = [
+		_branch_buffered("heavy_attack", 4),               # RMB → Owl Swoop
+		_branch_buffered("light_attack", 0),               # tap → loop to Claw
+	]
+
+	# 4 — Owl morph (wind-up, no hit).
+	var morph_owl := ChoreographyPhase.new()
+	morph_owl.animation = "morph_owl"
+	morph_owl.hit_frame = -1
+	morph_owl.exit_type = "anim_finished"
+	morph_owl.default_next = 5
+
+	# 5 — Owl Swoop (gated finisher; terminal): a wide diving rake (no owl projectile in-pack, so
+	# the swoop is a broad melee arc rather than a bolt).
+	var swoop := ChoreographyPhase.new()
+	swoop.animation = "owl_attack"
+	swoop.hit_frame = 2
+	swoop.effects = [_aoe(dtype, dmg * 1.2, 52.0)]
+	swoop.exit_type = "anim_finished"
+	swoop.default_next = -1
+	swoop.is_finisher = true
+
+	# 1 — Claw II (faster re-slice; gate now met → Owl branch available). Declared here so the
+	# phases array reads 0..5 in index order.
+	var claw2 := ChoreographyPhase.new()
+	claw2.animation = "attack_2"
+	claw2.hit_frame = 1
+	claw2.effects = [_aoe(dtype, dmg * 0.7, 28.0)]
+	claw2.exit_type = "wait"
+	claw2.wait_duration = CANCEL_WIN
+	claw2.default_next = -1
+	claw2.branches = [
+		_branch_buffered("light_attack", 2),               # tap → Beast morph
+		_branch_buffered("heavy_attack", 4),               # RMB → Owl morph
+	]
+	# Claw's tap should reach Claw II first — repoint it now that claw2 exists at index 1.
+	claw.branches = [_branch_buffered("light_attack", 1)]
+
+	var choreo := ChoreographyDefinition.new()
+	choreo.phases = [claw, claw2, morph_beast, maul, morph_owl, swoop]
+	return _ability("druid_light", "Verdant Combo", choreo)
+
+
+# --- Druid: Root Summoning (RMB tap) ---
+## Call the roots up at the cursor: a snaring + Nature-DoT GroundZone. The host places the zone at
+## the clamped aim point and drops the RootAttack decal there.
+static func build_druid_root(weapon_data: Dictionary) -> AbilityDefinition:
+	var dmg: float = weapon_data.get("damage", 42.0)
+	var dtype: String = _damage_type(weapon_data)
+
+	var cast := ChoreographyPhase.new()
+	cast.animation = "root_cast"
+	cast.hit_frame = 4
+	cast.effects = [_root_zone(dtype, dmg)]
+	cast.exit_type = "anim_finished"
+	cast.default_next = -1
+	cast.is_finisher = true
+
+	var choreo := ChoreographyDefinition.new()
+	choreo.phases = [cast]
+	return _ability("druid_root", "Root Summoning", choreo)
+
+
+# --- Druid: Hound Frenzy channel (RMB hold) ---
+## Fight as the forest hound: fast close melee ticks while held. Player slow host-side like all
+## channels. Single looping node.
+static func build_druid_hound(weapon_data: Dictionary) -> AbilityDefinition:
+	var dmg: float = weapon_data.get("damage", 42.0)
+	var dtype: String = _damage_type(weapon_data)
+
+	var hound := ChoreographyPhase.new()
+	hound.animation = "hound_attack"
+	hound.hit_frame = 2
+	hound.effects = [_aoe(dtype, dmg * 0.4, 30.0)]         # per-tick (lower; repeats)
+	hound.exit_type = "wait"
+	hound.wait_duration = HOUND_TICK
+	hound.default_next = 0                                  # still held → keep worrying the horde
+	hound.branches = [
+		_branch_held("heavy_attack", HOLD_KEEP, -1, true), # released → end
+	]
+
+	var choreo := ChoreographyDefinition.new()
+	choreo.phases = [hound]
+	return _ability("druid_hound", "Hound Frenzy", choreo)
+
+
+## Root Summoning zone: snare (−60% move_speed, refreshed each tick) + Nature DoT for 4 s.
+static func _root_zone(dtype: String, dmg: float) -> GroundZoneEffect:
+	var z := GroundZoneEffect.new()
+	z.zone_id = "roots"
+	z.radius = 40.0
+	z.duration = 4.0
+	z.tick_interval = 0.5
+	z.target_faction = "enemy"
+	var hit := DealDamageEffect.new()
+	hit.damage_type = dtype
+	hit.base_damage = dmg * 0.25
+	z.tick_effects = [hit, _rooted_status()]
+	return z
+
+
+## "Rooted": brief hard slow re-applied every zone tick (enemies crawl while in the roots).
+static func _rooted_status() -> ApplyStatusEffectData:
+	var status := StatusEffectDefinition.new()
+	status.status_id = "rooted"
+	status.is_positive = false
+	status.max_stacks = 1
+	status.base_duration = 1.0
+	status.duration_refresh_mode = "overwrite"
+	var slow := ModifierDefinition.new()
+	slow.target_tag = "move_speed"
+	slow.operation = "bonus"
+	slow.value = -0.6
+	slow.source_name = "rooted"
+	status.modifiers = [slow]
+	var apply := ApplyStatusEffectData.new()
+	apply.status = status
+	apply.stacks = 1
+	apply.apply_to_self = false
+	return apply
+
+
+# --- Cleric: light combo (LMB) ---
+## The Devout — censer smites into holy fire, gated into a Word of Pain curse zone. Phase indices:
+## 0 Smite · 1 Smite II · 2 Divine Fire · 3 Word of Pain.
+static func build_cleric_light(weapon_data: Dictionary) -> AbilityDefinition:
+	var dmg: float = weapon_data.get("damage", 42.0)
+	var dtype: String = _damage_type(weapon_data)
+
+	# 0 — Smite (crisp opener). No pain branch here (gate = depth ≥ Smite II).
+	var smite := ChoreographyPhase.new()
+	smite.animation = "attack"
+	smite.hit_frame = 2
+	smite.effects = [_aoe(dtype, dmg * 0.9, 30.0)]
+	smite.exit_type = "wait"
+	smite.wait_duration = CANCEL_WIN
+	smite.default_next = -1
+	smite.branches = [
+		_branch_buffered("light_attack", 1),               # tap → Smite II
+	]
+
+	# 1 — Smite II (gate now met → Word of Pain available).
+	var smite2 := ChoreographyPhase.new()
+	smite2.animation = "attack_2"
+	smite2.hit_frame = 2
+	smite2.effects = [_aoe(dtype, dmg * 0.7, 30.0)]
+	smite2.exit_type = "wait"
+	smite2.wait_duration = CANCEL_WIN
+	smite2.default_next = -1
+	smite2.branches = [
+		_branch_buffered("light_attack", 2),               # tap → Divine Fire
+		_branch_buffered("heavy_attack", 3),               # RMB → Word of Pain
+	]
+
+	# 2 — Divine Fire (finisher: loose the holy bolt at the cursor; loops back on a fresh tap).
+	var divine := ChoreographyPhase.new()
+	divine.animation = "divine_fire"
+	divine.hit_frame = 6
+	divine.effects = [_divine_fire_bolt(dmg)]
+	divine.exit_type = "wait"
+	divine.wait_duration = CANCEL_WIN
+	divine.default_next = -1
+	divine.is_finisher = true
+	divine.branches = [
+		_branch_buffered("heavy_attack", 3),               # RMB → Word of Pain
+		_branch_buffered("light_attack", 0),               # tap → loop to Smite
+	]
+
+	# 3 — Word of Pain (gated finisher; terminal).
+	var pain := _word_of_pain_phase(dmg)
+
+	var choreo := ChoreographyDefinition.new()
+	choreo.phases = [smite, smite2, divine, pain]
+	return _ability("cleric_light", "Devout Combo", choreo)
+
+
+# --- Cleric: heavy combo (RMB tap) ---
+## Divine Fire → Word of Pain: holy poke into the curse zone. 0 Fire · 1 Pain.
+static func build_cleric_heavy(weapon_data: Dictionary) -> AbilityDefinition:
+	var dmg: float = weapon_data.get("damage", 42.0)
+
+	var fire := ChoreographyPhase.new()
+	fire.animation = "divine_fire"
+	fire.hit_frame = 6
+	fire.effects = [_divine_fire_bolt(dmg * 0.7)]
+	fire.exit_type = "wait"
+	fire.wait_duration = HEAVY_WIN
+	fire.default_next = -1
+	fire.branches = [
+		_branch_buffered("heavy_attack", 1),               # RMB → Word of Pain
+	]
+
+	var pain := _word_of_pain_phase(dmg)
+
+	var choreo := ChoreographyDefinition.new()
+	choreo.phases = [fire, pain]
+	return _ability("cleric_heavy", "Devout Heavy", choreo)
+
+
+# --- Cleric: Healing Words channel (RMB hold) ---
+## Pray while held: each beat mends the Devout (host routes the self-heal + plays the HealingWords
+## overlay and Back/Front sparkle). Player slow host-side. Single looping node.
+static func build_cleric_heal(weapon_data: Dictionary) -> AbilityDefinition:
+	var _dmg: float = weapon_data.get("damage", 42.0)   ## unused — the prayer heals, not harms
+
+	var pray := ChoreographyPhase.new()
+	pray.animation = "pray_heal"
+	pray.hit_frame = 11                                     # the words land mid-prayer
+	pray.effects = [_self_heal(0.04)]                      # 4% max HP per beat
+	pray.exit_type = "wait"
+	pray.wait_duration = PRAY_TICK
+	pray.default_next = 0                                   # still held → keep praying
+	pray.branches = [
+		_branch_held("heavy_attack", HOLD_KEEP, -1, true), # released → end
+	]
+
+	var choreo := ChoreographyDefinition.new()
+	choreo.phases = [pray]
+	return _ability("cleric_heal", "Healing Words", choreo)
+
+
+## Shared Word of Pain finisher: the pray body + WordOfPainPrayEffect overlay; the host drops a
+## damaging holy GroundZone (Fire) at the clamped cursor, with the WordOfPain decal.
+static func _word_of_pain_phase(dmg: float) -> ChoreographyPhase:
+	var p := ChoreographyPhase.new()
+	p.animation = "pray_pain"
+	p.hit_frame = 11
+	p.effects = [_pain_zone(dmg)]
+	p.exit_type = "anim_finished"
+	p.default_next = -1
+	p.is_finisher = true
+	return p
+
+
+## Word of Pain zone: holy Fire DoT (fixed base per tick, like the other combo effects).
+static func _pain_zone(dmg: float) -> GroundZoneEffect:
+	var z := GroundZoneEffect.new()
+	z.zone_id = "word_of_pain"
+	z.radius = 44.0
+	z.duration = 4.0
+	z.tick_interval = 0.5
+	z.target_faction = "enemy"
+	var hit := DealDamageEffect.new()
+	hit.damage_type = "Fire"                                # holy fire, independent of the weapon
+	hit.base_damage = dmg * 0.3
+	z.tick_effects = [hit]
+	return z
+
+
+## Self-heal for the Healing-Words channel / Regrowth / Sanctuary. The host routes bare HealEffects
+## onto the player (see player.choreo_fire_effects), so this mends the Devout, not the horde.
+static func _self_heal(percent: float) -> HealEffect:
+	var h := HealEffect.new()
+	h.percent_max_hp = percent
+	return h
+
+
+# --- Cleric Divine Fire projectile (Divine Fire package) ---
+
+const CLERIC_DF_DIR: String = "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Cleric/Special_Animations/Divine Fire/"
+static var _divine_fire_impact_frames: SpriteFrames = null
+
+
+## The holy bolt: DivineFireProjectile (3×3 directional grid) + DivineFireImpact one-shot burst.
+static func _divine_fire_bolt(hit_damage: float) -> SpawnProjectilesEffect:
+	var cfg := ProjectileConfig.new()
+	cfg.motion_type = "directional"
+	cfg.speed = 250.0
+	cfg.max_range = 220.0
+	cfg.hit_radius = 8.0
+	cfg.sprite_frames = _grid8_frames(CLERIC_DF_DIR + "DivineFireProjectile.png", "_divine_fire_frames")
+	cfg.use_directional_anims = true
+	var hit := DealDamageEffect.new()
+	hit.damage_type = "Fire"
+	hit.base_damage = hit_damage
+	cfg.on_hit_effects = [hit]
+	cfg.impact_sprite_frames = _get_divine_fire_impact()
+	cfg.impact_animation = "impact"
+	var e := SpawnProjectilesEffect.new()
+	e.projectile = cfg
+	e.spawn_pattern = "aimed_single"
+	e.count = 1
+	return e
+
+
+static func _get_divine_fire_impact() -> SpriteFrames:
+	if _divine_fire_impact_frames:
+		return _divine_fire_impact_frames
+	_divine_fire_impact_frames = _oneshot_row_frames(CLERIC_DF_DIR + "DivineFireImpact.png", 18.0)
+	return _divine_fire_impact_frames
 
 
 # --- Gunslinger projectile builders (Shot / Fan_The_Hammer packages) ---

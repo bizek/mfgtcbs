@@ -78,6 +78,18 @@ func _ready() -> void:
 	CodexManager.combo_discovered.connect(_on_codex_event)
 	CodexManager.combo_revealed.connect(_on_codex_event)
 	CodexManager.combo_mastered.connect(_on_codex_event)
+	visibility_changed.connect(func():
+		if visible:
+			UINav.focus_first(self)
+	)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if Engine.is_editor_hint() or not visible:
+		return
+	if event.is_action_pressed("ui_cancel"):
+		close_requested.emit()
+		get_viewport().set_input_as_handled()
 
 
 ## Called by armory to highlight a cell during mod-hover preview.
@@ -412,7 +424,7 @@ func _build_list_row(entry: CodexEntry) -> Control:
 	# Invisible button overlay for click + hover
 	var btn := Button.new()
 	btn.set_anchors_preset(Control.PRESET_FULL_RECT)
-	btn.focus_mode = Control.FOCUS_NONE
+	btn.focus_mode = Control.FOCUS_ALL
 	_style_btn_flat(btn, Color.TRANSPARENT, Color(0.28, 0.20, 0.44, 0.45))
 	btn.pressed.connect(func():
 		_selected_id = combo_id
@@ -575,14 +587,18 @@ func _make_button(text: String, x: float, y: float,
 	btn.size     = Vector2(w, h)
 	btn.add_theme_font_override("font", PIXEL_FONT)
 	btn.add_theme_font_size_override("font_size", 15)
-	btn.focus_mode = Control.FOCUS_NONE
+	btn.focus_mode = Control.FOCUS_ALL
 	return btn
 
 
 func _style_btn_flat(btn: Button, normal_col: Color, hover_col: Color) -> void:
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var sb := StyleBoxFlat.new()
-		sb.bg_color = hover_col if state in ["hover", "pressed"] else normal_col
-		sb.set_border_width_all(0)
+		sb.bg_color = hover_col if state in ["hover", "pressed", "focus"] else normal_col
+		if state == "focus":
+			sb.set_border_width_all(1)
+			sb.border_color = COL_BORDER
+		else:
+			sb.set_border_width_all(0)
 		sb.set_content_margin_all(2)
 		btn.add_theme_stylebox_override(state, sb)

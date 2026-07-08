@@ -23,7 +23,7 @@ const ALL: Dictionary = {
 		"unlock_cost":     0,
 		"base_hp":         100.0,
 		"base_armor":      0.0,
-		"base_move_speed": 66.0,   ## deliberate-pacing rebalance 2026-06-23 (was 120) — see docs/pacing_rebalance.md
+		"base_move_speed": 54.0,   ## deliberate-pacing rebalance 2 2026-07-07 (was 66, orig 120) — see docs/pacing_rebalance.md
 		"color":           Color(0.92, 0.86, 0.60),   ## warm gold
 		"color_body":      Color(0.78, 0.72, 0.58),   ## hub sprite body
 		"color_head":      Color(0.94, 0.86, 0.68),   ## hub sprite head
@@ -73,7 +73,7 @@ const ALL: Dictionary = {
 		"unlock_cost":     1000,
 		"base_hp":         80.0,
 		"base_armor":      0.0,
-		"base_move_speed": 72.0,   ## deliberate-pacing rebalance 2026-06-23 (was 132)
+		"base_move_speed": 60.0,   ## deliberate-pacing rebalance 2 2026-07-07 (was 72, orig 132)
 		"color":           Color(0.52, 0.88, 0.40),   ## scrap green
 		"color_body":      Color(0.42, 0.68, 0.32),
 		"color_head":      Color(0.58, 0.82, 0.46),
@@ -121,7 +121,7 @@ const ALL: Dictionary = {
 		"unlock_cost":     1000,
 		"base_hp":         150.0,
 		"base_armor":      5.0,
-		"base_move_speed": 58.0,   ## deliberate-pacing rebalance 2026-06-23 (was 96) — slowest; kept a touch above ×0.55 so the tank isn't sluggish
+		"base_move_speed": 48.0,   ## deliberate-pacing rebalance 2 2026-07-07 (was 58, orig 96) — slowest; kept a touch above scale so the tank isn't sluggish
 		"color":           Color(0.82, 0.64, 0.28),   ## iron bronze
 		"color_body":      Color(0.55, 0.48, 0.28),
 		"color_head":      Color(0.75, 0.65, 0.40),
@@ -173,7 +173,7 @@ const ALL: Dictionary = {
 		"unlock_cost":     1500,
 		"base_hp":         60.0,
 		"base_armor":      0.0,
-		"base_move_speed": 70.0,   ## deliberate-pacing rebalance 2026-06-23 (was 126)
+		"base_move_speed": 58.0,   ## deliberate-pacing rebalance 2 2026-07-07 (was 70, orig 126)
 		"color":           Color(1.0, 0.82, 0.12),    ## electric yellow
 		"color_body":      Color(0.88, 0.72, 0.12),
 		"color_head":      Color(1.0, 0.92, 0.44),
@@ -223,7 +223,7 @@ const ALL: Dictionary = {
 		"unlock_cost":     2000,
 		"base_hp":         75.0,
 		"base_armor":      0.0,
-		"base_move_speed": 80.0,   ## deliberate-pacing rebalance 2026-06-23 (was 144) — fastest character
+		"base_move_speed": 66.0,   ## deliberate-pacing rebalance 2 2026-07-07 (was 80, orig 144) — fastest character
 		"color":           Color(0.65, 0.38, 0.92),   ## deep violet
 		"color_body":      Color(0.35, 0.22, 0.55),
 		"color_head":      Color(0.58, 0.38, 0.78),
@@ -271,7 +271,7 @@ const ALL: Dictionary = {
 		"unlock_cost":     2500,
 		"base_hp":         90.0,
 		"base_armor":      0.0,
-		"base_move_speed": 66.0,   ## deliberate-pacing rebalance 2026-06-23 (was 120)
+		"base_move_speed": 54.0,   ## deliberate-pacing rebalance 2 2026-07-07 (was 66, orig 120)
 		"color":           Color(0.30, 0.86, 0.96),   ## signal teal
 		"color_body":      Color(0.20, 0.58, 0.75),
 		"color_head":      Color(0.38, 0.82, 0.95),
@@ -318,7 +318,7 @@ const ALL: Dictionary = {
 		"unlock_cost":     5000,
 		"base_hp":         120.0,
 		"base_armor":      3.0,
-		"base_move_speed": 70.0,   ## deliberate-pacing rebalance 2026-06-23 (was 126); Blood Pact +20% → effective 84 (expert-tier)
+		"base_move_speed": 58.0,   ## deliberate-pacing rebalance 2 2026-07-07 (was 70, orig 126); Blood Pact +20% → effective 70 (expert-tier)
 		"color":           Color(0.90, 0.22, 0.22),   ## blood red
 		"color_body":      Color(0.55, 0.14, 0.14),
 		"color_head":      Color(0.78, 0.28, 0.28),
@@ -370,7 +370,7 @@ const ALL: Dictionary = {
 		"unlock_cost":     3000,
 		"base_hp":         130.0,
 		"base_armor":      2.0,
-		"base_move_speed": 62.0,   ## heavier than the Fighter (66), quicker than the Warden (58)
+		"base_move_speed": 52.0,   ## deliberate-pacing rebalance 2 2026-07-07 (was 62) — heavier than the Fighter (54), quicker than the Warden (48)
 		"color":           Color(0.90, 0.48, 0.18),   ## storm-forge orange
 		"color_body":      Color(0.62, 0.34, 0.16),
 		"color_head":      Color(0.85, 0.62, 0.42),
@@ -424,7 +424,7 @@ const ALL: Dictionary = {
 		"unlock_cost":     4000,
 		"base_hp":         70.0,
 		"base_armor":      0.0,
-		"base_move_speed": 78.0,   ## a hair under the Shade (80) — second-fastest
+		"base_move_speed": 64.0,   ## deliberate-pacing rebalance 2 2026-07-07 (was 78) — a hair under the Shade (66) — second-fastest
 		"color":           Color(0.42, 0.50, 0.62),   ## gunmetal smoke
 		"color_body":      Color(0.24, 0.28, 0.36),
 		"color_head":      Color(0.46, 0.52, 0.62),
@@ -476,7 +476,7 @@ const ALL: Dictionary = {
 		"unlock_cost":     6000,
 		"base_hp":         85.0,
 		"base_armor":      0.0,
-		"base_move_speed": 70.0,
+		"base_move_speed": 58.0,   ## deliberate-pacing rebalance 2 2026-07-07 (was 70) — matches Spark/Cursed tier
 		"color":           Color(0.89, 0.58, 0.28),   ## sun-scorched brass
 		"color_body":      Color(0.60, 0.38, 0.20),
 		"color_head":      Color(0.86, 0.66, 0.44),
@@ -505,6 +505,103 @@ const ALL: Dictionary = {
 			},
 		},
 	},
+
+	## ─── The Verdant ──────────────────────────────────────────────────────────
+	## Shapeshifter. Nature magic, snaring roots, and the beast/hound/owl forms.
+	"The Verdant": {
+		"id":              "The Verdant",
+		"display_name":    "THE VERDANT",
+		"char_class":      "Druid",
+		"description":     "A wilds-keeper who wears the shapes of the forest — claw, fang, and wing.",
+		"starting_weapon": "Arcane Blade",    ## Druid = nature melee; the combo IS the attack
+		"melee_kit":       "druid",           ## drives the combo-chain moveset (ChainFactory/SkillFactory)
+		"passive_id":      "verdant_passive",
+		"passive_name":    "Primal Vigor",
+		"passive_desc":    "+25% Max HP. Regenerate while not recently hit.",
+		"portrait":        "res://assets/characters/portraits/the_verdant.png",
+		"unlock_cost":     7000,
+		"base_hp":         110.0,
+		"base_armor":      2.0,
+		"base_move_speed": 56.0,   ## mid-tier; a hair under the Fighter's 54? no — nature-quick, above the Ravager (52)
+		"color":           Color(0.36, 0.72, 0.36),   ## forest green
+		"color_body":      Color(0.24, 0.48, 0.24),
+		"color_head":      Color(0.56, 0.76, 0.48),
+		## Druid (True Heroes I) — hooded nature-caster. Shapeshift forms appear as combo-finisher
+		## stances (Beast maul / Owl swoop) + the Hound-frenzy channel body; the morph sheets are the
+		## finisher wind-ups. Pack I long "Minifantasy_TrueHeroesDruid*" prefix. See design §2.8.
+		"sprite": {
+			"dir":        "res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Druid/General_Animations/",
+			"frame_size": 32,
+			"dir_row":    0,
+			"anims": {
+				"idle":   ["Minifantasy_TrueHeroesDruidIdle.png",   16,  9.0],
+				"walk":   ["Minifantasy_TrueHeroesDruidWalk.png",    4, 10.0],
+				"attack": ["Minifantasy_TrueHeroesDruidAttack.png",  4, 20.0],
+				"damage": ["Minifantasy_TrueHeroesDruidDmg.png",     4, 15.0],
+				"death":  ["Minifantasy_TrueHeroesDruidDie.png",    31, 24.0],
+				## Combo specials — timing/damage in ChainFactory.build_druid_* (provisional).
+				## "attack_2" re-slices the Attack sheet faster for the combo filler / neutral skills.
+				"attack_2":     ["Minifantasy_TrueHeroesDruidAttack.png", 4, 26.0],
+				## Root Summoning: the cast; the erupted RootAttack rides a host ground decal.
+				"root_cast":    ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Druid/Special_Animations/Root_Summoning/Minifantasy_TrueHeroesDruidRootSummoning.png", 7, 16.0],
+				## Shapeshift finishers: morph wind-up (single-row) → the form's own Attack sheet.
+				"morph_beast":  ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Druid/Special_Animations/Shape_Shifting/Forest_Beast/Minifantasy_TrueHeroesDruidShapeShiftHumanToForestBeast.png", 21, 30.0],
+				"beast_attack": ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Druid/Special_Animations/Shape_Shifting/Forest_Beast/Minifantasy_TrueHeroesForestBeastAttack.png", 5, 18.0],
+				"morph_owl":    ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Druid/Special_Animations/Shape_Shifting/Forest_Owl/Minifantasy_TrueHeroesDruidShapeShiftHumanToForestOwl.png", 21, 30.0],
+				"owl_attack":   ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Druid/Special_Animations/Shape_Shifting/Forest_Owl/Minifantasy_TrueHeroesForestOwlAttack.png", 4, 18.0],
+				## Hound Frenzy channel body (fast melee ticks while held).
+				"hound_attack": ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Druid/Special_Animations/Shape_Shifting/Forest_Hound/Minifantasy_TrueHeroesForestHoundAttack.png", 4, 14.0],
+			},
+		},
+	},
+
+	## ─── The Devout ───────────────────────────────────────────────────────────
+	## Holy support-caster. Divine Fire, Word of Pain, Healing Words, and Spirit Guardians.
+	"The Devout": {
+		"id":              "The Devout",
+		"display_name":    "THE DEVOUT",
+		"char_class":      "Cleric",
+		"description":     "A field-priest who answers the horde with holy fire, a word of pain, and guardians of light.",
+		"starting_weapon": "Arcane Blade",    ## Cleric = censer melee into holy casts; the combo IS the attack
+		"melee_kit":       "cleric",          ## drives the combo-chain moveset (ChainFactory/SkillFactory)
+		"passive_id":      "devout_passive",
+		"passive_name":    "Last Rites",
+		"passive_desc":    "Killing an enemy restores 4 HP.",
+		"portrait":        "res://assets/characters/portraits/the_devout.png",
+		"unlock_cost":     8000,
+		"base_hp":         100.0,
+		"base_armor":      4.0,
+		"base_move_speed": 52.0,   ## armored support — steady, matches the Ravager tier
+		"color":           Color(0.98, 0.90, 0.58),   ## luminous gold
+		"color_body":      Color(0.82, 0.74, 0.46),
+		"color_head":      Color(1.0, 0.94, 0.74),
+		## Cleric (True Heroes II) — plate-and-faith support. Three prayers share the one 22f pray
+		## body under distinct anim NAMES so each picks its own frame-matched _fx overlay AND so the
+		## host can branch (pray_guardian → summon). Pack II "Cleric*" prefix. See design §2.9.
+		"sprite": {
+			"dir":        "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Cleric/General_Animations/",
+			"frame_size": 32,
+			"dir_row":    0,
+			"anims": {
+				"idle":   ["ClericIdle.png",   12,  8.0],
+				"walk":   ["ClericWalk.png",    4,  9.0],
+				"attack": ["ClericAttack.png",  6, 30.0],
+				"damage": ["ClericDmg.png",     4, 15.0],
+				"death":  ["ClericDie.png",    35, 26.0],
+				## "attack_2" re-slices the smite slower for the combo filler.
+				"attack_2":  ["ClericAttack.png", 6, 24.0],
+				## Divine Fire finisher cast (looses the holy bolt at the cursor).
+				"divine_fire": ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Cleric/Special_Animations/Divine Fire/ClericDivineFireDiagonal.png", 12, 22.0],
+				## Prayers: one shared 22f pray body, three names → three frame-matched _fx overlays.
+				"pray_pain":        ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Cleric/Special_Animations/Prayers/_ClericPray.png",              22, 20.0],
+				"pray_pain_fx":     ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Cleric/Special_Animations/Prayers/WordOfPainPrayEffect.png",       22, 20.0],
+				"pray_heal":        ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Cleric/Special_Animations/Prayers/_ClericPray.png",              22, 20.0],
+				"pray_heal_fx":     ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Cleric/Special_Animations/Prayers/HealingWordsPrayEffect.png",     22, 20.0],
+				"pray_guardian":    ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Cleric/Special_Animations/Prayers/_ClericPray.png",              22, 20.0],
+				"pray_guardian_fx": ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Cleric/Special_Animations/Prayers/SpiritGuardianPrayEffect.png",  22, 20.0],
+			},
+		},
+	},
 }
 
 ## Ordered list for display (unlock order).
@@ -519,4 +616,6 @@ const ORDER: Array = [
 	"The Whisper",
 	"The Cursed",
 	"The Deadeye",
+	"The Verdant",
+	"The Devout",
 ]

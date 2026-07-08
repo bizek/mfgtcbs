@@ -140,6 +140,10 @@ func has_status(status_id: String) -> bool:
 	return _active.has(status_id)
 
 
+func has_any_active_status() -> bool:
+	return not _active.is_empty()
+
+
 func get_stacks(status_id: String) -> int:
 	if _active.has(status_id):
 		return _active[status_id].stacks

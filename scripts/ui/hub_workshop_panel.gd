@@ -90,6 +90,8 @@ func _build(root: Control) -> void:
 	for udata: Dictionary in _get_all_upgrades():
 		_build_upgrade_card(cards, udata)
 
+	UINav.wire_scroll_follow(scroll)
+
 	## Footer
 	_build_footer(outer)
 
@@ -250,7 +252,7 @@ func _build_upgrade_card(parent: Control, udata: Dictionary) -> void:
 	_lbl(rv, udata.get("cost_text", ""), FS_XS, C_T2)
 
 	var btn := Button.new()
-	btn.focus_mode          = Control.FOCUS_NONE
+	btn.focus_mode          = Control.FOCUS_ALL
 	btn.custom_minimum_size = Vector2(52, 0)
 	btn.add_theme_font_override("font", FONT)
 	btn.add_theme_font_size_override("font_size", FS_XS)
@@ -326,7 +328,11 @@ func _lbl(parent: Control, text: String, sz: int, col: Color) -> Label:
 func _style_btn_flat(btn: Button, normal_bg: Color, hover_bg: Color) -> void:
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var sb := StyleBoxFlat.new()
-		sb.bg_color = hover_bg if state in ["hover", "pressed"] else normal_bg
-		sb.set_border_width_all(0)
+		sb.bg_color = hover_bg if state in ["hover", "pressed", "focus"] else normal_bg
+		if state == "focus":
+			sb.set_border_width_all(1)
+			sb.border_color = C_AMBER_HI
+		else:
+			sb.set_border_width_all(0)
 		sb.set_content_margin_all(2)
 		btn.add_theme_stylebox_override(state, sb)

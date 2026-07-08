@@ -131,7 +131,7 @@ func populate(pm: Node) -> void:
 	var btn := Button.new()
 	btn.text                  = "BEGIN DESCENT"
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn.focus_mode            = Control.FOCUS_NONE
+	btn.focus_mode            = Control.FOCUS_ALL
 	btn.add_theme_font_override("font", _FONT)
 	btn.add_theme_font_size_override("font_size", _FS_LG)
 	btn.add_theme_color_override("font_color",       Color(0.820, 0.157, 0.063))
@@ -197,13 +197,13 @@ func _row_passive(parent: Control, label: String, desc: String) -> void:
 func _style_begin_btn(btn: Button) -> void:
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var sb := StyleBoxFlat.new()
-		var hot: bool = state in ["hover", "pressed"]
+		var hot: bool = state in ["hover", "pressed", "focus"]
 		sb.bg_color            = Color(0.353, 0.173, 0.031) if hot else Color(0.082, 0.075, 0.063)
 		sb.border_width_left   = 1
 		sb.border_width_top    = 1
 		sb.border_width_right  = 1
 		sb.border_width_bottom = 1
-		sb.border_color        = Color(0.690, 0.353, 0.082)
+		sb.border_color        = Color(1.0, 0.55, 0.2) if state == "focus" else Color(0.690, 0.353, 0.082)
 		sb.set_content_margin(SIDE_TOP,    6)
 		sb.set_content_margin(SIDE_BOTTOM, 6)
 		sb.set_content_margin(SIDE_LEFT,   8)

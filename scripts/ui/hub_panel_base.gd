@@ -45,6 +45,11 @@ func _ready() -> void:
 		close_requested.emit())
 	if not Engine.is_editor_hint():
 		AudioManager.play_ui("sfx_ui_panel_open")
+		## Fallback focus so D-pad/stick navigation works the instant a panel
+		## opens even if the concrete panel script never grabs its own focus.
+		## hub.gd overrides this with a more useful first-content-control
+		## focus once populate() has built the panel's real rows.
+		UINav.focus_first(self)
 
 	## Amber accent rule — 2px strip at the bottom edge of the title bar.
 	var accent_rule := ColorRect.new()
@@ -80,6 +85,18 @@ func _ready() -> void:
 func get_content() -> Control:
 	return $ContentContainer
 
+
+## Ⓑ / Esc always closes the panel, regardless of what has focus — the
+## controller-nav safety net so a bad focus_neighbor chain can never trap a
+## player inside a panel with no way back out.
+func _unhandled_input(event: InputEvent) -> void:
+	if Engine.is_editor_hint() or not is_visible_in_tree():
+		return
+	if event.is_action_pressed("ui_cancel"):
+		AudioManager.play_ui("sfx_ui_panel_close")
+		close_requested.emit()
+		get_viewport().set_input_as_handled()
+
 # ── Shared UI helpers ─────────────────────────────────────────────────────────
 
 ## Strips Godot's default button chrome and applies a clean flat style.
@@ -88,8 +105,12 @@ func style_btn(btn: Button, normal_col: Color, hover_col: Color,
 		left_pad: int = 4) -> void:
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var sb := StyleBoxFlat.new()
-		sb.bg_color = hover_col if state in ["hover", "pressed"] else normal_col
-		sb.set_border_width_all(0)
+		sb.bg_color = hover_col if state in ["hover", "pressed", "focus"] else normal_col
+		if state == "focus":
+			sb.set_border_width_all(1)
+			sb.border_color = accent_color
+		else:
+			sb.set_border_width_all(0)
 		sb.set_content_margin(SIDE_LEFT,   left_pad)
 		sb.set_content_margin(SIDE_RIGHT,  left_pad)
 		sb.set_content_margin(SIDE_TOP,    0)

@@ -18,7 +18,7 @@ const ASSET_DIR: String = "res://assets/minifantasy/Minifantasy_True_Heroes_III_
 const DIR_ROWS: Dictionary = {"down_right": 0, "down_left": 1, "up_right": 2, "up_left": 3}
 
 const LIFETIME: float = 15.0
-const FLY_SPEED: float = 75.0            ## own wings — constant-speed flight, never lerp-glued
+const FLY_SPEED: float = 62.0            ## own wings — constant-speed flight, never lerp-glued (deliberate-pacing rebalance 2 2026-07-07, was 75)
 const CATCHUP_MULT: float = 1.8          ## wing-boost when left far behind
 const HUNT_RADIUS: float = 150.0         ## hunts prey this close to the PLAYER (the leash)
 const HUNT_RADIUS_SQ: float = HUNT_RADIUS * HUNT_RADIUS

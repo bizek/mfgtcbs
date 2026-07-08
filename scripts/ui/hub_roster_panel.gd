@@ -140,6 +140,8 @@ func _build_char_list(parent: HBoxContainer) -> void:
 	for char_id: String in CharacterData.ORDER:
 		_build_char_card(vbox, char_id)
 
+	UINav.wire_scroll_follow(scroll)
+
 
 func _build_char_card(parent: VBoxContainer, char_id: String) -> void:
 	var cdata: Dictionary = CharacterData.ALL[char_id]
@@ -151,13 +153,13 @@ func _build_char_card(parent: VBoxContainer, char_id: String) -> void:
 	var card := Button.new()
 	card.custom_minimum_size   = Vector2(0, 38)
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.focus_mode            = Control.FOCUS_NONE
+	card.focus_mode            = Control.FOCUS_ALL
 
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var sb := StyleBoxFlat.new()
-		var is_hot: bool = state in ["hover", "pressed"]
+		var is_hot: bool = state in ["hover", "pressed", "focus"]
 		sb.bg_color     = C_CARD_HI if (is_detail or is_hot) else C_CARD
-		sb.border_color = C_B_ACT if is_detail else (C_B_HOT if is_hot else C_BORDER)
+		sb.border_color = C_AMBER_HI if state == "focus" else (C_B_ACT if is_detail else (C_B_HOT if is_hot else C_BORDER))
 		sb.border_width_left = 1; sb.border_width_top = 1
 		sb.border_width_right = 1; sb.border_width_bottom = 1
 		sb.set_content_margin_all(0)
@@ -474,7 +476,7 @@ func _build_detail_pane(parent: HBoxContainer) -> void:
 	foot_row.add_child(foot_spacer)
 
 	var btn := Button.new()
-	btn.focus_mode = Control.FOCUS_NONE
+	btn.focus_mode = Control.FOCUS_ALL
 	btn.add_theme_font_override("font", FONT)
 	btn.add_theme_font_size_override("font_size", FS_MD)
 
@@ -588,8 +590,12 @@ func _stat_row(parent: Control, label: String, value: int,
 func _style_btn_flat(btn: Button, normal_bg: Color, hover_bg: Color) -> void:
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var sb := StyleBoxFlat.new()
-		sb.bg_color = hover_bg if state in ["hover", "pressed"] else normal_bg
-		sb.set_border_width_all(0)
+		sb.bg_color = hover_bg if state in ["hover", "pressed", "focus"] else normal_bg
+		if state == "focus":
+			sb.set_border_width_all(1)
+			sb.border_color = C_AMBER_HI
+		else:
+			sb.set_border_width_all(0)
 		sb.set_content_margin_all(3)
 		btn.add_theme_stylebox_override(state, sb)
 

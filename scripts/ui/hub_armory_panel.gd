@@ -235,7 +235,7 @@ func _build_weapon_card(parent: Control, slot: int) -> void:
 	name_btn.text                = weapon_id.to_upper() if has_weapon else "[ NO WEAPON — CLICK TO ASSIGN ]"
 	name_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_btn.alignment           = HORIZONTAL_ALIGNMENT_LEFT
-	name_btn.focus_mode          = Control.FOCUS_NONE
+	name_btn.focus_mode          = Control.FOCUS_ALL
 	name_btn.add_theme_font_override("font", FONT)
 	name_btn.add_theme_font_size_override("font_size", FS_MD)
 	name_btn.add_theme_color_override("font_color", C_T0 if has_weapon else C_T2)
@@ -290,7 +290,7 @@ func _build_weapon_card(parent: Control, slot: int) -> void:
 		var mb := Button.new()
 		mb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		mb.alignment             = HORIZONTAL_ALIGNMENT_LEFT
-		mb.focus_mode            = Control.FOCUS_NONE
+		mb.focus_mode            = Control.FOCUS_ALL
 		mb.visible               = in_range
 		mb.add_theme_font_override("font", FONT)
 		mb.add_theme_font_size_override("font_size", FS_XS)
@@ -395,7 +395,7 @@ func _build_weapon_picker(parent: Control) -> void:
 			btn.text               = ("%s  %s" % [("▶ " if is_sel else "  "), w_id.to_upper()])
 			btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			btn.alignment          = HORIZONTAL_ALIGNMENT_LEFT
-			btn.focus_mode         = Control.FOCUS_NONE
+			btn.focus_mode         = Control.FOCUS_ALL
 			btn.add_theme_font_override("font", FONT)
 			btn.add_theme_font_size_override("font_size", FS_MD)
 			btn.add_theme_color_override("font_color", C_AMBER if is_sel else C_T1)
@@ -429,7 +429,7 @@ func _build_weapon_picker(parent: Control) -> void:
 	back.text                = "← BACK"
 	back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	back.alignment           = HORIZONTAL_ALIGNMENT_LEFT
-	back.focus_mode          = Control.FOCUS_NONE
+	back.focus_mode          = Control.FOCUS_ALL
 	back.add_theme_font_override("font", FONT)
 	back.add_theme_font_size_override("font_size", FS_MD)
 	back.add_theme_color_override("font_color", C_T1)
@@ -493,7 +493,7 @@ func _build_footer(parent: Control) -> void:
 		cb.add_theme_font_size_override("font_size", FS_XS)
 		cb.add_theme_color_override("font_color", Color(0.60, 0.42, 0.88))
 		cb.add_theme_color_override("font_hover_color", Color(0.82, 0.62, 1.0))
-		cb.focus_mode = Control.FOCUS_NONE
+		cb.focus_mode = Control.FOCUS_ALL
 		_style_btn_flat(cb, Color(0.10, 0.06, 0.20, 0.50), Color(0.22, 0.12, 0.40, 0.65))
 		cb.pressed.connect(_on_codex_btn_pressed)
 		hbox.add_child(cb)
@@ -637,6 +637,8 @@ func _build_mod_picker() -> void:
 				_codex_panel.set_hover_highlight("")
 		)
 
+	UINav.wire_scroll_follow(_picker_scroll)
+
 
 # ── Codex overlay ─────────────────────────────────────────────────────────────
 
@@ -661,8 +663,12 @@ func _on_codex_btn_pressed() -> void:
 func _style_btn_flat(btn: Button, normal_bg: Color, hover_bg: Color) -> void:
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var sb := StyleBoxFlat.new()
-		sb.bg_color = hover_bg if state in ["hover", "pressed"] else normal_bg
-		sb.set_border_width_all(0)
+		sb.bg_color = hover_bg if state in ["hover", "pressed", "focus"] else normal_bg
+		if state == "focus":
+			sb.set_border_width_all(1)
+			sb.border_color = C_AMBER_HI
+		else:
+			sb.set_border_width_all(0)
 		sb.set_content_margin_all(2)
 		btn.add_theme_stylebox_override(state, sb)
 
@@ -670,7 +676,7 @@ func _style_btn_flat(btn: Button, normal_bg: Color, hover_bg: Color) -> void:
 func _style_btn_mod(btn: Button, border_col: Color, filled: bool) -> void:
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var sb: StyleBoxFlat = StyleBoxFlat.new()
-		var hot: bool = state in ["hover", "pressed"]
+		var hot: bool = state in ["hover", "pressed", "focus"]
 		sb.bg_color = Color(0.10, 0.09, 0.07, 0.90) if hot else (
 			C_PLATE if filled else Color(0.055, 0.048, 0.040)
 		)
@@ -679,6 +685,11 @@ func _style_btn_mod(btn: Button, border_col: Color, filled: bool) -> void:
 		sb.border_width_right  = 0
 		sb.border_width_bottom = 0
 		sb.border_color        = border_col if (filled or hot) else C_BORDER
+		if state == "focus":
+			sb.border_width_top    = 1
+			sb.border_width_right  = 1
+			sb.border_width_bottom = 1
+			sb.border_color        = C_AMBER_HI
 		sb.set_content_margin(SIDE_LEFT,   5)
 		sb.set_content_margin(SIDE_RIGHT,  3)
 		sb.set_content_margin(SIDE_TOP,    2)

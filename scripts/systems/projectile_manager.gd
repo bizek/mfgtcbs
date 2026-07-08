@@ -11,8 +11,8 @@ const POOL_SIZE := 256
 ## velocity/speed only; max_range is left untouched, so a projectile still covers
 ## the same distance (it just takes longer). Tuning these two numbers is the
 ## single lever for projectile readability. See docs/pacing_rebalance.md.
-const PLAYER_PROJECTILE_SPEED_SCALE: float = 0.65
-const ENEMY_PROJECTILE_SPEED_SCALE: float = 0.6
+const PLAYER_PROJECTILE_SPEED_SCALE: float = 0.55   ## deliberate-pacing rebalance 2 2026-07-07 (was 0.65)
+const ENEMY_PROJECTILE_SPEED_SCALE: float = 0.5      ## deliberate-pacing rebalance 2 2026-07-07 (was 0.6)
 
 ## 8-direction names indexed by angle sector.
 const DIR_NAMES: Array[String] = ["e", "se", "s", "sw", "w", "nw", "n", "ne"]

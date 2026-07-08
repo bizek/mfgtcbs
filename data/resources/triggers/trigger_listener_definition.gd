@@ -8,3 +8,5 @@ extends Resource
 @export var effects: Array[Resource] = []             ## Typed effect sub-resources
 @export var target_self: bool = false                 ## When true, effects target the entity bearing the trigger
 @export var target_event_source: bool = false         ## When true, effects target the event source
+@export var chance: float = 1.0                       ## 0.0–1.0 probability this listener fires (1.0 = always)
+@export var internal_cooldown: float = 0.0            ## Minimum seconds between firings (0 = no limit)

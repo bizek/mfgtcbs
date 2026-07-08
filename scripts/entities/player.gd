@@ -32,7 +32,7 @@ var _base_stats: Dictionary = {
 	"attack_speed":    1.0,
 	"crit_chance":     0.05,
 	"crit_multiplier": 1.5,
-	"move_speed":      66.0,   ## deliberate-pacing rebalance 2026-06-23 (was 120); overridden per-character by CharacterData.base_move_speed in _load_character_stats
+	"move_speed":      54.0,   ## deliberate-pacing rebalance 2 2026-07-07 (was 66, orig 120); overridden per-character by CharacterData.base_move_speed in _load_character_stats
 	"pickup_radius":   50.0,
 	"melee_range":     1.0,    ## multiplier on melee-combo hit radius + swing-effect size (mod/upgrade hook)
 	"projectile_count": 1,
@@ -69,6 +69,10 @@ var _base_proj_hit_radius: float = 8.0
 var _passive_id: String = "none"
 var _bloodrage_on: bool = false   ## Ravager Bloodrage: tracked so the modifier only toggles on threshold crossings
 var _calm_hands_on: bool = false  ## Deadeye Calm Hands: same threshold-toggle pattern, top of the health bar
+var _time_since_hit: float = 999.0   ## Verdant Primal Vigor: seconds since last damage (regen-while-safe gate)
+const VERDANT_REGEN_DELAY: float = 3.0   ## Primal Vigor: regen kicks in this long after being hit
+const VERDANT_REGEN_FRAC: float = 0.04   ## …then restores this fraction of max HP per second
+const DEVOUT_KILL_HEAL: float = 4.0      ## Devout Last Rites: flat HP restored per kill
 
 ## State
 var god_mode: bool = false
@@ -119,6 +123,11 @@ var _dash_charges: int = 1               ## currently available charges
 var _dash_cooldown_timer: float = 0.0    ## counts down to the next charge refill
 var _dash_anim_timer: float = 0.0        ## dash anim (Dodge roll / teleport_in) holds walk/idle off
 var _last_move_dir: Vector2 = Vector2.RIGHT  ## fallback dash direction when no input is held
+
+## Passive tree keystone flags (set in _apply_passive_tree, cleared on re-apply)
+var _has_slipstream_keystone: bool = false
+var _has_berserkers_cadence_keystone: bool = false
+var _berserkers_cadence_last_trigger: float = -99.0  ## monotonic seconds; ICD for channel finishers
 
 ## Orbit orbs (Lightning Orb weapon)
 var _orbit_orbs: Array = []
@@ -210,6 +219,11 @@ const DRAIN_WISP_SHEET: String = "res://assets/minifantasy/Minifantasy_True_Hero
 var _blood_elemental: Node2D = null
 var _vamp_fx: AnimatedSprite2D = null
 var _vamp_hit: bool = false              ## last extract beat found blood to drink
+## Druid kit (The Verdant) + Cleric kit (The Devout): the Root/Word-of-Pain ground decals and the
+## Cleric's summoned Spirit Guardian companion (pet standard, mirrors BloodElemental).
+const ROOT_DECAL_SHEET: String = "res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Druid/Special_Animations/Root_Summoning/Minifantasy_TrueHeroesDruidRootAttack.png"
+const PAIN_DECAL_SHEET: String = "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Cleric/Special_Animations/Prayers/Word_Of_Pain/WordOfPain.png"
+var _spirit_guardian: Node2D = null
 ## Bard kit (The Herald): Ballad heal-per-beat + the loose Songs effect sheets.
 const BALLAD_HEAL_FRAC: float = 0.01     ## Ballad beat heals 1% max HP
 const BALLAD_NOTE_SHEET: String = "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/Ballad/BalladEnchant1.png"
@@ -460,17 +474,34 @@ func _apply_passive_mods() -> void:
 		health.setup(get_stat("max_hp"))
 
 
-## Apply permanent stat modifiers from the passive skill tree (data/passive_tree.gd).
-## Called after character passives so stacking order is: base → character passive → tree.
-## Behavior nodes (keystones, triggers) are authored but inert until prompt 27.
+## Apply passive skill tree allocations: stat nodes → ModifierDefinitions,
+## behavior nodes → hidden permanent statuses via PassiveTreeFactory.
+## Keystones (slipstream, berserkers_cadence) set flags instead of applying a status.
 func _apply_passive_tree() -> void:
+	_has_slipstream_keystone = false
+	_has_berserkers_cadence_keystone = false
+	PassiveTreeFactory.build_all()
+
 	for node_id: String in ProgressionManager.passive_allocations:
 		var ranks: int = int(ProgressionManager.passive_allocations[node_id])
 		if ranks <= 0:
 			continue
 		var node: Dictionary = PassiveTreeData.NODES.get(node_id, {})
-		if node.is_empty() or node.has("behavior"):
+		if node.is_empty():
 			continue
+
+		var behavior: String = node.get("behavior", "")
+		if behavior != "":
+			if behavior == "slipstream":
+				_has_slipstream_keystone = true
+			elif behavior == "berserkers_cadence":
+				_has_berserkers_cadence_keystone = true
+			else:
+				var passive_def: StatusEffectDefinition = PassiveTreeFactory.build(behavior)
+				if passive_def != null:
+					status_effect_component.apply_status(passive_def, self, 1)
+			continue
+
 		for eff: Dictionary in node.get("effects", []):
 			var mod := ModifierDefinition.new()
 			mod.target_tag = eff["stat"]
@@ -478,6 +509,7 @@ func _apply_passive_tree() -> void:
 			mod.value      = float(eff["value"]) * float(ranks)
 			mod.source_name = "passive_tree"
 			modifier_component.add_modifier(mod)
+
 	## Re-sync max_hp so tree additions are reflected before the run starts.
 	health.setup(get_stat("max_hp"))
 
@@ -764,6 +796,11 @@ func _physics_process(delta: float) -> void:
 	# Deadeye Calm Hands: +25% damage above 80% HP — the mirror image of Bloodrage.
 	elif _passive_id == "deadeye_passive":
 		_update_calm_hands()
+	# Verdant Primal Vigor: regenerate once out of harm's way for a few seconds.
+	elif _passive_id == "verdant_passive":
+		_time_since_hit += delta
+		if _time_since_hit >= VERDANT_REGEN_DELAY and health.current_hp < health.max_hp:
+			health.apply_healing(health.max_hp * VERDANT_REGEN_FRAC * delta)
 
 	# Iframe countdown
 	if _iframes_timer > 0.0:
@@ -1123,6 +1160,9 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 		_spawn_blood_elemental()
 	elif cur_anim.begins_with("summon"):
 		_spawn_fire_familiar()
+	## Cleric Spirit Guardians: the prayer summons/refreshes the guardian companion.
+	if cur_anim.begins_with("pray_guardian"):
+		_spawn_spirit_guardian()
 	var is_torrent: bool = cur_anim.begins_with("torrent")
 	var is_throw: bool = cur_anim.begins_with("throw")
 	var is_teleport: bool = cur_anim.begins_with("teleport_out")
@@ -1134,6 +1174,7 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 	var enemy_effects: Array = []
 	var proj_effects: Array = []
 	var buff_effects: Array = []
+	var zone_effects: Array = []
 	var aoe_radius: float = 0.0
 	for e in effects:
 		if e is AreaDamageEffect:
@@ -1149,6 +1190,10 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 			proj_effects.append(e)
 		elif e is ApplyStatusEffectData and e.apply_to_self:
 			buff_effects.append(e)   ## self-buffs (Extract Power) — applied to the player
+		elif e is HealEffect:
+			buff_effects.append(e)   ## self-heal (Healing Words / Regrowth / Sanctuary) → [self]
+		elif e is GroundZoneEffect:
+			zone_effects.append(e)   ## Root / Word of Pain — placed at the clamped cursor below
 		else:
 			enemy_effects.append(e)
 
@@ -1234,6 +1279,16 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 
 	if not buff_effects.is_empty():
 		EffectDispatcher.execute_effects(buff_effects, self, [self], ability, combat_manager)
+
+	## Ground zones (Druid Root, Cleric Word of Pain): drop at the clamped cursor and mark the
+	## spot with the pack's ground decal (a one-shot burst; the zone itself ticks host-side).
+	if not zone_effects.is_empty():
+		var z_aim: Vector2 = _get_aim_world_position() - global_position
+		if z_aim.length() > THROW_RANGE:
+			z_aim = z_aim.normalized() * THROW_RANGE
+		var z_pos: Vector2 = global_position + z_aim
+		EffectDispatcher.execute_effects(zone_effects, self, [_get_aim_target(z_pos)], ability, combat_manager)
+		_spawn_oneshot_fx(ROOT_DECAL_SHEET if cur_anim.begins_with("root_cast") else PAIN_DECAL_SHEET, z_pos, 12.0)
 
 	## Teleport blinks AFTER its departure burst has resolved at the old position.
 	if is_teleport:
@@ -1520,6 +1575,20 @@ func _spawn_blood_elemental() -> void:
 	var side: float = -1.0 if _facing.ends_with("left") else 1.0
 	ele.global_position = global_position + Vector2(22.0 * side, 4.0)
 	_blood_elemental = ele
+
+
+func _spawn_spirit_guardian() -> void:
+	## One guardian at a time — resummon replaces (the old one is unsummoned). Mirrors the
+	## BloodElemental/FireFamiliar pet standard (autonomous locomotion + leash; CLAUDE.md).
+	if is_instance_valid(_spirit_guardian):
+		_spirit_guardian.banish()
+	var g := SpiritGuardian.new()
+	g.player_ref = self
+	g.damage_type = ChainFactory._damage_type(_weapon_data)
+	get_tree().current_scene.add_child(g)
+	var side: float = -1.0 if _facing.ends_with("left") else 1.0
+	g.global_position = global_position + Vector2(22.0 * side, 4.0)
+	_spirit_guardian = g
 
 
 func _pay_blood_cost() -> void:
@@ -1823,6 +1892,11 @@ func choreo_on_start(_ability: AbilityDefinition) -> void:
 
 func choreo_on_finisher_hit() -> void:
 	EventBus.on_finisher_hit.emit(self)
+	if _has_berserkers_cadence_keystone:
+		var now: float = Time.get_ticks_msec() / 1000.0
+		if now - _berserkers_cadence_last_trigger >= 3.0:
+			_berserkers_cadence_last_trigger = now
+			status_effect_component.apply_status(PassiveTreeFactory.frenzy_status, self, 1)
 
 
 func choreo_on_end() -> void:
@@ -1922,6 +1996,7 @@ func _try_dash(input_dir: Vector2) -> void:
 	## mobility input — instant, no tap/hold latency).
 	if _dash_style == "teleport":
 		_teleport_dash(dir.normalized())
+		_on_dash_started()
 		return
 	_dash_dir = dir.normalized()
 	_dash_speed_current = get_stat("dash_speed")
@@ -1944,6 +2019,14 @@ func _try_dash(input_dir: Vector2) -> void:
 	if sprite and not _has_dir_anims and absf(_dash_dir.x) > 0.01:
 		sprite.flip_h = _dash_dir.x < 0
 	_spawn_dash_vfx()
+	_on_dash_started()
+
+
+func _on_dash_started() -> void:
+	## Called whenever any dash variant completes its launch (standard or teleport).
+	## Applies the Slipstream keystone buff when allocated.
+	if _has_slipstream_keystone:
+		status_effect_component.apply_status(PassiveTreeFactory.slipstream_status, self, 1)
 
 
 func _teleport_dash(dir: Vector2) -> void:
@@ -2068,6 +2151,7 @@ func take_damage(hit_data) -> void:
 
 	# Player-specific reactions
 	_iframes_timer = IFRAME_DURATION
+	_time_since_hit = 0.0   ## Primal Vigor: reset the out-of-combat regen clock
 	_start_hit_flash()
 	var amount: float = hit_data.amount if hit_data is HitData else 0.0
 	# Damage animation — interrupts attack, does not block movement.
@@ -2317,6 +2401,9 @@ func _check_void_touched(instability_value: float) -> void:
 func _on_kill_siphon(killer: Node, victim: Node) -> void:
 	if killer == self and victim.is_in_group("enemies"):
 		GameManager.modify_instability(-1)
+		## Devout Last Rites: each kill returns a little life (faith rewards the reaper).
+		if _passive_id == "devout_passive" and is_alive and health.current_hp < health.max_hp:
+			health.apply_healing(DEVOUT_KILL_HEAL)
 
 
 # --- Orbit orbs ---

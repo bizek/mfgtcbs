@@ -125,6 +125,9 @@ func _ready() -> void:
 	# Wire UI to player
 	hud.setup(player)
 	level_up_screen.setup(player)
+	var tree_panel := preload("res://scripts/ui/passive_tree_debug_panel.gd").new()
+	add_child(tree_panel)
+	tree_panel.setup(player)
 
 	# Instability aura VFX — child of player so it follows movement
 	var aura_script = load("res://scripts/entities/instability_aura.gd")

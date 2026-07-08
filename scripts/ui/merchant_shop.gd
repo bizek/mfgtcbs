@@ -29,6 +29,16 @@ func build() -> void:
 
 	var offers: Array[Dictionary] = _generate_offers()
 	_build_ui(offers)
+	UINav.focus_first(self)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not is_visible_in_tree():
+		return
+	if event.is_action_pressed("ui_cancel"):
+		AudioManager.play_ui("sfx_ui_cancel")
+		closed.emit()
+		get_viewport().set_input_as_handled()
 
 
 func _generate_offers() -> Array[Dictionary]:
@@ -169,6 +179,8 @@ func _build_ui(offers: Array[Dictionary]) -> void:
 		var row := _build_offer_row(offer)
 		vbox.add_child(row)
 
+	UINav.wire_scroll_follow(scroll)
+
 	## Separator + Leave button
 	var sep := ColorRect.new()
 	sep.color = Color(0.35, 0.28, 0.05)
@@ -189,6 +201,12 @@ func _build_ui(offers: Array[Dictionary]) -> void:
 		AudioManager.play_ui("sfx_ui_cancel")
 		closed.emit())
 	panel.add_child(leave_btn)
+
+	var glyph_bar := GlyphBar.build([["confirm", "Buy"], ["back", "Leave"]])
+	glyph_bar.process_mode = Node.PROCESS_MODE_ALWAYS
+	glyph_bar.position = Vector2(0.0, PANEL_H - 40.0)
+	glyph_bar.size = Vector2(PANEL_W, 12.0)
+	panel.add_child(glyph_bar)
 
 
 func _build_offer_row(offer: Dictionary) -> HBoxContainer:

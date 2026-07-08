@@ -7,6 +7,8 @@ signal upgrade_selected(upgrade: Dictionary)
 @onready var title_label: Label = $Panel/VBox/TitleLabel
 @onready var choices_container: VBoxContainer = $Panel/VBox/ChoicesContainer
 
+var _glyph_bar: GlyphBar
+
 const WEAPON_SWAP_COST: float = 30.0
 
 var player_ref: Node2D = null
@@ -16,6 +18,8 @@ var _rerolls_remaining: int = 0
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
+	_glyph_bar = GlyphBar.build([["confirm", "Pick"]])
+	$Panel/VBox.add_child(_glyph_bar)
 
 func setup(player: Node2D) -> void:
 	player_ref = player
@@ -65,6 +69,7 @@ func _show_choices() -> void:
 	choices_container.add_child(reroll_btn)
 
 	_build_weapon_cache(pixel_font)
+	UINav.focus_first(choices_container)
 
 func _build_weapon_cache(pixel_font: FontFile) -> void:
 	var current_weapon: String = player_ref.get_active_weapon_id()

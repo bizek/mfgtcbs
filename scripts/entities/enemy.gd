@@ -9,11 +9,11 @@ signal died(enemy: Node2D)
 const XP_GEM_SCENE_PATH: String = "res://scenes/pickups/xp_gem.tscn"
 const HEALTH_ORB_SCENE_PATH: String = "res://scenes/pickups/health_orb.tscn"
 
-## Deliberate-pacing rebalance 2026-06-23 — global slowdown applied to every
-## enemy's per-type design speed at setup. Tuning this one number rescales ALL
-## enemy movement while preserving the relative spread authored in the data
-## factories. See docs/pacing_rebalance.md.
-const MOVE_SPEED_SCALE: float = 0.6
+## Deliberate-pacing rebalance (2026-06-23, pass 2 2026-07-07) — global slowdown
+## applied to every enemy's per-type design speed at setup. Tuning this one number
+## rescales ALL enemy movement while preserving the relative spread authored in the
+## data factories. See docs/pacing_rebalance.md.
+const MOVE_SPEED_SCALE: float = 0.5   ## was 0.6
 
 ## Kill pop — white flash + scale punch on the death frame (game-feel pass).
 const KILL_POP_ENABLED: bool = true

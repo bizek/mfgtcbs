@@ -265,6 +265,179 @@ maximum risk" fantasy. Name perfect as-is.
 
 ---
 
+## 2.8 — **The Verdant** — Druid (Pack I)  *(roster #11, completes the 12)*
+
+> *A wilds-keeper who wears the shapes of the forest — claw, fang, and wing — and calls the
+> roots up to hold what the horde would take.*
+
+The Druid is the last **True Heroes I** class. Nature-caster identity: cursor-aimed nature magic,
+snaring roots, and the three shapeshift forms (Beast / Hound / Owl) as the kit's signature.
+**Name:** recommended **"The Verdant"** *(alts: "The Wildheart", "The Thorncaller")* — "The Warden"
+is taken (Paladin).
+
+**Affinity:** **Arcana** (confirming the provisional slot in `passive_tree_spec.md` §1) — nature
+magic, roots-as-status/utility. Flavor only; nothing gated.
+
+### Sprites (verified on disk — Pack I naming: long `Minifantasy_TrueHeroesDruid*` prefix; **note
+the one lowercase gotcha `…ShapeShiftForestowlToHuman.png`**). All 32×32, row 0 sliced.
+
+| Anim (name) | Sheet (`…/Druid/…`) | Frames | fps | Role |
+|---|---|---|---|---|
+| idle | `General_Animations/Minifantasy_TrueHeroesDruidIdle.png` | 16 | 9 | — |
+| walk | `General_Animations/Minifantasy_TrueHeroesDruidWalk.png` | 4 | 10 | — |
+| attack | `General_Animations/Minifantasy_TrueHeroesDruidAttack.png` | 4 | 20 | human claw |
+| attack_2 | *(re-slice of Attack)* | 4 | 26 | combo filler |
+| damage | `General_Animations/Minifantasy_TrueHeroesDruidDmg.png` | 4 | 15 | — |
+| death | `General_Animations/Minifantasy_TrueHeroesDruidDie.png` | 31 | 24 | single row |
+| root_cast | `Special_Animations/Root_Summoning/Minifantasy_TrueHeroesDruidRootSummoning.png` | 7 | 16 | RMB heavy cast |
+| morph_beast | `…/Shape_Shifting/Forest_Beast/Minifantasy_TrueHeroesDruidShapeShiftHumanToForestBeast.png` | 21 | 30 | finisher wind-up |
+| beast_attack | `…/Shape_Shifting/Forest_Beast/Minifantasy_TrueHeroesForestBeastAttack.png` | 5 | 18 | Beast maul |
+| morph_owl | `…/Shape_Shifting/Forest_Owl/Minifantasy_TrueHeroesDruidShapeShiftHumanToForestOwl.png` | 21 | 30 | finisher wind-up |
+| owl_attack | `…/Shape_Shifting/Forest_Owl/Minifantasy_TrueHeroesForestOwlAttack.png` | 4 | 18 | Owl swoop (wide melee arc) |
+| hound_attack | `…/Shape_Shifting/Forest_Hound/Minifantasy_TrueHeroesForestHoundAttack.png` | 4 | 14 | Hound-frenzy channel body |
+
+- **Root visual:** `Root_Summoning/Minifantasy_TrueHeroesDruidRootAttack.png` (15f, single row) —
+  the erupted root; rendered as a fading ground decal (reuses the existing `_spawn_sunder_cracks`
+  host-decal helper, keyed by the `root_cast` anim — same footprint as the Barbarian's crack decal).
+- **Owl Swoop (no projectile):** the pack ships no owl projectile, so the swoop is a wide diving
+  **melee arc** (broad AoE), not a bolt — keeps the Druid fully pure-data with no borrowed asset.
+- **Portrait:** Generator → **elf or halfling**, earthy green/brown, antler/leaf read via hair.
+
+### Combo graph (`ChainFactory.build_druid_*`, provisional numbers)
+
+- **light (LMB)** — *Wildshape line:* `0 Claw` (attack) → tap `1 Claw II` (attack_2) → tap
+  `2 Beast Maul` **finisher** (2-phase: `morph_beast` wind-up → `beast_attack` big melee AoE + shove;
+  loops to 0 on a fresh tap) · gated RMB from depth ≥ Claw II → `Owl Swoop` (2-phase: `morph_owl` →
+  `owl_attack`, a wide diving melee arc). *The morph sheets ARE the finisher wind-ups — the
+  Druid flickers into the form for the blow and reverts. Uses Beast + Owl attack + both morph sheets.*
+- **heavy (RMB tap)** — *Root Summoning:* `root_cast` → `GroundZoneEffect` at the cursor: roots
+  erupt, **snare** (−move_speed status) + Nature DoT for ~4 s. Fully wired primitive, pure data.
+- **channel (RMB hold)** — *Hound Frenzy:* body = `hound_attack`, each loop ticks a fast close melee
+  AoE while held — the Druid worries the horde as the forest hound. (Player slow host-side, generic.)
+- **skill_q** — *Regrowth:* self-`HealEffect` burst + a short +armor status. *(needs the shared
+  heal-to-self routing hook — see Cleric §2.9.)*
+- **skill_e** — *Thornburst:* AoE Nature damage + shove around the Druid (bramble nova). Pure data.
+- **dash:** standard roll (no bespoke `dash_style` for v1).
+
+### ⚠️ Shapeshift scope (the one real design fork — Ben's call)
+
+The context calls the three forms "the kit's identity." Two ways to honor that:
+
+- **(A) Forms-as-stances — RECOMMENDED for v1, pure data, zero engine code.** Forms appear as
+  combo-finisher anim swaps (Beast maul, Owl dive) + the Hound-frenzy channel body, using each
+  form's **Attack** + **morph** sheets. Ships now within the "pure data + assets" scope. **Cost:**
+  the form **Idle/Walk** locomotion sheets go unused (a soft compromise with the full-utilization
+  rule) — reserve them for (B).
+- **(B) True transformation — faithful, but a real subsystem (separate prompt).** E toggles the
+  Druid's whole body into a form's full kit (idle/walk/attack) + a stat profile, reverting on
+  re-press/timer. Fully uses every form pack, but it's a bounded-but-real host feature (swap
+  `sprite_frames` via `CharacterSpriteFactory`, apply a stance status, revert) — **not** "pure data."
+  Recommend as a fast-follow if Ben wants shapeshift to be real gameplay rather than flavor.
+
+### Passive & cost
+
+- **Passive `verdant_passive` — "Primal Vigor":** *"+25% Max HP. Regenerate 2 HP/sec while not
+  recently hit."* (regen-when-safe; nature resilience. If Ben prefers zero new hook: flat
+  *"+20% Max HP, +5 Armor."*) Distinct from the existing conditional-stat passives.
+- **Unlock cost:** 7000 (continues the ladder past Deadeye's 6000).
+
+---
+
+## 2.9 — **The Devout** — Cleric (Pack II)  *(roster #12, completes the 12)*
+
+> *A field-priest who answers the horde with holy fire, a word of pain, and guardians of light —
+> and keeps the wounded standing by prayer alone.*
+
+The last **True Heroes II** class. Support-caster identity: Divine Fire (holy projectile), Prayers
+(Healing Words / Word of Pain / Spirit Guardians), IdleStart/End flourish. **Name:** recommended
+**"The Devout"** *(alts: "The Shepherd", "The Pilgrim")*.
+
+**Affinity:** **Might** (confirming the provisional slot) — plate-and-faith, armored support sits
+beside Paladin in the Might column. Flavor only.
+
+### Sprites (verified — Pack II `Cleric*` prefix; **note the misspelled `Healingwods*` layer files**).
+
+| Anim (name) | Sheet (`…/Cleric/…`) | Frames | fps | Role |
+|---|---|---|---|---|
+| idle | `General_Animations/ClericIdle.png` | 12 | 8 | — |
+| walk | `General_Animations/ClericWalk.png` | 4 | 9 | — |
+| attack | `General_Animations/ClericAttack.png` | 6 | 30 | censer smite |
+| attack_2 | *(re-slice of ClericAttack)* | 6 | 24 | combo filler |
+| damage | `General_Animations/ClericDmg.png` | 4 | 15 | — |
+| death | `General_Animations/ClericDie.png` | 35 | 26 | single row |
+| idle_special | `General_Animations/ClericIdleStart.png` (+`ClericIdleEnd.png`) | 16 | 10 | idle flourish (nice-to-have) |
+| divine_fire | `Special_Animations/Divine Fire/ClericDivineFireDiagonal.png` | 12 | 22 | LMB finisher cast |
+| pray | `Special_Animations/Prayers/_ClericPray.png` | 22 | 20 | shared prayer body |
+| pray_pain_fx | `Special_Animations/Prayers/WordOfPainPrayEffect.png` | 22 | 20 | frame-matched overlay |
+| pray_heal_fx | `Special_Animations/Prayers/HealingWordsPrayEffect.png` | 22 | 20 | frame-matched overlay |
+| pray_guardian_fx | `Special_Animations/Prayers/SpiritGuardianPrayEffect.png` | 22 | 20 | frame-matched overlay |
+
+- **Divine Fire projectile:** `Divine Fire/DivineFireProjectile.png` (3×3 grid → directional bolt,
+  grid slicer) + `DivineFireImpact.png` (4f one-shot impact). Holy = **Fire** damage type. Pure data.
+- **Word of Pain visual:** `Prayers/Word_Of_Pain/WordOfPain.png` (14f) — ground decal over the pain
+  `GroundZoneEffect` (same decal-helper path as the Druid root).
+- **Healing sparkle:** `Prayers/Healing_Words/HealingwodsBackLayer.png` + `…FrontLayer.png` (20f
+  each) — front/back one-shot FX around the heal target (host oneshot-fx helper, generic).
+- **Spirit Guardian pet:** full kit in `Prayers/Spirit_Guardians/` — `SpiritGuardianIdle` 16f,
+  `…Walk` 4f, `…Attack` 4f, `…Dmg` 4f, `…Summon`/`…Unsummon` 13f, `…Die` 13f. **A complete
+  autonomous-pet animation set** (see skill_e).
+- **Portrait:** Generator → **human**, serene, fair/grey hair, gold/white accent.
+
+### Combo graph (`ChainFactory.build_cleric_*`, provisional)
+
+- **light (LMB)** — *Smite & Flame:* `0 Smite` (attack) → tap `1 Smite II` (attack_2) → tap
+  `2 Divine Fire` **finisher** (`divine_fire`: loose the holy bolt at the cursor, impact burst;
+  loops to 0 on a fresh tap) · gated RMB from depth ≥ Smite II → `Word of Pain` (`pray` +
+  `pray_pain_fx` → damaging holy `GroundZoneEffect` at the cursor).
+- **heavy (RMB tap)** — *Divine Fire → Word of Pain:* holy poke into the curse zone (reuses the two
+  finishers). Pure data.
+- **channel (RMB hold)** — *Healing Words:* `pray` + `pray_heal_fx`, each beat ticks a `HealEffect`
+  on the Cleric (+ nearby allies/pet), Back/Front sparkle. Sustain-by-prayer, on-theme. Player slow
+  host-side (generic).
+- **skill_q** — *Sanctuary:* self-buff — small `HealEffect` + a short −damage_taken (or +damage)
+  status. `pray` body.
+- **skill_e** — *Spirit Guardians:* summon the **Spirit Guardian pet** — an autonomous guardian that
+  orbits the Cleric and strikes nearby enemies (CLAUDE.md pet standard, mirrors
+  FireFamiliar/BloodElemental), `SpiritGuardianSummon` on cast, `…Unsummon` on expiry.
+- **dash:** standard (no bespoke `dash_style` for v1).
+
+### Passive & cost
+
+- **Passive `devout_passive` — "Last Rites":** *"Killing an enemy restores 4 HP."* On-kill heal via
+  a `TriggerListenerDefinition` on a hidden status (the exact Bloodletter pattern from
+  `passive_tree_spec.md` — **no new player.gd hook**). Perfect cleric identity.
+- **Unlock cost:** 8000.
+
+---
+
+## 2.10 — Engine-scope reality (what is / isn't "pure data")
+
+The brief's "pure data + assets, no engine code" holds for **most** of both kits — combos, Divine
+Fire/nature projectiles (grid slicer, existing), `GroundZoneEffect` roots & Word-of-Pain (fully
+wired), self-buff statuses, `HealEffect` (fully wired), the Cleric on-kill-heal passive (trigger),
+CharacterData entries, ChainFactory/SkillFactory builders, and hub roster/launch presence
+(auto-enumerated). But **three identity pieces cannot be pure data** and need small, bounded,
+pattern-consistent host hooks:
+
+1. **Cleric Spirit Guardian pet** — the generic `SummonEffect` path is a **stub**
+   (`CombatOrchestrator.spawn_summon()` → `push_warning("not yet wired")`). The only working pet
+   pattern is the hardcoded FireFamiliar/BloodElemental host hook. **→ new `scripts/entities/
+   spirit_guardian.gd` (copies blood_elemental.gd) + `_spawn_spirit_guardian()` + one
+   `begins_with("guardian")` branch in `player.choreo_fire_effects`.** This is literally what the
+   context asks ("Reuse the FireFamiliar/BloodElemental pattern"). **Recommended.**
+2. **Heal-to-self routing** — `choreo_fire_effects` routes a bare `HealEffect` onto *enemies* (the
+   `else` bucket), so the Healing-Words channel / Regrowth / Sanctuary would heal the horde. **→ ~2
+   lines** to route a self-flagged `HealEffect` onto `[self]`. Generic; benefits any future healer.
+   **Recommended.**
+3. **Druid true transformation** — only if Ben picks shapeshift-approach **(B)**; a real
+   (bounded) subsystem, best as its own prompt. **Deferred by default** (v1 uses forms-as-stances,
+   approach **(A)**, which is pure data).
+
+Everything else ships as data. Items 1–2 are the sanctioned engine touches for this task; item 3 is
+Ben's fork.
+
+---
+
 ### Mapping at a glance
 
 | Old name | New name | Class (pack) | Passive (themed) | Starting weapon | Unlock |
@@ -276,8 +449,14 @@ maximum risk" fantasy. Name perfect as-is.
 | The Shade | The Shade | Rogue (I) | Shadowstep | Arcane Blade | 2000 |
 | The Herald | The Herald | Bard (II) | Rallying Anthem | Herald's Call (re-skin) | 2500 |
 | The Cursed | The Cursed | Blood Mage (IV) | Blood Pact | Void Mortar | 5000 |
+| *(new)* | **The Ravager** | Barbarian (I) | Bloodrage | Arcane Blade | 3000 |
+| *(new)* | **The Whisper** | Ninja (IV) | Killing Intent | Arcane Blade | 4000 |
+| *(new)* | **The Deadeye** | Gunslinger (IV) | Calm Hands | Spark's Pistol | 6000 |
+| *(new)* | **The Verdant** ² | Druid (I) | Primal Vigor | Arcane Blade | 7000 |
+| *(new)* | **The Devout** ² | Cleric (II) | Last Rites | Arcane Blade | 8000 |
 
 ¹ Only proposed rename; all others keep their name. See §4 Q1.
+² New in this pass (§2.8–2.9) — completes the 12-class roster. Names pending Ben's approval.
 
 ---
 

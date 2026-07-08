@@ -8,6 +8,7 @@ const SettingsPanelScript := preload("res://scripts/ui/settings_panel.gd")
 var _panel: ColorRect
 var _debug_panel_ref: Node = null  ## Set by main_arena if debug mode is on
 var _settings_panel: Control = null
+var _resume_btn: Button = null
 
 func _ready() -> void:
 	layer = 126  ## Below debug panel (127), above game
@@ -50,6 +51,7 @@ func _open() -> void:
 	AudioManager.play_ui("sfx_ui_panel_open")
 	_panel.visible = true
 	GameManager.set_paused(true)
+	UINav.focus_first(_panel)
 
 
 func _close() -> void:
@@ -120,16 +122,14 @@ func _build_menu() -> void:
 		debug_btn.pressed.connect(_toggle_debug_panel)
 		vbox.add_child(debug_btn)
 
-	## ESC hint
-	var hint := Label.new()
-	hint.text = "[ESC] to close"
-	hint.add_theme_font_size_override("font_size", 11)
-	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint.modulate = Color(0.5, 0.5, 0.5)
-	vbox.add_child(hint)
+	## Glyph hint bar — replaces the static "[ESC] to close" label so it
+	## reflects keyboard or controller depending on what's active.
+	var glyph_bar := GlyphBar.build([["confirm", "Select"], ["back", "Close"]])
+	vbox.add_child(glyph_bar)
 
 	_panel = backdrop
 	_panel.visible = false
+	_resume_btn = resume_btn
 
 
 func _toggle_debug_panel() -> void:
@@ -144,9 +144,12 @@ func _open_settings() -> void:
 		_settings_panel.close_requested.connect(_close_settings)
 		add_child(_settings_panel)
 	_settings_panel.visible = true
+	UINav.focus_first(_settings_panel)
 
 
 func _close_settings() -> void:
 	if _settings_panel:
 		_settings_panel.visible = false
 	_panel.visible = true
+	if _resume_btn:
+		_resume_btn.grab_focus.call_deferred()

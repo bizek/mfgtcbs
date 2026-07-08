@@ -24,12 +24,12 @@ dash, level-up mobility routes — see `docs/pacing_rebalance.md`, `docs/dash.md
 | Effects | All stat nodes = `ModifierDefinition`s applied to the player's `ModifierComponent` at run start, after character base + passive so percentages stack correctly. Behavior nodes = hidden permanent `StatusEffectDefinition` with `trigger_listeners` (established TriggerComponent pattern), plus 2 small player.gd hooks (§6). |
 
 ### Class → branch affinity (flavor only, no mechanical lock)
-*(Updated 2026-07-06 for the 10-character roster — see `data/characters.gd`; Druid/Cleric slots
-provisional until those characters ship.)*
+*(Updated 2026-07-07 for the full 12-character roster — see `data/characters.gd`; Verdant/Devout
+now shipped, 4 classes per branch.)*
 
-- **Might** — Sellsword (Fighter) · Warden (Paladin) · Ravager (Barbarian) · *Cleric (planned)*
+- **Might** — Sellsword (Fighter) · Warden (Paladin) · Ravager (Barbarian) · Devout (Cleric)
 - **Finesse** — Scavenger (Ranger) · Shade (Rogue) · Whisper (Ninja) · Deadeye (Gunslinger)
-- **Arcana** — Spark (Wizard) · Herald (Bard) · Cursed (Blood Mage) · *Druid (planned)*
+- **Arcana** — Spark (Wizard) · Herald (Bard) · Cursed (Blood Mage) · Verdant (Druid)
 
 The hub UI may show the selected character's affinity as a subtle highlight; nothing is gated by class.
 

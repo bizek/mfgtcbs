@@ -7,6 +7,7 @@ class ActiveListener:
 	var definition: TriggerListenerDefinition
 	var source_id: String
 	var source_entity: Node2D
+	var last_fired_time: float = -9999.0  ## monotonic seconds; -9999 = never fired
 
 var _listeners: Dictionary = {}  ## event_name -> Array[ActiveListener]
 var _event_refcounts: Dictionary = {}
@@ -127,6 +128,15 @@ func _evaluate_and_dispatch(event: String, source: Node2D, target: Node2D,
 		var def: TriggerListenerDefinition = active_listener.definition
 		if not _check_trigger_conditions(def.conditions, entity, source, target, hit_data):
 			continue
+		## Chance gate
+		if def.chance < 1.0 and randf() >= def.chance:
+			continue
+		## Internal cooldown gate
+		if def.internal_cooldown > 0.0:
+			var now: float = Time.get_ticks_msec() / 1000.0
+			if now - active_listener.last_fired_time < def.internal_cooldown:
+				continue
+			active_listener.last_fired_time = now
 		var effect_source: Node2D = entity
 		var effect_target: Node2D
 		if def.target_self:
@@ -201,6 +211,12 @@ func _check_trigger_conditions(conditions: Array, entity: Node2D,
 			var tag_time: float = target._last_hit_time_by_tag.get(condition.tag, -1e18)
 			var current_time: float = combat_manager.run_time if combat_manager else 0.0
 			if (current_time - tag_time) > condition.window:
+				return false
+		elif condition is TriggerConditionTargetHasAnyStatus:
+			if not is_instance_valid(target):
+				return false
+			var sec: StatusEffectComponent = target.get("status_effect_component")
+			if sec == null or not sec.has_any_active_status():
 				return false
 	return true
 

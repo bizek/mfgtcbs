@@ -53,8 +53,18 @@ static func execute_effect(effect: Resource, source: Node2D, target: Node2D,
 		var src: Node2D = source if source_alive else fallback_source
 		if src == null:
 			return
+		var _dur: float = effect.duration
+		if _dur < 0.0 and effect.status.base_duration > 0.0 \
+				and src != null and src.get("modifier_component") != null:
+			var _bonus: float = src.modifier_component.sum_modifiers("status_duration", "bonus")
+			if _bonus > 0.0:
+				_dur = effect.status.base_duration * (1.0 + _bonus)
+		elif _dur > 0.0 and src != null and src.get("modifier_component") != null:
+			var _bonus: float = src.modifier_component.sum_modifiers("status_duration", "bonus")
+			if _bonus > 0.0:
+				_dur *= (1.0 + _bonus)
 		actual_target.status_effect_component.apply_status(
-				effect.status, src, effect.stacks, effect.duration)
+				effect.status, src, effect.stacks, _dur)
 
 	elif effect is ApplyShieldEffect:
 		if not source_alive or not target_alive:

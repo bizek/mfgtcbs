@@ -75,11 +75,11 @@ var _final_boss_spawned_this_phase: bool = false
 
 ## ── Core spawn loop ──────────────────────────────────────────────────────────
 var spawn_timer: float = 0.0
-## Deliberate-pacing rebalance 2026-06-23 — stretched from 3.5 so the screen
-## fills more slowly to match the ~45% movement slowdown. Enemies were also made
-## relatively faster than the player (enemy ×0.6 vs player ×0.55), so the longer
+## Deliberate-pacing rebalance (2026-06-23, pass 2 2026-07-07) — stretched so the
+## screen fills more slowly to match the movement slowdown. Enemies were also made
+## relatively faster than the player (enemy ×0.5 vs player ×~0.45), so the longer
 ## interval does not make waves trivially kiteable. See docs/pacing_rebalance.md.
-var base_spawn_interval: float = 4.5
+var base_spawn_interval: float = 5.25   ## was 4.5
 var enemies_per_spawn: int = 2
 var max_enemies: int = 90
 var active_enemies: int = 0

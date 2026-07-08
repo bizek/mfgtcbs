@@ -25,11 +25,12 @@ const FS_MD := 19
 const FS_XS := 14
 
 ## ── State ─────────────────────────────────────────────────────────────────────
-var _base:      HubPanelBase  = null
-var _pm:        Node          = null
-var _card_list: VBoxContainer = null
-var _res_label: Label         = null
-var _built:     bool          = false
+var _base:      HubPanelBase   = null
+var _pm:        Node           = null
+var _card_list: VBoxContainer  = null
+var _scroll:    ScrollContainer = null
+var _res_label: Label          = null
+var _built:     bool           = false
 
 
 func _ready() -> void:
@@ -96,6 +97,7 @@ func _build_ui() -> void:
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.mouse_filter           = Control.MOUSE_FILTER_IGNORE
 	root_vbox.add_child(scroll)
+	_scroll = scroll
 
 	_card_list = VBoxContainer.new()
 	_card_list.mouse_filter          = Control.MOUSE_FILTER_IGNORE
@@ -124,6 +126,8 @@ func _refresh_cards() -> void:
 		if wdata.get("unlock_id", "").is_empty():
 			continue
 		_build_weapon_card(weapon_id, wdata)
+
+	UINav.wire_scroll_follow(_scroll)
 
 
 func _build_weapon_card(weapon_id: String, wdata: Dictionary) -> void:
@@ -225,7 +229,7 @@ func _build_weapon_card(weapon_id: String, wdata: Dictionary) -> void:
 	rv.add_child(cost_lbl)
 
 	var btn := Button.new()
-	btn.focus_mode = Control.FOCUS_NONE
+	btn.focus_mode = Control.FOCUS_ALL
 	btn.alignment  = HORIZONTAL_ALIGNMENT_CENTER
 	btn.add_theme_font_override("font", FONT)
 	btn.add_theme_font_size_override("font_size", FS_XS)
@@ -260,8 +264,12 @@ func _build_weapon_card(weapon_id: String, wdata: Dictionary) -> void:
 func _style_btn_flat(btn: Button, normal_bg: Color, hover_bg: Color) -> void:
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var sb := StyleBoxFlat.new()
-		sb.bg_color = hover_bg if state in ["hover", "pressed"] else normal_bg
-		sb.set_border_width_all(0)
+		sb.bg_color = hover_bg if state in ["hover", "pressed", "focus"] else normal_bg
+		if state == "focus":
+			sb.set_border_width_all(1)
+			sb.border_color = C_AMBER_HI
+		else:
+			sb.set_border_width_all(0)
 		sb.set_content_margin_all(2)
 		btn.add_theme_stylebox_override(state, sb)
 

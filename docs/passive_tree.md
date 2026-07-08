@@ -99,9 +99,12 @@ var is_locked: bool = not is_maxed and not can_buy
 ## Run-Start Application (`player.gd`)
 
 `_apply_passive_tree()` is called in `_ready()` after `_apply_passive_mods()`.  
-It iterates `ProgressionManager.passive_allocations`, skips nodes with `"behavior"`,
-and adds `ModifierDefinition`s (source `"passive_tree"`) to `modifier_component`.
-Each effect's `value × ranks` is applied. After all modifiers are added, `health.setup(get_stat("max_hp"))` re-syncs the HP bar.
+It iterates `ProgressionManager.passive_allocations` and handles each node:
+- **Stat nodes** (`effects` key): add `ModifierDefinition`s (source `"passive_tree"`) × ranks to `modifier_component`.
+- **Behavior nodes** (`behavior` key): call `PassiveTreeFactory.build(behavior_id)` and apply the returned `StatusEffectDefinition` as a hidden permanent status.
+- **Keystone flags** (`"slipstream"`, `"berserkers_cadence"`): set `_has_slipstream_keystone` / `_has_berserkers_cadence_keystone` flags on the player (no hidden status; player code hooks these directly).
+
+After all allocations, `health.setup(get_stat("max_hp"))` re-syncs the HP bar.
 
 ---
 
@@ -164,3 +167,46 @@ All five nodes (`f_split_shot`, `f_fletcher`, `a_broad_bolts`, `a_elementalist`,
 | `+N% block_chance` | `"block_chance"` | `"add"` |
 | `+N% block_mitigation` | `"block_mitigation"` | `"add"` |
 | `+N Fire/Cold/Lightning resist` | `"Fire"` / `"Cold"` / `"Lightning"` | `"resist"` |
+| `+N% status duration` | `"status_duration"` | `"bonus"` |
+
+---
+
+## Behavior Nodes (Session 27)
+
+All behavior nodes are implemented via `data/factories/passive_tree_factory.gd`.
+
+### Infrastructure additions (session 27)
+
+| Change | File | What it does |
+|---|---|---|
+| `chance: float` on TriggerListenerDefinition | `data/resources/triggers/trigger_listener_definition.gd` | Probabilistic firing (0.0–1.0) |
+| `internal_cooldown: float` on TriggerListenerDefinition | same | Seconds between firings |
+| `last_fired_time` on `ActiveListener` | `trigger_component.gd` | Tracks ICD per listener |
+| `TriggerConditionTargetHasAnyStatus` | `data/resources/triggers/…` | Passes when target has ≥1 active status |
+| `has_any_active_status()` | `status_effect_component.gd` | Returns true if entity has any status |
+| Catalyst scaling in `ApplyStatusEffectData` block | `effect_dispatcher.gd` | Reads `"status_duration"/"bonus"` from source |
+
+### Trigger-based behavior nodes
+
+| Node | behavior id | Status id | Mechanic |
+|---|---|---|---|
+| m_bloodletter | `"bloodletter"` | `passive_bloodletter` | `on_kill`, 10% chance, heal 2 HP flat |
+| m_second_wind | `"second_wind"` | `passive_second_wind` | `on_hit_received`, below 30% HP, apply `tree_second_wind_burst` (+25% move_speed 2s), ICD 8s |
+| f_opportunist | `"opportunist"` | `passive_opportunist` | `on_dodge`, apply `opportunist_burst` (+20% damage 2s) |
+| a_ignition | `"ignition"` | `passive_ignition` | `on_crit`, apply `StatusFactory.burning` to the target |
+| a_keystone (Volatile Souls) | `"volatile_souls"` | `passive_volatile_souls` | `on_kill`, victim has any status, 25% chance, 60px Physical AoE (base 8 damage, scales with player mods) |
+
+### Keystone hooks (direct player.gd code, flag-gated)
+
+| Node | behavior id | Flag | Buff applied | Trigger point |
+|---|---|---|---|---|
+| f_keystone (Slipstream) | `"slipstream"` | `_has_slipstream_keystone` | `slipstream` (+30% attack_speed, +15% damage, 2.5s) | `_on_dash_started()` — called from both standard dash and teleport dash paths |
+| m_keystone (Berserker's Cadence) | `"berserkers_cadence"` | `_has_berserkers_cadence_keystone` | `frenzy` (+25% attack_speed, +15% move_speed, 3s) | `choreo_on_finisher_hit()` — all 10 kits already mark finisher phases via `ChoreographyPhase.is_finisher`; channel finishers gated by 3s ICD via `_berserkers_cadence_last_trigger` |
+
+### a_siphon — moved to stat path
+
+`a_siphon` has no `behavior` key in `PassiveTreeData.NODES` — it was already wired as `effects: [{stat: "leech", op: "bonus", value: 0.015}]` in session 26. The lifesteal modifier tag (`"leech"/"bonus"`) matches what ModComboFactory and EffectDispatcher use. No factory entry needed.
+
+### a_catalyst — IMPLEMENTED (stat path)
+
+Catalyst does NOT use a hidden status. `a_catalyst` node has `effects: [{stat: "status_duration", op: "bonus", value: 0.20}]`. The player gains a `"status_duration"/"bonus"/0.20` modifier. In `effect_dispatcher.gd`'s `ApplyStatusEffectData` block, when the source has a non-zero `status_duration` bonus, the applied duration is scaled up accordingly. This covers all status applications routed through `EffectDispatcher` (the entire engine pipeline). Permanent statuses (`base_duration = -1`) are unaffected.

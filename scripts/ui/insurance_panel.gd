@@ -20,18 +20,20 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	## Close on Esc/Ⓑ if panel is open (before pause menu grabs it) — checked
+	## via the ui_cancel action so a joypad's back button works too, not just
+	## the keyboard Escape key the "I" toggle itself is bound to.
+	if visible and event.is_action_pressed("ui_cancel"):
+		visible = false
+		get_viewport().set_input_as_handled()
+		return
+
 	if not (event is InputEventKey) or not event.pressed or event.echo:
 		return
 
 	var state := GameManager.current_state
 	var in_run: bool = state == GameManager.GameState.RUN_ACTIVE \
 			or state == GameManager.GameState.EXTRACTING
-
-	## Close on ESC if panel is open (before pause menu grabs it)
-	if visible and event.keycode == KEY_ESCAPE:
-		visible = false
-		get_viewport().set_input_as_handled()
-		return
 
 	if event.keycode != KEY_I:
 		return
@@ -45,6 +47,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	else:
 		_rebuild_rows()
 		visible = true
+		UINav.focus_first(_panel)
 	get_viewport().set_input_as_handled()
 
 
@@ -94,12 +97,8 @@ func _build_ui() -> void:
 	_item_vbox.add_theme_constant_override("separation", 4)
 	outer.add_child(_item_vbox)
 
-	var hint := Label.new()
-	hint.text = "[I] or [ESC] to close"
-	hint.add_theme_font_size_override("font_size", 11)
-	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint.modulate = Color(0.5, 0.5, 0.5)
-	outer.add_child(hint)
+	var glyph_bar := GlyphBar.build([["confirm", "Insure"], ["back", "Close"]])
+	outer.add_child(glyph_bar)
 
 	_panel = backdrop
 
