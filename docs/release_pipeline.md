@@ -165,14 +165,41 @@ Controller support is required for Steam Deck certification (Deck Verified requi
 
 ## Export Presets
 
-Set up in Godot: **Project → Export → Add preset** for each target.
+Presets live in `export_presets.cfg` (committed). Build output goes to `build/` (gitignored). Set up 2026-07-09; both presets verified with real headless exports.
+
+### Build commands
+
+Repeatable path: run `build.ps1` at the repo root (exports both targets, prints the butler push commands). Raw commands, if needed individually:
+
+```
+# Godot binary: E:\Godot\Godot_v4.6.1-stable_win64.exe (4.6.1.stable.official)
+# Export templates: %APPDATA%\Godot\export_templates\4.6.1.stable\  (must match editor version exactly)
+# NOTE: the output directory must exist before exporting (Godot errors with
+#       "The given export path doesn't exist" otherwise) — build.ps1 creates it.
+
+godot --headless --path E:\Projects\extraction-survivors --export-release "Windows Desktop" build/windows/extraction-survivors.exe
+godot --headless --path E:\Projects\extraction-survivors --export-release "Linux/X11" build/linux/extraction-survivors.x86_64
+```
+
+Windows quirk: the Godot editor exe is a GUI-subsystem binary, so a plain shell invocation returns immediately and swallows output. `build.ps1` uses `Start-Process -Wait` with output redirection to get real exit codes; the `_console.exe` wrapper from the official download also works.
 
 ### Windows Desktop (x86_64)
-- [ ] Preset created, export template downloaded
-- [ ] Embedded PCK (single executable)
-- [ ] Debug info disabled for release
-- [ ] Code signing with a valid certificate (eliminates Windows SmartScreen "unknown publisher" block — use signtool.exe or a third-party signing service)
-- [ ] Test on a clean Windows machine with no Godot installed
+- [x] Preset created, export template downloaded (4.6.1.stable templates installed 2026-07-09)
+- [x] Embedded PCK (single executable — verified 151 MB exe, launches to main menu)
+- [x] Debug info disabled for release (`--export-release`; console wrapper debug-only)
+- [ ] Code signing with a valid certificate (eliminates Windows SmartScreen "unknown publisher" block — see "Windows Code Signing Options" below; **Ben's decision, not attempted**)
+- [ ] Test on a clean Windows machine with no Godot installed (**Ben TODO**)
+
+### Windows Code Signing Options (decision needed — Ben)
+
+Unsigned exes trip SmartScreen ("Windows protected your PC") until download reputation accumulates. Options, cheapest first:
+
+1. **Ship unsigned (v1 on itch.io)** — free. itch.io players expect this; SmartScreen warning appears but "More info → Run anyway" works. Reputation builds slowly with downloads. Reasonable for the itch pipeline test and early releases.
+2. **Azure Trusted Signing** — ~$10/month subscription. Microsoft-backed, integrates with signtool. Individual-developer validation is available; cheapest legitimate signing route for a solo dev.
+3. **Standard OV certificate** (Sectigo, SSL.com, Certum ~€70/yr "Open Source" tier) — signs the exe but SmartScreen reputation still builds over time; doesn't instantly remove the warning.
+4. **EV certificate** (~$250–500/yr + hardware token or cloud HSM) — instant SmartScreen reputation. Overkill for itch.io; reconsider if/when shipping on Steam is imminent (Steam's own client wrapper reduces the need).
+
+Recommendation: option 1 for the itch.io pipeline test now; revisit 2 before a wider launch.
 
 ### macOS (Universal Binary)
 - [ ] Preset created with arm64 + x86_64 targets
@@ -181,9 +208,9 @@ Set up in Godot: **Project → Export → Add preset** for each target.
 - [ ] Test on both Apple Silicon and Intel if possible
 
 ### Linux / X11 (x86_64)
-- [ ] Preset created
-- [ ] Export as self-contained binary (no runtime dependency assumptions)
-- [ ] Test on a clean Ubuntu 22.04 LTS VM
+- [x] Preset created (`Linux/X11` in export_presets.cfg)
+- [x] Export as self-contained binary (embedded PCK, single 119 MB x86_64 binary — export verified 2026-07-09; runtime behavior untested, no Linux box in-session)
+- [ ] Test on a clean Ubuntu 22.04 LTS VM (**Ben TODO**)
 
 ### Steam Deck (Linux)
 - [ ] Same binary as Linux/X11, but verify separately
@@ -206,8 +233,12 @@ Set up in Godot: **Project → Export → Add preset** for each target.
 - [ ] Controller support badge requires full joypad navigation (Deck Verified is a separate, stricter tier)
 
 ### If shipping on itch.io
-- [ ] [Butler](https://itch.io/docs/butler/) installed and authenticated (`butler login`)
-- [ ] Upload pipeline: `butler push build/windows game-slug:windows --userversion 1.0.0` (one command per platform)
+- [ ] [Butler](https://itch.io/docs/butler/) installed and authenticated (`butler login`) (**Ben TODO** — interactive/credentialed, not run in-session)
+- [ ] Upload pipeline (**Ben TODO**: fill `$ButlerUser`/`$ItchSlug` at the top of `build.ps1`; it prints these after each build):
+  ```
+  butler push build/windows <user>/extraction-survivors:windows --userversion 1.0.0
+  butler push build/linux <user>/extraction-survivors:linux --userversion 1.0.0
+  ```
 - [ ] Pricing and visibility configured (pay-what-you-want, fixed price, or free)
 - [ ] Web playable build: not recommended given asset size and lack of web export testing, unless explicitly prioritized
 - [ ] itch.io does not require code signing or notarization — simplest platform to ship first for testing the export pipeline
