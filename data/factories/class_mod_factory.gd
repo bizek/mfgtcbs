@@ -26,6 +26,17 @@ static func apply_to_skills(kit_id: String, skills: Dictionary, active_ids: Arra
 	_apply_to_abilities(kit_id, skills, active_ids)
 
 
+## Apply run-scoped ability upgrade dicts (from UpgradeManager) to the kit/skills.
+## Takes raw dicts directly rather than class mod IDs, using the same _apply_op_to_phase internals.
+## Called by player._load_combo after class mods so run upgrades stack on top each rebuild.
+static func apply_upgrade_dicts_to_kit(kit_id: String, kit: Dictionary, dicts: Array) -> void:
+	_apply_dicts_to_abilities(kit_id, kit, dicts)
+
+
+static func apply_upgrade_dicts_to_skills(kit_id: String, skills: Dictionary, dicts: Array) -> void:
+	_apply_dicts_to_abilities(kit_id, skills, dicts)
+
+
 ## Player-level ModifierDefinitions for "modifier" class mods (kit-agnostic stat buffs while
 ## equipped). source_name prefixed "classmod_" so player.reload/switch can remove them cleanly.
 static func build_modifiers(kit_id: String, active_ids: Array) -> Array[ModifierDefinition]:
@@ -45,6 +56,30 @@ static func build_modifiers(kit_id: String, active_ids: Array) -> Array[Modifier
 
 
 # ── Internals ────────────────────────────────────────────────────────────────────
+
+## Same as _apply_to_abilities but takes raw dicts (ability upgrade entries) instead of IDs.
+static func _apply_dicts_to_abilities(kit_id: String, abilities: Dictionary, dicts: Array) -> void:
+	for mod: Dictionary in dicts:
+		if mod.get("kit", "") != kit_id:
+			continue
+		var op: String = mod.get("op", "")
+		if op == "modifier" or op == "":
+			continue   ## modifier ops are applied directly to ModifierComponent, not to phases
+		var target: Dictionary = mod.get("target", {})
+		var want_graph: String = target.get("graph", "")
+		var want_anim: String  = target.get("anim", "")
+		var params: Dictionary = mod.get("params", {})
+		for key: String in abilities.keys():
+			if want_graph != "" and key != want_graph:
+				continue
+			var ability: AbilityDefinition = abilities[key]
+			if ability == null or ability.choreography == null:
+				continue
+			for phase: ChoreographyPhase in ability.choreography.phases:
+				if want_anim != "" and phase.animation != want_anim:
+					continue
+				_apply_op_to_phase(op, phase, params)
+
 
 ## Apply every phase-targeting class mod in `active_ids` to the abilities in `abilities`
 ## ({ graph_key: AbilityDefinition }). A mod applies to an ability when its target.graph matches

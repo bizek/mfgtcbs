@@ -48,6 +48,11 @@ func _show_choices() -> void:
 		if upgrade.get("is_evolution", false):
 			btn.text = "★ %s\n%s" % [upgrade.name, upgrade.description]
 			btn.add_theme_color_override("font_color", Color(1.0, 0.85, 0.15))
+		elif upgrade.get("is_ability_upgrade", false):
+			btn.text = "✦ %s\n%s" % [upgrade.name, upgrade.description]
+			var char_color: Color = CharacterData.ALL.get(
+				ProgressionManager.selected_character, {}).get("color", Color.WHITE)
+			btn.add_theme_color_override("font_color", char_color)
 		else:
 			btn.text = "%s\n%s" % [upgrade.name, upgrade.description]
 		btn.custom_minimum_size = Vector2(210, 38)

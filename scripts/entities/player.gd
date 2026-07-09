@@ -1039,9 +1039,13 @@ func _load_combo() -> void:
 	## can be stripped on the next rebuild / weapon switch.
 	var class_mods: Array = ProgressionManager.get_active_class_mods(char_id)
 	modifier_component.remove_by_source_prefix("classmod_")
+	## Run-scoped ability upgrades (task 33): kit-mutation entries are applied fresh each rebuild
+	## (same "no accumulation" guarantee as class mods — build_kit returns a pristine kit).
+	var ability_up_dicts: Array[Dictionary] = UpgradeManager.get_kit_mutation_upgrades_for_kit(kit_id)
 	if kit_id != "":
 		var kit: Dictionary = ChainFactory.build_kit(kit_id, _weapon_data)
 		ClassModFactory.apply_to_kit(kit_id, kit, class_mods)
+		ClassModFactory.apply_upgrade_dicts_to_kit(kit_id, kit, ability_up_dicts)
 		set_combo_ability(kit.get("light"))
 		_combo_heavy = kit.get("heavy")
 		_combo_channel = kit.get("channel")
@@ -1057,6 +1061,7 @@ func _load_combo() -> void:
 		if kit_id != "":
 			var skills: Dictionary = SkillFactory.build_kit_skills(kit_id, _weapon_data)
 			ClassModFactory.apply_to_skills(kit_id, skills, class_mods)
+			ClassModFactory.apply_upgrade_dicts_to_skills(kit_id, skills, ability_up_dicts)
 			for slot in skills:
 				skill_component.set_skill(slot, skills[slot])
 
@@ -2358,6 +2363,38 @@ func remove_stat_upgrade(upgrade: Dictionary) -> void:
 		health.current_hp = minf(health.current_hp, health.max_hp)
 	if stat_name == "pickup_radius":
 		_update_pickup_radius()
+
+
+func apply_ability_upgrade(upgrade: Dictionary) -> void:
+	## Called by UpgradeManager when a run-scoped class ability upgrade is picked.
+	## "modifier" ops add a ModifierDefinition with source "ability_upgrade" (distinct from
+	## "upgrade" so evolution's remove_stat_upgrade cannot accidentally strip them).
+	## All other ops (scale_aoe, add_status, add_projectiles, …) need a _load_combo rebuild
+	## because ClassModFactory.apply_upgrade_dicts_to_kit applies them fresh to a pristine kit.
+	var op: String = upgrade.get("op", "")
+	if op == "modifier":
+		var stat_name: String = upgrade.get("stat", "")
+		var value: float = upgrade.get("value", 0.0)
+		var mod := ModifierDefinition.new()
+		if stat_name == "damage" and upgrade.get("type", "") == "percent":
+			mod.target_tag = "All"
+		else:
+			mod.target_tag = stat_name
+		mod.operation  = "add" if upgrade.get("type", "") == "flat" else "bonus"
+		mod.value      = value
+		mod.source_name = "ability_upgrade"
+		modifier_component.add_modifier(mod)
+		if stat_name == "max_hp" and upgrade.get("type", "") == "flat":
+			health.max_hp = get_stat("max_hp")
+			heal(value)
+		if stat_name == "pickup_radius":
+			_update_pickup_radius()
+		if stat_name == "dash_charges":
+			_dash_charges = mini(_max_dash_charges(), _dash_charges + int(round(value)))
+	else:
+		## Kit-mutation: upgrade dict is already in UpgradeManager.ability_upgrades; rebuild so it
+		## takes effect. _load_combo re-applies class mods + all accumulated ability upgrades.
+		_load_combo()
 
 
 # --- Pickup collection ---
