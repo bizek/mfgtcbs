@@ -1,7 +1,7 @@
 # Class Mod System — Two-Layer Mod Model
 
-**Status:** Architecture + plumbing implemented (task 31). Fighter pilot live. **This doc needs Ben's
-redline before task 32 authors the full per-class content.**
+**Status:** Architecture + plumbing implemented (task 31). Fighter pilot live. Full 12-class content
+authored and shipped (task 32) — 46 class mods total (2 Fighter pilots + 44 new).
 
 Locked with Ben 2026-07-06. This is the design-of-record for how mods/upgrades match the per-class
 combo kits. Task 32 = author all class-mod content. Task 33 = apply the same applicability model to
@@ -187,102 +187,98 @@ is a playtest check.
 `match`). Default drop source: **drops while playing that class**; a couple are flagged as
 merchant/boss-tier.
 
-### The Sellsword — Fighter  *(2 shipped as pilot)*
-| Mod | Node | Op | Sketch |
-|-----|------|----|--------|
-| Overcharged Cataclysm ✅ | Cataclysm | scale_aoe | ×1.35 dmg / ×1.4 radius (shipped) |
-| Tempest Vortex ✅ | Tempest | add_pull | drag enemies into the finisher (shipped) |
-| Sustained Whirlwind | Whirlwind (held) | scale_aoe | +40% Whirlwind tick radius — the spin-to-win option |
-| Concussive Taunt | Taunt channel | add_status† (stagger/slow) | shockwave ticks also slow the ring |
+### The Sellsword — Fighter  *(4 shipped)*
+| Mod | Node | Op | Shipped |
+|-----|------|----|---------|
+| Overcharged Cataclysm ✅ | Cataclysm (both graphs) | scale_aoe | ×1.35 dmg / ×1.4 radius |
+| Tempest Vortex ✅ | Tempest (light) | add_pull | drags enemies into the blade |
+| Sustained Whirlwind ✅ | Swirl+Whirlwind (light, anim:"swirl") | scale_aoe | ×1.4 radius |
+| Concussive Taunt ✅ | Taunt (channel) | add_status | applies Chilled (−30% move speed) |
 
-### The Warden — Paladin
-| Mod | Node | Op | Sketch |
-|-----|------|----|--------|
-| Thunderous Bash | Shield Bash | scale_aoe + tune shove | bigger shove distance + hit |
-| Blessed Hammer Storm | Holy Hammer | scale_aoe | +damage on the hammerdin slam |
-| Dictum's Reach | Blades of Justice (dictum) | scale_aoe | wider orbiting-blade tick |
-| Retribution Dome | Dome of Rightfulness | add_status† (burn) | dome retribution also Ignites |
+### The Warden — Paladin  *(4 shipped)*
+| Mod | Node | Op | Shipped |
+|-----|------|----|---------|
+| Thunderous Bash ✅ | Shield Bash (both graphs) | scale_aoe | ×1.35 radius / ×1.25 dmg |
+| Blessed Hammer Storm ✅ | Holy Hammer | scale_aoe | ×1.40 dmg |
+| Dictum's Reach ✅ | Blades of Justice (dictum) | scale_aoe | ×1.45 radius |
+| Retribution Dome ✅ | Dome of Rightfulness (channel) | add_status | Ignites each retribution tick |
 
-### The Whisper — Ninja
-| Mod | Node | Op | Sketch |
-|-----|------|----|--------|
-| Bleeding Blades | Slash / Slash II | add_status (bleed) | the quick slashes apply Bleed |
-| Endless Storm | Thousand Blades (Storm) | scale_aoe | +radius on the blade nova |
-| Honed Edge | (Q Sharpen) | modifier | Sharpen grants a larger/longer crit buff |
-| Choking Smoke | (E Smoke Bomb) | add_status† | Smoke also blinds/slows enemies caught in it |
+### The Whisper — Ninja  *(4 shipped)*
+| Mod | Node | Op | Shipped |
+|-----|------|----|---------|
+| Bleeding Blades ✅ | All light phases | add_status | Bleed on every cut including blade storm |
+| Endless Storm ✅ | Thousand Blades Storm (channel, anim:"blades") | scale_aoe | ×1.5 radius |
+| Honed Edge ✅ | — (modifier) | modifier | +12% crit_chance while equipped |
+| Choking Smoke ✅ | — (modifier) | modifier | −12% damage_taken while equipped |
 
-### The Devout — Cleric
-| Mod | Node | Op | Sketch |
-|-----|------|----|--------|
-| Purifying Fire | Divine Fire (bolt) | scale_aoe / add_status | holy bolt hits harder / Ignites |
-| Words of Agony | Word of Pain (zone) | scale_aoe† (zone radius) | wider, longer curse zone |
-| Radiant Smite | Smite / Smite II | scale_aoe | heavier opening smites |
-| Greater Sanctuary | (Q Sanctuary) | modifier | Sanctuary heal/def buff is stronger |
+### The Devout — Cleric  *(4 shipped)*
+| Mod | Node | Op | Shipped |
+|-----|------|----|---------|
+| Purifying Fire ✅ | Divine Fire bolt (anim:"divine_fire") | scale_aoe | ×1.35 projectile dmg |
+| Words of Agony ✅ | Word of Pain zone (anim:"pray_pain") | scale_aoe | ×1.5 zone radius |
+| Radiant Smite ✅ | Smite (anim:"attack") | scale_aoe | ×1.25 dmg |
+| Greater Sanctuary ✅ | — (modifier) | modifier | −15% damage_taken while equipped |
 
-### The Verdant — Druid
-| Mod | Node | Op | Sketch |
-|-----|------|----|--------|
-| Savage Maul | Beast Maul | scale_aoe + shove | bigger maul + harder shove |
-| Diving Owl | Owl Swoop | scale_aoe | wider swoop arc |
-| Strangling Roots | Root Summoning (zone) | scale_aoe† / add_status | roots snare harder / longer |
-| Pack Leader | Hound Frenzy | scale_aoe | faster/bigger hound bites |
+### The Verdant — Druid  *(4 shipped)*
+| Mod | Node | Op | Shipped |
+|-----|------|----|---------|
+| Savage Maul ✅ | Beast Maul (anim:"beast_attack") | scale_aoe | ×1.3 radius / ×1.25 dmg |
+| Diving Owl ✅ | Owl Swoop (anim:"owl_attack") | scale_aoe | ×1.4 radius |
+| Strangling Roots ✅ | Root Summoning zone (heavy, anim:"root_cast") | scale_aoe | ×1.5 zone radius |
+| Pack Leader ✅ | Hound Frenzy (channel) | scale_aoe | ×1.35 radius / ×1.2 dmg |
 
-### The Shade — Rogue
-| Mod | Node | Op | Sketch |
-|-----|------|----|--------|
-| Serrated Shuriken | Shuriken Fan | add_status (bleed) | the fan applies Bleed |
-| Bigger Bomb | Bomb | scale_aoe + blast tune | ×dmg / ×radius on the lob |
-| Twin Fan | Fan of Blades (channel) | scale_aoe | wider channel tick |
-| Deep Cuts | Slash / Slash II | modifier | +crit while the light chain is running |
+### The Shade — Rogue  *(4 shipped)*
+| Mod | Node | Op | Shipped |
+|-----|------|----|---------|
+| Serrated Shuriken ✅ | Shuriken Fan (anim:"fan") | add_projectile_status | Bleed on each shard |
+| Bigger Bomb ✅ | Bomb (anim:"bomb") | scale_aoe | ×1.4 radius / ×1.35 dmg |
+| Twin Fan ✅ | Fan of Blades (channel, anim:"fan") | scale_aoe | ×1.45 radius |
+| Deep Cuts ✅ | — (modifier) | modifier | +12% crit_chance while equipped |
 
-### The Scavenger — Ranger
-| Mod | Node | Op | Sketch |
-|-----|------|----|--------|
-| Barbed Arrows | Shot/Double/Triple | add_status (bleed) | volleys apply Bleed |
-| Impaling Knife | Throwing Knife | scale_aoe | heavier skewer |
-| Explosive Tips | Triple Shot | add_status† / scale_aoe | fan finisher gains a small blast |
-| Ghost Step | Conceal (channel) | modifier | longer/faster conceal refresh |
+### The Scavenger — Ranger  *(4 shipped)*
+| Mod | Node | Op | Shipped |
+|-----|------|----|---------|
+| Barbed Arrows ✅ | All light-chain projectiles | add_projectile_status | Bleed on every arrow |
+| Impaling Knife ✅ | Throwing Knife (anim:"knife") | scale_aoe | ×1.5 projectile dmg |
+| Explosive Tips ✅ | Triple Shot (anim:"triple_shot") | add_projectile_status | Ignites each arrow hit |
+| Ghost Step ✅ | — (modifier) | modifier | +15% move_speed while equipped |
 
-### The Spark — Wizard
-| Mod | Node | Op | Sketch |
-|-----|------|----|--------|
-| Fireball: Scorched Earth | Fireball Release | add_status† (ground fire) | fireball leaves burning ground |
-| Overload Bolts | Bolt A / Bolt B | scale_aoe | punchier tap bolts |
-| Torrent Surge | Fire Torrent (channel) | scale_aoe | wider flame cone |
-| Ember Familiar | (RMB Summon Fire Familiar) | modifier | tougher/stronger familiar |
+### The Spark — Wizard  *(4 shipped)*
+| Mod | Node | Op | Shipped |
+|-----|------|----|---------|
+| Fireball: Scorched Earth ✅ | Fireball Release (anim:"fireball_2") | add_projectile_status | Ignites each fireball hit |
+| Overload Bolts ✅ | All light-chain phases | scale_aoe | ×1.3 projectile + fireball dmg |
+| Torrent Surge ✅ | Fire Torrent (channel, anim:"torrent") | scale_aoe | ×1.5 AoE radius |
+| Ember Familiar ✅ | — (modifier) | modifier | +15% damage while equipped |
 
-### The Cursed — Blood Mage
-| Mod | Node | Op | Sketch |
-|-----|------|----|--------|
-| Hemorrhage Shards | Blood Shards volley | add_status (bleed) | shards apply Bleed |
-| Deeper Pact | Extract Power | modifier | bigger damage buff per pact |
-| Bloodquake | Blood Spikes | scale_aoe | wider spike burst |
-| Sanguine Drain | Vampirize (channel) | modifier | more heal per drain beat |
+### The Cursed — Blood Mage  *(4 shipped)*
+| Mod | Node | Op | Shipped |
+|-----|------|----|---------|
+| Hemorrhage Shards ✅ | Blood Shards volley (anim:"shards") | add_projectile_status | Bleed on each shard |
+| Deeper Pact ✅ | — (modifier) | modifier | +20% damage while equipped |
+| Bloodquake ✅ | Blood Spikes (anim:"spikes") | scale_aoe | ×1.45 radius / ×1.2 dmg |
+| Sanguine Drain ✅ | — (modifier) | modifier | +18% damage (increases Vampirize yield host-side) |
 
-### The Herald — Bard
-| Mod | Node | Op | Sketch |
-|-----|------|----|--------|
-| Piercing Chord | Dissonant Chord | scale_aoe | louder sound-bolt |
-| Cruel Mockery | Vicious Mockery | scale_aoe / stronger debuff | wider insult, deeper damage-down |
-| Rousing Ballad | Perform: Ballad | modifier | stronger per-beat heal |
-| Encore | Apotheosis | scale_aoe | bigger divine burst |
+### The Herald — Bard  *(4 shipped)*
+| Mod | Node | Op | Shipped |
+|-----|------|----|---------|
+| Piercing Chord ✅ | Dissonant Chord (anim:"chord") | scale_aoe | ×1.35 projectile dmg |
+| Cruel Mockery ✅ | Vicious Mockery (anim:"mockery") | scale_aoe | ×1.35 radius / ×1.2 dmg |
+| Rousing Ballad ✅ | — (modifier) | modifier | +15% damage while equipped |
+| Encore ✅ | Apotheosis (anim:"apotheosis") | scale_aoe | ×1.5 radius / ×1.25 dmg |
 
-### The Ravager — Barbarian
-| Mod | Node | Op | Sketch |
-|-----|------|----|--------|
-| Earthsplitter | Sunder | scale_aoe + shove | wider ground-break + harder shove |
-| Chained Lightning | Thunder Blade (bolt) | scale_aoe | fatter lightning bolt |
-| Iron Wall | Guard (channel) | modifier | wider block arc / brief thorns |
-| Deafening Cry | (Q Battle Cry) | modifier | stronger/longer fury + shaken |
+### The Ravager — Barbarian  *(4 shipped)*
+| Mod | Node | Op | Shipped |
+|-----|------|----|---------|
+| Earthsplitter ✅ | Sunder (both graphs) | scale_aoe | ×1.45 radius / ×1.25 dmg |
+| Chained Lightning ✅ | Thunder Blade (anim:"thunder") | scale_aoe | ×1.4 dmg (melee AoE + bolt) |
+| Iron Wall ✅ | — (modifier) | modifier | −18% damage_taken while equipped |
+| Deafening Cry ✅ | — (modifier) | modifier | +15% damage while equipped |
 
-### The Deadeye — Gunslinger
-| Mod | Node | Op | Sketch |
-|-----|------|----|--------|
-| Fan the Hammer +2 | Fan the Hammer | scale_aoe / +bullets† | more/heavier bullets in the fan |
-| Hollow Points | Shot / Shot II | add_status† (bleed) | bullets cause Bleed |
-| Suppressing Storm | Desert Storm (channel) | scale_aoe | wider bullet cone |
-| Quickdraw | (Q Reload) | modifier | Reload grants a brief fire-rate/damage buff |
-
-**Notes for redline:** ops marked **†** need a small `ClassModFactory` addition (ground-zone spawn,
-extra-bullet count, generic status-on-hit for melee) — cheap, all data-driven. Ben to redline names,
-which nodes to touch, and rough magnitudes before task 32 mass-produces the content + numbers.
+### The Deadeye — Gunslinger  *(4 shipped)*
+| Mod | Node | Op | Shipped |
+|-----|------|----|---------|
+| Fan the Hammer +2 ✅ | Fan the Hammer (anim:"fan") | add_projectiles | +2 bullets (5→7) |
+| Hollow Points ✅ | All light-chain shots | add_projectile_status | Bleed on every bullet |
+| Suppressing Storm ✅ | Desert Storm (channel, anim:"storm") | scale_aoe | ×1.3 bullet dmg per tick |
+| Quickdraw ✅ | — (modifier) | modifier | +10% crit_chance while equipped |

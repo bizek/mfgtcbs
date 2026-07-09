@@ -167,6 +167,38 @@ Mods attach to weapons and modify their behavior. Each mod has an effect type th
 
 ---
 
+## Category 4.5: Class Mod Operations
+
+Class mods are the **second layer** of the two-layer mod model (task 31/32). Where generic mods
+(Category 4) tune the shared weapon, class mods reshape a specific class's **combo kit** —
+mutating AbilityDefinitions at build time through `ClassModFactory`. They do NOT enter
+`weapon_mods` and do NOT participate in the 69-pair elemental combo matrix.
+
+### Class Mod Ops
+
+| Op | What It Does | Applies To |
+|----|-------------|-----------|
+| **scale_aoe** | Multiply `aoe_radius` × `radius_mult` and/or `base_damage` × `damage_mult` on matching phases | `AreaDamageEffect`, `DealDamageEffect`, `GroundZoneEffect` (zone radius), `SpawnProjectilesEffect` (nested on_hit/impact_aoe damage) |
+| **add_pull** | Append a toward-player `DisplacementEffect` to the phase — sucks hit enemies into the blade | Any phase (melee finisher, channel tick) |
+| **add_status** | Append an `ApplyStatusEffectData` (StatusFactory id) to the phase — dispatched to enemies in the AoE hit zone | AoE / melee phases |
+| **add_projectile_status** | Inject `ApplyStatusEffectData` into the projectile's `on_hit_effects` — status lands on each enemy the projectile individually hits | Projectile phases (`SpawnProjectilesEffect`) |
+| **add_projectiles** | Increment `SpawnProjectilesEffect.count` by `params.count` — more bullets/arrows/shards per cast | Projectile phases |
+| **modifier** | A kit-agnostic player `ModifierDefinition` while equipped (no phase target). Stripped on kit rebuild / character switch. | Passive player stat (damage, crit_chance, damage_taken, move_speed, …) |
+
+### Class Mod Target
+
+Each class mod carries a `target` dict (`graph` optional, `anim` optional):
+- **`graph`** — restrict to a specific kit ability key: `"light"`, `"heavy"`, `"channel"`, `"skill_q"`, `"skill_e"`, `"skill_r"`. Omit to match ALL graphs.
+- **`anim`** — restrict to phases where `ChoreographyPhase.animation == anim`. Omit to match ALL phases within the matched graphs.
+
+Both filters AND — a phase must satisfy every specified filter to receive the mutation.
+
+### Class Mod Slots
+
+`ProgressionManager.class_mod_slots()` = **2** (flat v1). Per-character loadout, isolated from the generic weapon mod slots.
+
+---
+
 ## Category 5: Trigger/Proc Conditions
 
 Triggers define WHEN an effect activates. Used by synergy upgrades, advanced mods, corruption upgrades, and character abilities.
