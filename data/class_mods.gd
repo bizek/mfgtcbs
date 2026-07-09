@@ -46,7 +46,10 @@ const ALL: Dictionary = {
 		"color": Color(0.55, 0.75, 1.0),
 		"target": { "graph": "light", "anim": "tempest" },
 		"op": "add_pull",
-		"params": { "distance": 64.0, "duration": 0.20, "arc_height": 6.0 },
+		## distance is a CEILING — the displacement clamps to the actual gap to the player so it
+		## never overshoots. Keep it well past the combo's catch radius (~90px * reach) so every
+		## caught enemy is dragged the whole way IN to the blade, not a fixed short hop.
+		"params": { "distance": 260.0, "duration": 0.16, "arc_height": 4.0 },
 	},
 }
 

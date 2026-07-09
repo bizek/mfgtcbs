@@ -28,6 +28,7 @@ var _player_ref: Node2D = null
 var _panel: Control
 var _points_label: Label
 var _node_list: VBoxContainer
+var _scroll: ScrollContainer = null
 var _current_branch: String = "core"
 var _visible: bool = false
 
@@ -188,6 +189,9 @@ func _build_node_area() -> ScrollContainer:
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_vertical   = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	## Don't let a (re)focused row button yank the list — we preserve scroll manually in _refresh.
+	scroll.follow_focus = false
+	_scroll = scroll
 
 	_node_list = VBoxContainer.new()
 	_node_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -202,9 +206,14 @@ func _build_node_area() -> ScrollContainer:
 
 # ── Refresh logic ──────────────────────────────────────────────────────────────
 
-func _refresh() -> void:
+func _refresh(preserve_scroll: bool = true) -> void:
 	var pts: int = ProgressionManager.get_passive_points()
 	_points_label.text = "Points: %d" % pts
+
+	## Remember where the list was scrolled so allocating a point (which rebuilds every row)
+	## doesn't jerk the view — restored after the new rows lay out next frame. Branch switches
+	## pass false so a new branch starts at the top.
+	var prev_scroll: int = (_scroll.scroll_vertical if (preserve_scroll and is_instance_valid(_scroll)) else 0)
 
 	## Rebuild node list for current branch
 	for child in _node_list.get_children():
@@ -221,6 +230,13 @@ func _refresh() -> void:
 		if node.get("branch", "") != _current_branch:
 			continue
 		_node_list.add_child(_build_node_row(node_id, node))
+
+	## Restore scroll once the rebuilt rows have a size again (queue_free empties the list this
+	## frame). Branch switches intentionally start at the top (prev_scroll is 0 there anyway).
+	if is_instance_valid(_scroll):
+		await get_tree().process_frame
+		if is_instance_valid(_scroll):
+			_scroll.scroll_vertical = prev_scroll
 
 
 func _update_tab_styles_recursive(ctrl: Control) -> void:
@@ -299,7 +315,7 @@ func _build_node_row(node_id: String, node: Dictionary) -> HBoxContainer:
 
 func _on_branch_tab(branch: String, _btn: Button) -> void:
 	_current_branch = branch
-	_refresh()
+	_refresh(false)   ## new branch → start at the top
 
 
 func _on_allocate(node_id: String) -> void:
