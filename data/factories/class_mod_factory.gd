@@ -84,12 +84,36 @@ static func _apply_op_to_phase(op: String, phase: ChoreographyPhase, params: Dic
 					eff.base_damage *= dmult
 				elif eff is DealDamageEffect:
 					eff.base_damage *= dmult
+				elif eff is GroundZoneEffect:
+					eff.radius *= rmult
+				elif eff is SpawnProjectilesEffect:
+					if eff.projectile != null:
+						for hit in eff.projectile.on_hit_effects:
+							if hit is DealDamageEffect:
+								hit.base_damage *= dmult
+						for hit in eff.projectile.impact_aoe_effects:
+							if hit is DealDamageEffect:
+								hit.base_damage *= dmult
 		"add_pull":
 			phase.effects.append(_pull_effect(params))
 		"add_status":
 			var apply := _status_effect(params)
 			if apply != null:
 				phase.effects.append(apply)
+		"add_projectile_status":
+			## Injects a status into projectile on_hit_effects rather than the phase AoE pool.
+			## Use for ranged phases (SpawnProjectilesEffect) so bleed/burn lands on each enemy hit.
+			var apply := _status_effect(params)
+			if apply != null:
+				for eff in phase.effects:
+					if eff is SpawnProjectilesEffect and eff.projectile != null:
+						eff.projectile.on_hit_effects.append(apply)
+		"add_projectiles":
+			## Adds extra projectiles to a SpawnProjectilesEffect (Fan the Hammer +2, etc.).
+			var add_n: int = params.get("count", 1)
+			for eff in phase.effects:
+				if eff is SpawnProjectilesEffect:
+					eff.count += add_n
 
 
 ## A toward-player displacement — sucks the phase's hit targets inward. Same i-frame-gated
