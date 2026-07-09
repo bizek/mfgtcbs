@@ -48,10 +48,15 @@ foreach ($t in $targets) {
 
     Write-Host ""
     Write-Host "Exporting '$($t.Preset)' -> $outPath" -ForegroundColor Yellow
-    & $GodotExe --headless --path $ProjectRoot --export-release $t.Preset $outPath
+    # Godot's Windows binary is GUI-subsystem: a plain `&` call returns immediately
+    # with a null $LASTEXITCODE. Start-Process -Wait gets the real exit code.
+    $exportLog = Join-Path $env:TEMP ("godot_export_" + $t.Channel + ".log")
+    $argStr = "--headless --path `"$ProjectRoot`" --export-release `"$($t.Preset)`" `"$outPath`""
+    $proc = Start-Process -FilePath $GodotExe -ArgumentList $argStr -Wait -PassThru -NoNewWindow -RedirectStandardOutput $exportLog
+    Get-Content $exportLog
 
-    if ($LASTEXITCODE -ne 0) {
-        Write-Error "Export failed for preset '$($t.Preset)' (exit code $LASTEXITCODE)"
+    if ($proc.ExitCode -ne 0) {
+        Write-Error "Export failed for preset '$($t.Preset)' (exit code $($proc.ExitCode))"
         exit 1
     }
     if (-not (Test-Path $outPath)) {
