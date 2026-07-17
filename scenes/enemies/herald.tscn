@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://ydvgm9ny21vc5"]
+[gd_scene format=3 uid="uid://6f73w5hotmsk"]
 
 [ext_resource type="Script" uid="uid://cp7gnmjq6gvun" path="res://scripts/entities/enemy.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://byp3k7y250j0q" path="res://assets/minifantasy/Minifantasy_Creatures_v3.3_Commercial_Version/Minifantasy_Creatures_Assets/Monsters/Minotaur/MinotaurAttack.png" id="2_4jnqz"]
@@ -258,10 +258,8 @@ region = Rect2(160, 0, 32, 32)
 filter_clip = true
 
 [sub_resource type="SpriteFrames" id="SF_herald_48rt1"]
-animations = [
-{
-"frames": [
-{
+animations = [{
+"frames": [{
 "duration": 1.0,
 "texture": SubResource("AT_attack_0_dtqy7")
 }, {
@@ -285,14 +283,12 @@ animations = [
 }, {
 "duration": 1.0,
 "texture": SubResource("AT_attack_7_p2dtq")
-}
-],
+}],
 "loop": false,
 "name": &"attack",
 "speed": 8.0
 }, {
-"frames": [
-{
+"frames": [{
 "duration": 1.0,
 "texture": SubResource("AT_damage_0_d36x8")
 }, {
@@ -304,14 +300,12 @@ animations = [
 }, {
 "duration": 1.0,
 "texture": SubResource("AT_damage_3_ervom")
-}
-],
+}],
 "loop": false,
 "name": &"damage",
 "speed": 12.0
 }, {
-"frames": [
-{
+"frames": [{
 "duration": 1.0,
 "texture": SubResource("AT_death_0_5fjld")
 }, {
@@ -359,14 +353,12 @@ animations = [
 }, {
 "duration": 1.0,
 "texture": SubResource("AT_death_15_0s8s5")
-}
-],
+}],
 "loop": false,
 "name": &"death",
 "speed": 6.0
 }, {
-"frames": [
-{
+"frames": [{
 "duration": 1.0,
 "texture": SubResource("AT_idle_0_cb8zi")
 }, {
@@ -414,14 +406,12 @@ animations = [
 }, {
 "duration": 1.0,
 "texture": SubResource("AT_idle_15_dzqpc")
-}
-],
+}],
 "loop": true,
 "name": &"idle",
 "speed": 5.0
 }, {
-"frames": [
-{
+"frames": [{
 "duration": 1.0,
 "texture": SubResource("AT_walk_0_e3oq1")
 }, {
@@ -439,13 +429,11 @@ animations = [
 }, {
 "duration": 1.0,
 "texture": SubResource("AT_walk_5_p6fdf")
-}
-],
+}],
 "loop": true,
 "name": &"walk",
 "speed": 5.0
-}
-]
+}]
 
 [sub_resource type="RectangleShape2D" id="RS_hb_rm7qv"]
 size = Vector2(16, 16)
@@ -453,22 +441,21 @@ size = Vector2(16, 16)
 [sub_resource type="RectangleShape2D" id="RS_body_sedwa"]
 size = Vector2(12, 12)
 
-[node name="Herald" type="CharacterBody2D"]
+[node name="Herald" type="CharacterBody2D" unique_id=1578994418]
 collision_layer = 2
 collision_mask = 3
 script = ExtResource("1_script")
 
-[node name="Sprite" type="AnimatedSprite2D" parent="."]
+[node name="Sprite" type="AnimatedSprite2D" parent="." unique_id=1692491006]
 sprite_frames = SubResource("SF_herald_48rt1")
 animation = &"idle"
 autoplay = "idle"
 
-[node name="Hurtbox" type="Area2D" parent="."]
+[node name="Hurtbox" type="Area2D" parent="." unique_id=2146048188]
 collision_layer = 2
-collision_mask = 0
 
-[node name="CollisionShape" type="CollisionShape2D" parent="Hurtbox"]
+[node name="CollisionShape" type="CollisionShape2D" parent="Hurtbox" unique_id=750375603]
 shape = SubResource("RS_hb_rm7qv")
 
-[node name="CollisionShape" type="CollisionShape2D" parent="."]
+[node name="CollisionShape" type="CollisionShape2D" parent="." unique_id=1644298154]
 shape = SubResource("RS_body_sedwa")

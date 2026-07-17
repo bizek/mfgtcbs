@@ -36,6 +36,10 @@ const LEVELS: Dictionary = {
 			{"cave_swarmer": 0.12, "anchor": 0.48, "warped_fodder": 0.10,
 				"warped_swarmer": 0.10, "warped_brute": 0.10, "warped_caster": 0.10},
 		],
+		## Cave bosses — real Minifantasy exclusives (Ancient_Troll / Goblin_King
+		## packs) instead of the tinted Colossus/Heart stand-ins.
+		"miniboss_id": "ancient_troll",
+		"final_boss_id": "goblin_king",
 		## Maps level-specific enemy IDs to their .tscn paths.
 		## IDs not listed here fall back to EnemySpawnManager's base scene lookup.
 		"scene_map": {
@@ -45,6 +49,8 @@ const LEVELS: Dictionary = {
 			"cave_bat":        "res://scenes/enemies/cave_bat.tscn",
 			"cave_raider":     "res://scenes/enemies/cave_raider.tscn",
 			"cave_skirmisher": "res://scenes/enemies/cave_skirmisher.tscn",
+			"ancient_troll":   "res://scenes/enemies/ancient_troll.tscn",
+			"goblin_king":     "res://scenes/enemies/goblin_king.tscn",
 		},
 	},
 
@@ -104,6 +110,16 @@ static func get_level_name(level_id: int) -> String:
 ## Music track ID (SoundTable.MUSIC key) for this level's biome.
 static func get_music_id(level_id: int) -> String:
 	return get_level(level_id).get("music_id", "mus_caves")
+
+
+## Boss ids for this level. Unconfigured levels fall back to the generic bosses
+## (the tinted Warped Colossus / Heart of the Deep, which reuse brute_scene).
+static func get_miniboss_id(level_id: int) -> String:
+	return get_level(level_id).get("miniboss_id", "warped_colossus")
+
+
+static func get_final_boss_id(level_id: int) -> String:
+	return get_level(level_id).get("final_boss_id", "heart_of_the_deep")
 
 
 ## Returns true if the level has a defined wave_composition (not just stubs).

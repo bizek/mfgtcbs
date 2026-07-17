@@ -95,6 +95,7 @@ var collected_weapons: Array = []
 ## Mods found during this run and bagged (no open weapon slot).
 ## Unlocked in ProgressionManager on successful extraction. Lost on death.
 var collected_mods: Array = []
+var collected_trinkets: Array = []   ## universal trinkets bagged this run (task 34)
 
 ## Mods equipped to weapons mid-run. { weapon_id: { slot_index: mod_id } }
 ## Committed on extraction, rolled back on death.
@@ -168,6 +169,7 @@ func start_run() -> void:
 	peak_instability = 0.0
 	collected_weapons.clear()
 	collected_mods.clear()
+	collected_trinkets.clear()
 	run_equipped_mods.clear()
 	run_loot_manifest.clear()
 	insured_item = ""
@@ -249,6 +251,8 @@ func on_player_died() -> void:
 			ProgressionManager.add_weapon(_insured)
 		elif _insured in collected_mods:
 			ProgressionManager.add_mod(_insured)
+		elif _insured in collected_trinkets:
+			ProgressionManager.add_trinket(_insured)
 
 	run_equipped_mods.clear()
 	ProgressionManager.save_data()
@@ -285,6 +289,10 @@ func on_extraction_complete() -> void:
 		ProgressionManager.add_weapon(weapon_id)
 	for mod_id in collected_mods:
 		ProgressionManager.add_mod(mod_id)
+	## Trinkets bank to the shared universal inventory; class weapons above route to the
+	## right character's stash automatically (armory filters by class_lock).
+	for trinket_id in collected_trinkets:
+		ProgressionManager.add_trinket(trinket_id)
 	## Commit mid-run equipped mods to permanent save
 	for weapon_id in run_equipped_mods:
 		for slot in run_equipped_mods[weapon_id]:
@@ -348,6 +356,15 @@ func add_collected_weapon(weapon_id: String, rarity: String = "common") -> void:
 	add_instability(inst_cost)
 	var display_name: String = WeaponData.ALL[weapon_id].get("display_name", weapon_id) if WeaponData.ALL.has(weapon_id) else weapon_id
 	run_loot_manifest.append({ "type": "weapon", "name": display_name, "value": inst_cost, "rarity": rarity })
+
+## Called when the player picks up a universal trinket drop during a run (task 34).
+## At risk until extraction — lost on death, banked to owned_trinkets on success.
+func add_collected_trinket(trinket_id: String, rarity: String = "common") -> void:
+	collected_trinkets.append(trinket_id)
+	var inst_cost: float = float(LootTables.RARITY_INSTABILITY.get(rarity, 5))
+	add_instability(inst_cost)
+	var display_name: String = TrinketData.ALL[trinket_id].get("display_name", trinket_id) if TrinketData.ALL.has(trinket_id) else trinket_id
+	run_loot_manifest.append({ "type": "trinket", "name": display_name, "value": inst_cost, "rarity": rarity })
 
 ## Returns the current instability tier dictionary from LootTables.
 func get_instability_tier() -> Dictionary:

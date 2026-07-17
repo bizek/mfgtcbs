@@ -42,6 +42,10 @@ func cooldown_remaining(slot: String) -> float:
 	return maxf(0.0, float(_cooldowns.get(slot, 0.0)))
 
 
+func get_skill(slot: String) -> AbilityDefinition:
+	return _skills.get(slot)
+
+
 func tick(delta: float) -> void:
 	for slot in _cooldowns:
 		if _cooldowns[slot] > 0.0:

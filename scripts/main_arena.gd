@@ -538,7 +538,7 @@ func _on_descent_depth_milestone(percent: float) -> void:
 	var spawn_pos := Vector2(player.global_position.x, player.global_position.y + 200.0)
 	spawn_pos.x = clampf(spawn_pos.x, bounds.position.x + 20.0, bounds.end.x - 20.0)
 	spawn_pos.y = clampf(spawn_pos.y, bounds.position.y + 20.0, bounds.end.y - 20.0)
-	_boss_intro_beat("warped_colossus", spawn_pos)
+	_boss_intro_beat(LevelData.get_miniboss_id(GameManager.current_level), spawn_pos)
 	EnemySpawnManager.spawn_miniboss_at(spawn_pos)
 
 
@@ -785,16 +785,59 @@ func _spawn_mod_drop(pos: Vector2, rarity: String = "common") -> void:
 	pickup.global_position = pos
 	add_child(pickup)
 
+## Smart-loot gear drop (task 34). The incoming 5-tier `rarity` is mapped to a gear tier
+## (green/blue/purple). A drop is either a universal trinket (TRINKET_DROP_SHARE) or a
+## class weapon biased toward the class you're playing (ON_CLASS_BIAS; purples use the
+## higher PURPLE_ON_CLASS_BIAS). Off-class weapons carry a target_char_id and bank to that
+## character's stash as cargo. Name kept for existing call sites (kill/miniboss/final boss).
 func _spawn_weapon_drop(pos: Vector2, rarity: String = "common") -> void:
-	var droppable: Array = WeaponData.get_droppable_ids()
-	if droppable.is_empty():
-		return
-	var weapon_id: String = droppable[randi() % droppable.size()]
+	var gear_rarity: String = LootTables.gear_rarity_from(rarity)
+
+	# Universal trinket branch (no class bias).
+	if randf() < LootTables.TRINKET_DROP_SHARE:
+		var trinket_ids: Array = TrinketData.ids_of_rarity(gear_rarity)
+		if not trinket_ids.is_empty():
+			var tid: String = trinket_ids[randi() % trinket_ids.size()]
+			var tpick: Area2D = WeaponPickupScript.new()
+			tpick.is_trinket     = true
+			tpick.weapon_id      = tid
+			tpick.rarity         = gear_rarity
+			tpick.global_position = pos
+			add_child(tpick)
+			return
+		# no trinket at this rarity → fall through to a weapon
+
+	# Class-weapon branch — biased toward the current class.
+	var cur_char: String = ProgressionManager.selected_character
+	var bias: float = LootTables.PURPLE_ON_CLASS_BIAS if gear_rarity == "epic" else LootTables.ON_CLASS_BIAS
+	var target_char: String = cur_char
+	if randf() >= bias:
+		target_char = _random_other_character(cur_char)
+
+	var kit: String = CharacterData.ALL.get(target_char, {}).get("melee_kit", "")
+	var weapon_id: String = WeaponData.get_class_weapon_for_rarity(kit, gear_rarity)
+	if weapon_id.is_empty():
+		return   ## class/tier line missing — skip rather than drop a bad item
+
 	var pickup: Area2D = WeaponPickupScript.new()
 	pickup.weapon_id       = weapon_id
-	pickup.rarity          = rarity
+	pickup.rarity          = gear_rarity
+	## Off-class drops are cargo: they bank to the target character's stash on extraction.
+	pickup.target_char_id  = "" if target_char == cur_char else target_char
 	pickup.global_position = pos
 	add_child(pickup)
+
+
+## Picks a random unlocked character other than `exclude` for off-class cargo. Falls back to
+## any roster character (so cargo can drop for a class you haven't unlocked yet — the pull).
+func _random_other_character(exclude: String) -> String:
+	var pool: Array = []
+	for cid in CharacterData.ORDER:
+		if cid != exclude:
+			pool.append(cid)
+	if pool.is_empty():
+		return exclude
+	return pool[randi() % pool.size()]
 
 ## ── Final boss reward payout ─────────────────────────────────────────────────
 

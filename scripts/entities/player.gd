@@ -54,6 +54,8 @@ var xp_growth: float = 0.3
 ## Weapon (engine AbilityDefinition)
 var _weapon_id: String = ""
 var _weapon_data: Dictionary = {}
+## Status ids applied by class-gear uniques (task 34) — tracked so a re-apply can strip them.
+var _gear_unique_status_ids: Array = []
 var _weapon_ability: AbilityDefinition = null
 
 ## Mod system
@@ -241,7 +243,7 @@ const FIREBALL_MULT_MAX: float = 2.0     ## full overcharge doubles the Fireball
 ## Reach cap: base hit zones (ChainFactory) are ~half the "loved" size; full Reach mods scale them
 ## up to ~2× = the end-of-the-road size. Capped so it tops out there instead of growing forever.
 const MELEE_RANGE_MAX: float = 2.0
-var skill_component: SkillComponent = null   ## infra for future numbered skills (unused by Fighter)
+var skill_component: SkillComponent = null   ## Q/E skill slots (SkillFactory per kit)
 var _rmb_pending: bool = false      ## a neutral RMB press is waiting to resolve as tap vs hold
 const TAUNT_HOLD_THRESHOLD: float = 0.20   ## hold RMB this long (from neutral) → Taunt channel, else heavy
 
@@ -464,6 +466,57 @@ func _load_equipped_weapon() -> void:
 	if _weapon_data.get("behavior") == "orbit":
 		call_deferred("_setup_orbit_orbs")
 
+	# Class-gear (task 34): intrinsic stat lines, the weapon's purple unique, and
+	# the character's equipped trinkets. Applied here so the passive-tree max_hp
+	# re-sync (below) picks up any +max_hp from gear.
+	_apply_gear_bonuses()
+
+
+# --- Class gear: intrinsic modifiers, uniques, trinkets (task 34) ---
+
+## Applies the equipped weapon's intrinsic `modifiers` + purple `unique`, and every
+## equipped trinket's modifiers + unique. Mirrors the weapon-mod wiring in
+## _load_weapon_mods: stat lines → ModifierComponent, uniques → StatusEffectComponent.
+## Idempotent — strips prior gear modifiers/statuses first so a re-apply doesn't stack.
+func _apply_gear_bonuses() -> void:
+	modifier_component.remove_by_source_prefix("gear_")
+	modifier_component.remove_by_source_prefix("gearunique_")
+	for sid in _gear_unique_status_ids:
+		if status_effect_component.has_status(sid):
+			status_effect_component.force_remove_status(sid, self)
+	_gear_unique_status_ids.clear()
+
+	# Weapon intrinsic stat lines
+	for m: Dictionary in WeaponData.get_weapon_modifiers(_weapon_id):
+		_add_modifier(m["tag"], m["op"], float(m["value"]), "gear_" + _weapon_id)
+	# Weapon purple unique
+	var wuid: String = WeaponData.get_weapon_unique(_weapon_id)
+	if wuid != "":
+		_apply_gear_unique(wuid)
+
+	# Equipped trinkets (universal, 2 slots + workshop 3rd)
+	var char_id: String = ProgressionManager.selected_character
+	for tid: String in ProgressionManager.get_character_trinkets(char_id):
+		if tid == "":
+			continue
+		for m: Dictionary in TrinketData.get_modifiers(tid):
+			_add_modifier(m["tag"], m["op"], float(m["value"]), "gear_trinket_" + tid)
+		var tuid: String = TrinketData.get_unique(tid)
+		if tuid != "":
+			_apply_gear_unique(tuid)
+
+	## Re-sync max HP so any +max_hp gear is reflected on the health bar.
+	health.setup(get_stat("max_hp"))
+
+
+func _apply_gear_unique(unique_id: String) -> void:
+	var u: Dictionary = GearUniqueFactory.build(unique_id)
+	for m: ModifierDefinition in u.get("modifiers", []):
+		modifier_component.add_modifier(m)   ## source already "gearunique_…"
+	for s: StatusEffectDefinition in u.get("statuses", []):
+		status_effect_component.apply_status(s, self, 1)
+		_gear_unique_status_ids.append(s.status_id)
+
 
 # --- Passive application ---
 
@@ -647,6 +700,10 @@ func switch_weapon(weapon_id: String) -> void:
 	_cache_projectile_base_stats()
 	## Rebuild the combo for the new weapon's damage (Fighter keeps its class combo).
 	_load_combo()
+
+	## Re-apply class-gear bonuses for the new weapon (strips the old weapon's intrinsic
+	## modifiers/unique; trinkets persist since they key off "gear_trinket_"). (task 34)
+	_apply_gear_bonuses()
 
 	if _weapon_data.get("behavior") == "orbit":
 		call_deferred("_setup_orbit_orbs")
@@ -1104,6 +1161,11 @@ func _tick_combo() -> void:
 			if _combo_heavy != null:
 				choreography_runner.start(_combo_heavy, [self])
 			_rmb_pending = false
+
+
+## HUD hook: the active melee kit id (the Bard's Q is a stance cycle, not a cooldown skill).
+func get_kit_id() -> String:
+	return _kit_id
 
 
 func _on_skill_q() -> void:
@@ -2042,6 +2104,18 @@ func _on_dash_started() -> void:
 	## Applies the Slipstream keystone buff when allocated.
 	if _has_slipstream_keystone:
 		status_effect_component.apply_status(PassiveTreeFactory.slipstream_status, self, 1)
+	AudioManager.play(_dash_sound_id())
+
+
+func _dash_sound_id() -> String:
+	## Class-flavored dash SFX: blink, blade trail, dodge roll, or the generic whoosh.
+	if _dash_style == "teleport":
+		return "sfx_dash_teleport"
+	if _dash_style == "deadly":
+		return "sfx_dash_deadly"
+	if sprite and sprite.sprite_frames and sprite.sprite_frames.has_animation("dodge"):
+		return "sfx_dash_dodge_roll"
+	return "sfx_dash_generic"
 
 
 func _teleport_dash(dir: Vector2) -> void:

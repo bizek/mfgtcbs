@@ -312,7 +312,8 @@ func _process(delta: float) -> void:
 			_on_choreography_phase_exit()
 
 	elif phase.exit_type == "displacement_complete":
-		if not is_channeling:
+		_choreography_timer -= delta
+		if not is_channeling or _choreography_timer <= 0.0:
 			_on_choreography_phase_exit()
 
 
@@ -407,14 +408,15 @@ func _physics_process(delta: float) -> void:
 	if is_instance_valid(player_ref) and player_ref.is_alive:
 		attack_target = player_ref
 
-	# Animation
-	if sprite:
+	# Animation — never stomp an active attack/damage animation with walk/idle.
+	# play("walk") cancels the non-looping anim, animation_finished never fires,
+	# and _ability_anim_active/is_attacking wedge permanently (one attack per life).
+	if sprite and not _ability_anim_active and not _is_damage_anim_active:
 		# Face the player horizontally (sprites authored facing right; flip when target is left)
-		if not _ability_anim_active and not _is_damage_anim_active:
-			if is_instance_valid(player_ref):
-				var dx: float = player_ref.global_position.x - global_position.x
-				if absf(dx) > 1.0:
-					sprite.flip_h = dx < 0.0
+		if is_instance_valid(player_ref):
+			var dx: float = player_ref.global_position.x - global_position.x
+			if absf(dx) > 1.0:
+				sprite.flip_h = dx < 0.0
 		if _behavior_type == "ranged" and velocity.length() < 5.0:
 			if sprite.sprite_frames and sprite.sprite_frames.has_animation("idle"):
 				sprite.play("idle")
@@ -478,6 +480,14 @@ func _on_auto_attack_requested(ability: AbilityDefinition, targets: Array) -> vo
 	## Engine auto-attack pipeline: BehaviorComponent timer expired, fire AA.
 	if _ability_anim_active and ability.choreography == null:
 		return  # Auto-attacks don't interrupt ability animations (but are ignored during choreography)
+
+	# Choreographed auto-attack (boss stance machines, telegraphed slams) — must run
+	# its phases. The animated path below would play a bare attack anim and fire the
+	# ability's top-level effects list, which is empty for choreographed abilities.
+	if ability.choreography != null:
+		if _choreography == null and not _ability_anim_active:
+			_start_choreography(ability, targets)
+		return
 
 	# Animated auto-attack
 	if ability.anim_override != "" or ability.hit_frame_override >= 0:
@@ -629,11 +639,13 @@ func _enter_choreography_phase(index: int) -> void:
 		if not targets.is_empty():
 			_choreography_targets = targets
 
-	# Execute displacement if specified
+	# Execute displacement if specified. This entity is the effect's "self";
+	# choreography targets provide the destination (displaced="self" resolves the
+	# source arg, so passing the target there displaced the PLAYER and left our
+	# is_channeling flag permanently set — invulnerable frozen boss).
 	if phase.displacement and combat_manager and combat_manager.get("displacement_system"):
-		var disp_source: Node2D = _choreography_targets[0] if not _choreography_targets.is_empty() else self
 		combat_manager.displacement_system.execute(
-			disp_source, _choreography_ability, phase.displacement, [self])
+			self, _choreography_ability, phase.displacement, _choreography_targets)
 
 	# Fire effects immediately if no hit_frame specified
 	if phase.hit_frame < 0 and not phase.effects.is_empty():
@@ -664,6 +676,11 @@ func _enter_choreography_phase(index: int) -> void:
 			_choreography_timer = phase.wait_duration
 			set_process(true)
 		"displacement_complete":
+			## Watchdog — a displacement that never ran (dead/invalid target,
+			## Displacement-negated entity) never clears is_channeling; without a
+			## timer cap the phase would hard-lock the boss in an invulnerable state.
+			var disp_duration: float = phase.displacement.duration if phase.displacement else 0.0
+			_choreography_timer = disp_duration + 1.5
 			set_process(true)
 		"anim_finished":
 			if phase.animation == "":

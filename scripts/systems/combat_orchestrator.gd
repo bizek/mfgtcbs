@@ -183,10 +183,30 @@ func _apply_ground_zone_tick(zone: Dictionary) -> void:
 			EffectDispatcher.execute_effect(tick_effect, source, target, null, self, source)
 
 
-func spawn_summon(source: Node2D, ability, effect: SummonEffect) -> void:
-	## Summon spawning hook. Override or connect to implement summon entity creation.
-	## The base pattern: check max_active, create entity, register, emit signal.
-	push_warning("CombatOrchestrator.spawn_summon() — not yet wired to entity factory")
+func spawn_summon(source: Node2D, _ability, effect: SummonEffect) -> void:
+	## Enemy-side summons (Goblin King's horde): summon_id is an EnemyRegistry id.
+	## Each cast refills the summoner's retinue up to max_active live adds — the
+	## classic "maintain N minions" contract. Player-side summons keep their own
+	## entity scripts (FireFamiliar / BloodElemental) and don't route through here.
+	if not is_instance_valid(source) or not source.is_in_group("enemies"):
+		push_warning("CombatOrchestrator.spawn_summon() — player summons not wired; use pet entities")
+		return
+	if effect.summon_id == "":
+		return
+	var summoner_key: int = source.get_instance_id()
+	var live: int = 0
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if is_instance_valid(e) and e.get("is_alive") \
+				and int(e.get_meta("summoned_by", 0)) == summoner_key:
+			live += 1
+	for _i in range(effect.max_active - live):
+		var angle: float = randf() * TAU
+		var pos: Vector2 = source.global_position \
+				+ Vector2(cos(angle), sin(angle)) * randf_range(28.0, 52.0)
+		var add: Node2D = EnemySpawnManager.spawn_add(effect.summon_id, pos)
+		if add == null:
+			break  ## enemy cap reached — stop trying this cast
+		add.set_meta("summoned_by", summoner_key)
 
 
 func revive_entity(corpse: Node2D, hp_percent: float, source: Node2D) -> void:

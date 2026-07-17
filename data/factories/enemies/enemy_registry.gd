@@ -28,6 +28,9 @@ static func build_all() -> void:
 	_definitions["warped_brute"] = WarpedEnemyData.create_warped_brute()
 	_definitions["warped_caster"] = WarpedEnemyData.create_warped_caster()
 	## ── Level 1 — The Cave ───────────────────────────────────────────────────
+	## Cave bosses (replace the tinted Colossus/Heart via LevelData boss ids)
+	_definitions["ancient_troll"] = AncientTrollData.create()
+	_definitions["goblin_king"]   = GoblinKingData.create()
 	_definitions["cave_fodder"]     = CaveEnemyData.create_cave_fodder()
 	_definitions["cave_swarmer"]    = CaveEnemyData.create_cave_swarmer()
 	_definitions["cave_brute"]      = CaveEnemyData.create_cave_brute()

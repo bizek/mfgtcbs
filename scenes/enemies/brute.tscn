@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://n6gihd3eylkmo"]
+[gd_scene format=3 uid="uid://ck7vo7cnayxde"]
 
 [ext_resource type="Script" uid="uid://cp7gnmjq6gvun" path="res://scripts/entities/enemy.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://b52twmkykellu" path="res://assets/minifantasy/Minifantasy_Creatures_v3.3_Commercial_Version/Minifantasy_Creatures_Assets/Monsters/Cyclop/CyclopAttack.png" id="2_lfakq"]
@@ -228,10 +228,8 @@ region = Rect2(160, 0, 32, 32)
 filter_clip = true
 
 [sub_resource type="SpriteFrames" id="SF_brute_qq0i2"]
-animations = [
-{
-"frames": [
-{
+animations = [{
+"frames": [{
 "duration": 1.0,
 "texture": SubResource("AT_attack_0_sew0x")
 }, {
@@ -243,14 +241,12 @@ animations = [
 }, {
 "duration": 1.0,
 "texture": SubResource("AT_attack_3_2cle3")
-}
-],
+}],
 "loop": false,
 "name": &"attack",
 "speed": 8.0
 }, {
-"frames": [
-{
+"frames": [{
 "duration": 1.0,
 "texture": SubResource("AT_damage_0_y3gt9")
 }, {
@@ -262,14 +258,12 @@ animations = [
 }, {
 "duration": 1.0,
 "texture": SubResource("AT_damage_3_yf25z")
-}
-],
+}],
 "loop": false,
 "name": &"damage",
 "speed": 12.0
 }, {
-"frames": [
-{
+"frames": [{
 "duration": 1.0,
 "texture": SubResource("AT_death_0_btx00")
 }, {
@@ -311,14 +305,12 @@ animations = [
 }, {
 "duration": 1.0,
 "texture": SubResource("AT_death_13_bnw3i")
-}
-],
+}],
 "loop": false,
 "name": &"death",
 "speed": 6.0
 }, {
-"frames": [
-{
+"frames": [{
 "duration": 1.0,
 "texture": SubResource("AT_idle_0_rils3")
 }, {
@@ -366,14 +358,12 @@ animations = [
 }, {
 "duration": 1.0,
 "texture": SubResource("AT_idle_15_val2z")
-}
-],
+}],
 "loop": true,
 "name": &"idle",
 "speed": 5.0
 }, {
-"frames": [
-{
+"frames": [{
 "duration": 1.0,
 "texture": SubResource("AT_walk_0_j3ckn")
 }, {
@@ -391,13 +381,11 @@ animations = [
 }, {
 "duration": 1.0,
 "texture": SubResource("AT_walk_5_sdmzh")
-}
-],
+}],
 "loop": true,
 "name": &"walk",
 "speed": 5.0
-}
-]
+}]
 
 [sub_resource type="RectangleShape2D" id="RS_hb_ig0wq"]
 size = Vector2(16, 16)
@@ -405,22 +393,21 @@ size = Vector2(16, 16)
 [sub_resource type="RectangleShape2D" id="RS_body_qrd5i"]
 size = Vector2(12, 12)
 
-[node name="Brute" type="CharacterBody2D"]
+[node name="Brute" type="CharacterBody2D" unique_id=754036206]
 collision_layer = 2
 collision_mask = 3
 script = ExtResource("1_script")
 
-[node name="Sprite" type="AnimatedSprite2D" parent="."]
+[node name="Sprite" type="AnimatedSprite2D" parent="." unique_id=1675805476]
 sprite_frames = SubResource("SF_brute_qq0i2")
 animation = &"idle"
 autoplay = "idle"
 
-[node name="Hurtbox" type="Area2D" parent="."]
+[node name="Hurtbox" type="Area2D" parent="." unique_id=1569359702]
 collision_layer = 2
-collision_mask = 0
 
-[node name="CollisionShape" type="CollisionShape2D" parent="Hurtbox"]
+[node name="CollisionShape" type="CollisionShape2D" parent="Hurtbox" unique_id=365969173]
 shape = SubResource("RS_hb_ig0wq")
 
-[node name="CollisionShape" type="CollisionShape2D" parent="."]
+[node name="CollisionShape" type="CollisionShape2D" parent="." unique_id=364122226]
 shape = SubResource("RS_body_qrd5i")

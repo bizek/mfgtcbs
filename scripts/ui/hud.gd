@@ -61,6 +61,9 @@ var _guardian_hp_label: Label = null
 ## ── Phase indicators (top-center) ────────────────────────────────────────────
 var _phase_flash_label: Label = null
 var _extraction_warning_label: Label = null
+## ── Skill slots (Q/E cooldown keycaps, bottom-center) ────────────────────────
+## slot:String -> { root, veil, key, key_text, prev_remaining }
+var _skill_slots: Dictionary = {}
 ## ── Depth meter (descent mode, left edge below instability) ──────────────────
 var _depth_tracker: DepthTracker = null
 var _depth_meter_root: Control = null
@@ -94,6 +97,7 @@ func _ready() -> void:
 	GameManager.final_boss_defeated.connect(_on_final_boss_defeated)
 
 	_apply_minifantasy_theme()
+	_build_skill_slots()
 	_build_keystone_indicator()
 	_build_guardian_health_bar()
 	_build_phase_flash_label()
@@ -111,6 +115,7 @@ func setup(player: Node2D) -> void:
 	_on_health_changed(player_ref.health.current_hp, player_ref.health.max_hp)
 	_on_xp_changed(player_ref.xp, player_ref._xp_to_next_level())
 	level_label.text = "Lv%d" % player_ref.level
+	_refresh_skill_slot_keys()
 	if _first_run_overlay != null:
 		_first_run_overlay.setup(player)
 
@@ -144,6 +149,8 @@ func _process(delta: float) -> void:
 	## Keystone indicator visibility
 	if _keystone_indicator:
 		_keystone_indicator.visible = GameManager.player_has_keystone
+
+	_update_skill_slots()
 
 	## Phase countdown warning / Core phase notice
 	if _extraction_warning_label != null:
@@ -575,6 +582,123 @@ func _on_final_boss_spawned(display_name: String) -> void:
 
 func _on_final_boss_defeated() -> void:
 	flash_text("EXTRACTION UNLOCKED", Color(0.3, 1.0, 0.55), 1.5)
+
+## ── Skill slots (Q/E cooldowns) ──────────────────────────────────────────────
+## Two Minifantasy keycap slots, bottom-center. Ready: bright key letter. Cooling:
+## dark veil drains downward + the letter is replaced by the seconds countdown.
+## The Bard's Q (song cycle) has no cooldown — its slot is simply always ready.
+
+const SKILL_SLOT: float = 22.0
+const SKILL_SLOT_GAP: float = 4.0
+const SKILL_SLOT_Y: float = 360.0 - SKILL_SLOT - 6.0
+
+func _build_skill_slots() -> void:
+	var slots: Array = ["skill_q", "skill_e"]
+	for i in range(slots.size()):
+		var slot: String = slots[i]
+		var root := Control.new()
+		root.name = "SkillSlot_" + slot
+		root.position = Vector2(
+				320.0 - SKILL_SLOT - SKILL_SLOT_GAP * 0.5 + float(i) * (SKILL_SLOT + SKILL_SLOT_GAP),
+				SKILL_SLOT_Y)
+		root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		root.visible = false
+		add_child(root)
+
+		var bg := NinePatchRect.new()
+		bg.texture = _sheet()
+		bg.region_rect = PANEL_SQUARE
+		bg.patch_margin_left = 6
+		bg.patch_margin_top = 6
+		bg.patch_margin_right = 6
+		bg.patch_margin_bottom = 6
+		bg.size = Vector2(SKILL_SLOT, SKILL_SLOT)
+		bg.modulate = Color(0.72, 0.66, 0.58, 0.94)
+		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		root.add_child(bg)
+
+		## Cooldown veil: full at cast, drains toward the bottom as the skill recharges.
+		var veil := ColorRect.new()
+		veil.color = Color(0.0, 0.0, 0.0, 0.62)
+		veil.position = Vector2(2.0, 2.0)
+		veil.size = Vector2(SKILL_SLOT - 4.0, SKILL_SLOT - 4.0)
+		veil.visible = false
+		veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		root.add_child(veil)
+
+		var key := Label.new()
+		key.set_anchors_preset(Control.PRESET_FULL_RECT)
+		key.offset_right = SKILL_SLOT
+		key.offset_bottom = SKILL_SLOT
+		key.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		key.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		key.add_theme_font_size_override("font_size", _ts(14))
+		key.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0))
+		key.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.9))
+		key.add_theme_constant_override("outline_size", 2)
+		key.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
+			key.add_theme_font_override("font", load("res://assets/fonts/m5x7.ttf"))
+		root.add_child(key)
+
+		_skill_slots[slot] = {
+			"root": root, "veil": veil, "key": key,
+			"key_text": "Q" if slot == "skill_q" else "E",
+			"prev_remaining": 0.0,
+		}
+
+func _refresh_skill_slot_keys() -> void:
+	## Resolve the bound key names once per run (respects rebinds from the settings panel).
+	for slot in _skill_slots:
+		var entry: Dictionary = _skill_slots[slot]
+		entry.key_text = _skill_key_text(slot, "Q" if slot == "skill_q" else "E")
+		entry.key.text = entry.key_text
+
+func _skill_key_text(action: String, fallback: String) -> String:
+	if not InputMap.has_action(action):
+		return fallback
+	for ev in InputMap.action_get_events(action):
+		if ev is InputEventKey:
+			var code: int = ev.physical_keycode if ev.physical_keycode != KEY_NONE else ev.keycode
+			var txt: String = OS.get_keycode_string(code)
+			if txt != "":
+				return txt
+	return fallback
+
+func _update_skill_slots() -> void:
+	if player_ref == null or not is_instance_valid(player_ref):
+		return
+	var sc = player_ref.get("skill_component")
+	var kit_id: String = player_ref.get_kit_id()
+	for slot in _skill_slots:
+		var entry: Dictionary = _skill_slots[slot]
+		var is_bard_q: bool = slot == "skill_q" and kit_id == "bard"
+		var has_skill: bool = is_bard_q or (sc != null and sc.has_skill(slot))
+		entry.root.visible = has_skill
+		if not has_skill:
+			entry.prev_remaining = 0.0
+			continue
+		var remaining: float = 0.0
+		var frac: float = 0.0
+		if not is_bard_q:
+			remaining = sc.cooldown_remaining(slot)
+			var ability: AbilityDefinition = sc.get_skill(slot)
+			if ability != null and ability.cooldown_base > 0.0:
+				frac = clampf(remaining / ability.cooldown_base, 0.0, 1.0)
+		entry.veil.visible = frac > 0.0
+		entry.veil.size.y = (SKILL_SLOT - 4.0) * frac
+		if remaining > 0.0:
+			entry.key.text = str(ceili(remaining))
+			entry.key.add_theme_color_override("font_color", Color(0.72, 0.68, 0.60))
+		else:
+			entry.key.text = entry.key_text
+			entry.key.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0))
+		## Ready pop: brief bright flash the moment the cooldown finishes.
+		if entry.prev_remaining > 0.0 and remaining <= 0.0:
+			var t: Tween = entry.root.create_tween()
+			t.tween_property(entry.root, "modulate", Color(1.7, 1.7, 1.3, 1.0), 0.05)
+			t.tween_property(entry.root, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.25)
+		entry.prev_remaining = remaining
 
 ## ── Depth meter (descent mode) ───────────────────────────────────────────────
 

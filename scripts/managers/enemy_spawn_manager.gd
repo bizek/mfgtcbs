@@ -339,19 +339,22 @@ func _spawn_boss_bypass_cap(enemy_id: String, scene: PackedScene, pos: Vector2) 
 	return enemy
 
 func _spawn_miniboss() -> void:
-	## Phase 3 miniboss — Warped Colossus. Classic arena mode only (wall-clock
-	## trigger); descent mode spawns it via spawn_miniboss_at() instead, near the
-	## player's actual block (see MainArena._on_descent_depth_milestone).
+	## Phase 3 miniboss. Classic arena mode only (wall-clock trigger); descent
+	## mode spawns it via spawn_miniboss_at() instead, near the player's actual
+	## block (see MainArena._on_descent_depth_milestone).
 	spawn_miniboss_at(_get_edge_spawn_position())
 
 func spawn_miniboss_at(pos: Vector2) -> Node2D:
-	## Spawn the Warped Colossus at a given world position. Reuses brute_scene;
-	## the EnemyDefinition provides 2.4× sprite scale and boss tint. Used by both
+	## Spawn the current level's miniboss (LevelData miniboss_id; Ancient Troll in
+	## the caves, Warped Colossus fallback) at a given world position. Used by both
 	## the Phase 3 timer (classic arena) and the descent depth-milestone trigger.
-	var scene: PackedScene = brute_scene
+	var boss_id: String = LevelData.get_miniboss_id(GameManager.current_level)
+	var scene: PackedScene = _get_scene_for_id(boss_id)
+	if scene == null:
+		scene = brute_scene
 	if scene == null:
 		return null
-	return _spawn_boss_bypass_cap("warped_colossus", scene, pos)
+	return _spawn_boss_bypass_cap(boss_id, scene, pos)
 
 func _spawn_final_boss() -> void:
 	## Phase 5 final boss (classic arena) — spawns at arena center for drama.
@@ -359,21 +362,35 @@ func _spawn_final_boss() -> void:
 
 
 func spawn_final_boss_at(pos: Vector2) -> Node2D:
-	## Spawn The Heart of the Deep at a given world position. Reuses brute_scene;
-	## flips GameManager.final_boss_alive so extraction gates until it dies.
-	## Used by both the Phase 5 timer (classic) and the descent Portal trigger.
-	var scene: PackedScene = brute_scene
+	## Spawn the current level's final boss (LevelData final_boss_id; Goblin King
+	## in the caves, Heart of the Deep fallback) at a given world position; flips
+	## GameManager.final_boss_alive so extraction gates until it dies. Used by
+	## both the Phase 5 timer (classic) and the descent Portal trigger.
+	var boss_id: String = LevelData.get_final_boss_id(GameManager.current_level)
+	var scene: PackedScene = _get_scene_for_id(boss_id)
+	if scene == null:
+		scene = brute_scene
 	if scene == null:
 		return null
 	GameManager.final_boss_alive = true
-	var boss: Node2D = _spawn_boss_bypass_cap("heart_of_the_deep", scene, pos)
+	var boss: Node2D = _spawn_boss_bypass_cap(boss_id, scene, pos)
 	if boss != null:
-		var disp_name: String = "The Heart of the Deep"
-		var def: EnemyDefinition = _defs.get("heart_of_the_deep")
+		var disp_name: String = boss_id.capitalize()
+		var def: EnemyDefinition = _defs.get(boss_id)
 		if def != null and def.enemy_name != "":
 			disp_name = def.enemy_name
 		GameManager.final_boss_spawned.emit(disp_name)
 	return boss
+
+
+func spawn_add(enemy_id: String, pos: Vector2) -> Node2D:
+	## Spawn a single enemy as a boss add (SummonEffect → CombatOrchestrator).
+	## Goes through _spawn_from_def, so it respects the active-enemy cap and
+	## current difficulty scaling; adds never roll elite.
+	var scene: PackedScene = _get_scene_for_id(enemy_id)
+	if scene == null:
+		return null
+	return _spawn_from_def(enemy_id, scene, pos, _get_effective_difficulty(), false)
 
 
 func spawn_named_boss_at(boss_id: String, pos: Vector2) -> Node2D:

@@ -20,6 +20,8 @@ const ENEMY_DROP_RATES: Dictionary = {
 	"anchor":   { "resource": 0.15,  "weapon_mod": 0.08,  },
 	"warped_colossus":    { "resource": 1.0,  "weapon_mod": 0.90, },
 	"heart_of_the_deep":  { "resource": 1.0,  "weapon_mod": 1.00, },
+	"ancient_troll":      { "resource": 1.0,  "weapon_mod": 0.90, },
+	"goblin_king":        { "resource": 1.0,  "weapon_mod": 1.00, },
 }
 
 ## Fallback for unknown enemy types
@@ -91,6 +93,47 @@ const RARITY_COLORS: Dictionary = {
 
 ## Keystone drop chance (elite only, independent roll)
 const KEYSTONE_ELITE_CHANCE: float = 0.05
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SMART-LOOT (task 34) — class-gear drop tuning levers (single source of truth)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+## Chance a weapon drop rolls FOR the class you're currently playing (vs off-class cargo).
+const ON_CLASS_BIAS: float = 0.78
+## Purples are rarer AND much more likely on-class — the engineered jackpot moment.
+const PURPLE_ON_CLASS_BIAS: float = 0.90
+## On a gear drop, chance it's a universal trinket instead of a class weapon.
+const TRINKET_DROP_SHARE: float = 0.30
+
+## Maps the game's 5-tier rarity onto the 3 gear tiers (green=uncommon/blue=rare/purple=epic).
+## common floors to green; legendary ceils to purple. Keeps class gear on the shipped
+## per-phase weight curve without a second roll.
+static func gear_rarity_from(rarity: String) -> String:
+	match rarity:
+		"common", "uncommon": return "uncommon"
+		"rare":               return "rare"
+		"epic", "legendary":  return "epic"
+	return "uncommon"
+
+## Rolls a gear rarity straight from the phase weights, sampling only the 3 gear tiers
+## (renormalized). Purple/epic stays rare early, common late — the drop lever for
+## "rarity weights per depth/phase". Used for the forced-purple debug and boss gear.
+static func roll_gear_rarity(phase: int) -> String:
+	var weights: Dictionary = PHASE_RARITY_WEIGHTS.get(clampi(phase, 1, 5), PHASE_RARITY_WEIGHTS[1])
+	var tiers: Array = ["uncommon", "rare", "epic"]
+	var total: int = 0
+	for t in tiers:
+		total += int(weights.get(t, 0))
+	if total <= 0:
+		return "uncommon"
+	var roll: int = randi() % total
+	var cumulative: int = 0
+	for t in tiers:
+		cumulative += int(weights.get(t, 0))
+		if roll < cumulative:
+			return t
+	return "uncommon"
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

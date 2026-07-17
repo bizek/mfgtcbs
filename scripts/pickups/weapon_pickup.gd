@@ -6,8 +6,10 @@ extends Area2D
 ## On successful extraction, GameManager unlocks it in ProgressionManager.
 ## If you die, you lose it — same risk as any other extractable loot.
 
-var weapon_id: String = ""
+var weapon_id: String = ""     ## weapon id, or (when is_trinket) a TrinketData id
 var rarity: String = "common"  ## Set by spawner — affects instability cost and visuals
+var is_trinket: bool = false   ## true → this is a universal trinket, not a class weapon (task 34)
+var target_char_id: String = ""  ## non-empty → off-class cargo bound for that character's stash
 
 var _magnetized: bool = false
 var _target: Node2D = null
@@ -24,8 +26,11 @@ func _ready() -> void:
 	collision_mask  = 1   ## player body (layer 1, bit 0)
 	monitoring      = true
 
-	## Fetch tint from weapon data (safe — data is always loaded)
-	if weapon_id in WeaponData.ALL:
+	## Fetch tint from the item's data (safe — data is always loaded)
+	if is_trinket:
+		if weapon_id in TrinketData.ALL:
+			_tint = TrinketData.ALL[weapon_id].get("tint", Color.WHITE)
+	elif weapon_id in WeaponData.ALL:
 		_tint = WeaponData.ALL[weapon_id].get("tint", Color.WHITE)
 
 	## Collision circle
@@ -43,10 +48,18 @@ func _ready() -> void:
 func _build_label() -> void:
 	if weapon_id.is_empty():
 		return
-	var display: String = WeaponData.ALL.get(weapon_id, {}).get("display_name", weapon_id)
+	var display: String = ""
+	if is_trinket:
+		display = TrinketData.ALL.get(weapon_id, {}).get("display_name", weapon_id)
+	else:
+		display = WeaponData.ALL.get(weapon_id, {}).get("display_name", weapon_id)
 	var rarity_color: Color = LootTables.RARITY_COLORS.get(rarity, Color.WHITE)
 	var lbl := Label.new()
-	lbl.text = "[" + rarity.to_upper() + "] " + display
+	## Off-class cargo reads as "for THE WARDEN" so the player knows it banks elsewhere.
+	var cargo_tag: String = ""
+	if not target_char_id.is_empty():
+		cargo_tag = " → " + CharacterData.ALL.get(target_char_id, {}).get("display_name", target_char_id)
+	lbl.text = "[" + rarity.to_upper() + "] " + display + cargo_tag
 	lbl.position = Vector2(-52.0, -30.0)
 
 	var settings := LabelSettings.new()
@@ -115,6 +128,9 @@ func _collect() -> void:
 	if _collected or weapon_id.is_empty():
 		return
 	_collected = true
-	GameManager.add_collected_weapon(weapon_id, rarity)
+	if is_trinket:
+		GameManager.add_collected_trinket(weapon_id, rarity)
+	else:
+		GameManager.add_collected_weapon(weapon_id, rarity)
 	EventBus.on_pickup.emit(_target, "weapon")
 	queue_free()

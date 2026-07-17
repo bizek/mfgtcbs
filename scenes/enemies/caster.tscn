@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://sig3a03yqscxy"]
+[gd_scene format=3 uid="uid://c1tlwsfyhytww"]
 
 [ext_resource type="Script" uid="uid://cp7gnmjq6gvun" path="res://scripts/entities/enemy.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://c4loy3am5ip0b" path="res://assets/minifantasy/Minifantasy_Undead_Creatures_v1.0/Minifantasy_Undead_Creatures_Assets/Reanimated_Zombie_Mage/Cast.png" id="2_bt9fn"]
@@ -223,10 +223,8 @@ region = Rect2(160, 0, 32, 32)
 filter_clip = true
 
 [sub_resource type="SpriteFrames" id="SF_caster_9ljhm"]
-animations = [
-{
-"frames": [
-{
+animations = [{
+"frames": [{
 "duration": 1.0,
 "texture": SubResource("AT_attack_0_15i47")
 }, {
@@ -244,14 +242,12 @@ animations = [
 }, {
 "duration": 1.0,
 "texture": SubResource("AT_attack_5_98f6r")
-}
-],
+}],
 "loop": false,
 "name": &"attack",
 "speed": 8.0
 }, {
-"frames": [
-{
+"frames": [{
 "duration": 1.0,
 "texture": SubResource("AT_damage_0_kobin")
 }, {
@@ -263,14 +259,12 @@ animations = [
 }, {
 "duration": 1.0,
 "texture": SubResource("AT_damage_3_er377")
-}
-],
+}],
 "loop": false,
 "name": &"damage",
 "speed": 12.0
 }, {
-"frames": [
-{
+"frames": [{
 "duration": 1.0,
 "texture": SubResource("AT_death_0_d2b0w")
 }, {
@@ -315,14 +309,12 @@ animations = [
 }, {
 "duration": 1.0,
 "texture": SubResource("AT_death_14_1nn02")
-}
-],
+}],
 "loop": false,
 "name": &"death",
 "speed": 6.0
 }, {
-"frames": [
-{
+"frames": [{
 "duration": 1.0,
 "texture": SubResource("AT_idle_0_44o01")
 }, {
@@ -358,14 +350,12 @@ animations = [
 }, {
 "duration": 1.0,
 "texture": SubResource("AT_idle_11_usobw")
-}
-],
+}],
 "loop": true,
 "name": &"idle",
 "speed": 5.0
 }, {
-"frames": [
-{
+"frames": [{
 "duration": 1.0,
 "texture": SubResource("AT_walk_0_dptwm")
 }, {
@@ -383,13 +373,11 @@ animations = [
 }, {
 "duration": 1.0,
 "texture": SubResource("AT_walk_5_g8bpw")
-}
-],
+}],
 "loop": true,
 "name": &"walk",
 "speed": 5.0
-}
-]
+}]
 
 [sub_resource type="RectangleShape2D" id="RS_hb_0by55"]
 size = Vector2(12, 12)
@@ -397,22 +385,21 @@ size = Vector2(12, 12)
 [sub_resource type="RectangleShape2D" id="RS_body_2zay6"]
 size = Vector2(8, 10)
 
-[node name="Caster" type="CharacterBody2D"]
+[node name="Caster" type="CharacterBody2D" unique_id=818911021]
 collision_layer = 2
 collision_mask = 3
 script = ExtResource("1_script")
 
-[node name="Sprite" type="AnimatedSprite2D" parent="."]
+[node name="Sprite" type="AnimatedSprite2D" parent="." unique_id=1045299309]
 sprite_frames = SubResource("SF_caster_9ljhm")
 animation = &"idle"
 autoplay = "idle"
 
-[node name="Hurtbox" type="Area2D" parent="."]
+[node name="Hurtbox" type="Area2D" parent="." unique_id=85174056]
 collision_layer = 2
-collision_mask = 0
 
-[node name="CollisionShape" type="CollisionShape2D" parent="Hurtbox"]
+[node name="CollisionShape" type="CollisionShape2D" parent="Hurtbox" unique_id=983285750]
 shape = SubResource("RS_hb_0by55")
 
-[node name="CollisionShape" type="CollisionShape2D" parent="."]
+[node name="CollisionShape" type="CollisionShape2D" parent="." unique_id=1608935212]
 shape = SubResource("RS_body_2zay6")

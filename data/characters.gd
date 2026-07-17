@@ -14,7 +14,7 @@ const ALL: Dictionary = {
 		"display_name":    "THE SELLSWORD",
 		"char_class":      "Fighter",
 		"description":     "A nameless blade-for-hire. No magic, no tricks — just steel.",
-		"starting_weapon": "Arcane Blade",   ## Fighter = melee (swapped with Ranger 2026-06-24)
+		"starting_weapon": "Mercenary's Edge",   ## Fighter GREEN (task 34 class gear)
 		"melee_kit":       "fighter",        ## drives the combo-chain moveset (ChainFactory/SkillFactory)
 		"passive_id":      "none",
 		"passive_name":    "—",
@@ -53,6 +53,12 @@ const ALL: Dictionary = {
 				"uppercut":     ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/Special_Animations/Uppercut/Figther_Uppercut.png",        4, 18.0],
 				"uppercut_fx":  ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/Special_Animations/Uppercut/Figther_Uppercut_Effect.png", 4, 18.0],
 				"taunt":        ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/Special_Animations/Taunt/Figther_Taunt.png",              9, 16.0],
+				## Q/E skill re-slices (SkillFactory): "rally" = Taunt sheet slower (Second Wind —
+				## distinct NAME so it skips the taunt shockwave host hook); "flurry" = Swirl faster
+				## (Blade Flurry) with its frame-matched effect overlay.
+				"rally":        ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/Special_Animations/Taunt/Figther_Taunt.png",              9, 12.0],
+				"flurry":       ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/Special_Animations/Swirl/Figther_Swirl.png",              4, 22.0],
+				"flurry_fx":    ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/Special_Animations/Swirl/Figther_Swirl_Effect.png",       4, 22.0],
 			},
 		},
 	},
@@ -152,6 +158,10 @@ const ALL: Dictionary = {
 				"dictum_fx": ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Dictums/BladesDictumEffect.png",         15, 20.0],
 				"dome":      ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Dictums/_PaladinDictum.png",             15, 20.0],
 				"dome_fx":   ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Dictums/DomeDictumEffect.png",           15, 20.0],
+				## Q skill re-slice (SkillFactory): "vow" = the Dictum cast quicker, paired with the
+				## protective Dome effect overlay (Aegis Vow).
+				"vow":       ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Dictums/_PaladinDictum.png",             15, 24.0],
+				"vow_fx":    ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Dictums/DomeDictumEffect.png",           15, 24.0],
 			},
 		},
 	},
@@ -163,7 +173,7 @@ const ALL: Dictionary = {
 		"display_name":    "THE SPARK",
 		"char_class":      "Wizard",
 		"description":     "A reckless arcanist who overcharges every spell — devastating, one misstep from ash.",
-		"starting_weapon": "Spark's Pistol",
+		"starting_weapon": "Apprentice Flame",   ## Wizard GREEN (task 34 class gear)
 		"melee_kit":       "wizard",         ## drives the combo-chain moveset (ChainFactory)
 		"dash_style":      "teleport",       ## Space = blink (class-flavored dash, player.gd)
 		"passive_id":      "spark_passive",
@@ -203,6 +213,9 @@ const ALL: Dictionary = {
 				"teleport_out": ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Wizard/Special_Animations/Teleport/Wizard_Teleport_Start_Diagonal.png",    13, 26.0],
 				"teleport_in":  ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Wizard/Special_Animations/Teleport/Wizard_Teleport_End_Diagonal.png",      13, 26.0],
 				"torrent":      ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Wizard/Special_Animations/Fire_Torrent/Wizard_Fire_Torrent.png",           20, 30.0],
+				## E skill re-slice (SkillFactory): "nova" = the Fireball cast fast (Flame Nova —
+				## distinct NAME so it skips the charge-slow host hooks on "fireball"/"fireball_2").
+				"nova":         ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Wizard/Special_Animations/Fireball/Wizard_Fireball_Diagonal.png",           11, 26.0],
 			},
 		},
 	},
@@ -214,7 +227,7 @@ const ALL: Dictionary = {
 		"display_name":    "THE SHADE",
 		"char_class":      "Rogue",
 		"description":     "A cutthroat who simply isn't where the blow lands — gone in a wisp of shadow.",
-		"starting_weapon": "Arcane Blade",
+		"starting_weapon": "Shadowfang",   ## Rogue GREEN (task 34 class gear)
 		"melee_kit":       "rogue",          ## drives the combo-chain moveset (ChainFactory)
 		"passive_id":      "shade_passive",
 		"passive_name":    "Shadowstep",
@@ -361,7 +374,7 @@ const ALL: Dictionary = {
 		"display_name":    "THE RAVAGER",
 		"char_class":      "Barbarian",
 		"description":     "A mountain of scars and fury. The storm follows his blade because it's afraid to be left behind.",
-		"starting_weapon": "Arcane Blade",    ## Barbarian = melee; the combo IS the attack
+		"starting_weapon": "Ravager's Cleaver",    ## Barbarian GREEN (task 34 class gear)
 		"melee_kit":       "barbarian",       ## drives the combo-chain moveset (ChainFactory/SkillFactory)
 		"passive_id":      "ravager_passive",
 		"passive_name":    "Bloodrage",
@@ -414,7 +427,7 @@ const ALL: Dictionary = {
 		"display_name":    "THE WHISPER",
 		"char_class":      "Ninja",
 		"description":     "You won't hear the blade. You won't hear anything at all.",
-		"starting_weapon": "Arcane Blade",    ## Ninja = knives; the combo IS the attack
+		"starting_weapon": "Whisper's Kiss",    ## Ninja GREEN (task 34 class gear)
 		"melee_kit":       "ninja",           ## drives the combo-chain moveset (ChainFactory/SkillFactory)
 		"dash_style":      "deadly",          ## Space = Deadly Dash — strikes enemies along the path
 		"passive_id":      "whisper_passive",
@@ -467,7 +480,7 @@ const ALL: Dictionary = {
 		"display_name":    "THE DEADEYE",
 		"char_class":      "Gunslinger",
 		"description":     "Half flesh, half firing mechanism. The desert taught the rest.",
-		"starting_weapon": "Spark's Pistol",  ## Gunslinger = sidearm; the combo IS the attack
+		"starting_weapon": "Peacemaker",  ## Gunslinger GREEN (task 34 class gear)
 		"melee_kit":       "gunslinger",      ## drives the combo-chain moveset (ChainFactory/SkillFactory)
 		"passive_id":      "deadeye_passive",
 		"passive_name":    "Calm Hands",
@@ -513,7 +526,7 @@ const ALL: Dictionary = {
 		"display_name":    "THE VERDANT",
 		"char_class":      "Druid",
 		"description":     "A wilds-keeper who wears the shapes of the forest — claw, fang, and wing.",
-		"starting_weapon": "Arcane Blade",    ## Druid = nature melee; the combo IS the attack
+		"starting_weapon": "Thornstaff",    ## Druid GREEN (task 34 class gear)
 		"melee_kit":       "druid",           ## drives the combo-chain moveset (ChainFactory/SkillFactory)
 		"passive_id":      "verdant_passive",
 		"passive_name":    "Primal Vigor",
@@ -562,7 +575,7 @@ const ALL: Dictionary = {
 		"display_name":    "THE DEVOUT",
 		"char_class":      "Cleric",
 		"description":     "A field-priest who answers the horde with holy fire, a word of pain, and guardians of light.",
-		"starting_weapon": "Arcane Blade",    ## Cleric = censer melee into holy casts; the combo IS the attack
+		"starting_weapon": "Ember Censer",    ## Cleric GREEN (task 34 class gear)
 		"melee_kit":       "cleric",          ## drives the combo-chain moveset (ChainFactory/SkillFactory)
 		"passive_id":      "devout_passive",
 		"passive_name":    "Last Rites",

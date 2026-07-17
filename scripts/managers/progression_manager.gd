@@ -44,6 +44,13 @@ var weapon_mods: Dictionary = {}
 ## isolated when the player switches character. owned_mods (above) still holds every mod
 ## instance — generic AND class — so the collection / insurance / save flow is one list.
 var character_mods: Dictionary = {}
+
+## Class-gear trinkets (task 34). owned_trinkets = the shared universal-trinket inventory
+## (duplicates allowed, one per instance). character_trinkets = { char_id: [slot0, slot1, …] },
+## "" for empty. Trinkets are universal but equip per-character (2 base slots + workshop 3rd).
+var owned_trinkets: Array = []
+var character_trinkets: Dictionary = {}
+
 var total_runs: int = 0
 var successful_extractions: int = 0
 var deaths: int = 0
@@ -99,6 +106,8 @@ func save_data() -> void:
 		"owned_mods":             owned_mods,
 		"weapon_mods":            weapon_mods,
 		"character_mods":         character_mods,
+		"owned_trinkets":         owned_trinkets,
+		"character_trinkets":     character_trinkets,
 		"character_loadouts":     character_loadouts,
 		"game_cleared":           game_cleared,
 		"cleared_characters":     cleared_characters,
@@ -150,6 +159,8 @@ func load_data() -> void:
 	owned_mods   = result.get("owned_mods",  [])
 	weapon_mods  = result.get("weapon_mods", {})
 	character_mods = result.get("character_mods", {})   ## defensive: absent in pre-task-31 saves
+	owned_trinkets = result.get("owned_trinkets", [])     ## defensive: absent in pre-task-34 saves
+	character_trinkets = result.get("character_trinkets", {})
 	character_loadouts = result.get("character_loadouts", {})
 	game_cleared = bool(result.get("game_cleared", false))
 	cleared_characters = result.get("cleared_characters", [])
@@ -180,6 +191,8 @@ func reset_save() -> void:
 	owned_mods             = []
 	weapon_mods            = {}
 	character_mods         = {}
+	owned_trinkets         = []
+	character_trinkets     = {}
 	total_runs             = 0
 	successful_extractions = 0
 	deaths                 = 0
@@ -436,6 +449,58 @@ func remove_character_mod(char_id: String, slot: int) -> void:
 		owned_mods.append(existing)
 	character_mods[char_id][slot] = ""
 	save_data()
+
+## ── Trinkets & class-gear stash (task 34) ────────────────────────────────────
+## Trinkets are universal but equip per-character (2 base slots + workshop 3rd).
+## owned_trinkets is the shared unequipped inventory; equipping moves an instance
+## out of it into a character slot (mirrors weapon_mods / class_mods).
+const TRINKET_BASE_SLOTS: int = 2
+const TRINKET_SLOT_UPGRADE: String = "trinket_slot"
+
+func trinket_slots() -> int:
+	return TRINKET_BASE_SLOTS + (1 if has_upgrade(TRINKET_SLOT_UPGRADE) else 0)
+
+func add_trinket(trinket_id: String) -> void:
+	owned_trinkets.append(trinket_id)   ## duplicates allowed — one per instance
+	save_data()
+
+## Equipped trinket ids for a character (may include "" for empty slots).
+func get_character_trinkets(char_id: String) -> Array:
+	return character_trinkets.get(char_id, [])
+
+## Equip a trinket into a character slot (0-indexed). Consumes one copy from owned_trinkets.
+func set_character_trinket(char_id: String, slot: int, trinket_id: String) -> void:
+	if not character_trinkets.has(char_id):
+		character_trinkets[char_id] = []
+	while character_trinkets[char_id].size() <= slot:
+		character_trinkets[char_id].append("")
+	character_trinkets[char_id][slot] = trinket_id
+	var idx: int = owned_trinkets.find(trinket_id)
+	if idx >= 0:
+		owned_trinkets.remove_at(idx)
+	save_data()
+
+## Remove a trinket from a character slot (0-indexed) and return it to owned_trinkets.
+func remove_character_trinket(char_id: String, slot: int) -> void:
+	if not character_trinkets.has(char_id):
+		return
+	if slot >= character_trinkets[char_id].size():
+		return
+	var existing: String = character_trinkets[char_id][slot]
+	if not existing.is_empty():
+		owned_trinkets.append(existing)
+	character_trinkets[char_id][slot] = ""
+	save_data()
+
+## Roster badge (task 34): true when this character has an unlocked class weapon that
+## isn't in its loadout — i.e. off-class cargo banked to its stash, waiting to be equipped.
+func has_unequipped_gear(char_id: String) -> bool:
+	var loadout: Array = get_character_loadout(char_id)
+	for wid in unlocked_weapons:
+		if WeaponData.get_weapon_class(wid) == char_id and wid not in loadout:
+			return true
+	return false
+
 
 ## Returns true if the character is already unlocked.
 func has_character(char_id: String) -> bool:
