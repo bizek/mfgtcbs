@@ -4,6 +4,8 @@ Complete enumeration of sound-worthy events across all game systems. Organized b
 
 **Status (2026-07-06, task 15):** All P1 entries wired to real CC0 assets (Kenney.nl + OpenGameArt.org, see `docs/asset_inventory.md` §7-8). Most P2 entries wired too. Remaining gaps have no good-fit free asset yet — see the TODO block at the end of this file. ✅ = wired to a real asset; unmarked P2 rows with no note are still open.
 
+**Re-source pass (2026-07-10):** Ben rejected the current SFX set (everything except `mus_hub` and the cave ambience, which stay). Replacement source: the **Leohpaz Minifantasy audio packs** — the official audio companions to the exact Minifantasy art packs the game uses (True Heroes I–IV SFX are authored per character animation package). License: personal + commercial use OK, no redistribution, credits optional, no generative AI. See the "Re-source shopping list" section at the end of this file for the slot-by-slot mapping. Swap-in is file-replacement only: keep the same `res://assets/audio/...` paths (or edit `data/factories/sound_table.gd` stream lists) — zero code changes.
+
 ---
 
 ## Combat SFX — Weapon Fire & Combo Hits
@@ -13,8 +15,8 @@ Complete enumeration of sound-worthy events across all game systems. Organized b
 | ✅ `sfx_swing_light` | Combat | `ChainFactory` light swing phase (hit_frame) | P1 | Light attack impact; all 10 kits share one sound family. Used by: Fighter Attack, Rogue Slash, Paladin Strike, Wizard Bolt, Blood Mage Shard, Ranger Shot, Bard Strike, Barbarian Cleave, Ninja Slash, Gunslinger Shot. Needs 2–3 variations (quick, crisp). |
 | ✅ `sfx_swing_heavy` | Combat | `ChainFactory` heavy swing phase (hit_frame) | P1 | Heavy finisher impact (Cataclysm, Bomb, Hammer, Thunder Blade, etc.). Needs 2–3 variations (impact + rumble). |
 | `sfx_channel_loop` | Combat | `ChainFactory` channel phase tick (per beat) | P2 | Looped ability tick for held-RMB channels (Taunt shockwave, Fan of Blades, Dome, Torrent, Vampirize, Conceal, Song, Guard, Thousand Blades Storm, Desert Storm). Soft, repetitive. One loop sound per channel family (shockwave, projectile, song, etc.) — 5–6 variations. |
-| `sfx_projectile_fire` | Combat | `SpawnProjectilesEffect` on hit_frame (beam, artillery, summon projectiles) | P2 | Ranged weapon fire (Ember Beam ticks, Void Mortar fuse, Wizard Fireball release, Blood Shard, Chord bolt, Arrow volleys, Gun bullets, Thunder bolt). Varies by spell family. Needs 3–4 family variants (arcane whoosh, fire crackle, ice whistle, lightning snap). |
-| `sfx_melee_swing_arc` | Combat | `AreaDamageEffect` on melee arc swing | P2 | Generic melee whoosh (Rogue Fan finisher, Paladin bash, Barbarian Sunder shove). Light, atmospheric. One family suffices. |
+| ✅ `sfx_projectile_fire` | Combat | `EventBus.on_ability_used` for any non-Combo, non-Melee ability (player weapon release + enemy ability wind-ups) | P2 | Wired 2026-07-09: aliases the swing_light whooshes with wide pitch variance (no dedicated CC0 asset found). Replace streams with per-family variants later, zero code changes needed. |
+| ✅ `sfx_melee_swing_arc` | Combat | `EventBus.on_ability_used` for Melee-tagged non-Combo abilities | P2 | Wired 2026-07-09: aliases swing_heavy whooshes, pitch-varied. |
 
 ---
 
@@ -176,7 +178,7 @@ No good-fit free CC0/CC-BY asset was found for these in the time available. Tabl
 |---|---|---|
 | `sfx_status_burn_apply`, `sfx_status_chill_apply`, `sfx_status_frozen`, `sfx_status_shocked_apply`, `sfx_status_void_apply` | `assets/audio/sfx/status/*.ogg` | No short, subtle "status applied" stingers found in the Kenney packs pulled for this pass; worth a dedicated OpenGameArt/Kenney search pass. |
 | `sfx_status_burn_tick` | *(no table entry yet)* | Needs a StatusEffectComponent tick hook in addition to an asset — not started. |
-| `sfx_channel_loop`, `sfx_projectile_fire`, `sfx_melee_swing_arc` | *(no table entries yet)* | Need per-family variants (5-6 for channels, 3-4 for projectiles) and EffectDispatcher/ChoreographyRunner hook sites — bigger scope than a data-only pass. |
+| `sfx_channel_loop` | *(no table entry yet)* | Needs per-family loop variants (5-6) and a ChoreographyRunner channel-tick hook — bigger scope than a data-only pass. (`sfx_projectile_fire` / `sfx_melee_swing_arc` were wired 2026-07-09 via `EventBus.on_ability_used`, reusing pitch-varied swing whooshes as stand-in assets.) |
 | `sfx_dash_generic`, `sfx_dash_teleport`, `sfx_dash_deadly`, `sfx_dash_dodge_roll` | *(no table entries yet)* | Not wired; dash call sites (`player.dash()`) need EventBus or direct-call hookup. |
 | `sfx_skill_*` (7 entries), `sfx_pet_*` (6 entries) | *(no table entries yet)* | Per-ability/per-pet hookup, out of scope for this pass. |
 | `sfx_boss_phase_transition` | *(no table entry yet)* | No per-phase transition signal currently emitted by boss choreography. |
@@ -213,6 +215,39 @@ No good-fit free CC0/CC-BY asset was found for these in the time available. Tabl
 ## Asset Sourcing & Next Steps
 
 **Check Minifantasy SFX packs first** for style cohesion. The Minifantasy character asset packs ship with some SFX content; audit whether any of the attack/impact/footstep/defeat sounds align with intended tones before sourcing additional libraries.
+
+---
+
+## Re-source shopping list (2026-07-10 pass)
+
+Confirmed: Leohpaz (the official Minifantasy audio partner) publishes companion SFX packs
+for the exact art packs this game uses. All packs: personal + commercial use OK, no
+redistribution, credits optional, no generative AI. Individual packs ≈ $2.99; the
+**Leohpaz Complete SFX Bundle** ($49.99, itch.io/s/79857) covers everything below.
+
+**Free audition first (zero cost, hear the style):** "RPG Essentials SFX - Free" (48 sounds)
+and the "Minifantasy - Dungeon Audio Pack" (free; 62 SFX incl. sword hits/misses, chest and
+door foley, 2 loopable music tracks).
+
+| Sound slots (SoundTable ids) | Pack | Why |
+|---|---|---|
+| `sfx_swing_light/heavy`, `sfx_melee_swing_arc`, `sfx_projectile_fire`, `sfx_hit_physical`, `sfx_block` | **Minifantasy - Weapons SFX** (40) | Purpose-made weapon swings/impacts in the house style. |
+| Per-class combos, Q/E skills, dashes, `sfx_death_player` | **Minifantasy - True Heroes I–IV SFX** (63/90/65/82) | Authored per character animation package we already wire: Warcry, Guard, Throw, Thunderblade, Shuriken, Bomb, Dodge, Root/Shapeshift, etc. Covers all 12 classes. |
+| `sfx_hit_fire/cryo/shock/void`, `sfx_status_*` (all 5 TODO slots), `sfx_crit` | **Minifantasy - Magic and Sorcery SFX** (35) + **Magic Weapons SFX** (109) | Elemental impacts + apply stingers, matching the mod/status system. |
+| `sfx_death_enemy_normal/elite`, `sfx_kill` | **Minifantasy - Creatures SFX** (153) + **Ancient Danger Creatures SFX** (60) | Per-creature vocals for the cave roster (fodder/bats/brutes/casters). |
+| `sfx_boss_intro`, `sfx_death_enemy_boss`, phase stingers | **Minifantasy - True Villains SFX** (79) + **Boss Encounter SFX** (19) | Goblin King / Ancient Troll voices + encounter stingers. |
+| `sfx_pickup_*`, `sfx_ui_*`, `sfx_upgrade_select` | **Retro RPG 100 UI SFX** + **Inventory SFX** (25) | Full UI/pickup coverage in one retro-consistent voice. |
+| `sfx_level_up`, `sfx_extraction_channel_complete` | **RPG Jingles and Fanfares** | Proper fanfares instead of repurposed chimes. |
+| `sfx_extraction_warning/channel_start/channel_loop/interrupted` | **Portals and Runes SFX** (41) | Actual portal hums/surges — replaces the `spaceEngineLow` stand-in drone. |
+| `amb_caves_drip/wind` + descent depth polish | **Mining Cave SFX** (42) + **Ambiences and Perspectives** (56) | Cave ambience layers (keeps, but deepens, the liked cave track). |
+| `mus_boss`, future biome tracks | **RPG Music Pack Vol 1-3 (Retro or Orchestral)** | Audition against `mus_hub` (KEEP) to pick the matching family. |
+
+**KEEP unchanged:** `mus_hub` (hub music) and `mus_caves` (cave ambience) — Ben approved these.
+
+**Swap workflow:** Ben downloads packs → drop raw files under `assets/audio/_incoming/<pack_name>/`
+→ Claude converts (wav→ogg where useful), renames onto the existing `res://assets/audio/...`
+paths (or edits `data/factories/sound_table.gd` stream lists), and retunes `volume_db`
+per slot. AudioManager needs zero code changes.
 
 **Primary sources** (per `docs/audio_pipeline.md` §7):
 - **Music**: juanjo_sound (Dark Dungeon Ambient), OpenGameArt.org (CC0), Pixabay (royalty-free)

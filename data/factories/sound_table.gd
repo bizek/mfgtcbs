@@ -31,6 +31,28 @@ const ALL: Dictionary = {
 		],
 		"volume_db": -9.0, "max_per_frame": 3, "positional": true,
 	},
+	## Weapon/ability fire (P2 "weapon fire") — no dedicated CC0 asset found, so these
+	## alias the swing whooshes with wider pitch variance (manifest §synthesis). Fired
+	## from EventBus.on_ability_used for every non-combo ability (player weapons and
+	## enemy ability wind-ups); combo swings keep the on-hit swing SFX path.
+	"sfx_projectile_fire": {
+		"streams": [
+			"res://assets/audio/sfx/combat/swing_light_0.ogg",
+			"res://assets/audio/sfx/combat/swing_light_1.ogg",
+			"res://assets/audio/sfx/combat/swing_light_2.ogg",
+		],
+		"volume_db": -13.0, "max_per_frame": 2, "pitch_variance": 0.18,
+		"positional": true, "min_interval_ms": 45,
+	},
+	"sfx_melee_swing_arc": {
+		"streams": [
+			"res://assets/audio/sfx/combat/swing_heavy_0.ogg",
+			"res://assets/audio/sfx/combat/swing_heavy_1.ogg",
+			"res://assets/audio/sfx/combat/swing_heavy_2.ogg",
+		],
+		"volume_db": -12.0, "max_per_frame": 2, "pitch_variance": 0.12,
+		"positional": true, "min_interval_ms": 45,
+	},
 	"sfx_swing_heavy": {
 		"streams": [
 			"res://assets/audio/sfx/combat/swing_heavy_0.ogg",
@@ -88,8 +110,10 @@ const ALL: Dictionary = {
 		"volume_db": -6.0, "max_per_frame": 2, "min_interval_ms": 50,
 	},
 	"sfx_kill": {
+		## Positional so the kill confirm reads as "that enemy died", not a
+		## disembodied global thunk over whatever weapon is firing.
 		"streams": ["res://assets/audio/sfx/combat/kill.ogg"],
-		"volume_db": -8.0, "max_per_frame": 2, "min_interval_ms": 60,
+		"volume_db": -8.0, "max_per_frame": 2, "min_interval_ms": 60, "positional": true,
 	},
 	"sfx_death_enemy_normal": {
 		"streams": [
@@ -231,6 +255,24 @@ const ALL: Dictionary = {
 	"sfx_boss_intro": {
 		"streams": ["res://assets/audio/sfx/combat/boss_intro.ogg"],
 		"volume_db": -3.0, "max_per_frame": 1, "pitch_variance": 0.0,
+	},
+
+	# ── Dashes (task 15 — synthesized in-house, see _incoming/reaper_sfx) ───
+	"sfx_dash_generic": {
+		"streams": ["res://assets/audio/sfx/dash/dash_generic.ogg"],
+		"volume_db": -11.0, "max_per_frame": 1, "min_interval_ms": 100,
+	},
+	"sfx_dash_teleport": {
+		"streams": ["res://assets/audio/sfx/dash/dash_teleport.ogg"],
+		"volume_db": -10.0, "max_per_frame": 1, "min_interval_ms": 100,
+	},
+	"sfx_dash_deadly": {
+		"streams": ["res://assets/audio/sfx/dash/dash_deadly.ogg"],
+		"volume_db": -10.0, "max_per_frame": 1, "min_interval_ms": 100,
+	},
+	"sfx_dash_dodge_roll": {
+		"streams": ["res://assets/audio/sfx/dash/dash_dodge_roll.ogg"],
+		"volume_db": -11.0, "max_per_frame": 1, "min_interval_ms": 100,
 	},
 }
 

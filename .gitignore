@@ -19,3 +19,6 @@ assets/minifantasy/
 
 # Python tool caches
 tools/__pycache__/
+
+# SFX forge WAV masters (regenerable from tools/sfx_forge; keep OGG audition sets only)
+assets/audio/_incoming/**/*.wav

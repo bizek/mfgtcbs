@@ -120,6 +120,7 @@ func _preload_streams() -> void:
 func _connect_signals() -> void:
 	# Combat (EventBus)
 	EventBus.on_hit_dealt.connect(_on_hit_dealt)
+	EventBus.on_ability_used.connect(_on_ability_used)
 	EventBus.on_crit.connect(_on_crit)
 	EventBus.on_kill.connect(_on_kill)
 	EventBus.on_death.connect(_on_death)
@@ -345,12 +346,27 @@ func _play_swing_sfx(source: Variant, hit_data: Variant) -> void:
 		play("sfx_swing_heavy", _entity_pos(source))
 
 
+## Weapon/ability fire (task 15 "weapon fire" P2). Fires on every ability release:
+## player weapons emit from _fire_pending_shot, enemies from animated-ability and
+## choreography starts (a whoosh on the wind-up doubles as an audio telegraph).
+## Combo abilities are excluded — their swing SFX rides the on-hit path above.
+func _on_ability_used(source: Variant, ability: Variant) -> void:
+	if not (ability is AbilityDefinition):
+		return
+	if ability.tags.has("Combo"):
+		return
+	if ability.tags.has("Melee"):
+		play("sfx_melee_swing_arc", _entity_pos(source))
+	else:
+		play("sfx_projectile_fire", _entity_pos(source))
+
+
 func _on_crit(_source: Variant, _target: Variant, _hit_data: Variant) -> void:
 	play("sfx_crit")
 
 
-func _on_kill(_killer: Variant, _victim: Variant) -> void:
-	play("sfx_kill")
+func _on_kill(_killer: Variant, victim: Variant) -> void:
+	play("sfx_kill", _entity_pos(victim))
 
 
 func _on_death(entity: Variant) -> void:
