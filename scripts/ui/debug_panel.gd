@@ -19,6 +19,7 @@ var _debug_draw_btn: Button
 var _block_debug_btn: Button
 var _auto_fire_btn: Button
 var _mob_spawn_btn: Button
+var _inspector_btn: Button
 
 func _ready() -> void:
 	layer = 127  ## Above everything in-game, below nothing
@@ -108,6 +109,7 @@ func _build_panel() -> void:
 		["Mob Spawning: ON",     _cmd_toggle_mob_spawning],
 		["Debug Draw: OFF",      _cmd_toggle_debug_draw],
 		["Block Overlay: OFF",   _cmd_toggle_block_debug],
+		["Entity Inspector: OFF", _cmd_toggle_inspector],
 		["Reset First-Run",      _cmd_reset_first_run],
 	]
 
@@ -128,6 +130,8 @@ func _build_panel() -> void:
 			_auto_fire_btn = btn
 		if d[0].begins_with("Mob Spawning"):
 			_mob_spawn_btn = btn
+		if d[0].begins_with("Entity Inspector"):
+			_inspector_btn = btn
 
 	## ── Enemy spawn section ───────────────────────────────────────────────────
 	var sep2 := HSeparator.new()
@@ -333,6 +337,16 @@ func _cmd_spawn_final_boss() -> void:
 		disp_name = def.enemy_name
 	GameManager.final_boss_spawned.emit(disp_name)
 	EnemySpawnManager.debug_spawn_by_id("heart_of_the_deep", false)
+
+
+func _cmd_toggle_inspector() -> void:
+	## Enable/disable click-to-inspect. Off by default so it doesn't consume the
+	## click-to-shoot action; testers never trip it unless they opt in here.
+	EntityInspector.click_select_enabled = not EntityInspector.click_select_enabled
+	var on: bool = EntityInspector.click_select_enabled
+	if is_instance_valid(_inspector_btn):
+		_inspector_btn.text = "Entity Inspector: " + ("ON" if on else "OFF")
+		_inspector_btn.modulate = Color(0.3, 1.0, 0.3) if on else Color.WHITE
 
 
 func _cmd_toggle_block_debug() -> void:

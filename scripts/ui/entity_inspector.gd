@@ -1,10 +1,17 @@
 extends CanvasLayer
+class_name EntityInspector
 
 ## EntityInspector — Click-to-inspect debug overlay for combat entities.
 ## Click any entity during combat to see its stats, statuses, modifiers, abilities.
-## Click empty space or press ESC to deselect. Toggle with F5.
+## Click empty space or press ESC to deselect. Toggle visibility with F5.
 ##
-## Added as a child of MainArena when debug_mode is true.
+## Added as a child of MainArena when debug_mode is true. Click-to-select is
+## OPT-IN (default off) so it never fights click-to-shoot — enable it from the
+## debug panel ("Entity Inspector" button) when you actually want to inspect.
+
+## When false, left-clicks are ignored (they belong to click-to-shoot). The
+## debug panel flips this. Static so the panel can toggle it without an instance ref.
+static var click_select_enabled: bool = false
 
 const CLICK_RADIUS_SQ: float = 256.0  ## 16px click radius squared
 const PANEL_WIDTH: float = 175.0
@@ -52,7 +59,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		if not _visible:
+		## Opt-in only — otherwise this steals the click-to-shoot action.
+		if not _visible or not click_select_enabled:
 			return
 		_select_entity_at_mouse()
 		_scroll_offset = 0.0
