@@ -381,10 +381,10 @@ func _input(event: InputEvent) -> void:
 ## Deflection updates and holds the aim direction; releasing the stick keeps the last direction
 ## instead of snapping back to the cursor, since a melee swing needs a stable facing.
 func _update_controller_aim() -> void:
-	var stick: Vector2 = Vector2(
-		Input.get_action_strength("aim_right") - Input.get_action_strength("aim_left"),
-		Input.get_action_strength("aim_down") - Input.get_action_strength("aim_up")
-	)
+	## Radial deadzone, not per-axis: a per-axis gate zeroes the smaller component on any
+	## shallow push, which snapped aim to the cardinals the same way movement was snapping.
+	## Only the direction is used here, so magnitude past the deadzone doesn't matter.
+	var stick: Vector2 = Input.get_vector("aim_left", "aim_right", "aim_up", "aim_down", 0.25)
 	if stick.length_squared() > 0.0:
 		_controller_aim_dir = stick.normalized()
 		_using_controller_aim = true
@@ -872,14 +872,13 @@ func _physics_process(delta: float) -> void:
 
 	# Movement (CC-aware)
 	var move_blocked: bool = status_effect_component.is_disabled() or status_effect_component.is_movement_disabled()
+	## Analog: length is the fraction of move_speed the stick is asking for, so this must
+	## NOT be normalized — that is what pinned movement to 8 directions at full speed.
 	var input_dir := Vector2.ZERO
 	if not move_blocked:
-		input_dir = Vector2(
-			Input.get_axis("move_left", "move_right"),
-			Input.get_axis("move_up",   "move_down")
-		).normalized()
+		input_dir = MoveInput.get_move_vector()
 	if input_dir.length_squared() > 0.0:
-		_last_move_dir = input_dir
+		_last_move_dir = input_dir.normalized()   ## direction only — dash/aim fallback
 
 	# Dash: refill charges, then consume one on press (CC blocks both starting a dash
 	# and is checked the same way the movement block is).
