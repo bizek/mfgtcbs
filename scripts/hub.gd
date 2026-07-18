@@ -359,12 +359,9 @@ func _flicker_torches() -> void:
 		flame.color = Color(1.0, 0.72 * v, 0.14 * v)
 
 func _handle_movement(delta: float) -> void:
-	var dir := Vector2.ZERO
-	if Input.is_action_pressed("move_up"):    dir.y -= 1
-	if Input.is_action_pressed("move_down"):  dir.y += 1
-	if Input.is_action_pressed("move_left"):  dir.x -= 1
-	if Input.is_action_pressed("move_right"): dir.x += 1
-	_player_body.velocity = dir.normalized() * PLAYER_SPEED
+	## Same analog path as the arena player so hub movement doesn't feel like a different game.
+	var dir := MoveInput.get_move_vector()
+	_player_body.velocity = dir * PLAYER_SPEED
 	_player_body.move_and_slide()
 
 	## Drive the character sprite: walk while moving, idle when still, flip on horizontal input.
