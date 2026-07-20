@@ -148,5 +148,13 @@ func _finalize(outcome: String) -> void:
 		f.store_string(JSON.stringify(report, "\t"))
 		f.close()
 
+	print("[RunReport] INCOME  earned=%.0f  spent=%.0f  net=%.0f  phase=%d  outcome=%s" % [
+		_gold_earned, _gold_spent, _gold_earned - _gold_spent, GameManager.phase_number, outcome])
+	## Passive-point telemetry: all points currently come from level-ups (1 pt per level gained).
+	## Boss-kill bonuses and other sources are not yet wired; their slots are 0 for now.
+	## Gathering data before any rate tuning — do NOT change award rates based on this alone.
+	var pts_levelups: int = maxi((report["final_level"] as int) - 1, 0)
+	print("[PassivePoints] earned=%d  level_ups=%d  boss_kills=0  other=0" % [
+		pts_levelups, pts_levelups])
 	print("[RunReport] saved %s" % path)
 	print(JSON.stringify(report, "\t"))

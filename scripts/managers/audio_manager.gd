@@ -128,6 +128,8 @@ func _connect_signals() -> void:
 	EventBus.on_dodge.connect(_on_dodge)
 	EventBus.on_status_applied.connect(_on_status_applied)
 	EventBus.on_pickup.connect(_on_pickup)
+	EventBus.on_combo_step.connect(_on_combo_step)
+	EventBus.on_combo_dropped.connect(_on_combo_dropped)
 
 	# Run lifecycle (GameManager)
 	GameManager.run_started.connect(_on_run_started)
@@ -150,7 +152,9 @@ func _connect_signals() -> void:
 
 ## Play a sound by table ID. Pass a world position for positional sounds;
 ## positional entries with no position fall back to the global pool.
-func play(sound_id: String, world_pos: Variant = null) -> void:
+## pitch_semitones shifts the whole sound up/down on top of the table's random
+## variance (combo cadence ladder — docs/combo_feedback_spec.md).
+func play(sound_id: String, world_pos: Variant = null, pitch_semitones: float = 0.0) -> void:
 	var entry: Dictionary = SoundTable.ALL.get(sound_id, {})
 	if entry.is_empty():
 		if not _missing_warned.has(sound_id):
@@ -182,7 +186,7 @@ func play(sound_id: String, world_pos: Variant = null) -> void:
 	var stream: AudioStream = streams[randi() % streams.size()]
 	var volume_db: float = entry.get("volume_db", 0.0) + STACK_FALLOFF_DB * count
 	var variance: float = entry.get("pitch_variance", DEFAULT_PITCH_VARIANCE)
-	var pitch: float = 1.0 + randf_range(-variance, variance)
+	var pitch: float = (1.0 + randf_range(-variance, variance)) * pow(2.0, pitch_semitones / 12.0)
 	var bus: String = entry.get("bus", Settings.BUS_SFX)
 
 	if entry.get("loop", false):
@@ -331,18 +335,17 @@ func _on_hit_dealt(source: Variant, target: Variant, hit_data: Variant) -> void:
 
 ## Weapon swing feel (P1 "weapon fire"): HitData.ability threads the AbilityDefinition through
 ## from ChainFactory's per-kit combos, whose ability_id always ends "_light"/"_heavy" for the
-## base melee combo (per kit dispatcher table). Special skill/channel abilities (fan, summon,
-## torrent, storm, etc.) don't match either suffix and are silent here by design — they're
-## sfx_channel_loop/sfx_projectile_fire territory (P2, not yet wired).
+## base melee combo (per kit dispatcher table). Light-chain swings no longer play here — they
+## ride on_combo_step (the cadence ladder below), which also makes whiffed swings audible.
+## Special skill/channel abilities (fan, summon, torrent, storm, etc.) don't match the suffix
+## and are silent here by design — they're sfx_channel_loop/sfx_projectile_fire territory.
 func _play_swing_sfx(source: Variant, hit_data: Variant) -> void:
 	if not (hit_data is HitData):
 		return
 	var ability: AbilityDefinition = hit_data.ability
 	if ability == null or not ability.tags.has("Combo"):
 		return
-	if ability.ability_id.ends_with("_light"):
-		play("sfx_swing_light", _entity_pos(source))
-	elif ability.ability_id.ends_with("_heavy"):
+	if ability.ability_id.ends_with("_heavy"):
 		play("sfx_swing_heavy", _entity_pos(source))
 
 
@@ -359,6 +362,24 @@ func _on_ability_used(source: Variant, ability: Variant) -> void:
 		play("sfx_melee_swing_arc", _entity_pos(source))
 	else:
 		play("sfx_projectile_fire", _entity_pos(source))
+
+
+## Combo cadence ladder (docs/combo_feedback_spec.md, mechanism A): each light-chain step plays
+## the swing one step higher — +1.5 semitones per node, capped at +6 (5 steps of climb). The
+## player's own taps are the metronome; depth resets on chain end, so the next chain starts low
+## again — that reset IS the audible "ladder dropped" cue.
+const COMBO_LADDER_SEMITONES := 1.5
+const COMBO_LADDER_CAP_SEMITONES := 6.0
+
+func _on_combo_step(entity: Variant, depth: int, _is_finisher: bool) -> void:
+	var offset: float = minf(COMBO_LADDER_SEMITONES * float(depth - 1), COMBO_LADDER_CAP_SEMITONES)
+	play("sfx_combo_step", _entity_pos(entity), offset)
+
+
+## Chain-drop "exhale" (mechanism E): soft downward breath when a chain at depth >= 2 times out.
+## Interrupts (dash/hurt/stun) and finishers stay silent — the player already knows why those ended.
+func _on_combo_dropped(entity: Variant, _depth: int) -> void:
+	play("sfx_combo_drop", _entity_pos(entity))
 
 
 func _on_crit(_source: Variant, _target: Variant, _hit_data: Variant) -> void:

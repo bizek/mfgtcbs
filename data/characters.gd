@@ -53,12 +53,13 @@ const ALL: Dictionary = {
 				"uppercut":     ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/Special_Animations/Uppercut/Figther_Uppercut.png",        4, 18.0],
 				"uppercut_fx":  ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/Special_Animations/Uppercut/Figther_Uppercut_Effect.png", 4, 18.0],
 				"taunt":        ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/Special_Animations/Taunt/Figther_Taunt.png",              9, 16.0],
-				## Q/E skill re-slices (SkillFactory): "rally" = Taunt sheet slower (Second Wind —
-				## distinct NAME so it skips the taunt shockwave host hook); "flurry" = Swirl faster
-				## (Blade Flurry) with its frame-matched effect overlay.
-				"rally":        ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/Special_Animations/Taunt/Figther_Taunt.png",              9, 12.0],
-				"flurry":       ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/Special_Animations/Swirl/Figther_Swirl.png",              4, 22.0],
-				"flurry_fx":    ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/Special_Animations/Swirl/Figther_Swirl_Effect.png",       4, 22.0],
+				## Q/E skill re-slices (SkillFactory). "rally" = the Attack sheet SLOW (a deliberate
+				## sword-raise salute) — it used to re-slice the Taunt sheet, which read as another
+				## shield bang and got confused with the channel (Ben 2026-07-19). The green heal
+				## ring/flash is host-side. "rush" = the Attack sheet fast (Shield Rush charge body);
+				## the dash motion + corridor drag + slam are host-side hooks.
+				"rally":        ["Figther_Attack.png",  4,  8.0],
+				"rush":         ["Figther_Attack.png",  4, 24.0],
 			},
 		},
 	},
@@ -300,16 +301,23 @@ const ALL: Dictionary = {
 				"damage": ["BardDmg.png",     4, 15.0],
 				"death":  ["BardDie.png",    25, 25.0],
 				## Combo specials — timing/damage in ChainFactory.build_bard_* (provisional).
-				## Chord projectile/impact + ballad note and mockery wisps are wired host-side;
-				## apotheosis_fx is frame-matched, song_enhance_fx is the 8f shimmer overlay.
+				## Chord projectile/impact + ballad note and mockery wisps are wired host-side.
+				## The Songs sheets (ViciousMockerySong/BalladSong/EnhancementSong) are EFFECT-ONLY
+				## (floating faces/notes, no bard drawn) — they ride the _fx overlay while the
+				## _BardSinging body plays underneath (Ben playtest 2026-07-19: body vanished).
 				"attack_2":       ["BardAttack.png", 4, 26.0],
 				"chord":          ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Dissonant_Chord/BardDissonantChordDiagonal.png", 12, 20.0],
+				## "chord_2" re-slices the same cast under a distinct NAME so back-to-back chords
+				## re-fire (chord-opener flow, Ben 2026-07-19).
+				"chord_2":        ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Dissonant_Chord/BardDissonantChordDiagonal.png", 12, 22.0],
 				"apotheosis":     ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Apotheosis/BardApotheosis.png",                  13, 18.0],
 				"apotheosis_fx":  ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Apotheosis/ApotheosisEffect.png",                13, 18.0],
-				"mockery":        ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/ViciousMockerySong.png",                   16, 18.0],
-				"song_enhance":   ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/EnhancementSong.png",                      16, 20.0],
-				"song_enhance_fx": ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/Enhancement/Enhamcement.png",              8, 10.0],
-				"song_ballad":    ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/BalladSong.png",                           16, 20.0],
+				"mockery":        ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/_BardSinging.png",                       16, 18.0],
+				"mockery_fx":     ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/ViciousMockerySong.png",                   16, 18.0],
+				"song_enhance":   ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/_BardSinging.png",                       16, 20.0],
+				"song_enhance_fx": ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/EnhancementSong.png",                    16, 20.0],
+				"song_ballad":    ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/_BardSinging.png",                       16, 20.0],
+				"song_ballad_fx": ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/BalladSong.png",                           16, 20.0],
 				"serenade":       ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/_BardSinging.png",                       16, 18.0],
 			},
 		},

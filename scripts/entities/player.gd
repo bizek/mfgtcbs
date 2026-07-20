@@ -158,11 +158,24 @@ var _combat_input: CombatInputBuffer = null
 var _combo_ability: AbilityDefinition = null
 var _combo_heavy: AbilityDefinition = null
 var _combo_channel: AbilityDefinition = null
+## Combo cadence feedback (docs/combo_feedback_spec.md): pitch-ladder depth, channel-tick
+## suppression, and the cancel-window pulse tween.
+var _combo_step_depth: int = 0        ## light-chain hits fired this run (1-based ladder depth)
+var _combo_last_hit_phase: int = -1   ## last phase index that fired — a repeat = channel self-loop tick
+var _combo_pulse_tween: Tween = null
 ## Swing-effect overlay (the white slash), centered on the player and scaled per-node so the white's
 ## outer edge lands on that node's actual hit-zone radius — the visual IS the hitbox guide.
 var _combo_fx: AnimatedSprite2D = null
 const FX_NATIVE_RADIUS: float = 14.0   ## radius (px) the white slash reaches inside the 32px frame
 const COMBO_FX_SCALE: float = 2.4   ## fallback upscale for nodes with no AreaDamage radius
+## Frame-matched full-body overlays that must play at NATIVE scale — never stretched to the
+## hit radius (stretching a pack's frame-matched effect sheet reads as pixel mush; the
+## shockwave ring marks the zone for these instead). The generic white swing slashes stay
+## radius-scaled — for those the stretch IS the hitbox guide.
+const NATIVE_FX_ANIMS: Array[String] = [
+	"apotheosis", "mockery", "song_ballad", "song_enhance",
+	"sunder", "bash", "dictum", "dome",
+]
 ## Rogue Bomb visuals (Throw Bomb asset package): the spinning bomb projectile arcs a short hop in
 ## the facing direction during the wind-up, then "bomb_fx" (the package explosion) plays where it
 ## lands. The projectile sheets are 3×3 directional grids; we slice the right-facing cell + flip_h.
@@ -195,6 +208,13 @@ const THROW_RANGE: float = 120.0
 ## Barbarian Guard (RMB-hold channel): sword up — ALL damage from the frontal arc is blocked
 ## outright (take_damage), with the pack's BlockImpact flashing on each stopped hit.
 const GUARD_BLOCK_ARC: float = 2.62   ## ~150° frontal arc (radians)
+## Warden Reckoning (Dome redesign, Ben 2026-07-19): the channel drinks incoming hits into a
+## pool; release (or the cap) detonates stored × REFLECT around the Warden.
+const DOME_ABSORB_CAP: float = 0.30    ## fraction of max HP the dome can hold before bursting
+const DOME_REFLECT_MULT: float = 1.5   ## stored damage → detonation damage
+const DOME_BURST_RADIUS: float = 70.0  ## detonation hit zone (scales with melee_range)
+var _dome_absorbed: float = 0.0
+var _active_choreo_id: String = ""     ## ability_id of the running choreography ("" = none)
 ## Gunslinger Desert Storm: the pack's directional barrage strips (8 files, 16f @ 96px cells)
 ## blaze ahead of the Deadeye toward the cursor while the channel pours, torrent-style.
 const STORM_FX_DIR: String = "res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Tech-Augmented_Gunslinger/Special_Animations/Desert_Storm/Projectile_Impacts/"
@@ -268,6 +288,9 @@ func _ready() -> void:
 
 	# Shade passive: dodge triggers invisibility
 	EventBus.on_dodge.connect(_on_dodge_received)
+
+	# Blood Eruption pools: deaths inside an active pool feed the Cursed.
+	EventBus.on_death.connect(_on_any_entity_death)
 
 	if _has_instability_siphon:
 		EventBus.on_kill.connect(_on_kill_siphon)
@@ -915,6 +938,11 @@ func _physics_process(delta: float) -> void:
 	_dash_anim_timer = maxf(_dash_anim_timer - delta, 0.0)
 	if sprite:
 		_update_facing()
+		## Stealth legibility: ghost the body while invisible (Conceal / Smoke Bomb / Vanish)
+		## so the player can TELL they're hidden. Alpha only — flashes use self_modulate.
+		var stealth_a: float = 0.45 if is_invisible() else 1.0
+		sprite.modulate.a = stealth_a if absf(sprite.modulate.a - stealth_a) < 0.02 \
+				else lerpf(sprite.modulate.a, stealth_a, minf(12.0 * delta, 1.0))
 		## Legacy mirror-flip only for baked frames without directional rows.
 		if not _has_dir_anims and input_dir.x != 0:
 			sprite.flip_h = input_dir.x < 0
@@ -1102,6 +1130,7 @@ func _load_combo() -> void:
 		var kit: Dictionary = ChainFactory.build_kit(kit_id, _weapon_data)
 		ClassModFactory.apply_to_kit(kit_id, kit, class_mods)
 		ClassModFactory.apply_upgrade_dicts_to_kit(kit_id, kit, ability_up_dicts)
+		_apply_hit_frame_overrides(char_id, kit.values())
 		set_combo_ability(kit.get("light"))
 		_combo_heavy = kit.get("heavy")
 		_combo_channel = kit.get("channel")
@@ -1118,8 +1147,23 @@ func _load_combo() -> void:
 			var skills: Dictionary = SkillFactory.build_kit_skills(kit_id, _weapon_data)
 			ClassModFactory.apply_to_skills(kit_id, skills, class_mods)
 			ClassModFactory.apply_upgrade_dicts_to_skills(kit_id, skills, ability_up_dicts)
+			_apply_hit_frame_overrides(char_id, skills.values())
 			for slot in skills:
 				skill_component.set_skill(slot, skills[slot])
+
+
+## Animation Lab hit-frame overrides: apply Ben's authored hit_frame (anim_overrides.json) to
+## every choreography phase playing that anim. Runs at kit build so it survives rebuilds.
+func _apply_hit_frame_overrides(char_id: String, abilities: Array) -> void:
+	for ab in abilities:
+		if ab == null or ab.choreography == null:
+			continue
+		for phase in ab.choreography.phases:
+			if phase.animation == "":
+				continue
+			var ov: Dictionary = CharacterSpriteFactory.get_anim_override(char_id, phase.animation)
+			if ov.has("hit_frame"):
+				phase.hit_frame = int(ov["hit_frame"])
 
 
 func _tick_combo() -> void:
@@ -1127,6 +1171,18 @@ func _tick_combo() -> void:
 	## RMB hold starts the Taunt channel. Mid-combo RMB is handled by the runner's branches, not here,
 	## since this returns early while the runner is active.
 	if choreography_runner == null or choreography_runner.is_running():
+		## Opener grace (Ben, playtest 2026-07-19): RMB pressed in the light graph before the
+		## heavy-finisher gate opens shouldn't dead-end — cancel into the heavy opener instead
+		## (Uppercut/Bash/...). Phases that DO listen for heavy_attack keep their branch.
+		if choreography_runner != null and choreography_runner.is_running() \
+				and _combo_heavy != null \
+				and choreography_runner.get_ability() == _combo_ability \
+				and Input.is_action_just_pressed("heavy_attack") \
+				and not choreography_runner.current_phase_handles("heavy_attack"):
+			if _combat_input:
+				_combat_input.consume("heavy_attack")
+			choreography_runner.interrupt()
+			choreography_runner.start(_combo_heavy, [self])
 		_rmb_pending = false   ## a combo started under us — drop any pending neutral RMB
 		return
 
@@ -1239,6 +1295,20 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 	## Cleric Spirit Guardians: the prayer summons/refreshes the guardian companion.
 	if cur_anim.begins_with("pray_guardian"):
 		_spawn_spirit_guardian()
+	## Second Wind: the salute lands — green mend ring + flash so the heal reads on cast.
+	if cur_anim.begins_with("rally"):
+		_spawn_shockwave_ring(26.0, Color(0.35, 1.0, 0.45, 0.9))
+		if sprite:
+			sprite.self_modulate = Color(0.7, 1.6, 0.8, 1.0)
+			var heal_t := create_tween()
+			heal_t.tween_property(sprite, "self_modulate", Color.WHITE, 0.35)
+	## Shield Rush: the charge itself — dash motion, corridor drag, delayed slam.
+	if cur_anim.begins_with("rush"):
+		_start_shield_rush(reach)
+	## Skirmisher's Step: the back-off kick also refunds a dash charge (escape tool, not
+	## just a shove — Ben 2026-07-19).
+	if ability != null and ability.ability_id == "ranger_skirmish_step":
+		_dash_charges = mini(_dash_charges + 1, _max_dash_charges())
 	var is_torrent: bool = cur_anim.begins_with("torrent")
 	var is_throw: bool = cur_anim.begins_with("throw")
 	var is_teleport: bool = cur_anim.begins_with("teleport_out")
@@ -1342,7 +1412,9 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 		for eff in proj_effects:
 			if eff is SpawnProjectilesEffect:
 				var e: SpawnProjectilesEffect = eff.duplicate(true)
-				e.count = proj_count
+				## projectile_count is ADDITIVE above the base 1 — authored volley counts
+				## (Triple Shot 3, Arrow Storm 6, Fan the Hammer 5...) must survive.
+				e.count = e.count + maxi(0, proj_count - 1)
 				if e.projectile.pierce_count != -1:
 					e.projectile.pierce_count = e.projectile.pierce_count + pierce_bonus
 				e.projectile.visual_scale = e.projectile.visual_scale * size_mult
@@ -1359,12 +1431,22 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 	## Ground zones (Druid Root, Cleric Word of Pain): drop at the clamped cursor and mark the
 	## spot with the pack's ground decal (a one-shot burst; the zone itself ticks host-side).
 	if not zone_effects.is_empty():
-		var z_aim: Vector2 = _get_aim_world_position() - global_position
-		if z_aim.length() > THROW_RANGE:
-			z_aim = z_aim.normalized() * THROW_RANGE
-		var z_pos: Vector2 = global_position + z_aim
+		## Blood Eruption's pool erupts UNDERFOOT (the Cursed is the epicenter); Root / Word of
+		## Pain zones drop at the clamped cursor with their ground decal.
+		var z_pos: Vector2 = global_position
+		if not is_spikes:
+			var z_aim: Vector2 = _get_aim_world_position() - global_position
+			if z_aim.length() > THROW_RANGE:
+				z_aim = z_aim.normalized() * THROW_RANGE
+			z_pos = global_position + z_aim
 		EffectDispatcher.execute_effects(zone_effects, self, [_get_aim_target(z_pos)], ability, combat_manager)
-		_spawn_oneshot_fx(ROOT_DECAL_SHEET if cur_anim.begins_with("root_cast") else PAIN_DECAL_SHEET, z_pos, 12.0)
+		if is_spikes:
+			for z in zone_effects:
+				if z is GroundZoneEffect:
+					_register_blood_pool(z_pos, z.radius * reach, z.duration)
+					break
+		else:
+			_spawn_oneshot_fx(ROOT_DECAL_SHEET if cur_anim.begins_with("root_cast") else PAIN_DECAL_SHEET, z_pos, 12.0)
 
 	## Teleport blinks AFTER its departure burst has resolved at the old position.
 	if is_teleport:
@@ -1433,11 +1515,16 @@ func choreo_on_phase_anim(phase: ChoreographyPhase) -> void:
 
 	## Big-impact nodes with no _fx sheet (Taunt, Paladin Hammer) ring out a procedural
 	## shockwave at the hit-zone radius instead.
-	if anim == "taunt" or anim == "hammer":
+	## ("nova" = Flame Nova: the fire ring IS the tell — without it the burst reads as
+	## invisible hot air, Ben playtest 2026-07-19.) Hammer dropped from the list 2026-07-20:
+	## the spiraling hammers ARE the visual, and the ring read as a stray Taunt circle.
+	if anim == "taunt" or anim == "nova":
 		if _combo_fx:
 			_combo_fx.visible = false
 		_spawn_shockwave_ring(radius)
 		return
+	if anim == "hammer" and _combo_fx:
+		_combo_fx.visible = false
 	## Rogue Bomb: toss the package's spinning bomb projectile during the wind-up; the explosion
 	## ("bomb_fx") is played at detonation by choreo_fire_effects, not at anim start.
 	if anim == "bomb":
@@ -1483,8 +1570,15 @@ func choreo_on_phase_anim(phase: ChoreographyPhase) -> void:
 		return
 	## Centered, scaled so the white's outer edge sits on the node's hit-zone radius. Nodes with
 	## no AreaDamage radius (projectile casts — e.g. Wizard bolts) play frame-matched at native
-	## size, only growing with Reach.
+	## size, only growing with Reach. Frame-matched FULL-BODY overlays (Apotheosis halo,
+	## Mockery faces) stay native too — blowing them up to a big hit radius reads as pixel
+	## mush (Ben 2026-07-19); the shockwave ring communicates the zone instead.
+	## (No ring here — Ben 2026-07-20: rings on regular attacks read as stray Taunt circles.
+	## Rings are reserved for the moves where the circle IS the move: Taunt, Nova, heals,
+	## Reckoning's detonation, the Shield Rush slam.)
 	var s: float = (radius / FX_NATIVE_RADIUS) if radius > 0.0 else reach
+	if anim in NATIVE_FX_ANIMS:
+		s = reach
 	_combo_fx.position = Vector2.ZERO
 	_combo_fx.scale = Vector2(s, s)
 	_combo_fx.visible = true
@@ -1867,20 +1961,83 @@ func _show_vamp_fx() -> void:
 		_vamp_fx.play(&"float")
 
 
-const HOLY_HAMMER_COUNT: int = 3
+var _hammer_angle_cycle: float = 0.0     ## fan angle for successive per-press hammers
 
 func _spawn_holy_hammers(reach: float) -> void:
-	## Launch the blessed-hammer spiral: HOLY_HAMMER_COUNT hammers at staggered angles, each
-	## spiraling out around the (moving) player. Max spiral radius scales with melee_range,
-	## damage reads the live damage stat inside each hammer.
+	## One blessed hammer per throw (Ben's redesign 2026-07-19): each RMB press in the Hammer
+	## phase launches a single HolyHammer on its own outward spiral. The start angle cycles a
+	## golden-angle step per press so mashed hammers fan around the Warden instead of stacking.
+	## Max spiral radius scales with melee_range; damage reads the live damage stat per hammer.
 	var dtype: String = ChainFactory._damage_type(_weapon_data)
-	for i in range(HOLY_HAMMER_COUNT):
-		var hammer := HolyHammer.new()
-		hammer.player_ref = self
-		hammer.damage_type = dtype
-		hammer.start_angle = TAU * float(i) / float(HOLY_HAMMER_COUNT)
-		hammer.max_radius = 120.0 * reach
-		get_tree().current_scene.add_child(hammer)
+	var hammer := HolyHammer.new()
+	hammer.player_ref = self
+	hammer.damage_type = dtype
+	hammer.start_angle = _hammer_angle_cycle
+	hammer.max_radius = 120.0 * reach
+	get_tree().current_scene.add_child(hammer)
+	_hammer_angle_cycle = fmod(_hammer_angle_cycle + TAU * 0.382, TAU)
+
+
+# --- Blood Eruption pools (Blood Mage E) ---
+## Active pools tracked host-side: any enemy dying inside one feeds the Cursed. Entries:
+## { "pos": Vector2, "r_sq": float, "until": float (msec) }.
+const BLOOD_POOL_HEAL_FRAC: float = 0.03
+var _blood_pools: Array[Dictionary] = []
+
+
+func _register_blood_pool(pos: Vector2, radius: float, duration: float) -> void:
+	_blood_pools.append({
+		"pos": pos, "r_sq": radius * radius,
+		"until": float(Time.get_ticks_msec()) + duration * 1000.0,
+	})
+
+
+func _on_any_entity_death(entity) -> void:
+	## Blood-pool feed: 3% max HP per enemy that dies inside an active pool.
+	if _blood_pools.is_empty() or not is_alive:
+		return
+	if not (entity is Node2D) or entity == self or entity.get("faction") != 1:
+		return
+	var now: float = float(Time.get_ticks_msec())
+	var fed: bool = false
+	var live_pools: Array[Dictionary] = []
+	for pool in _blood_pools:
+		if now > pool.until:
+			continue   ## expired — prune
+		live_pools.append(pool)
+		if not fed and entity.global_position.distance_squared_to(pool.pos) <= pool.r_sq:
+			fed = true
+			health.apply_healing(health.max_hp * BLOOD_POOL_HEAL_FRAC)
+			EventBus.on_heal.emit(self, self, health.max_hp * BLOOD_POOL_HEAL_FRAC)
+			_spawn_drain_wisp(entity.global_position)
+	_blood_pools = live_pools
+
+
+## Reckoning burst: everything the dome soaked goes back out as an AoE around the Warden.
+func _detonate_reckoning() -> void:
+	var stored: float = _dome_absorbed
+	_dome_absorbed = 0.0
+	var reach: float = _melee_range()
+	var burst := AreaDamageEffect.new()
+	burst.damage_type = ChainFactory._damage_type(_weapon_data)
+	burst.base_damage = stored * DOME_REFLECT_MULT
+	burst.aoe_radius = DOME_BURST_RADIUS * reach
+	EffectDispatcher.execute_effects([burst], self, [self], _combo_channel, combat_manager)
+	_spawn_shockwave_ring(DOME_BURST_RADIUS * reach, Color(1.0, 0.85, 0.25, 0.95))
+	## Judgement pop on the Warden himself.
+	if sprite:
+		sprite.self_modulate = Color(1.6, 1.5, 1.0, 1.0)
+		var t := create_tween()
+		t.tween_property(sprite, "self_modulate", Color.WHITE, 0.25)
+
+
+## Absorb feedback: quick gold blink each time the dome drinks a hit.
+func _dome_flash() -> void:
+	if sprite == null:
+		return
+	sprite.self_modulate = Color(1.5, 1.35, 0.8, 1.0)
+	var t := create_tween()
+	t.tween_property(sprite, "self_modulate", Color.WHITE, 0.12)
 
 
 func _detonate_bomb_fx(reach: float) -> void:
@@ -1904,12 +2061,13 @@ func _on_bomb_anim_finished() -> void:
 		_bomb_toss.scale = Vector2.ONE
 
 
-func _spawn_shockwave_ring(radius: float) -> void:
-	## Expanding orange ring that rings out from the player to the hit-zone edge, then fades.
-	## Spawned each Taunt tick. top_level so it stays put in the world as it expands.
+func _spawn_shockwave_ring(radius: float, color: Color = Color(1.0, 0.55, 0.10, 0.9)) -> void:
+	## Expanding ring that rings out from the player to the hit-zone edge, then fades.
+	## Orange by default (Taunt/impact zones); green = heals, gold = Reckoning.
+	## top_level so it stays put in the world as it expands.
 	var ring := Line2D.new()
 	ring.width = 3.0
-	ring.default_color = Color(1.0, 0.55, 0.10, 0.9)
+	ring.default_color = color
 	ring.closed = true
 	var pts := PackedVector2Array()
 	for i in 28:
@@ -1926,6 +2084,16 @@ func _spawn_shockwave_ring(radius: float) -> void:
 	t.tween_property(ring, "scale", Vector2.ONE, 0.45)
 	t.tween_property(ring, "modulate:a", 0.0, 0.45)
 	t.chain().tween_callback(ring.queue_free)
+
+
+## Spam cap (Ben, playtest 2026-07-19: bolts fired at raw click speed, ~13/s). Chain tap-advances
+## can't come faster than this base cadence; attack_speed picks/mods tighten it, so machine-gun
+## casting is EARNED, not free. Held/release branches (channels, Whirlwind exit) are unaffected.
+const MIN_TAP_CADENCE: float = 0.22
+
+
+func choreo_min_advance_time(_phase: ChoreographyPhase) -> float:
+	return MIN_TAP_CADENCE / maxf(get_stat("attack_speed"), 0.25)
 
 
 func choreo_execute_displacement(disp, targets: Array) -> void:
@@ -1959,11 +2127,16 @@ func choreo_set_flags(untargetable: bool, invulnerable: bool) -> void:
 		is_invulnerable = true
 
 
-func choreo_on_start(_ability: AbilityDefinition) -> void:
+func choreo_on_start(ability: AbilityDefinition) -> void:
 	## Keep walk/idle from clobbering combo anims; mark attacking for the engine.
 	_attack_anim_active = true
 	_damage_anim_active = false
 	is_attacking = true
+	_combo_step_depth = 0
+	_combo_last_hit_phase = -1
+	_active_choreo_id = ability.ability_id if ability else ""
+	if _active_choreo_id == "paladin_dome":
+		_dome_absorbed = 0.0   ## fresh Reckoning pool each channel
 
 
 func choreo_on_finisher_hit() -> void:
@@ -1975,10 +2148,51 @@ func choreo_on_finisher_hit() -> void:
 			status_effect_component.apply_status(PassiveTreeFactory.frenzy_status, self, 1)
 
 
+func choreo_on_phase_hit(phase: ChoreographyPhase, phase_index: int, ability: AbilityDefinition) -> void:
+	## Combo cadence feedback (docs/combo_feedback_spec.md). Fires at the hit frame — the exact
+	## moment the cancel window opens (tick() gates branch-advance on _hit_fired). A repeated
+	## phase index is a channel self-loop tick (Whirlwind re-entering itself): a hold, not a tap,
+	## so it stays off the ladder and pulse.
+	if phase_index == _combo_last_hit_phase:
+		return
+	_combo_last_hit_phase = phase_index
+	## Pitch ladder (mechanism A) — light chain only per Ben's redline; the finisher node is the
+	## ladder's natural top note, no extra accent (its hitstop + shake are the accent).
+	if ability == _combo_ability:
+		_combo_step_depth += 1
+		EventBus.on_combo_step.emit(self, _combo_step_depth, phase.is_finisher)
+	## Cancel-window pulse (mechanism C) — only when a next press can actually chain.
+	if not phase.branches.is_empty():
+		_combo_window_pulse()
+
+
+func choreo_on_chain_timeout(_phase: ChoreographyPhase) -> void:
+	## Chain ended by letting the window lapse — not dash/hurt/stun (interrupt) and not a
+	## finisher completing. The "exhale" (mechanism E); depth < 2 never established a cadence.
+	if _combo_step_depth >= 2:
+		EventBus.on_combo_dropped.emit(self, _combo_step_depth)
+
+
+func _combo_window_pulse() -> void:
+	## One subtle brightening tick on the body sprite: "press now and it chains." Rides
+	## self_modulate so it composes with (never fights) the damage hit-flash on modulate.
+	if _combo_pulse_tween and _combo_pulse_tween.is_valid():
+		_combo_pulse_tween.kill()
+	sprite.self_modulate = Color(1.35, 1.35, 1.35, 1.0)
+	_combo_pulse_tween = create_tween()
+	_combo_pulse_tween.tween_property(sprite, "self_modulate", Color.WHITE, 0.10)
+
+
 func choreo_on_end() -> void:
+	## Reckoning: the dome comes down — everything it soaked goes back out.
+	if _active_choreo_id == "paladin_dome" and _dome_absorbed > 0.0:
+		_detonate_reckoning()
+	_active_choreo_id = ""
 	_attack_anim_active = false
 	is_attacking = false
 	is_untargetable = false
+	_combo_step_depth = 0
+	_combo_last_hit_phase = -1
 	if _combo_fx:
 		_combo_fx.visible = false
 	## An un-detonated bomb toss (combo interrupted mid-wind-up) disappears; a detonated
@@ -2120,6 +2334,9 @@ func _dash_sound_id() -> String:
 func _teleport_dash(dir: Vector2) -> void:
 	## Instant blink: Start cast ghosts at the departure point, End cast plays on arrival.
 	## Same charge/cooldown economy as a normal dash; brief i-frames cover the reappearance.
+	## Blink anims face the TRAVEL direction, not the cursor — otherwise every teleport plays
+	## the mouse-facing row (Ben 2026-07-19). _update_facing re-follows the cursor next frame.
+	_facing = ("down" if dir.y >= 0.0 else "up") + ("_right" if dir.x >= 0.0 else "_left")
 	_spawn_teleport_ghost()
 	global_position += dir * TELEPORT_RANGE * 0.9
 	is_invulnerable = true
@@ -2165,6 +2382,72 @@ func _deadly_dash_strike(dir: Vector2) -> void:
 		if en.global_position.distance_squared_to(closest) <= 18.0 * 18.0:
 			var hit: HitData = DamageCalculator.calculate_raw_hit(self, en, dmg, dtype)
 			en.take_damage(hit)
+
+
+## Shield Rush (Fighter E): shield-first charge toward the cursor. Rides the dash machinery
+## (no charge cost): phase through the pack, clip corridor victims, then — once the Sellsword
+## has arrived — yank them to him and slam. The yank is a "toward_source" displacement fired
+## AFTER the rush, so the pull converges on the ARRIVAL point (the drag-and-slam feel).
+const SHIELD_RUSH_SPEED: float = 560.0
+const SHIELD_RUSH_SLAM_RADIUS: float = 40.0
+var _rush_victims: Array = []
+
+
+func _start_shield_rush(reach: float) -> void:
+	var aim: Vector2 = _get_aim_world_position() - global_position
+	var dir: Vector2 = aim.normalized() if aim.length_squared() >= 1.0 else _last_move_dir
+	## Dash-style impulse: same feel constants, no dash charge consumed.
+	_dash_dir = dir
+	_dash_speed_current = SHIELD_RUSH_SPEED
+	_dash_timer = DASH_DURATION
+	is_invulnerable = true
+	_set_dash_phasing(true)
+	_dash_anim_timer = 0.3
+	_spawn_dash_vfx()
+	## Clip everything in the charge corridor now; remember them for the yank.
+	_rush_victims.clear()
+	var corridor: float = SHIELD_RUSH_SPEED * DASH_DURATION * 0.9
+	var to: Vector2 = global_position + dir * corridor
+	var dmg: float = get_stat("damage") * 0.9
+	var dtype: String = ChainFactory._damage_type(_weapon_data)
+	for en in _nearby_enemies(corridor + 30.0):
+		var closest: Vector2 = Geometry2D.get_closest_point_to_segment(en.global_position, global_position, to)
+		if en.global_position.distance_squared_to(closest) <= 20.0 * 20.0:
+			var hit: HitData = DamageCalculator.calculate_raw_hit(self, en, dmg, dtype)
+			en.take_damage(hit)
+			_rush_victims.append(en)
+	get_tree().create_timer(DASH_DURATION + 0.02).timeout.connect(
+			_shield_rush_slam.bind(reach), CONNECT_ONE_SHOT)
+
+
+func _shield_rush_slam(reach: float) -> void:
+	if not is_alive:
+		return
+	## Yank the corridor victims to the arrival point...
+	var drag := DisplacementEffect.new()
+	drag.displaced = "target"
+	drag.destination = "toward_source"
+	drag.motion = "linear"
+	drag.duration = 0.14
+	drag.distance = 120.0
+	for en in _rush_victims:
+		if is_instance_valid(en) and en.get("is_alive"):
+			choreo_execute_displacement(drag, [en])
+	_rush_victims.clear()
+	## ...then the slam lands where he stops (a beat later so the yank reads).
+	get_tree().create_timer(0.16).timeout.connect(_shield_rush_impact.bind(reach), CONNECT_ONE_SHOT)
+
+
+func _shield_rush_impact(reach: float) -> void:
+	if not is_alive:
+		return
+	var slam := AreaDamageEffect.new()
+	slam.damage_type = ChainFactory._damage_type(_weapon_data)
+	slam.base_damage = get_stat("damage") * 1.1
+	slam.aoe_radius = SHIELD_RUSH_SLAM_RADIUS * reach
+	var ab: AbilityDefinition = skill_component.get_skill("skill_e") if skill_component else null
+	EffectDispatcher.execute_effects([slam], self, [self], ab, combat_manager)
+	_spawn_shockwave_ring(SHIELD_RUSH_SLAM_RADIUS * reach)
 
 
 func _spawn_dash_vfx() -> void:
@@ -2231,6 +2514,17 @@ func take_damage(hit_data) -> void:
 	if _is_guard_blocking(hit_data):
 		_on_guard_block()
 		return
+	## Warden Reckoning: while the Dome channel is up, hits from ANY direction are drunk into
+	## the pool instead of landing. At the cap the dome bursts on its own (interrupt() ends the
+	## channel, and choreo_on_end detonates); otherwise release detonates whatever was stored.
+	if choreography_runner != null and choreography_runner.is_running() \
+			and _active_choreo_id == "paladin_dome":
+		var soaked: float = hit_data.amount if hit_data is HitData else 0.0
+		_dome_absorbed += soaked
+		_dome_flash()
+		if _dome_absorbed >= health.max_hp * DOME_ABSORB_CAP:
+			choreography_runner.interrupt()
+		return
 	# NOTE: Dodge is handled by DamageCalculator Step 4 — all incoming hits
 	# already went through the pipeline. If the hit wasn't dodged, it reaches here.
 	# Shade invisibility on dodge is triggered by EventBus.on_dodge (see _ready).
@@ -2247,8 +2541,15 @@ func take_damage(hit_data) -> void:
 	# hit (>10) interrupts the combo and plays the damage reaction.
 	if not _is_dying:
 		var combo_active: bool = choreography_runner != null and choreography_runner.is_running()
-		if combo_active and amount <= 10.0:
-			pass  # flash already played; let the combo continue
+		## Q/E skill casts have flinch armor: their payoff often sits deep in the animation
+		## (Throw frame 13, Sharpen 22, Reload 30) and a damage-interrupt silently eats the
+		## whole cooldown. Hard CC (stun/root) still interrupts via the is_disabled check in
+		## _physics_process.
+		var skill_armor: bool = combo_active \
+				and choreography_runner.get_ability() != null \
+				and choreography_runner.get_ability().tags.has("Skill")
+		if combo_active and (skill_armor or amount <= 10.0):
+			pass  # flash already played; let the combo/cast continue
 		else:
 			if combo_active:
 				choreography_runner.interrupt()

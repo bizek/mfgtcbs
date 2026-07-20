@@ -37,6 +37,62 @@ const REQUIRED_ANIMS: Array[String] = ["idle", "walk", "attack", "damage", "deat
 ## row 1 down-LEFT, row 2 up-RIGHT, row 3 up-LEFT.
 const DIR_ROWS: Dictionary = {"down_right": 0, "down_left": 1, "up_right": 2, "up_left": 3}
 
+## ── Ben's Animation Lab overrides ────────────────────────────────────────────
+## Per-character, per-anim tweaks authored in-game with the Animation Lab (F6, debug mode):
+##   { "<char_id>": { "<anim>": { "from": int, "to": int, "fps": float, "hit_frame": int } } }
+## from/to select a sub-range of the sheet's columns (inclusive); fps replaces playback speed;
+## hit_frame (optional) is applied to matching choreography phases at kit build (player.gd).
+## The file is read once and cached; the Lab calls reload_overrides() after saving.
+const OVERRIDES_PATH: String = "res://data/anim_overrides.json"
+static var _overrides: Dictionary = {}
+static var _overrides_loaded: bool = false
+
+
+static func get_overrides() -> Dictionary:
+	if not _overrides_loaded:
+		_overrides_loaded = true
+		_overrides = {}
+		if FileAccess.file_exists(OVERRIDES_PATH):
+			var f := FileAccess.open(OVERRIDES_PATH, FileAccess.READ)
+			if f:
+				var parsed = JSON.parse_string(f.get_as_text())
+				if parsed is Dictionary:
+					_overrides = parsed
+	return _overrides
+
+
+static func get_anim_override(char_id: String, anim_name: String) -> Dictionary:
+	var by_char = get_overrides().get(char_id, {})
+	return by_char.get(anim_name, {}) if by_char is Dictionary else {}
+
+
+static func reload_overrides() -> void:
+	_overrides_loaded = false
+
+
+## Persist one anim's override (empty dict removes it). Editor/dev workflow — res:// is
+## writable when running from the project; exported builds only ever read the file.
+static func save_anim_override(char_id: String, anim_name: String, data: Dictionary) -> bool:
+	var all: Dictionary = get_overrides().duplicate(true)
+	var by_char: Dictionary = all.get(char_id, {})
+	if data.is_empty():
+		by_char.erase(anim_name)
+	else:
+		by_char[anim_name] = data
+	if by_char.is_empty():
+		all.erase(char_id)
+	else:
+		all[char_id] = by_char
+	var f := FileAccess.open(OVERRIDES_PATH, FileAccess.WRITE)
+	if f == null:
+		push_warning("CharacterSpriteFactory: cannot write " + OVERRIDES_PATH)
+		return false
+	f.store_string(JSON.stringify(all, "  "))
+	f.close()
+	_overrides = all
+	_overrides_loaded = true
+	return true
+
 
 ## Returns a SpriteFrames with the character's animations, or null when the
 ## character has no "sprite" metadata or none of its sheets could be loaded
@@ -74,14 +130,20 @@ static func build(char_id: String) -> SpriteFrames:
 			continue
 
 		var sheet_rows: int = int(sheet.get_height() / float(frame_size))
+		var sheet_cols: int = int(sheet.get_width() / float(frame_size))
 		var loops: bool = anim_name in LOOPING_ANIMS
+		## Animation Lab override: sub-range of the sheet's columns + fps replacement.
+		var ov: Dictionary = get_anim_override(char_id, str(anim_name))
+		var first: int = clampi(int(ov.get("from", 0)), 0, sheet_cols - 1)
+		var last: int = clampi(int(ov.get("to", count - 1)), first, sheet_cols - 1)
+		fps = float(ov.get("fps", fps))
 		## Base name (back-compat fallback): dir_row on 4-row sheets, row 0 on single-row sheets.
-		_slice_row(frames, anim_name, sheet, count, fps, mini(dir_row, sheet_rows - 1), frame_size, loops)
+		_slice_row(frames, anim_name, sheet, first, last, fps, mini(dir_row, sheet_rows - 1), frame_size, loops)
 		## Directional variants — the pack's 4 rows ARE the facings; slice them all so the
 		## player can face the cursor.
 		if sheet_rows >= 4:
 			for facing in DIR_ROWS:
-				_slice_row(frames, "%s_%s" % [anim_name, facing], sheet, count, fps,
+				_slice_row(frames, "%s_%s" % [anim_name, facing], sheet, first, last, fps,
 						int(DIR_ROWS[facing]), frame_size, loops)
 		built_any = true
 
@@ -94,14 +156,14 @@ static func build(char_id: String) -> SpriteFrames:
 	return frames
 
 
-## Slice one sheet row into a SpriteFrames animation.
-static func _slice_row(frames: SpriteFrames, anim_name: String, sheet: Texture2D, count: int,
-		fps: float, row: int, frame_size: int, loops: bool) -> void:
+## Slice one sheet row's columns [first..last] (inclusive) into a SpriteFrames animation.
+static func _slice_row(frames: SpriteFrames, anim_name: String, sheet: Texture2D, first: int,
+		last: int, fps: float, row: int, frame_size: int, loops: bool) -> void:
 	var anim_sn := StringName(anim_name)
 	frames.add_animation(anim_sn)
 	frames.set_animation_loop(anim_sn, loops)
 	frames.set_animation_speed(anim_sn, fps)
-	for i in range(count):
+	for i in range(first, last + 1):
 		var atlas := AtlasTexture.new()
 		atlas.atlas = sheet
 		atlas.region = Rect2(i * frame_size, row * frame_size, frame_size, frame_size)

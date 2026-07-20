@@ -31,6 +31,24 @@ func setup(modifier_comp: ModifierComponent) -> void:
 	set_process(false)
 
 
+## HUD snapshot of every active status: one Dictionary per status, cheap enough to call
+## per-frame from the buff tracker. time_remaining 0 = indefinite (e.g. aura statuses).
+func get_status_snapshot() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for status_id in _active:
+		var a: ActiveStatus = _active[status_id]
+		if a.definition == null:
+			continue
+		out.append({
+			"id": String(status_id),
+			"stacks": a.stacks,
+			"time_remaining": a.time_remaining,
+			"base_duration": a.definition.base_duration,
+			"is_positive": a.definition.is_positive,
+		})
+	return out
+
+
 func apply_status(status_def: StatusEffectDefinition, source: Node2D,
 		stacks: int = 1, duration_override: float = -1.0) -> void:
 	if not _modifier_comp:

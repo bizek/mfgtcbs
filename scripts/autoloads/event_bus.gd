@@ -19,6 +19,8 @@ signal on_reflect(source, target, hit_data)
 signal on_absorb(entity, hit_data, absorbed: float)
 signal on_friendly_fire(source, target, hit_data)
 signal on_finisher_hit(entity: Node2D)  ## a combo finisher phase's hit landed (see ChoreographyPhase.is_finisher)
+signal on_combo_step(entity: Node2D, depth: int, is_finisher: bool)  ## a light-chain node's hit fired (whiff included); depth is 1-based — cadence ladder (docs/combo_feedback_spec.md)
+signal on_combo_dropped(entity: Node2D, depth: int)  ## a chain at depth >= 2 ended by cancel-window timeout, not interrupt/finisher — the "exhale"
 
 # --- Status events ---
 signal on_status_applied(source, target, status_id: String, stacks: int)

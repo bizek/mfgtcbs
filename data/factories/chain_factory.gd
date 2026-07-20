@@ -403,12 +403,13 @@ static func build_paladin_light(weapon_data: Dictionary) -> AbilityDefinition:
 	blades.exit_type = "wait"
 	blades.wait_duration = DICTUM_TICK
 	blades.default_next = 3
+	blades.hold_anim_on_reentry = true   ## cast once, then the blades fx loops under the frozen body
 	blades.branches = [
 		_branch_held("light_attack", HOLD_KEEP, -1, true), # released → end
 	]
 
-	# 4 — Holy Hammer (heavy finisher; terminal).
-	var hammer := _hammer_phase(dtype, dmg)
+	# 4 — Holy Hammer (heavy finisher; loops on RMB for more hammers).
+	var hammer := _hammer_phase(dtype, dmg, 4)
 
 	var choreo := ChoreographyDefinition.new()
 	choreo.phases = [strike, strike2, bash, blades, hammer]
@@ -433,35 +434,37 @@ static func build_paladin_heavy(weapon_data: Dictionary) -> AbilityDefinition:
 		_branch_buffered("heavy_attack", 1),               # RMB → Holy Hammer
 	]
 
-	# 1 — Holy Hammer (shared finisher).
-	var hammer := _hammer_phase(dtype, dmg)
+	# 1 — Holy Hammer (shared finisher; loops on RMB for more hammers).
+	var hammer := _hammer_phase(dtype, dmg, 1)
 
 	var choreo := ChoreographyDefinition.new()
 	choreo.phases = [bash, hammer]
 	return _ability("paladin_heavy", "Warden Heavy", choreo)
 
 
-# --- Paladin: Dome of Rightfulness channel (RMB hold) ---
-## Plant the shield and dome up: retribution ticks around the Warden while held. Player slow is
-## applied host-side (player.gd) like the other channels. Single looping node.
+# --- Paladin: Reckoning channel (RMB hold) ---
+## Plant the shield and dome up: PURE absorb — the dome deals nothing while held (tick damage
+## removed 2026-07-20: it killed everything before it could hit the bubble, so nothing ever
+## charged the pool). Every hit taken is drunk into the pool (player.take_damage); release —
+## or the 30% max-HP cap — detonates stored ×1.5 around the Warden (player._detonate_reckoning).
+## Player slow applied host-side like all channels. Single looping node.
 static func build_paladin_dome(weapon_data: Dictionary) -> AbilityDefinition:
-	var dmg: float = weapon_data.get("damage", 42.0)
-	var dtype: String = _damage_type(weapon_data)
+	var _dmg: float = weapon_data.get("damage", 42.0)   ## unused — the dome absorbs, not deals
 
 	var dome := ChoreographyPhase.new()
 	dome.animation = "dome"
-	dome.hit_frame = 7                                      # the dictum flare
-	dome.effects = [_aoe(dtype, dmg * 0.6, 60.0)]          # per-tick retribution (lower; repeats)
+	dome.hit_frame = -1                                     # no effects; absorb is host-side
 	dome.exit_type = "wait"
 	dome.wait_duration = DICTUM_TICK
-	dome.default_next = 0                                   # tick elapsed & still held → flare again
+	dome.default_next = 0                                   # still held → keep the dome up
+	dome.hold_anim_on_reentry = true                        # plant once; the dome fx loops on top
 	dome.branches = [
 		_branch_held("heavy_attack", HOLD_KEEP, -1, true), # released → end
 	]
 
 	var choreo := ChoreographyDefinition.new()
 	choreo.phases = [dome]
-	return _ability("paladin_dome", "Dome of Rightfulness", choreo)
+	return _ability("paladin_dome", "Reckoning", choreo)
 
 
 # --- Wizard: light combo (LMB) — tap bolts, HOLD TO CHARGE the Fireball ---
@@ -561,6 +564,7 @@ static func build_wizard_torrent(weapon_data: Dictionary) -> AbilityDefinition:
 	torrent.exit_type = "wait"
 	torrent.wait_duration = TORRENT_TICK
 	torrent.default_next = 0                                # still held → keep pouring
+	torrent.hold_anim_on_reentry = true                     # hold the pour pose; the flame fx loops
 	torrent.branches = [
 		_branch_held("heavy_attack", HOLD_KEEP, -1, true), # released → end
 	]
@@ -824,44 +828,59 @@ static func build_ranger_conceal(weapon_data: Dictionary) -> AbilityDefinition:
 
 
 # --- Bard: light combo (LMB) ---
-## The Herald — the blade is punctuation, the sound does the talking. Filler Strike II
-## dropped (2026-07-05 control-scheme pass): the pack has one attack sheet, so the chain is
-## Strike straight into the Chord. Phase indices: 0 Strike · 1 Dissonant Chord · 2 Apotheosis.
+## The Herald — the sound leads, the blade punctuates (flow flipped per Ben 2026-07-19: the
+## ranged character plays ranged by DEFAULT, no melee gate in front of the chord). Tap = a
+## chord bolt immediately; two chords into the melee Strike payoff up close. Phase indices:
+## 0 Chord · 1 Chord II · 2 Strike (finisher) · 3 Apotheosis.
 static func build_bard_light(weapon_data: Dictionary) -> AbilityDefinition:
 	var dmg: float = weapon_data.get("damage", 42.0)
 	var dtype: String = _damage_type(weapon_data)
 
-	# 0 — Strike (instrument swing).
-	var strike := ChoreographyPhase.new()
-	strike.animation = "attack"
-	strike.hit_frame = 1
-	strike.effects = [_aoe(dtype, dmg * 0.9, 28.0)]
-	strike.exit_type = "wait"
-	strike.wait_duration = CANCEL_WIN
-	strike.default_next = -1
-	strike.branches = [
-		_branch_buffered("light_attack", 1),               # tap → Dissonant Chord
-	]
-
-	# 1 — Dissonant Chord (sound-bolt at the cursor; loops back on a fresh tap).
+	# 0 — Chord (sound-bolt opener at the cursor).
 	var chord := ChoreographyPhase.new()
 	chord.animation = "chord"
 	chord.hit_frame = 6
-	chord.effects = [_chord_bolt(dtype, dmg * 1.1)]
+	chord.effects = [_chord_bolt(dtype, dmg * 0.85)]
 	chord.exit_type = "wait"
 	chord.wait_duration = CANCEL_WIN
 	chord.default_next = -1
 	chord.branches = [
-		_branch_buffered("heavy_attack", 2),               # RMB → Apotheosis
-		_branch_buffered("light_attack", 0),               # tap → loop to Strike
+		_branch_buffered("light_attack", 1),               # tap → Chord II
 	]
 
-	# 2 — Apotheosis (gated finisher; terminal): divine burst + a self damage buff, with the
+	# 1 — Chord II (re-slice under a distinct name so the cast re-fires; gate now met).
+	var chord2 := ChoreographyPhase.new()
+	chord2.animation = "chord_2"
+	chord2.hit_frame = 6
+	chord2.effects = [_chord_bolt(dtype, dmg * 0.85)]
+	chord2.exit_type = "wait"
+	chord2.wait_duration = CANCEL_WIN
+	chord2.default_next = -1
+	chord2.branches = [
+		_branch_buffered("light_attack", 2),               # tap → Strike
+		_branch_buffered("heavy_attack", 3),               # RMB → Apotheosis
+	]
+
+	# 2 — Strike (melee finisher: the instrument comes down; loops back to Chord on a tap).
+	var strike := ChoreographyPhase.new()
+	strike.animation = "attack"
+	strike.hit_frame = 1
+	strike.effects = [_aoe(dtype, dmg * 1.2, 30.0)]
+	strike.exit_type = "wait"
+	strike.wait_duration = CANCEL_WIN
+	strike.default_next = -1
+	strike.is_finisher = true
+	strike.branches = [
+		_branch_buffered("heavy_attack", 3),               # RMB → Apotheosis
+		_branch_buffered("light_attack", 0),               # tap → loop to Chord
+	]
+
+	# 3 — Apotheosis (gated finisher; terminal): divine burst + a self damage buff, with the
 	# frame-matched ApotheosisEffect overlay.
 	var apo := _apotheosis_phase(dtype, dmg)
 
 	var choreo := ChoreographyDefinition.new()
-	choreo.phases = [strike, chord, apo]
+	choreo.phases = [chord, chord2, strike, apo]
 	return _ability("bard_light", "Herald Combo", choreo)
 
 
@@ -1041,6 +1060,7 @@ static func build_barbarian_guard(weapon_data: Dictionary) -> AbilityDefinition:
 	guard.exit_type = "wait"
 	guard.wait_duration = GUARD_TICK
 	guard.default_next = 0                                  # still held → keep the sword up
+	guard.hold_anim_on_reentry = true                       # raise once, stay frozen at the top
 	guard.branches = [
 		_branch_held("heavy_attack", HOLD_KEEP, -1, true), # released → end
 	]
@@ -2241,18 +2261,24 @@ static func _cataclysm_phase(dtype: String, dmg: float) -> ChoreographyPhase:
 	return c
 
 
-## Paladin's shared heavy finisher — the hammerdin moment. The throw itself lands a close-range
-## slam AoE; on the same hit_frame, player.gd launches the blessed-hammer spiral (HolyHammer
-## nodes: Holy_Hammer package projectiles corkscrewing out, one hit per enemy per hammer, damage
-## from the live damage stat). The spiral carries most of the payoff, so the direct AoE is modest.
-static func _hammer_phase(dtype: String, dmg: float) -> ChoreographyPhase:
+## Paladin's shared heavy finisher — the hammerdin moment (redesigned per Ben 2026-07-19):
+## each RMB press throws ONE blessed hammer on its own outward spiral (player.gd launches a
+## HolyHammer node on the hit_frame, cycling the start angle so successive hammers fan out).
+## The phase loops on buffered RMB, so mashing = more hammers in flight, each with its own
+## corkscrew. The direct slam AoE stays modest — the spirals carry the payoff.
+## `self_index` = this phase's own index in its graph (light 4 / heavy 1), for the loop branch.
+static func _hammer_phase(dtype: String, dmg: float, self_index: int) -> ChoreographyPhase:
 	var h := ChoreographyPhase.new()
 	h.animation = "hammer"
 	h.hit_frame = 7                                          # the release
 	h.effects = [_aoe(dtype, dmg * 0.8, 30.0)]
-	h.exit_type = "anim_finished"
+	h.exit_type = "wait"
+	h.wait_duration = HEAVY_WIN
 	h.default_next = -1
 	h.is_finisher = true
+	h.branches = [
+		_branch_buffered("heavy_attack", self_index),      # RMB again → another hammer
+	]
 	return h
 
 

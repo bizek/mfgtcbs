@@ -96,6 +96,10 @@ var debug_spawning_disabled: bool = false
 ## fixed-radius circle. Falls back to circle/edge when no eligible zone found.
 var _spawn_zones: Array = []
 
+## Set by MainArena after orchestrator is ready. When null or inactive, every
+## walkability query returns true — preserving open-arena behavior exactly.
+var flow_field: FlowField = null
+
 const _DENSITY_WEIGHTS: Dictionary = {"Low": 1.0, "Medium": 2.0, "High": 4.0}
 
 
@@ -303,8 +307,7 @@ func _spawn_single_enemy() -> void:
 		for _j in range(pack_size):
 			if active_enemies >= max_enemies:
 				break
-			var offset := Vector2(randf_range(-22.0, 22.0), randf_range(-22.0, 22.0))
-			_spawn_from_def(enemy_id, scene, spawn_pos + offset, effective_difficulty, true)
+			_spawn_from_def(enemy_id, scene, _pick_pack_offset(spawn_pos, 22.0), effective_difficulty, true)
 	else:
 		var can_elite: bool = enemy_id in ["fodder", "brute", "guardian", "cave_fodder", "cave_brute"]
 		_spawn_from_def(enemy_id, scene, spawn_pos, effective_difficulty, can_elite)
@@ -432,8 +435,7 @@ func _spawn_herald_pack() -> void:
 	for _i in range(pack_size):
 		if active_enemies >= max_enemies:
 			break
-		var offset := Vector2(randf_range(-30.0, 30.0), randf_range(-30.0, 30.0))
-		_spawn_from_def(pack_id, pack_scene, base_pos + offset,
+		_spawn_from_def(pack_id, pack_scene, _pick_pack_offset(base_pos, 30.0),
 			effective_difficulty, false)
 
 
@@ -521,25 +523,68 @@ func _get_effective_difficulty() -> float:
 
 ## ── Spawn position helpers ────────────────────────────────────────────────────
 
+func _is_valid_spawn(pos: Vector2) -> bool:
+	## Returns true when the flow field is absent/inactive (open arena) so that
+	## every candidate passes, preserving existing behavior exactly.
+	if flow_field == null or not flow_field.is_active():
+		return true
+	return flow_field.is_walkable(pos) and flow_field.is_reachable(pos)
+
+
+func _nearest_valid_spawn(from: Vector2) -> Vector2:
+	## Expand outward in 16 px rings until a walkable+reachable cell is found.
+	## Used as a last-resort fallback so the circle path never hard-fails.
+	if flow_field == null or not flow_field.is_active():
+		return from
+	const STEP: float = 16.0
+	for ring in range(1, 14):
+		for dy in range(-ring, ring + 1):
+			for dx in range(-ring, ring + 1):
+				if absi(dx) != ring and absi(dy) != ring:
+					continue
+				var candidate: Vector2 = from + Vector2(float(dx) * STEP, float(dy) * STEP)
+				if flow_field.is_walkable(candidate) and flow_field.is_reachable(candidate):
+					return candidate
+	return from
+
+
+func _pick_pack_offset(base: Vector2, spread: float) -> Vector2:
+	## Return a random offset from base that passes walkability+reachability.
+	## Falls back to base itself (which was already validated) if all attempts fail.
+	for _i in range(8):
+		var candidate: Vector2 = base + Vector2(randf_range(-spread, spread), randf_range(-spread, spread))
+		if _is_valid_spawn(candidate):
+			return candidate
+	return base
+
+
 func _get_spawn_position() -> Vector2:
 	## Prefer zone-based when zones are registered.
 	if not _spawn_zones.is_empty():
 		var zone_pos: Vector2 = _get_zone_spawn_position()
 		if not is_nan(zone_pos.x):
 			return zone_pos
-	## Fallback: fixed-radius circle clamped to arena bounds.
+	## Fallback: jittered-radius circle clamped to arena bounds, up to 12 attempts.
 	const SPAWN_RADIUS: float = 340.0
+	const RADIUS_JITTER: float = 40.0
 	const INNER_MARGIN: float = 20.0
 	var center: Vector2 = player_ref.global_position if player_ref else Vector2.ZERO
-	var angle: float = randf() * TAU
-	var pos: Vector2 = center + Vector2(cos(angle), sin(angle)) * SPAWN_RADIUS
 	var safe_bounds := Rect2(
 		arena_bounds.position + Vector2(INNER_MARGIN, INNER_MARGIN),
 		arena_bounds.size - Vector2(INNER_MARGIN * 2.0, INNER_MARGIN * 2.0)
 	)
-	pos.x = clampf(pos.x, safe_bounds.position.x, safe_bounds.end.x)
-	pos.y = clampf(pos.y, safe_bounds.position.y, safe_bounds.end.y)
-	return pos
+	var last_candidate: Vector2 = center
+	for _attempt in range(12):
+		var angle: float = randf() * TAU
+		var radius: float = SPAWN_RADIUS + randf_range(-RADIUS_JITTER, RADIUS_JITTER)
+		var candidate: Vector2 = center + Vector2(cos(angle), sin(angle)) * radius
+		candidate.x = clampf(candidate.x, safe_bounds.position.x, safe_bounds.end.x)
+		candidate.y = clampf(candidate.y, safe_bounds.position.y, safe_bounds.end.y)
+		last_candidate = candidate
+		if _is_valid_spawn(candidate):
+			return candidate
+	## Final fallback: snap to nearest walkable+reachable cell so spawning never hard-fails.
+	return _nearest_valid_spawn(last_candidate)
 
 
 func _get_zone_spawn_position() -> Vector2:
@@ -567,41 +612,48 @@ func _get_zone_spawn_position() -> Vector2:
 			picked = entry.zone
 			break
 
-	## Try up to 8 random points inside the zone rect, respecting min_dist.
+	## Try up to 16 random points inside the zone rect, checking min_dist and walkability.
 	var rect: Rect2 = picked.rect
 	var min_dist: float = picked.min_distance_from_player
 	var ppos: Vector2 = player_ref.global_position if player_ref else Vector2.ZERO
-	for _attempt in range(8):
+	for _attempt in range(16):
 		var candidate := Vector2(
 			randf_range(rect.position.x, rect.end.x),
 			randf_range(rect.position.y, rect.end.y)
 		)
-		if candidate.distance_to(ppos) >= min_dist:
+		if candidate.distance_to(ppos) >= min_dist and _is_valid_spawn(candidate):
 			return candidate
 
-	## All retries failed (player fills the zone) — signal caller to use fallback.
+	## All retries failed — signal caller to use fallback.
 	return Vector2(NAN, NAN)
 
-## Edge spawn: pick a random point near one of the 4 arena walls (for Carriers)
+
+## Edge spawn: pick a random point near one of the 4 arena walls (for Carriers).
+## Retries up to 8 times to find a walkable+reachable edge cell.
 func _get_edge_spawn_position() -> Vector2:
 	const EDGE_INSET: float = 16.0
-	var edge: int = randi() % 4
-	var x: float
-	var y: float
-	match edge:
-		0:  ## Top
-			x = randf_range(arena_bounds.position.x + 20.0, arena_bounds.end.x - 20.0)
-			y = arena_bounds.position.y + EDGE_INSET
-		1:  ## Bottom
-			x = randf_range(arena_bounds.position.x + 20.0, arena_bounds.end.x - 20.0)
-			y = arena_bounds.end.y - EDGE_INSET
-		2:  ## Left
-			x = arena_bounds.position.x + EDGE_INSET
-			y = randf_range(arena_bounds.position.y + 20.0, arena_bounds.end.y - 20.0)
-		_:  ## Right
-			x = arena_bounds.end.x - EDGE_INSET
-			y = randf_range(arena_bounds.position.y + 20.0, arena_bounds.end.y - 20.0)
-	return Vector2(x, y)
+	var last_candidate := Vector2.ZERO
+	for _attempt in range(8):
+		var edge: int = randi() % 4
+		var x: float
+		var y: float
+		match edge:
+			0:  ## Top
+				x = randf_range(arena_bounds.position.x + 20.0, arena_bounds.end.x - 20.0)
+				y = arena_bounds.position.y + EDGE_INSET
+			1:  ## Bottom
+				x = randf_range(arena_bounds.position.x + 20.0, arena_bounds.end.x - 20.0)
+				y = arena_bounds.end.y - EDGE_INSET
+			2:  ## Left
+				x = arena_bounds.position.x + EDGE_INSET
+				y = randf_range(arena_bounds.position.y + 20.0, arena_bounds.end.y - 20.0)
+			_:  ## Right
+				x = arena_bounds.end.x - EDGE_INSET
+				y = randf_range(arena_bounds.position.y + 20.0, arena_bounds.end.y - 20.0)
+		last_candidate = Vector2(x, y)
+		if _is_valid_spawn(last_candidate):
+			return last_candidate
+	return last_candidate
 
 ## Elite chance: 5% base, +0.4% every 30 seconds, +3% per phase beyond phase 1,
 ## +instability tier bonus (up to +20% at Critical), soft cap 50%

@@ -23,7 +23,7 @@ for n in (["swing_light_0", "swing_light_1", "swing_light_2",
            "death_enemy_elite", "block", "dodge"]
           + [f"hit_{t}_{i}" for t in ("physical", "fire", "cryo", "shock", "void") for i in range(3)]):
     LAYOUT[n] = ("combat", True)
-for n in ("crit", "death_enemy_boss", "death_player", "boss_intro"):
+for n in ("crit", "death_enemy_boss", "death_player", "boss_intro", "combo_drop"):
     LAYOUT[n] = ("combat", False)
 for n in ("burn_apply", "chill_apply", "frozen", "shocked_apply", "void_apply"):
     LAYOUT[n] = ("status", True)

@@ -275,10 +275,113 @@ def parse_sketch(path):
 
 
 # ---------------------------------------------------------------------------
+# Validation helpers (pure functions on sketch)
+# ---------------------------------------------------------------------------
+def check_obstacle_islands(sk, min_size=2):
+    """Flood fill over '#' cells; flag interior islands too small to see at game scale.
+
+    A tiny isolated collision blob (1×1, 2×1, etc.) is invisible at 640×360 during
+    combat but fully blocks movement — the classic snag.  Border-attached cells are
+    exempt (they are part of the map boundary, always rendered as walls).  For caves
+    style, 1-row rim *lines* (h==1, w>=min_size) are also exempt — the scalloped rim
+    grammar makes them visually present.
+    """
+    errors = []
+    g = sk.grid
+    style = STYLES[sk.style]
+    seen = set()
+    for y in range(BLOCK_H):
+        for x in range(BLOCK_W):
+            if g[y][x] != "#" or (x, y) in seen:
+                continue
+            comp = []
+            stack = [(x, y)]
+            seen.add((x, y))
+            while stack:
+                cx, cy = stack.pop()
+                comp.append((cx, cy))
+                for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    nx, ny = cx + dx, cy + dy
+                    if (0 <= nx < BLOCK_W and 0 <= ny < BLOCK_H
+                            and (nx, ny) not in seen and g[ny][nx] == "#"):
+                        seen.add((nx, ny))
+                        stack.append((nx, ny))
+            if any(cx in (0, BLOCK_W - 1) or cy in (0, BLOCK_H - 1)
+                   for cx, cy in comp):
+                continue  # attached to outer border — exempt
+            xs = [c[0] for c in comp]
+            ys = [c[1] for c in comp]
+            w = max(xs) - min(xs) + 1
+            h = max(ys) - min(ys) + 1
+            area = len(comp)
+            # caves 1-row rim lines (e.g. choke lip) are visually scalloped — exempt
+            # them as long as the line is wide enough to register during gameplay
+            if h == 1 and style.get("rims", False) and w >= min_size:
+                continue
+            if w < min_size or h < min_size or area < 3:
+                errors.append(
+                    f"obstacle island at ({min(xs)},{min(ys)}) "
+                    f"bbox={w}x{h} area={area}: too small to see at game scale "
+                    f"(need bbox>={min_size}x{min_size} and area>=3)"
+                )
+    return errors
+
+
+def check_narrow_corridors(sk):
+    """Warn on walkable runs exactly 1 cell wide for more than 4 connected cells.
+
+    A 1-cell (8px) corridor causes the same snag as a small obstacle island but
+    from the walkable side — enemies and the player both clip on the invisible
+    micro-walls at each edge.  Runs of 1-4 cells are tolerable (doorway slivers);
+    anything longer is a design error to fix.
+    """
+    warnings_out = []
+    g = sk.grid
+
+    def walk(x, y):
+        if not (0 <= x < BLOCK_W and 0 <= y < BLOCK_H):
+            return False
+        return g[y][x] in WALKABLE or g[y][x] == RUINWALL
+
+    def is_1wide(x, y):
+        return ((not walk(x, y - 1) and not walk(x, y + 1)) or
+                (not walk(x - 1, y) and not walk(x + 1, y)))
+
+    seen = set()
+    for y in range(BLOCK_H):
+        for x in range(BLOCK_W):
+            if not walk(x, y) or not is_1wide(x, y) or (x, y) in seen:
+                continue
+            comp = []
+            stack = [(x, y)]
+            seen.add((x, y))
+            while stack:
+                cx, cy = stack.pop()
+                comp.append((cx, cy))
+                for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    nx, ny = cx + dx, cy + dy
+                    if (0 <= nx < BLOCK_W and 0 <= ny < BLOCK_H
+                            and (nx, ny) not in seen
+                            and walk(nx, ny) and is_1wide(nx, ny)):
+                        seen.add((nx, ny))
+                        stack.append((nx, ny))
+            if len(comp) > 4:
+                xs = [c[0] for c in comp]
+                ys = [c[1] for c in comp]
+                warnings_out.append(
+                    f"narrow corridor at ({min(xs)},{min(ys)}) "
+                    f"is 1 cell wide for {len(comp)} cells "
+                    f"(snag risk; max tolerable is 4)"
+                )
+    return warnings_out
+
+
+# ---------------------------------------------------------------------------
 # Validation
 # ---------------------------------------------------------------------------
-def validate(sk):
+def validate(sk, min_obstacle_size=2):
     errors = []
+    warnings = []
     g = sk.grid
     if len(g) != BLOCK_H:
         errors.append(f"grid has {len(g)} rows, expected {BLOCK_H}")
@@ -291,7 +394,7 @@ def validate(sk):
             elif ch in (PLATFORM, RUINWALL) and sk.style != "nmrealm":
                 errors.append(f"row {y} col {x}: {ch!r} is nmrealm-only")
     if errors:
-        return errors
+        return errors, []
 
     def walk(x, y):
         # RUINWALL is walkable decor (Ben's convention: no collision on ruins)
@@ -449,7 +552,9 @@ def validate(sk):
                                   f"non-void rows below (courses render there)")
     if not sk.spawn_zones:
         errors.append("no spawn_zone defined (block_architecture.md §3: at least one required)")
-    return errors
+    errors += check_obstacle_islands(sk, min_obstacle_size)
+    warnings += check_narrow_corridors(sk)
+    return errors, warnings
 
 
 # ---------------------------------------------------------------------------
@@ -1338,9 +1443,12 @@ def render_preview(level, defs, out_path, scale=2):
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
-def compile_sketch(path, project, defs, preview_only=False):
+def compile_sketch(path, project, defs, preview_only=False, min_obstacle_size=2):
     sk = parse_sketch(path)
-    errors = validate(sk)
+    errors, warnings = validate(sk, min_obstacle_size)
+    if warnings:
+        for w in warnings:
+            print(f"  WARN {sk.name}: {w}")
     if errors:
         print(f"FAIL {path} ({sk.name}):")
         for e in errors:
@@ -1400,10 +1508,69 @@ def compile_sketch(path, project, defs, preview_only=False):
     return True
 
 
+def run_audit(paths, min_obstacle_size=2):
+    """Parse and validate .block files; print a markdown summary.  No compilation."""
+    rows = []
+    for path in sorted(paths):
+        try:
+            sk = parse_sketch(path)
+            errors, warnings = validate(sk, min_obstacle_size)
+            rows.append((sk.name, errors, warnings))
+        except Exception as exc:
+            rows.append((os.path.basename(path), [f"parse error: {exc}"], []))
+
+    print(f"\n## Block Obstacle Audit  (min_obstacle_size={min_obstacle_size})\n")
+    print(f"| Block | Errors | Warnings |")
+    print(f"|-------|--------|----------|")
+    for name, errs, warns in rows:
+        err_cell = "; ".join(errs) if errs else "(none)"
+        warn_cell = "; ".join(warns) if warns else "(none)"
+        print(f"| {name} | {err_cell} | {warn_cell} |")
+
+    n_err_blocks = sum(1 for _, e, _ in rows if e)
+    n_warn_blocks = sum(1 for _, _, w in rows if w)
+    print(f"\n{n_err_blocks} block(s) with errors, "
+          f"{n_warn_blocks} block(s) with warnings "
+          f"({len(rows)} total).")
+    return n_err_blocks == 0
+
+
 def main():
-    args = [a for a in sys.argv[1:]]
-    preview_only = "--preview-only" in args
-    paths = [a for a in args if not a.startswith("--")]
+    raw = list(sys.argv[1:])
+    preview_only = False
+    audit_mode = False
+    min_obstacle_size = 2
+    paths = []
+    i = 0
+    while i < len(raw):
+        a = raw[i]
+        if a == "--preview-only":
+            preview_only = True
+        elif a == "--audit":
+            audit_mode = True
+        elif a == "--min-obstacle-size":
+            i += 1
+            min_obstacle_size = int(raw[i])
+        elif a.startswith("--min-obstacle-size="):
+            min_obstacle_size = int(a.split("=", 1)[1])
+        elif a.startswith("--"):
+            print(f"unknown flag {a!r}", file=sys.stderr)
+            sys.exit(1)
+        else:
+            paths.append(a)
+        i += 1
+
+    if audit_mode:
+        if not paths:
+            import glob as _glob
+            paths = _glob.glob(
+                os.path.join(ROOT, "blocks", "**", "*.block"), recursive=True)
+        if not paths:
+            print("no .block files found under blocks/")
+            sys.exit(1)
+        ok = run_audit(paths, min_obstacle_size)
+        sys.exit(0 if ok else 1)
+
     if not paths:
         print(__doc__)
         sys.exit(1)
@@ -1414,7 +1581,7 @@ def main():
 
     ok = True
     for path in paths:
-        ok &= compile_sketch(path, project, defs, preview_only)
+        ok &= compile_sketch(path, project, defs, preview_only, min_obstacle_size)
 
     if ok and not preview_only:
         with open(PROJECT_PATH, "w", encoding="utf-8", newline="\n") as f:

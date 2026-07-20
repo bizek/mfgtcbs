@@ -86,11 +86,21 @@ var _tilemap_layers: Array[Node] = []         ## children we created (cleared be
 var _collision_bodies: Array[Node] = []
 var _obstacle_nodes: Array[Node] = []
 
+## Navigation walkability, retained for FlowField registration (loader-local px).
+## One entry per contributing IntGrid layer (Collision, PropCollision). The
+## layers use different grid sizes (8px vs 2px), so each keeps its own mask +
+## dims and the FlowField rasterizer merges them onto the nav grid.
+## Entries: {mask: PackedByteArray (1 = solid), cw: int, ch: int, gs: int}
+var nav_masks: Array[Dictionary] = []
+var nav_circles: Array[Dictionary] = []  ## Obstacle colliders: {pos: Vector2, radius: float}
+
 
 # ─── Public API ───────────────────────────────────────────────────────────────
 
 func load_level(ldtk_project_path: String, level_identifier: String) -> Dictionary:
 	var result: Dictionary = _empty_result()
+	nav_masks.clear()
+	nav_circles.clear()
 	_clear_children()
 
 	## --- Read project file ---
@@ -409,6 +419,7 @@ func _build_wall_collision(layer_inst: Dictionary, result: Dictionary) -> void:
 	for i in csv.size():
 		var v: int = int(csv[i])
 		is_solid[i] = 1 if (v == 0 or v == INTGRID_WALL) else 0
+	_nav_accumulate(is_solid, cw, ch, grid_size)
 	_merge_solid_grid(is_solid, cw, ch, grid_size)
 
 
@@ -427,7 +438,16 @@ func _build_paint_collision(layer_inst: Dictionary, result: Dictionary) -> void:
 	is_solid.resize(cw * ch)
 	for i in csv.size():
 		is_solid[i] = 1 if int(csv[i]) != 0 else 0
+	_nav_accumulate(is_solid, cw, ch, grid_size)
 	_merge_solid_grid(is_solid, cw, ch, grid_size)
+
+
+func _nav_accumulate(mask: PackedByteArray, cw: int, ch: int, grid_size: int) -> void:
+	## Retain a layer's solid mask for FlowField registration. Layers keep their
+	## own dims — Collision is 8px and PropCollision is 2px, so a shared grid
+	## would force one layer to be dropped (which silently removed all walls
+	## from navigation when PropCollision came first in the layer stack).
+	nav_masks.append({"mask": mask.duplicate(), "cw": cw, "ch": ch, "gs": grid_size})
 
 
 ## Greedy 2D merge of solid cells into maximal rectangles, spawning one StaticBody2D per rect.
@@ -620,6 +640,7 @@ func _spawn_obstacle_node(info: Dictionary) -> void:
 	body.collision_mask = 0
 	var radius: float = info.collision_radius
 	if radius > 0.0:
+		nav_circles.append({"pos": info.position, "radius": radius})
 		var col := CollisionShape2D.new()
 		var shape := CircleShape2D.new()
 		shape.radius = radius

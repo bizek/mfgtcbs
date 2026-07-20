@@ -152,6 +152,26 @@ func register_spawn_zones_with(spawn_manager: Node) -> void:
 		)
 
 
+func register_nav_with(flow_field: Node2D) -> void:
+	## Mirror of register_spawn_zones_with: feed every block's walkability mask
+	## (plus obstacle colliders) into the FlowField, then finalize the nav grid.
+	flow_field.clear_blocks()
+	for loader in _loaders:
+		register_loader_nav(flow_field, loader as LdtkLoader, loader.position)
+	flow_field.finalize()
+
+
+static func register_loader_nav(flow_field: Node2D, loader: LdtkLoader, world_offset: Vector2) -> void:
+	## Shared with MainArena's single-level LDtk path. Registers every layer
+	## mask the loader retained (Collision + PropCollision, distinct grid sizes).
+	if loader == null or loader.nav_masks.is_empty():
+		return
+	for m: Dictionary in loader.nav_masks:
+		flow_field.register_block(m.mask, m.cw, m.ch, m.gs, world_offset)
+	for c: Dictionary in loader.nav_circles:
+		flow_field.register_solid_circle(world_offset + (c.pos as Vector2), float(c.radius))
+
+
 func get_block_index_at_y(world_y: float) -> int:
 	for i in range(block_bounds.size()):
 		var bounds: Rect2 = block_bounds[i]

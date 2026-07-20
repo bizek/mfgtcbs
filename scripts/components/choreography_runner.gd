@@ -19,6 +19,13 @@ extends Node
 ##   choreo_on_start(ability: AbilityDefinition) -> void
 ##   choreo_on_end() -> void
 ##   choreo_on_finisher_hit() -> void  (optional; called when an is_finisher phase's hit lands)
+##   choreo_on_phase_hit(phase, phase_index, ability) -> void
+##       (optional; called whenever a phase's hit fires — the exact moment the cancel window
+##        opens, since tick() gates branch-advance on _hit_fired. Combo cadence feedback hangs
+##        here; see docs/combo_feedback_spec.md.)
+##   choreo_on_chain_timeout(phase) -> void
+##       (optional; called when a "wait" phase's window lapses with default_next < 0 — the chain
+##        ended by the player letting it drop, as opposed to interrupt() or a finisher completing.)
 
 var _host = null                      ## untyped for duck-typed host dispatch
 var _sprite: AnimatedSprite2D = null
@@ -27,6 +34,7 @@ var _choreo: ChoreographyDefinition = null
 var _ability: AbilityDefinition = null
 var _phase_index: int = -1
 var _timer: float = 0.0
+var _phase_time: float = 0.0          ## seconds since this phase was entered (spam cap)
 var _targets: Array = []
 var _current_anim: String = ""
 var _hit_fired: bool = false
@@ -39,6 +47,25 @@ func setup(host) -> void:
 
 func is_running() -> bool:
 	return _running
+
+
+func get_ability() -> AbilityDefinition:
+	return _ability
+
+
+## True if the current phase has a branch listening for `action` (buffered or held). Lets the
+## host tell "this press will be consumed by the graph" apart from "this press dead-ends here"
+## (e.g. RMB on a light opener before the heavy-finisher gate opens).
+func current_phase_handles(action: String) -> bool:
+	if not _running or _choreo == null:
+		return false
+	if _phase_index < 0 or _phase_index >= _choreo.phases.size():
+		return false
+	for branch in _choreo.phases[_phase_index].branches:
+		var c: Resource = branch.condition
+		if c != null and "action" in c and c.action == action:
+			return true
+	return false
 
 
 ## Begin a choreography sequence. `targets` is the initial target set (host may ignore it).
@@ -70,7 +97,9 @@ func _enter_phase(index: int) -> void:
 	if _choreo == null or index < 0 or index >= _choreo.phases.size():
 		_end()
 		return
+	var prev_index: int = _phase_index
 	_phase_index = index
+	_phase_time = 0.0
 	var phase: ChoreographyPhase = _choreo.phases[index]
 
 	_host.choreo_set_flags(phase.set_untargetable, phase.set_invulnerable)
@@ -96,18 +125,29 @@ func _enter_phase(index: int) -> void:
 		var anim_name: String = phase.animation
 		if _host.has_method("choreo_anim_name"):
 			anim_name = _host.choreo_anim_name(phase.animation)
-		_current_anim = anim_name
-		_hit_fired = false
-		if _sprite and _sprite.sprite_frames and _sprite.sprite_frames.has_animation(anim_name):
-			_sprite.play(anim_name)
-			if phase.telegraph_speed_scale != 1.0:
-				_sprite.speed_scale = phase.telegraph_speed_scale
+		if phase.hold_anim_on_reentry and index == prev_index:
+			## Channel self-loop: leave the body alone — a finished one-shot stays frozen on
+			## its last frame (Guard's raised sword, the Torrent pour). Re-fire the overlay
+			## hook, and fire tick effects here if the first pass's hit already landed
+			## (a frozen body never reaches its hit_frame again). If the body is still
+			## mid-swing toward its first hit, frame_changed fires it normally.
 			if _host.has_method("choreo_on_phase_anim"):
 				_host.choreo_on_phase_anim(phase)
-		elif phase.exit_type == "anim_finished":
-			## No animation to wait on — advance immediately.
-			_on_phase_exit()
-			return
+			if _hit_fired and phase.hit_frame >= 0 and not phase.effects.is_empty():
+				_fire(phase)
+		else:
+			_current_anim = anim_name
+			_hit_fired = false
+			if _sprite and _sprite.sprite_frames and _sprite.sprite_frames.has_animation(anim_name):
+				_sprite.play(anim_name)
+				if phase.telegraph_speed_scale != 1.0:
+					_sprite.speed_scale = phase.telegraph_speed_scale
+				if _host.has_method("choreo_on_phase_anim"):
+					_host.choreo_on_phase_anim(phase)
+			elif phase.exit_type == "anim_finished":
+				## No animation to wait on — advance immediately.
+				_on_phase_exit()
+				return
 
 	match phase.exit_type:
 		"wait":
@@ -124,6 +164,7 @@ func tick(delta: float) -> void:
 	if _phase_index < 0 or _phase_index >= _choreo.phases.size():
 		return
 	var phase: ChoreographyPhase = _choreo.phases[_phase_index]
+	_phase_time += delta
 	if phase.exit_type != "wait":
 		return
 	## Combo feel — "buffer during the swing, cancel at impact" (standard action-game input
@@ -134,13 +175,25 @@ func tick(delta: float) -> void:
 	var anim_playing: bool = _sprite != null and _sprite.is_playing() \
 			and String(_sprite.animation) == _current_anim
 	if _hit_fired or phase.hit_frame < 0 or not anim_playing:
+		## Spam cap: tap-advance (buffered) branches also wait out the host's minimum
+		## cadence — presses stay buffered, so queued input still advances the instant the
+		## gate opens. Held/release branches (channel exits) are never delayed.
+		var min_tap: float = 0.0
+		if _host.has_method("choreo_min_advance_time"):
+			min_tap = _host.choreo_min_advance_time(phase)
 		## Evaluate branches; first passing branch wins.
 		for branch in phase.branches:
+			if branch.condition is ConditionInputBuffered and _phase_time < min_tap:
+				continue
 			if _evaluate_branch(branch, phase):
 				_enter_phase(branch.next_phase)
 				return
 	_timer -= delta
 	if _timer <= 0.0:
+		## Window lapsed with nowhere to go = the player dropped the chain (a timeout into a
+		## loop index is a continuation, not a drop — hence the default_next gate).
+		if phase.default_next < 0 and _host.has_method("choreo_on_chain_timeout"):
+			_host.choreo_on_chain_timeout(phase)
 		_on_phase_exit()
 
 
@@ -178,6 +231,8 @@ func _on_phase_exit() -> void:
 func _fire(phase: ChoreographyPhase) -> void:
 	if phase.is_finisher and _host.has_method("choreo_on_finisher_hit"):
 		_host.choreo_on_finisher_hit()
+	if _host.has_method("choreo_on_phase_hit"):
+		_host.choreo_on_phase_hit(phase, _phase_index, _ability)
 	if phase.effects.is_empty():
 		return
 	_host.choreo_fire_effects(phase.effects, _targets, _ability)

@@ -17,6 +17,7 @@ var _panel: Control        ## Root panel container
 var _god_btn: Button       ## Kept for live label/colour updates
 var _debug_draw_btn: Button
 var _block_debug_btn: Button
+var _flow_field_btn: Button
 var _auto_fire_btn: Button
 var _mob_spawn_btn: Button
 var _inspector_btn: Button
@@ -109,6 +110,7 @@ func _build_panel() -> void:
 		["Mob Spawning: ON",     _cmd_toggle_mob_spawning],
 		["Debug Draw: OFF",      _cmd_toggle_debug_draw],
 		["Block Overlay: OFF",   _cmd_toggle_block_debug],
+		["Flow Field: OFF",      _cmd_toggle_flow_field],
 		["Entity Inspector: OFF", _cmd_toggle_inspector],
 		["Reset First-Run",      _cmd_reset_first_run],
 	]
@@ -126,6 +128,8 @@ func _build_panel() -> void:
 			_debug_draw_btn = btn
 		if d[0].begins_with("Block Overlay"):
 			_block_debug_btn = btn
+		if d[0].begins_with("Flow Field"):
+			_flow_field_btn = btn
 		if d[0].begins_with("Auto Fire"):
 			_auto_fire_btn = btn
 		if d[0].begins_with("Mob Spawning"):
@@ -360,3 +364,20 @@ func _cmd_toggle_block_debug() -> void:
 			var on: bool = bm._debug_overlay_visible
 			_block_debug_btn.text = "Block Overlay: " + ("ON" if on else "OFF")
 			_block_debug_btn.modulate = Color(0.3, 1.0, 0.3) if on else Color.WHITE
+
+
+func _cmd_toggle_flow_field() -> void:
+	var arena := get_tree().current_scene
+	if arena == null:
+		return
+	var orch: Node = arena.get("orchestrator")
+	if orch == null:
+		return
+	var ff = orch.get("flow_field")
+	if ff == null:
+		return
+	ff.toggle_overlay()
+	if _flow_field_btn:
+		var on: bool = ff.overlay_enabled
+		_flow_field_btn.text = "Flow Field: " + ("ON" if on else "OFF")
+		_flow_field_btn.modulate = Color(0.3, 1.0, 0.3) if on else Color.WHITE

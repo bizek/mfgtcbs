@@ -16,7 +16,7 @@ static func build_kit_skills(kit_id: String, weapon_data: Dictionary) -> Diction
 		"fighter":
 			return {
 				"skill_q": build_fighter_second_wind(weapon_data),
-				"skill_e": build_fighter_blade_flurry(weapon_data),
+				"skill_e": build_fighter_shield_rush(weapon_data),
 			}
 		"ranger":
 			return {
@@ -87,41 +87,50 @@ static func build_bard_serenade(_weapon_data: Dictionary) -> AbilityDefinition:
 	return _ability("bard_serenade", "Charming Serenade", phase, 12.0)
 
 
-## Second Wind (Fighter, Q): the soldier plants his shield and catches his breath — heal 12%
-## max HP + "steeled" (−15% damage taken for 4s). "rally" re-slices the Taunt sheet slower
-## (a distinct NAME so it skips the taunt shockwave host hook).
+## Second Wind (Fighter, Q): the soldier raises his sword and catches his breath — heal 12%
+## max HP + "steeled" (−15% damage taken for 4s). "rally" is the Attack sheet SLOW (a salute,
+## not another shield bang — Ben 2026-07-19); the green heal ring/flash is host-side.
 static func build_fighter_second_wind(_weapon_data: Dictionary) -> AbilityDefinition:
 	var phase := ChoreographyPhase.new()
 	phase.animation = "rally"
-	phase.hit_frame = 5
+	phase.hit_frame = 2
 	phase.effects = [ChainFactory._self_heal(0.12), _ward_buff("steeled", 0.15, 4.0)]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
 	return _ability("fighter_second_wind", "Second Wind", phase, 12.0)
 
 
-## Blade Flurry (Fighter, E): a hard spin-cut — AoE + flat shove to clear a ring of room.
-## "flurry" re-slices the Swirl sheet faster, with its frame-matched effect as "flurry_fx".
-static func build_fighter_blade_flurry(weapon_data: Dictionary) -> AbilityDefinition:
+## Shield Rush (Fighter, E — replaced Blade Flurry, Ben 2026-07-19: "just a big AoE swing
+## again"): shield-first charge toward the cursor. The host hook on "rush" does the work —
+## dash motion through the pack, corridor victims damaged and YANKED to the slam point, then
+## the slam AoE lands. The small contact AoE here fires the hook and clips whoever he
+## launches through.
+static func build_fighter_shield_rush(weapon_data: Dictionary) -> AbilityDefinition:
 	var dmg: float = weapon_data.get("damage", 42.0)
 	var dtype: String = _damage_type(weapon_data)
 
 	var phase := ChoreographyPhase.new()
-	phase.animation = "flurry"
+	phase.animation = "rush"
 	phase.hit_frame = 1
-	phase.effects = [ChainFactory._aoe(dtype, dmg * 1.2, 48.0), ChainFactory._shove()]
+	phase.effects = [ChainFactory._aoe(dtype, dmg * 0.4, 24.0)]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
-	return _ability("fighter_blade_flurry", "Blade Flurry", phase, 6.0)
+	return _ability("fighter_shield_rush", "Shield Rush", phase, 8.0)
 
 
-## Skirmisher's Step (Ranger, Q): the back-off kick — shove the pack away and dart clear at
-## +25% move speed for 4s. Rides the Double Melee sheet (its swipe pairs with the push).
+## Skirmisher's Step (Ranger, Q): the back-off kick, upgraded to a real escape (Ben
+## 2026-07-19: shove alone felt weak for a cooldown) — shove the pack away, dart clear at
+## +25% move speed for 4s, untouchable for the first second ("slippery": 100% dodge), and the
+## kick refunds a dash charge (host hook on the ability id). Rides the Double Melee sheet.
 static func build_ranger_skirmish_step(_weapon_data: Dictionary) -> AbilityDefinition:
 	var phase := ChoreographyPhase.new()
 	phase.animation = "melee_2"
 	phase.hit_frame = 2
-	phase.effects = [_speed_buff("fleetfoot", 0.25, 4.0), ChainFactory._shove()]
+	phase.effects = [
+		_speed_buff("fleetfoot", 0.25, 4.0),
+		_dodge_buff("slippery", 1.0, 1.0),
+		ChainFactory._shove(),
+	]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
 	return _ability("ranger_skirmish_step", "Skirmisher's Step", phase, 10.0)
@@ -248,16 +257,30 @@ static func build_blood_mage_blood_surge(_weapon_data: Dictionary) -> AbilityDef
 	return _ability("blood_mage_blood_surge", "Blood Surge", phase, 10.0)
 
 
-## Blood Eruption (Blood Mage, E): the ground opens — AoE + shove on the Blood_Spikes body;
-## the host's "spikes" hook spawns the pack's ground-burst sheet at the hit-zone radius.
+## Blood Eruption (Blood Mage, E — reworked, Ben 2026-07-19: was a re-skin of Blood Spikes):
+## the ground opens AND stays open — the burst leaves a lingering blood pool underfoot that
+## bleeds enemies standing in it, and every enemy that DIES in a pool feeds the Cursed
+## (host heals 3% max HP per death — player._on_any_entity_death). Smaller up-front hit than
+## the heavy Spikes; the pool is the identity.
 static func build_blood_mage_blood_eruption(weapon_data: Dictionary) -> AbilityDefinition:
 	var dmg: float = weapon_data.get("damage", 42.0)
 	var dtype: String = _damage_type(weapon_data)
 
+	var pool := GroundZoneEffect.new()
+	pool.zone_id = "blood_pool"
+	pool.radius = 48.0
+	pool.duration = 5.0
+	pool.tick_interval = 0.5
+	pool.target_faction = "enemy"
+	var bleed := DealDamageEffect.new()
+	bleed.damage_type = dtype
+	bleed.base_damage = dmg * 0.15
+	pool.tick_effects = [bleed]
+
 	var phase := ChoreographyPhase.new()
 	phase.animation = "spikes"
 	phase.hit_frame = 5
-	phase.effects = [ChainFactory._aoe(dtype, dmg * 1.4, 52.0), ChainFactory._shove()]
+	phase.effects = [ChainFactory._aoe(dtype, dmg * 1.0, 48.0), ChainFactory._shove(), pool]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
 	return _ability("blood_mage_blood_eruption", "Blood Eruption", phase, 8.0)
@@ -432,6 +455,28 @@ static func _ward_buff(id: String, amount: float, duration: float) -> ApplyStatu
 	ward.value = -amount
 	ward.source_name = id
 	status.modifiers = [ward]
+	var apply := ApplyStatusEffectData.new()
+	apply.status = status
+	apply.stacks = 1
+	apply.apply_to_self = true
+	return apply
+
+
+## Self-applied dodge-chance buff (Skirmisher's Step "slippery" window). dodge_chance is an
+## "add"-operation stat in DamageCalculator step 4, so amount 1.0 = guaranteed dodge.
+static func _dodge_buff(id: String, amount: float, duration: float) -> ApplyStatusEffectData:
+	var status := StatusEffectDefinition.new()
+	status.status_id = id
+	status.is_positive = true
+	status.max_stacks = 1
+	status.base_duration = duration
+	status.duration_refresh_mode = "overwrite"
+	var dodge := ModifierDefinition.new()
+	dodge.target_tag = "dodge_chance"
+	dodge.operation = "add"
+	dodge.value = amount
+	dodge.source_name = id
+	status.modifiers = [dodge]
 	var apply := ApplyStatusEffectData.new()
 	apply.status = status
 	apply.stacks = 1

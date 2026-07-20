@@ -98,6 +98,7 @@ func _ready() -> void:
 
 	_apply_minifantasy_theme()
 	_build_skill_slots()
+	_build_buff_chips()
 	_build_keystone_indicator()
 	_build_guardian_health_bar()
 	_build_phase_flash_label()
@@ -151,6 +152,7 @@ func _process(delta: float) -> void:
 		_keystone_indicator.visible = GameManager.player_has_keystone
 
 	_update_skill_slots()
+	_update_buff_chips()
 
 	## Phase countdown warning / Core phase notice
 	if _extraction_warning_label != null:
@@ -592,6 +594,21 @@ const SKILL_SLOT: float = 22.0
 const SKILL_SLOT_GAP: float = 4.0
 const SKILL_SLOT_Y: float = 360.0 - SKILL_SLOT - 6.0
 
+## ── Buff tracker (chips centered above the Q/E slots) ────────────────────────
+const BUFF_CHIP_W: float = 36.0
+const BUFF_CHIP_H: float = 13.0
+const BUFF_CHIP_GAP: float = 3.0
+const BUFF_BAR_Y: float = SKILL_SLOT_Y - BUFF_CHIP_H - 5.0
+const BUFF_MAX_CHIPS: int = 8
+## status_id -> short chip label. Anything unlisted falls back to the id, upper-cased.
+const BUFF_NAMES: Dictionary = {
+	"steeled": "STEELED",        "aegis": "AEGIS",          "blessed": "BLESSED",
+	"fleetfoot": "SWIFT",        "mana_surge": "SURGE",     "blood_surge": "SURGE",
+	"blood_power": "PACT",       "battle_fury": "FURY",     "honed_edge": "HONED",
+	"loaded_chambers": "LOADED", "apotheosis": "ASCEND",    "enhancement_song": "ANTHEM",
+	"ballad_song": "BALLAD",     "concealed": "HIDDEN",     "slippery": "SLIPPERY",
+}
+
 func _build_skill_slots() -> void:
 	var slots: Array = ["skill_q", "skill_e"]
 	for i in range(slots.size()):
@@ -646,6 +663,97 @@ func _build_skill_slots() -> void:
 			"key_text": "Q" if slot == "skill_q" else "E",
 			"prev_remaining": 0.0,
 		}
+
+## ── Buff tracker ─────────────────────────────────────────────────────────────
+## Pooled chips; each frame the pool is laid over the player's live status snapshot.
+## Chip: pill ninepatch + short name + a thin fill bar draining with time_remaining.
+var _buff_chips: Array[Dictionary] = []
+
+
+func _build_buff_chips() -> void:
+	for i in range(BUFF_MAX_CHIPS):
+		var root := Control.new()
+		root.name = "BuffChip%d" % i
+		root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		root.visible = false
+		add_child(root)
+
+		var bg := NinePatchRect.new()
+		bg.texture = _sheet()
+		bg.region_rect = PANEL_PILL
+		bg.patch_margin_left = 5
+		bg.patch_margin_top = 5
+		bg.patch_margin_right = 5
+		bg.patch_margin_bottom = 5
+		bg.size = Vector2(BUFF_CHIP_W, BUFF_CHIP_H)
+		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		root.add_child(bg)
+
+		var fill := ColorRect.new()
+		fill.position = Vector2(2.0, BUFF_CHIP_H - 3.0)
+		fill.size = Vector2(BUFF_CHIP_W - 4.0, 1.0)
+		fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		root.add_child(fill)
+
+		var label := Label.new()
+		label.position = Vector2.ZERO
+		label.size = Vector2(BUFF_CHIP_W, BUFF_CHIP_H - 2.0)
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		label.add_theme_font_size_override("font_size", _ts(9))
+		label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0))
+		label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.9))
+		label.add_theme_constant_override("outline_size", 1)
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
+			label.add_theme_font_override("font", load("res://assets/fonts/m5x7.ttf"))
+		root.add_child(label)
+
+		_buff_chips.append({ "root": root, "bg": bg, "fill": fill, "label": label, "id": "" })
+
+
+func _update_buff_chips() -> void:
+	if player_ref == null or not is_instance_valid(player_ref):
+		return
+	var sec = player_ref.get("status_effect_component")
+	if sec == null:
+		return
+	var snapshot: Array[Dictionary] = sec.get_status_snapshot()
+	## Stable order: buffs first, then debuffs, alphabetical within — chips don't shuffle.
+	snapshot.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		if a.is_positive != b.is_positive:
+			return a.is_positive
+		return String(a.id) < String(b.id))
+	var count: int = mini(snapshot.size(), BUFF_MAX_CHIPS)
+	var row_w: float = count * BUFF_CHIP_W + maxf(0.0, count - 1) * BUFF_CHIP_GAP
+	for i in range(BUFF_MAX_CHIPS):
+		var chip: Dictionary = _buff_chips[i]
+		if i >= count:
+			chip.root.visible = false
+			chip.id = ""
+			continue
+		var s: Dictionary = snapshot[i]
+		chip.root.position = Vector2(320.0 - row_w * 0.5 + i * (BUFF_CHIP_W + BUFF_CHIP_GAP), BUFF_BAR_Y)
+		if chip.id != s.id:
+			chip.id = s.id
+			var chip_name: String = BUFF_NAMES.get(s.id, String(s.id).to_upper().left(7))
+			chip.label.text = chip_name if s.stacks <= 1 else "%s x%d" % [chip_name, s.stacks]
+			## Green pill for buffs, red for debuffs on the player.
+			chip.bg.modulate = Color(0.55, 0.85, 0.55, 0.95) if s.is_positive else Color(0.95, 0.5, 0.5, 0.95)
+			chip.fill.color = Color(0.55, 1.0, 0.55) if s.is_positive else Color(1.0, 0.55, 0.45)
+			## Pop on appear.
+			chip.root.modulate = Color(1.6, 1.6, 1.3, 1.0)
+			var t: Tween = chip.root.create_tween()
+			t.tween_property(chip.root, "modulate", Color.WHITE, 0.2)
+		elif s.stacks > 1:
+			var chip_name2: String = BUFF_NAMES.get(s.id, String(s.id).to_upper().left(7))
+			chip.label.text = "%s x%d" % [chip_name2, s.stacks]
+		var frac: float = 1.0
+		if s.base_duration > 0.0 and s.time_remaining > 0.0:
+			frac = clampf(s.time_remaining / s.base_duration, 0.0, 1.0)
+		chip.fill.size.x = (BUFF_CHIP_W - 4.0) * frac
+		chip.root.visible = true
+
 
 func _refresh_skill_slot_keys() -> void:
 	## Resolve the bound key names once per run (respects rebinds from the settings panel).

@@ -71,6 +71,18 @@ R["swing_heavy_1"] = (_swing_heavy_v2(0.22, 0.38, 0.19, 110), 0.25, 0.2)
 R["swing_heavy_2"] = (_swing_heavy_v2(0.12, 0.30, 0.26, 85), 0.32, 0.2)
 
 
+# combo drop "exhale" (docs/combo_feedback_spec.md, mechanism E): a chain lapsing is a breath
+# out, not a fail buzzer — reversed swing energy: soft pink-noise swell that darkens as it
+# fades, under a quiet downward sigh. Deliberately smaller than any swing.
+def _combo_drop_v2():
+    noise_layer("breath", white=False, gate_pts=gate_swell(0.0, 0.32, 0.45, rise=0.2),
+                noise_db=-4.0, chain=[lowpass(0.42, hp=0.08)])
+    tone_layer("sigh", shape=0, freq_pts=sweep(0.0, 0.30, 400, 190),
+               amp_pts=decay_db(0.0, 0.32, -18.0, attack=0.03))
+
+R["combo_drop"] = (_combo_drop_v2, 0.38, 0.25)
+
+
 # shock hits: Surge resonance zap + noise crack
 def _hit_shock_v2(note, decay, dur):
     def b():

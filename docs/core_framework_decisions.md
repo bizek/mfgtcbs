@@ -329,15 +329,35 @@ All four extraction types are live (`timed_extraction.gd`, `guarded_extraction.g
 
 ### Base Drop Chance Per Kill (Before Loot Find Bonus)
 
-| Enemy Role | Any Extractable Drop | Resource | Weapon/Mod | Blueprint | Artifact |
-|-----------|---------------------|----------|------------|-----------|----------|
-| Fodder | 3% | 3% | 0% | 0% | 0% |
-| Swarmer | 5% | 4.5% | 0.5% | 0% | 0% |
-| Brute | 30% | 20% | 8% | 2% | 0% |
-| Ranged | 15% | 10% | 4% | 1% | 0% |
-| Elite | 60% | 25% | 25% | 8% | 2% |
-| Miniboss | 100% | 30% | 40% | 20% | 10% |
-| Carrier | 100% | 30% | 50% | 15% | 5% |
+*Rates bumped 2026-07-19 (playtest pass): common enemies ≈4×, specials ≈2×.
+Target: tester reaches meta-content in 2–3 runs. See per-run income table below.*
+
+| Enemy Role | Resource | Weapon/Mod | Old Resource | Multiplier |
+|-----------|----------|------------|-------------|------------|
+| Fodder | **15%** | 0% | 3% | 5× |
+| Swarmer | **18%** | 0.5% | 4.5% | 4× |
+| Brute | **45%** | 8% | 20% | 2.25× |
+| Caster/Ranged | **28%** | 4% | 10% | 2.8× |
+| Stalker | **28%** | 4% | 10% | 2.8× |
+| Guardian | **55%** | 40% | 30% | 1.8× |
+| Carrier | **55%** | 50% | 30% | 1.8× |
+| Herald | **55%** | 25% | 25% | 2.2× |
+| Anchor | **40%** | 8% | 15% | 2.7× |
+| Bosses | 100% | 90–100% | 100% | — |
+
+### Per-Run Resource Income Estimate (~300 kills, locked extraction)
+
+| Deepest Phase | Old Income | New Income | Multiplier |
+|--------------|-----------|-----------|------------|
+| Phase 1 only | ~8 | ~39 | ×4.9 |
+| Phase 2 | ~37 | ~150 | ×4.1 |
+| Phase 3 | ~157 | ~490 | ×3.1 |
+| Phase 4 | ~438 | ~1157 | ×2.6 |
+| Full P5 run | ~893 | ~2424 | ×2.7 |
+
+*Death payouts at 25% of above. Locked-extraction bonus applies on top (+25/50/100% for P3/4/5).*
+
+Hub upgrade costs for context: insurance_license 300 · channel_accelerator_1 400 · armory_expansion_1 750
 
 **Phase scaling on drop quality:** Drop chances above determine IF something drops. The RARITY of what drops is scaled by phase:
 

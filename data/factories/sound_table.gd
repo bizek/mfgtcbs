@@ -34,7 +34,8 @@ const ALL: Dictionary = {
 	## Weapon/ability fire (P2 "weapon fire") — no dedicated CC0 asset found, so these
 	## alias the swing whooshes with wider pitch variance (manifest §synthesis). Fired
 	## from EventBus.on_ability_used for every non-combo ability (player weapons and
-	## enemy ability wind-ups); combo swings keep the on-hit swing SFX path.
+	## enemy ability wind-ups); heavy combo swings keep the on-hit swing SFX path, light
+	## combo swings ride on_combo_step (sfx_combo_step ladder below).
 	"sfx_projectile_fire": {
 		"streams": [
 			"res://assets/audio/sfx/combat/swing_light_0.ogg",
@@ -60,6 +61,21 @@ const ALL: Dictionary = {
 			"res://assets/audio/sfx/combat/swing_heavy_2.ogg",
 		],
 		"volume_db": -6.0, "max_per_frame": 2, "positional": true,
+	},
+	## Combo cadence ladder (docs/combo_feedback_spec.md): the light-chain step swing, pitched up
+	## per step at runtime (AudioManager pitch_semitones). One fixed stream + near-zero variance —
+	## a 1.5-semitone-per-step ladder is only legible if the base note barely wobbles.
+	"sfx_combo_step": {
+		"streams": ["res://assets/audio/sfx/combat/swing_light_0.ogg"],
+		"volume_db": -9.0, "max_per_frame": 2, "positional": true,
+		"pitch_variance": 0.02,
+	},
+	## Chain-drop "exhale": soft downward breath when a chain at depth >= 2 lapses. Non-positional
+	## (player-centric feedback). Asset from the sfx_forge combo_drop recipe.
+	"sfx_combo_drop": {
+		"streams": ["res://assets/audio/sfx/combat/combo_drop.ogg"],
+		"volume_db": -14.0, "max_per_frame": 1, "pitch_variance": 0.04,
+		"min_interval_ms": 250,
 	},
 
 	# ── Combat: hits by damage type (P1) ─────────────────────────────────────

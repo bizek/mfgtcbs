@@ -8,16 +8,19 @@ extends Node
 # ENEMY DROP RATES — per enemy_id, chance of each loot category per kill
 # ═══════════════════════════════════════════════════════════════════════════════
 
+## Playtest tuning 2026-07-19: resource rates bumped ~4× for common enemies, ~2× for
+## elites/specials. Target: tester reaches meta-content (trinkets, mods) in 2-3 runs.
+## Weapon_mod chances unchanged. Bosses already at 1.0.
 const ENEMY_DROP_RATES: Dictionary = {
-	"fodder":   { "resource": 0.03,  "weapon_mod": 0.0,   },
-	"swarmer":  { "resource": 0.045, "weapon_mod": 0.005, },
-	"brute":    { "resource": 0.20,  "weapon_mod": 0.08,  },
-	"caster":   { "resource": 0.10,  "weapon_mod": 0.04,  },
-	"stalker":  { "resource": 0.10,  "weapon_mod": 0.04,  },
-	"carrier":  { "resource": 0.30,  "weapon_mod": 0.50,  },
-	"herald":   { "resource": 0.25,  "weapon_mod": 0.25,  },
-	"guardian":  { "resource": 0.30,  "weapon_mod": 0.40,  },
-	"anchor":   { "resource": 0.15,  "weapon_mod": 0.08,  },
+	"fodder":   { "resource": 0.15,  "weapon_mod": 0.0,   },
+	"swarmer":  { "resource": 0.18,  "weapon_mod": 0.005, },
+	"brute":    { "resource": 0.45,  "weapon_mod": 0.08,  },
+	"caster":   { "resource": 0.28,  "weapon_mod": 0.04,  },
+	"stalker":  { "resource": 0.28,  "weapon_mod": 0.04,  },
+	"carrier":  { "resource": 0.55,  "weapon_mod": 0.50,  },
+	"herald":   { "resource": 0.55,  "weapon_mod": 0.25,  },
+	"guardian": { "resource": 0.55,  "weapon_mod": 0.40,  },
+	"anchor":   { "resource": 0.40,  "weapon_mod": 0.08,  },
 	"warped_colossus":    { "resource": 1.0,  "weapon_mod": 0.90, },
 	"heart_of_the_deep":  { "resource": 1.0,  "weapon_mod": 1.00, },
 	"ancient_troll":      { "resource": 1.0,  "weapon_mod": 0.90, },
@@ -25,7 +28,7 @@ const ENEMY_DROP_RATES: Dictionary = {
 }
 
 ## Fallback for unknown enemy types
-const DEFAULT_DROP_RATES: Dictionary = { "resource": 0.05, "weapon_mod": 0.0 }
+const DEFAULT_DROP_RATES: Dictionary = { "resource": 0.15, "weapon_mod": 0.0 }
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

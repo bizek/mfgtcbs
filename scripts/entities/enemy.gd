@@ -342,6 +342,12 @@ func _physics_process(delta: float) -> void:
 		return
 
 	# Charmed (Bard's Serenade): fight for the player — chase and strike other enemies.
+	if _charm_tinted and not status_effect_component.has_status("charmed"):
+		## Charm wore off — drop the love-struck tint.
+		_charm_tinted = false
+		_base_modulate = _charm_prev_modulate
+		if sprite:
+			sprite.modulate = _base_modulate
 	if status_effect_component.has_status("charmed"):
 		_process_charmed(delta)
 		return
@@ -366,19 +372,18 @@ func _physics_process(delta: float) -> void:
 
 	# Movement direction based on behavior type
 	var dist: float = global_position.distance_to(player_ref.global_position)
+	var eff_speed: float = base_move_speed * maxf(speed_mult, 0.0)
 	match _behavior_type:
 		"flee":
-			var dir: Vector2 = (global_position - player_ref.global_position).normalized()
-			velocity = dir * base_move_speed * maxf(speed_mult, 0.0) + knockback_velocity
+			velocity = _ff_flee_dir() * eff_speed + knockback_velocity
 		"ranged":
 			if dist > _preferred_range:
-				var dir: Vector2 = (player_ref.global_position - global_position).normalized()
-				velocity = dir * base_move_speed * maxf(speed_mult, 0.0) + knockback_velocity
+				velocity = _ff_chase_dir() * eff_speed + knockback_velocity
 			else:
 				velocity = knockback_velocity
 		_:  # "chase" (default)
-			var dir: Vector2 = (player_ref.global_position - global_position).normalized()
-			velocity = dir * base_move_speed * maxf(speed_mult, 0.0) + knockback_velocity
+			velocity = _ff_chase_dir() * eff_speed + knockback_velocity
+	velocity += _separation_push(speed_mult)
 
 	move_and_slide()
 	knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 800.0 * delta)
@@ -854,11 +859,23 @@ func apply_status(effect: String, params: Dictionary = {}) -> void:
 var _charm_target: Node2D = null
 var _charm_rescan: float = 0.0
 var _charm_strike_cd: float = 0.0
+var _charm_tinted: bool = false          ## love-struck pink while charmed (restored on expiry)
+var _charm_prev_modulate: Color = Color.WHITE
 const CHARM_STRIKE_RANGE: float = 22.0
 const CHARM_STRIKE_COOLDOWN: float = 0.9
+const SEP_RADIUS: float = 22.0       ## Separation push radius (px)
+const SEP_RADIUS_SQ: float = SEP_RADIUS * SEP_RADIUS
+const SEP_WEIGHT: float = 0.28       ## Separation as fraction of base move speed
 
 
 func _process_charmed(delta: float) -> void:
+	if not _charm_tinted:
+		## Love-struck pink for the charm's whole run — hit flashes tween back to it.
+		_charm_tinted = true
+		_charm_prev_modulate = _base_modulate
+		_base_modulate = Color(1.0, 0.55, 0.75, 1.0)
+		if sprite:
+			sprite.modulate = _base_modulate
 	_charm_strike_cd = maxf(_charm_strike_cd - delta, 0.0)
 	_charm_rescan -= delta
 	if _charm_rescan <= 0.0:
@@ -884,6 +901,9 @@ func _process_charmed(delta: float) -> void:
 				if not hit.is_dodged:
 					target.take_damage(hit)
 		else:
+			## Straight-line chase: the flow field flows toward the PLAYER, so steering by it
+			## here made charmed enemies orbit the Herald instead of hunting their victim
+			## (targets are within the 160px charm scan — walls rarely matter at that range).
 			velocity = to_t.normalized() * base_move_speed * maxf(speed_mult, 0.0) + knockback_velocity
 	else:
 		velocity = knockback_velocity   ## love-struck and no one to fight — stand swooning
@@ -906,6 +926,66 @@ func _nearest_other_enemy() -> Node2D:
 			best_d = d
 			best = e
 	return best
+
+
+func _ff_chase_dir() -> Vector2:
+	## Flow-field direction toward the player. Falls back to straight-line when field is
+	## inactive (open arena) or this cell is disconnected from the player.
+	## Look-ahead: sample 8px ahead of current velocity so the enemy starts turning
+	## before physically reaching a corner, preventing wall-clip hang-ups.
+	var ff = combat_manager.get("flow_field") if combat_manager else null
+	if ff:
+		var sample_pos: Vector2 = global_position
+		if velocity.length_squared() > 25.0:
+			sample_pos += velocity.normalized() * 8.0
+		var dir: Vector2 = ff.get_flow_direction(sample_pos)
+		if dir != Vector2.ZERO:
+			return dir
+	return (player_ref.global_position - global_position).normalized()
+
+
+func _ff_flee_dir() -> Vector2:
+	## Direction away from the player through the field: steers toward the neighbor cell
+	## with the highest BFS distance. Falls back to straight-away when the field is absent
+	## or the current cell is disconnected.
+	var ff = combat_manager.get("flow_field") if combat_manager else null
+	if ff and ff.is_active():
+		var cur_d: int = ff.get_distance_cells(global_position)
+		if cur_d >= 0:
+			var best_d: int = cur_d
+			var best_dir: Vector2 = Vector2.ZERO
+			for offset: Vector2 in [Vector2(16.0, 0.0), Vector2(-16.0, 0.0),
+					Vector2(0.0, 16.0), Vector2(0.0, -16.0)]:
+				var d: int = ff.get_distance_cells(global_position + offset)
+				if d > best_d:
+					best_d = d
+					best_dir = offset
+			if best_dir != Vector2.ZERO:
+				return best_dir.normalized()
+	return (global_position - player_ref.global_position).normalized()
+
+
+func _separation_push(speed_mult: float) -> Vector2:
+	## Gentle repulsion from the 2-3 nearest enemies; capped at SEP_WEIGHT of move speed
+	## so it never overpowers the flow direction. Uses SpatialGrid faction 1 (enemies).
+	if spatial_grid == null:
+		return Vector2.ZERO
+	var push: Vector2 = Vector2.ZERO
+	var count: int = 0
+	for e in spatial_grid.get_nearby_in_range(global_position, 1, SEP_RADIUS_SQ):
+		if e == self or not is_instance_valid(e):
+			continue
+		var diff: Vector2 = global_position - e.global_position
+		var dsq: float = diff.length_squared()
+		if dsq < 0.001:
+			continue
+		push += diff / dsq   ## 1/r weighting: closer neighbors push harder
+		count += 1
+		if count >= 3:
+			break
+	if push == Vector2.ZERO:
+		return Vector2.ZERO
+	return push.normalized() * base_move_speed * maxf(speed_mult, 0.0) * SEP_WEIGHT
 
 
 func take_damage(hit_data) -> void:

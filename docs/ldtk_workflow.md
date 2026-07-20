@@ -184,6 +184,8 @@ These principles apply regardless of biome or level index. They complement the s
 
 **Obstacles create kiting paths, not safe rooms.** Obstacles should break line-of-sight and create natural movement corridors, not enclosed pockets the player can camp indefinitely. A cluster of pillars the player can circle around is good; a three-walled alcove the player can stand in while enemies funnel single-file is not.
 
+**Terrain is readable at 640×360 under heavy VFX.** Collision obstacles must be ≥ 2×2 cells (enforced by the block compiler's `check_obstacle_islands` validator; tune with `--min-obstacle-size`). Prefer a few large obstacle masses over scattered small pillars — a 1×1 collision cell is invisible during combat but fully blocks movement. Avoid walkable corridors exactly 1 cell wide for more than 4 cells; they create the same snag from the other direction. Design principle: fewer, larger obstacles that shape movement lanes beat scattered clutter. Source: first external playtest (Clerveu, 2026-07-18) identified 1×1 collision pieces as the primary "invisible snag" complaint.
+
 **Hazards offer risk/reward, not unavoidable punishment.** Environmental hazard zones should sit between the player and something valuable (an extraction point, a loot spot, a better kiting path). Blocking a critical path with unavoidable damage is a design failure; placing a damage zone the player can choose to cross or go around is correct.
 
 **Hidden spots reward exploration.** One to three `Marker(tag=LootSpawn)` entities per level, tucked in slightly out-of-the-way positions (behind obstacles, in a narrow side passage, at the edge of a region). Not on the critical path. Finding one should feel like a discovery.

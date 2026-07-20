@@ -22,6 +22,12 @@ extends Resource
 @export var default_next: int = -1                    ## Phase index (-1 = end choreography)
 @export var branches: Array[ChoreographyBranch] = []  ## Conditional branching (evaluated during "wait" exit type)
 
+## Channel hold: when this phase self-loops (default_next = its own index), don't restart the
+## body animation — a finished one-shot stays frozen on its last frame (Guard's raised sword,
+## the Torrent pour pose). The runner re-fires the overlay hook and tick effects on each
+## re-entry instead, since a frozen body never reaches its hit_frame again.
+@export var hold_anim_on_reentry: bool = false
+
 ## Combo feel
 @export var is_finisher: bool = false                  ## Landing this phase's hit is a kit's payoff
                                                         ## moment (Cataclysm, Bomb, Holy Hammer, ...).

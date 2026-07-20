@@ -186,6 +186,13 @@ func _ready() -> void:
 		var entity_inspector: CanvasLayer = InspectorScript.new()
 		add_child(entity_inspector)
 
+		## Ben's Animation Lab (F10): trim/retime any anim + re-pin hit frames, saved to
+		## data/anim_overrides.json and applied live.
+		var AnimLabScript := preload("res://scripts/ui/anim_lab_panel.gd")
+		var anim_lab: CanvasLayer = AnimLabScript.new()
+		add_child(anim_lab)
+		anim_lab.setup(player)
+
 		var ReportManagerScript := preload("res://scripts/systems/run_report_manager.gd")
 		var run_report: Node = ReportManagerScript.new()
 		run_report.name = "RunReportManager"
@@ -195,10 +202,16 @@ func _ready() -> void:
 	# Start run
 	GameManager.start_run()
 
+	## Flow field target — with no terrain registered every query falls back
+	## to straight-line, so this is safe in all three arena modes.
+	orchestrator.flow_field.set_target(player)
+	EnemySpawnManager.flow_field = orchestrator.flow_field
+
 	if _using_descent:
 		## Descent mode: BlockManager already registered spawn zones.
 		var descent_bounds := Rect2(0.0, 0.0, _block_manager.level_width, _block_manager.total_height)
 		EnemySpawnManager.start_spawning(player, descent_bounds)
+		_block_manager.register_nav_with(orchestrator.flow_field)
 	elif _using_ldtk:
 		## LDtk mode: extraction zones come from the level, exit zone already wired.
 		## Do not call _setup_extraction_zones() — that code assumes ArenaGenerator.
@@ -206,6 +219,10 @@ func _ready() -> void:
 				float(_ldtk_loader.get_meta("px_wid", ARENA_HALF_W * 2.0)),
 				float(_ldtk_loader.get_meta("px_hei", ARENA_HALF_H * 2.0)))
 		EnemySpawnManager.start_spawning(player, ldtk_bounds)
+		orchestrator.flow_field.clear_blocks()
+		BlockManager.register_loader_nav(orchestrator.flow_field,
+				_ldtk_loader as LdtkLoader, _ldtk_loader.position)
+		orchestrator.flow_field.finalize()
 	else:
 		_setup_extraction_zones()
 		var bounds := Rect2(-ARENA_HALF_W, -ARENA_HALF_H, ARENA_HALF_W * 2.0, ARENA_HALF_H * 2.0)

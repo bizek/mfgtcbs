@@ -112,7 +112,7 @@ const ALL: Dictionary = {
 		"id": "paladin_retribution_dome",
 		"name": "RETRIBUTION DOME",
 		"kit": "paladin",
-		"desc": "Dome of Rightfulness retribution Ignites everything it strikes.",
+		"desc": "Reckoning's dome Ignites everything that presses against it while held.",
 		"color": Color(1.0, 0.45, 0.15),
 		"target": { "graph": "channel", "anim": "dome" },
 		"op": "add_status",

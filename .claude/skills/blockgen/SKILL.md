@@ -75,6 +75,14 @@ visually) · `#` solid rock (caves/crypt) / **void** (nmrealm) · `P` platform
 - Cols 0 and 80 are `#`. Seam rows 0-2 and 57-59 walkable across cols 2-78.
 - A walkable path must connect top seam to bottom seam; no orphan pockets.
 - Every passage >= 3 tiles wide (3x3 window test).
+- Interior `#` islands not attached to the outer border: bbox ≥ 2×2 AND area ≥ 3
+  (`check_obstacle_islands`, tunable via `--min-obstacle-size`). Exception: caves
+  1-row rim lines (scalloped visually) are exempt if width ≥ 2. Rationale: smaller
+  blobs are invisible at 640×360 during heavy VFX combat — they snag without giving
+  any tactical information (first-playtest finding, Clerveu 2026-07-18).
+- No walkable corridor exactly 1 cell wide for more than 4 connected cells
+  (`check_narrow_corridors` warns). Design toward 3-tile-wide passages; 1-cell slots
+  are tolerable only as short doorway slivers (≤ 4 cells).
 - At least one `spawn_zone`.
 
 Per style:
@@ -126,6 +134,8 @@ Call `finish(g)` last — it re-opens the seams.
 | platform touches void | keep >= 1 floor ring around P; move P or shrink the hole |
 | solid blob is WxH, needs >= ... | grow the blob or delete it |
 | seam row has solid cells | a carve reached rows 0-2/57-59 — call `finish(g)` last |
+| obstacle island too small (bbox/area) | grow the `#` blob to ≥ 2×2, or merge it into a neighboring mass; caves 1-row rims ok if w ≥ 2 |
+| narrow corridor >4 cells (WARN) | widen walkable run to ≥ 3 cells, or break with an opening — 1-cell slots ≤ 4 are tolerated |
 
 ## Recompiling & style upkeep
 

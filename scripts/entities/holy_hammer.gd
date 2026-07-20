@@ -24,14 +24,19 @@ const DIAG_ROWS: Dictionary = {"ne": 0, "se": 1, "sw": 2, "nw": 3}
 const OCTANT_ANIMS: Array[String] = ["e", "se", "s", "sw", "w", "nw", "n", "ne"]
 
 ## Set by player.gd before add_child
-var player_ref: Node2D = null
+var player_ref: Node2D = null      ## live damage stat source (and anchor when follow_player)
 var damage_type: String = "Physical"
 var damage_mult: float = 0.9       ## × the player's live damage stat, per enemy hit
 var start_angle: float = 0.0       ## radians; spawner staggers multiple hammers evenly
-var spin_speed: float = 1.1        ## revolutions per second around the player
+var spin_speed: float = 0.7        ## revolutions per second (1.1 read too fast — Ben 2026-07-20)
 var radius_start: float = 10.0
 var radius_growth: float = 62.0    ## px/sec spiral-out rate
 var max_radius: float = 120.0      ## despawn past this (spawner scales it with melee_range)
+## Spiral anchor: the CAST point, captured at spawn — each hammer corkscrews out from where it
+## was thrown (Ben 2026-07-20). A future class mod flips follow_player so spirals track the
+## moving Warden instead.
+var follow_player: bool = false
+var _anchor: Vector2 = Vector2.ZERO
 
 var _angle: float = 0.0
 var _radius: float = 0.0
@@ -66,21 +71,23 @@ func _ready() -> void:
 
 	body_entered.connect(_on_body_entered)
 	if is_instance_valid(player_ref):
-		global_position = player_ref.global_position \
-				+ Vector2(cos(_angle), sin(_angle)) * _radius
+		_anchor = player_ref.global_position
+		global_position = _anchor + Vector2(cos(_angle), sin(_angle)) * _radius
 
 
 func _process(delta: float) -> void:
 	if not is_instance_valid(player_ref):
 		queue_free()
 		return
+	if follow_player:
+		_anchor = player_ref.global_position
 	_angle += spin_speed * TAU * delta
 	_radius += radius_growth * delta
 	if _radius > max_radius:
 		queue_free()
 		return
 	var prev: Vector2 = global_position
-	global_position = player_ref.global_position + Vector2(cos(_angle), sin(_angle)) * _radius
+	global_position = _anchor + Vector2(cos(_angle), sin(_angle)) * _radius
 	_update_direction_anim(global_position - prev)
 
 

@@ -23,6 +23,7 @@ var displacement_system: DisplacementSystem = null
 var combat_feedback: Node2D = null  ## CombatFeedbackManager
 var combo_effect_resolver: ComboEffectResolver = null
 var debug_draw: DebugDraw = null
+var flow_field: FlowField = null
 
 var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var run_time: float = 0.0
@@ -75,6 +76,11 @@ func _ready() -> void:
 	debug_draw.name = "DebugDraw"
 	add_child(debug_draw)
 
+	# FlowField — shared pathfinding field over LDtk terrain (inactive in open arena)
+	flow_field = FlowField.new()
+	flow_field.name = "FlowField"
+	add_child(flow_field)
+
 
 func register_player(entity: Node2D) -> void:
 	## Register a player-faction entity (player character, summons).
@@ -112,6 +118,9 @@ func tick(delta: float) -> void:
 
 	# 1. Rebuild spatial grid
 	spatial_grid.rebuild(_players, _enemies)
+
+	# 1.5 Flow field re-flood check (no-op unless LDtk terrain is registered)
+	flow_field.tick(delta)
 
 	# 2-4. Tick all entities' components in defined order
 	var all_entities: Array = _players + _enemies
