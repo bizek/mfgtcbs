@@ -40,7 +40,6 @@ var _anchor: Vector2 = Vector2.ZERO
 
 var _angle: float = 0.0
 var _radius: float = 0.0
-var _prev_pos: Vector2 = Vector2.INF
 var _hit_ids: Dictionary = {}      ## enemy instance_id → true (one hit per enemy per hammer)
 var _sprite: AnimatedSprite2D = null
 

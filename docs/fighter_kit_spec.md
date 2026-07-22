@@ -1,6 +1,11 @@
 # Fighter Kit Spec — first worked combat-chain example
 
-**Status:** Design locked 2026-06-24 (Ben + Claude). Numbers below are **provisional — tune after first
+> **Status: SHIPPED, and the numbers here are stale.** The Fighter kit was built and all 11 other kits
+> followed the same shape. Tuning constants below have been superseded by the live values in
+> `data/factories/chain_factory.gd` (e.g. the light-chain cancel window widened 0.55 → **0.75** after
+> the 2026-07-04 feel test). Read this for the *shape* of a kit; read `chain_factory.gd` for numbers.
+
+**Original status:** Design locked 2026-06-24 (Ben + Claude). Numbers below are **provisional — tune after first
 in-engine test.** This is the reference implementation for the manual combo-chain combat layer; every
 other class's kit is authored the same way (see "How this composes").
 

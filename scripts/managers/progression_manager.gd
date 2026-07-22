@@ -6,6 +6,28 @@ signal resources_changed(amount: int)
 
 const SAVE_PATH := "user://progression.json"
 
+## ─── Save format versioning ──────────────────────────────────────────────────
+## Every save carries a "version" integer at its JSON root. On load, an older save
+## is run through _migrate_save() before its fields are applied; a save from a NEWER
+## version than we understand is refused (never partially loaded) and the menu offers
+## a fresh start via save_newer_than_supported.
+##
+## THE RULE — do not skip a step of this when you change the save format:
+##   1. Bump SAVE_VERSION.
+##   2. Add a `_migrate_vN_to_vN+1(data)` step and wire it into _migrate_save().
+##   3. Confirm the committed snapshot `tests/save_snapshots/v1.json` still loads
+##      cleanly (it is a real versionless dev save — the oldest thing we must accept).
+## Missing "version" == 0 (every pre-versioning dev save), so the v0→v1 step is what
+## catches those. Field-level defaults still live in load_data() as a second safety
+## net; migrations are for STRUCTURAL changes (renames, reshapes, splits) that a
+## simple `.get(key, default)` cannot express.
+const SAVE_VERSION: int = 1
+
+## Set true by load_data() when the save on disk is from a newer game version than
+## this build supports. The save is NOT loaded (defaults remain); the main menu reads
+## this to warn the player and steer them to New Game instead of silently continuing.
+var save_newer_than_supported: bool = false
+
 ## Workshop upgrade definitions: id → cost
 const UPGRADE_COSTS: Dictionary = {
 	"insurance_license":      300,
@@ -86,6 +108,7 @@ func _ready() -> void:
 
 func save_data() -> void:
 	var data := {
+		"version":                SAVE_VERSION,
 		"resources":              resources,
 		"unlocked_weapons":       unlocked_weapons,
 		"selected_weapon":        selected_weapon,
@@ -122,16 +145,37 @@ func save_data() -> void:
 		file.close()
 
 func load_data() -> void:
+	save_newer_than_supported = false
 	if not FileAccess.file_exists(SAVE_PATH):
 		return
 	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
 	if not file:
+		push_warning("ProgressionManager: could not open save for reading — starting fresh.")
 		return
 	var text := file.get_as_text()
 	file.close()
+
 	var result = JSON.parse_string(text)
 	if typeof(result) != TYPE_DICTIONARY:
+		## Corrupt or unparseable save. Preserve the evidence, then start fresh —
+		## the in-memory defaults set at declaration stand, and the next save_data()
+		## writes a clean file over the (now backed-up) original.
+		_backup_corrupt_save(text)
+		push_warning("ProgressionManager: save file was corrupt — backed up and starting fresh.")
 		return
+
+	## Version gate. Missing field == 0 (pre-versioning dev saves).
+	var save_version: int = int(result.get("version", 0))
+	if save_version > SAVE_VERSION:
+		## A save from a newer build. Refuse it wholesale rather than dropping the
+		## fields this build doesn't understand. Defaults remain; the menu warns.
+		save_newer_than_supported = true
+		push_warning("ProgressionManager: save is from a newer version (v%d > v%d) — not loaded." \
+				% [save_version, SAVE_VERSION])
+		return
+	if save_version < SAVE_VERSION:
+		result = _migrate_save(result, save_version)
+
 	resources             = int(result.get("resources", 0))
 	unlocked_weapons      = result.get("unlocked_weapons", [])
 	selected_weapon       = str(result.get("selected_weapon", "Hurled Steel"))
@@ -168,6 +212,46 @@ func load_data() -> void:
 	passive_points = int(result.get("passive_points", 0))
 	passive_allocations = result.get("passive_allocations", {})
 	lifetime_passive_points = int(result.get("lifetime_passive_points", 0))
+
+## Walk a save dict up to the current format, one version at a time. Each step is
+## responsible only for the delta between two adjacent versions, so the chain stays
+## readable as versions accumulate. Returns the upgraded dict (stamped to SAVE_VERSION).
+func _migrate_save(data: Dictionary, from_version: int) -> Dictionary:
+	var v: int = from_version
+	while v < SAVE_VERSION:
+		match v:
+			0:
+				data = _migrate_v0_to_v1(data)
+			_:
+				## Unknown gap — refuse to guess. Stamp current and let the
+				## field-level defaults in load_data() fill anything absent.
+				push_warning("ProgressionManager: no migration step for v%d; loading with defaults." % v)
+				break
+		v += 1
+	data["version"] = SAVE_VERSION
+	return data
+
+## v0 (pre-versioning) → v1. No structural change is required: every field load_data()
+## reads already uses `.get(key, default)`, and the two historical key renames
+## (armory_expansion→armory_expansion_1, absent character_mods/trinkets) are handled
+## inline there. This step exists to (a) formally accept every legacy dev save as v1
+## and (b) be the worked example for the next author. When v2 arrives, copy this shape.
+func _migrate_v0_to_v1(data: Dictionary) -> Dictionary:
+	return data
+
+## Copy a corrupt save aside before it gets overwritten, so a player (or we) can
+## recover data or diagnose the failure. Best-effort: a failed backup must not block
+## starting fresh, so errors here are swallowed after a warning.
+func _backup_corrupt_save(raw_text: String) -> void:
+	var stamp: int = int(Time.get_unix_time_from_system())
+	var backup_path: String = "user://save_corrupt_%d.json" % stamp
+	var f := FileAccess.open(backup_path, FileAccess.WRITE)
+	if f:
+		f.store_string(raw_text)
+		f.close()
+		push_warning("ProgressionManager: corrupt save backed up to %s" % backup_path)
+	else:
+		push_warning("ProgressionManager: could not write corrupt-save backup to %s" % backup_path)
 
 ## Returns true if a save file exists on disk (used by the main menu to gate Continue).
 func has_save() -> bool:

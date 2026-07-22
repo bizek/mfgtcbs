@@ -1,11 +1,13 @@
 # Class Mod System — Two-Layer Mod Model
 
-**Status:** Architecture + plumbing implemented (task 31). Fighter pilot live. Full 12-class content
-authored and shipped (task 32) — 46 class mods total (2 Fighter pilots + 44 new).
+**Status:** Complete. Architecture + plumbing (task 31), all 12 classes' content (task 32), and the
+applicability model extended to level-up choices (task 33) are all shipped.
+
+**Live count: 48 class mods — 4 per class × 12 classes** (`data/class_mods.gd`, verified 2026-07-21).
+An earlier revision of this header said 46; that predated the final Gunslinger/Deadeye entries.
 
 Locked with Ben 2026-07-06. This is the design-of-record for how mods/upgrades match the per-class
-combo kits. Task 32 = author all class-mod content. Task 33 = apply the same applicability model to
-level-up choices.
+combo kits.
 
 ---
 
@@ -180,7 +182,7 @@ is a playtest check.
 
 ---
 
-## 7. Per-class proposed class mods — **FOR BEN'S REDLINE** (content = task 32)
+## 7. Per-class class mods — **all shipped** (was: task 32 content proposal)
 
 3–4 per class, each tied to a **real** kit node (read from `ChainFactory`/`SkillFactory`). "Op" is the
 `ClassModFactory` operation it would use (new ops flagged **†** — small additions to the factory

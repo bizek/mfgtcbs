@@ -21,17 +21,17 @@ static func build_kit_skills(kit_id: String, weapon_data: Dictionary) -> Diction
 		"ranger":
 			return {
 				"skill_q": build_ranger_skirmish_step(weapon_data),
-				"skill_e": build_ranger_arrow_storm(weapon_data),
+				"skill_e": build_ranger_conceal(weapon_data),
 			}
 		"paladin":
 			return {
 				"skill_q": build_paladin_aegis_vow(weapon_data),
-				"skill_e": build_paladin_bulwark_slam(weapon_data),
+				"skill_e": build_paladin_lay_on_hands(weapon_data),
 			}
 		"wizard":
 			return {
-				"skill_q": build_wizard_mana_surge(weapon_data),
-				"skill_e": build_wizard_flame_nova(weapon_data),
+				"skill_q": build_wizard_ice_burst(weapon_data),
+				"skill_e": build_wizard_storm_call(weapon_data),
 			}
 		"rogue":
 			return {
@@ -87,13 +87,14 @@ static func build_bard_serenade(_weapon_data: Dictionary) -> AbilityDefinition:
 	return _ability("bard_serenade", "Charming Serenade", phase, 12.0)
 
 
-## Second Wind (Fighter, Q): the soldier raises his sword and catches his breath — heal 12%
-## max HP + "steeled" (−15% damage taken for 4s). "rally" is the Attack sheet SLOW (a salute,
-## not another shield bang — Ben 2026-07-19); the green heal ring/flash is host-side.
+## Second Wind (Fighter, Q): the soldier bangs his shield and catches his breath — heal 12%
+## max HP + "steeled" (−15% damage taken for 4s). "rally" is a single shield smack off the
+## Taunt sheet (Ben 2026-07-20: "smack his shield once instead of a swing"); the green heal
+## ring/flash is host-side, landing on the smack frame.
 static func build_fighter_second_wind(_weapon_data: Dictionary) -> AbilityDefinition:
 	var phase := ChoreographyPhase.new()
 	phase.animation = "rally"
-	phase.hit_frame = 2
+	phase.hit_frame = 5
 	phase.effects = [ChainFactory._self_heal(0.12), _ward_buff("steeled", 0.15, 4.0)]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
@@ -136,74 +137,132 @@ static func build_ranger_skirmish_step(_weapon_data: Dictionary) -> AbilityDefin
 	return _ability("ranger_skirmish_step", "Skirmisher's Step", phase, 10.0)
 
 
-## Arrow Storm (Ranger, E): empty the quiver — a 6-arrow fan at the cursor, twice the Triple
-## Shot's spread. Reuses the Triple Shot cast body (no host hooks on that name).
-static func build_ranger_arrow_storm(weapon_data: Dictionary) -> AbilityDefinition:
-	var dmg: float = weapon_data.get("damage", 42.0)
-	var dtype: String = _damage_type(weapon_data)
+## Conceal (Ranger, E — swapped off RMB-hold, Ben 2026-07-20): duck under the cloak and vanish
+## — "concealed" for 5s (player.is_invisible; enemies stop chasing, and any attack breaks it).
+## The RMB-hold slot it vacated became the sustained Volley channel (ChainFactory).
+static func build_ranger_conceal(_weapon_data: Dictionary) -> AbilityDefinition:
+	var conceal := StatusEffectDefinition.new()
+	conceal.status_id = "concealed"
+	conceal.is_positive = true
+	conceal.max_stacks = 1
+	conceal.base_duration = 5.0
+	conceal.duration_refresh_mode = "overwrite"
+	var apply := ApplyStatusEffectData.new()
+	apply.status = conceal
+	apply.stacks = 1
+	apply.apply_to_self = true
 
 	var phase := ChoreographyPhase.new()
-	phase.animation = "triple_shot"
+	phase.animation = "conceal"
 	phase.hit_frame = 6
-	phase.effects = [ChainFactory._arrow_volley(dtype, dmg * 0.5, 6, 44.0)]
+	phase.effects = [apply]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
-	return _ability("ranger_arrow_storm", "Arrow Storm", phase, 8.0)
+	return _ability("ranger_conceal", "Conceal", phase, 10.0)
 
 
-## Aegis Vow (Paladin, Q): the oath renewed — heal 10% max HP + "aegis" (−20% damage taken
-## for 5s). "vow" re-slices the Dictum cast with the protective Dome effect as "vow_fx".
+## Aegis Shield (Paladin, Q — was a heal, Ben 2026-07-20: "we want an absorb shield"): the oath
+## raises a STANDING absorb pool (25% max HP) that eats hits until it's SPENT — no timer, it stays
+## on the Warden until depleted — with the pack's DomeCycle bubble looping over him. The pool +
+## bubble live host-side (player._grant_absorb_shield, keyed on this ability id); the status here
+## is just the HUD marker, removed by player._end_absorb_shield when the pool runs out. "vow"
+## re-slices the Dictum cast with the Dome effect as "vow_fx".
 static func build_paladin_aegis_vow(_weapon_data: Dictionary) -> AbilityDefinition:
+	var marker := StatusEffectDefinition.new()
+	marker.status_id = "aegis_shield"
+	marker.is_positive = true
+	marker.max_stacks = 1
+	marker.base_duration = 99999.0                         ## effectively permanent; ends when the pool is spent
+	marker.duration_refresh_mode = "overwrite"
+	var apply := ApplyStatusEffectData.new()
+	apply.status = marker
+	apply.stacks = 1
+	apply.apply_to_self = true
+
 	var phase := ChoreographyPhase.new()
 	phase.animation = "vow"
 	phase.hit_frame = 7
-	phase.effects = [ChainFactory._self_heal(0.10), _ward_buff("aegis", 0.20, 5.0)]
+	phase.effects = [apply]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
-	return _ability("paladin_aegis_vow", "Aegis Vow", phase, 12.0)
+	return _ability("paladin_aegis_vow", "Aegis Shield", phase, 14.0)
 
 
-## Bulwark Slam (Paladin, E): a bigger, cooldown-gated shield smash — AoE + shove. Reuses the
-## Shield Bash body (and its frame-matched "bash_fx" overlay) at a wider hit zone.
-static func build_paladin_bulwark_slam(weapon_data: Dictionary) -> AbilityDefinition:
+## Lay on Hands (Paladin, E — was Bulwark Slam, Ben 2026-07-20: "make it a heal"): a real mend,
+## 20% max HP + "hallowed" (−15% damage taken for 4s). The "heal_word" body plays the Cleric's
+## HealingWords overlay (heal_word_fx). Replaces the shield-bash rehash.
+static func build_paladin_lay_on_hands(_weapon_data: Dictionary) -> AbilityDefinition:
+	var phase := ChoreographyPhase.new()
+	phase.animation = "heal_word"
+	phase.hit_frame = 11
+	phase.effects = [ChainFactory._self_heal(0.20), _ward_buff("hallowed", 0.15, 4.0)]
+	phase.exit_type = "anim_finished"
+	phase.default_next = -1
+	return _ability("paladin_lay_on_hands", "Lay on Hands", phase, 12.0)
+
+
+## Frost Burst (Wizard, Q — was Mana Surge, Ben 2026-07-20): a point-blank ICE nova that damages
+## + chills the pack, then leaves a ring of ice shards shimmering around the Spark for ~10s (the
+## Aura_Ice visual — host-side, player._cast_ice_burst / _show_ice_aura). "attack_2" is the
+## neutral cast gesture; the Burst_Ice + Aura_Ice sheets are the show.
+static func build_wizard_ice_burst(weapon_data: Dictionary) -> AbilityDefinition:
 	var dmg: float = weapon_data.get("damage", 42.0)
-	var dtype: String = _damage_type(weapon_data)
+
+	var burst := AreaDamageEffect.new()
+	burst.damage_type = "Ice"
+	burst.base_damage = dmg * 1.2
+	burst.aoe_radius = 58.0
 
 	var phase := ChoreographyPhase.new()
-	phase.animation = "bash"
+	phase.animation = "ice_cast"
 	phase.hit_frame = 3
-	phase.effects = [ChainFactory._aoe(dtype, dmg * 1.1, 48.0), ChainFactory._shove()]
+	phase.effects = [burst, _chilled_debuff()]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
-	return _ability("paladin_bulwark_slam", "Bulwark Slam", phase, 6.0)
+	return _ability("wizard_ice_burst", "Frost Burst", phase, 12.0)
 
 
-## Mana Surge (Wizard, Q): overcharge the next spells — +30% damage for 6s on the quick
-## re-sliced cast gesture ("attack_2", same neutral-gesture pattern as the Druid's Regrowth).
-static func build_wizard_mana_surge(_weapon_data: Dictionary) -> AbilityDefinition:
-	var phase := ChoreographyPhase.new()
-	phase.animation = "attack_2"
-	phase.hit_frame = 3
-	phase.effects = [ChainFactory._timed_damage_buff("mana_surge", 0.30, 6.0)]
-	phase.exit_type = "anim_finished"
-	phase.default_next = -1
-	return _ability("wizard_mana_surge", "Mana Surge", phase, 10.0)
-
-
-## Flame Nova (Wizard, E): the glass cannon's panic button — a fire ring + shove around the
-## caster. "nova" re-slices the Fireball cast fast (a distinct NAME so it skips the
-## charge-slow host hooks on "fireball"/"fireball_2").
-static func build_wizard_flame_nova(weapon_data: Dictionary) -> AbilityDefinition:
+## Storm Call (Wizard, E — was Flame Nova, Ben 2026-07-20): call the sky down on the WHOLE arena
+## — every enemy takes a two-bolt lightning strike (Aura_Electric row 0 dropped over each; the
+## host damages them), and electric pulses crackle around the Spark. Screen-wide, so it carries
+## a long cooldown. The small self-pulse here just guarantees choreo_fire_effects runs the host
+## hook (player._cast_storm_call, keyed on this ability id).
+static func build_wizard_storm_call(weapon_data: Dictionary) -> AbilityDefinition:
 	var dmg: float = weapon_data.get("damage", 42.0)
-	var dtype: String = _damage_type(weapon_data)
+
+	var pulse := AreaDamageEffect.new()
+	pulse.damage_type = "Lightning"
+	pulse.base_damage = dmg * 0.2
+	pulse.aoe_radius = 40.0
 
 	var phase := ChoreographyPhase.new()
-	phase.animation = "nova"
-	phase.hit_frame = 6
-	phase.effects = [ChainFactory._aoe(dtype, dmg * 1.4, 60.0), ChainFactory._shove()]
+	phase.animation = "storm_cast"
+	phase.hit_frame = 3
+	phase.effects = [pulse]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
-	return _ability("wizard_flame_nova", "Flame Nova", phase, 7.0)
+	return _ability("wizard_storm_call", "Storm Call", phase, 16.0)
+
+
+## Chill: enemies hit by Frost Burst crawl at −30% move speed for 3s.
+static func _chilled_debuff() -> ApplyStatusEffectData:
+	var status := StatusEffectDefinition.new()
+	status.status_id = "chilled"
+	status.is_positive = false
+	status.max_stacks = 1
+	status.base_duration = 3.0
+	status.duration_refresh_mode = "overwrite"
+	var slow := ModifierDefinition.new()
+	slow.target_tag = "move_speed"
+	slow.operation = "bonus"
+	slow.value = -0.30
+	slow.source_name = "chilled"
+	status.modifiers = [slow]
+	var apply := ApplyStatusEffectData.new()
+	apply.status = status
+	apply.stacks = 1
+	apply.apply_to_self = false
+	return apply
 
 
 ## Vanish (Rogue, Q): the pack's real Dodge roll into 3s of "concealed" (player.is_invisible —

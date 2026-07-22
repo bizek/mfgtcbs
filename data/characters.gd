@@ -31,7 +31,10 @@ const ALL: Dictionary = {
 		"sprite": {
 			"dir":        "res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/General_Animations/",
 			"frame_size": 32,
-			"dir_row":    0,                          ## front/Down-facing row; flip_h handles left/right
+			"dir_row":    0,                          ## fallback row only. CharacterSpriteFactory slices
+													  ## ALL four facing rows as "<anim>_<facing>" and
+													  ## player._facing_variant() picks by cursor quadrant.
+													  ## No flip_h substitution — see CLAUDE.md asset rule.
 			"anims": {                                ## name: [sheet_file, frame_count, fps, {meta}?]
 				"idle":   ["Figther_Idle.png",   16,  9.0],
 				"walk":   ["Figther_walk.png",    4, 10.0],
@@ -53,12 +56,12 @@ const ALL: Dictionary = {
 				"uppercut":     ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/Special_Animations/Uppercut/Figther_Uppercut.png",        4, 18.0],
 				"uppercut_fx":  ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/Special_Animations/Uppercut/Figther_Uppercut_Effect.png", 4, 18.0],
 				"taunt":        ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/Special_Animations/Taunt/Figther_Taunt.png",              9, 16.0],
-				## Q/E skill re-slices (SkillFactory). "rally" = the Attack sheet SLOW (a deliberate
-				## sword-raise salute) — it used to re-slice the Taunt sheet, which read as another
-				## shield bang and got confused with the channel (Ben 2026-07-19). The green heal
+				## Q/E skill re-slices (SkillFactory). "rally" = a single shield smack (Ben
+				## 2026-07-20: wanted Second Wind to bang the shield once, not swing) — it rides the
+				## Taunt sheet, played once (the channel loops the same sheet). The green heal
 				## ring/flash is host-side. "rush" = the Attack sheet fast (Shield Rush charge body);
 				## the dash motion + corridor drag + slam are host-side hooks.
-				"rally":        ["Figther_Attack.png",  4,  8.0],
+				"rally":        ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/Special_Animations/Taunt/Figther_Taunt.png", 9, 16.0],
 				"rush":         ["Figther_Attack.png",  4, 24.0],
 			},
 		},
@@ -150,8 +153,11 @@ const ALL: Dictionary = {
 				## "dictum" and "dome" both slice the same cast sheet — distinct names so each
 				## channel picks its own frame-matched _fx overlay (blades vs dome).
 				"attack_2":  ["PaladinAttack.png", 6, 22.0],
-				"bash":      ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Shield_Bash/PaladinShieldBash.png",       8, 18.0],
-				"bash_fx":   ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Shield_Bash/ShieldBashEffect.png",        8, 18.0],
+				## Shield Bash sheets are CARDINAL 4-row (down/up/left/right), not diagonal — so the bash
+				## fires up/down/left/right (Ben 2026-07-20). Row order is a best guess; if a direction
+				## faces wrong, remap in the Lab (dirs.<cardinal>.row). Diagonal aims snap to nearest.
+				"bash":      ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Shield_Bash/PaladinShieldBash.png",       8, 18.0, {"cardinal": true}],
+				"bash_fx":   ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Shield_Bash/ShieldBashEffect.png",        8, 18.0, {"cardinal": true}],
 				## Hammer throw uses the DIAGONAL char sheet — its rows match the quadrant facing
 				## system (the Orthogonal sheet's N/E/S/W rows are reserved for a future 8-way pass).
 				"hammer":    ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Holy_Hammer/PaladinHolyHammerDiagonal.png", 12, 18.0],
@@ -163,6 +169,10 @@ const ALL: Dictionary = {
 				## protective Dome effect overlay (Aegis Vow).
 				"vow":       ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Dictums/_PaladinDictum.png",             15, 24.0],
 				"vow_fx":    ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Dictums/DomeDictumEffect.png",           15, 24.0],
+				## E skill re-slice (Lay on Hands, Ben 2026-07-20): a prayer-mend — the Dictum cast body
+				## carries the Cleric's HealingWords overlay borrowed as "heal_word_fx".
+				"heal_word":    ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Dictums/_PaladinDictum.png",          15, 20.0],
+				"heal_word_fx": ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Cleric/Special_Animations/Prayers/HealingWordsPrayEffect.png",   22, 20.0],
 			},
 		},
 	},
@@ -206,17 +216,32 @@ const ALL: Dictionary = {
 				"attack_2":     ["Wizard_Attack.png",        6, 24.0],
 				"attack_fx":    ["Wizard_Attack_Effect.png", 6, 30.0],
 				"attack_2_fx":  ["Wizard_Attack_Effect.png", 6, 24.0],
-				## "fireball" = the Charge (runner crawls it at telegraph speed); "fireball_2"
-				## re-slices the same sheet fast for the Release so play() restarts the cast.
-				"fireball":     ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Wizard/Special_Animations/Fireball/Wizard_Fireball_Diagonal.png",           11, 20.0],
+				## Q/E cast bodies — the IDLE sheet, not the Attack sheet. The Wizard's Attack art has a
+				## fire swing baked into the BODY frames (it's a fire-mage pack), so re-slicing it dragged
+				## the flame onto the ice/lightning skills (Ben 2026-07-20). Idle is the only fire-free
+				## wizard body; the Burst_Ice / Aura / lightning-strike VFX carry the cast. Facing rows
+				## intact (idle is 4-row), so the caster still faces the cursor.
+				"ice_cast":     ["Wizard_Idle.png", 8, 14.0],
+				"storm_cast":   ["Wizard_Idle.png", 8, 14.0],
+				## "fireball" = the RMB-hold Charge — TRIMMED to the wind-up (7f) so it holds the
+				## wound-up pose while held instead of playing the throw (fixes the old "fires
+				## twice" look, Ben 2026-07-20). "fireball_2" plays the full cast fast on Release.
+				"fireball":     ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Wizard/Special_Animations/Fireball/Wizard_Fireball_Diagonal.png",            7, 20.0],
 				"fireball_2":   ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Wizard/Special_Animations/Fireball/Wizard_Fireball_Diagonal.png",           11, 28.0],
+				## Fire Burst finisher (LMB chain 3rd hit): the cast body re-slices the Attack sheet;
+				## the Spell-Effects pack's Burst_Fire (32px, 15f) rides the ComboFx overlay while
+				## eight firebolts radiate out (ChainFactory._fire_burst_bolts).
+				"fireburst":    ["Wizard_Attack.png", 6, 22.0],
+				"fireburst_fx": ["res://assets/minifantasy/Minifantasy_Spell Effects_v1.0/Minifantasy_Spell_Effects_Assets/Fire/Burst/Burst_Fire.png", 15, 15.0, 32],
 				"summon":       ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Wizard/Special_Animations/Fire_Familiar/Wizard_Summon_Fire_Familiar.png",  12, 18.0],
-				"teleport_out": ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Wizard/Special_Animations/Teleport/Wizard_Teleport_Start_Diagonal.png",    13, 26.0],
-				"teleport_in":  ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Wizard/Special_Animations/Teleport/Wizard_Teleport_End_Diagonal.png",      13, 26.0],
+				## Teleport (Space blink) — 8-way (Ben 2026-07-20): Diagonal sheet supplies the four
+				## diagonal facings, the Orthogonal companion the four cardinals, so a straight
+				## up/down/left/right blink plays its true row. Ortho row order is a best guess —
+				## verify/remap in the Lab (dirs.<cardinal>.row) if a cardinal blink faces wrong.
+				"teleport_out": ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Wizard/Special_Animations/Teleport/Wizard_Teleport_Start_Diagonal.png",    13, 26.0, {"ortho": "res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Wizard/Special_Animations/Teleport/Wizard_Teleport_Start_Orthogonal.png"}],
+				"teleport_in":  ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Wizard/Special_Animations/Teleport/Wizard_Teleport_End_Diagonal.png",      13, 26.0, {"ortho": "res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Wizard/Special_Animations/Teleport/Wizard_Teleport_End_Orthogonal.png"}],
+				## "torrent" retained as a spare sheet (Fire Torrent cut 2026-07-20; unused by any kit).
 				"torrent":      ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Wizard/Special_Animations/Fire_Torrent/Wizard_Fire_Torrent.png",           20, 30.0],
-				## E skill re-slice (SkillFactory): "nova" = the Fireball cast fast (Flame Nova —
-				## distinct NAME so it skips the charge-slow host hooks on "fireball"/"fireball_2").
-				"nova":         ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Wizard/Special_Animations/Fireball/Wizard_Fireball_Diagonal.png",           11, 26.0],
 			},
 		},
 	},

@@ -14,7 +14,9 @@ Anything we'll have 10+ of (weapons, mods, enemies, upgrades, levels) is defined
 Concrete forms: Godot `Resource` subclasses with `@export` properties (e.g. `EnemyDefinition`, `AbilityDefinition`, `StatusEffectDefinition`, `ModifierDefinition`), data factories (`static func create() -> Resource`), and LDtk files for level layout.
 
 ### 2. Scene Tree Architecture
-Each long-lived system is either an **autoloaded singleton** (`EventBus`, `GameManager`, `ProgressionManager`, `UpgradeManager`, `EnemySpawnManager`, `ExtractionManager`, `CodexManager`, `LootTables`) or a **scene-owned orchestrator** child of `MainArena` (`CombatOrchestrator` and its subsystems). Game entities are scenes that instance into the world; UI lives on separate `CanvasLayer`s.
+Each long-lived system is either an **autoloaded singleton** (`EventBus`, `GameManager`, `ProgressionManager`, `UpgradeManager`, `EnemySpawnManager`, `ExtractionManager`, `CodexManager`, `LootTables`, `Settings`, `AudioManager`, `InputGlyphs`, `AchievementManager`, `Logger`) or a **scene-owned orchestrator** child of `MainArena` (`CombatOrchestrator` and its subsystems). Game entities are scenes that instance into the world; UI lives on separate `CanvasLayer`s.
+
+Note what is deliberately *not* an autoload: there is no ArenaManager and no UIManager. Arena assembly belongs to the scene (`MainArena` + `LdtkLoader` / `BlockManager`), and each UI panel is owned by whichever scene shows it. Adding a global for either would re-introduce the coupling the orchestrator pattern exists to avoid.
 
 ### 3. Signal-Based Communication
 Systems talk through Godot signals — primarily the global `EventBus`. Producers don't know consumers. When an enemy dies, it emits `EventBus.on_kill`; loot rolls, XP spawns, kill-count tracking, and trigger-listener reactives all hook in independently.
@@ -29,6 +31,8 @@ Systems talk through Godot signals — primarily the global `EventBus`. Producer
 | `ModifierComponent` cached query | `ModifierDefinition` entries |
 | `EnemySpawnManager` wave logic | `EnemyDefinition` + biome wave compositions |
 | `LdtkLoader` arena builder | `.ldtkl` level files + biome metadata |
+| `ChoreographyRunner` executor | `ChoreographyDefinition` combo graphs from `ChainFactory` / `SkillFactory` |
+| `ModApplicability` resolver | `ModData` / `ClassModData` entries + kit capability tags |
 
 All `Resource` subclasses are pure data (`@export` only, zero behavior). Logic lives in dispatchers and components.
 

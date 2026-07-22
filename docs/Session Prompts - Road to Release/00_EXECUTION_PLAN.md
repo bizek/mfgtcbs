@@ -1,13 +1,47 @@
 # Execution Plan — Road to Release (M1–M7 + M2.5)
 
-Generated 2026-06-10 by Prompto. **Audited + updated 2026-07-06**: prompts 01–03 and 05–08 are
-done (archived to `docs/Archived Session Prompts - Completed/` with an `rtr_` prefix);
-**04 (win state) was skipped and is still open**; new Phase M2.5 added for the combo-combat /
-class-identity consolidation (pacing pass 2, roster completion, passive tree 26–28, class
-mod + level-up rework); prompts 13/16/18/19/20/21/25 revised for the 10-class combo-kit
-combat model. Each numbered file in this folder is a self-contained session prompt. Paste one
-prompt per fresh Claude Code session in this repo (CLAUDE.md auto-loads, so prompts reference
-repo files instead of inlining them).
+Generated 2026-06-10 by Prompto. Audited 2026-07-06. **Re-audited against code 2026-07-21** — see
+the status table below; most of M3–M7 has shipped since the last audit and the plan body had not
+been updated to reflect it.
+
+Each numbered file in this folder is a self-contained session prompt. Paste one prompt per fresh
+Claude Code session in this repo (CLAUDE.md auto-loads, so prompts reference repo files instead of
+inlining them).
+
+## Status at a glance (verified against source, 2026-07-21)
+
+| Task | Status | Evidence |
+|---|---|---|
+| 01–03, 05–08 | ✅ done | archived with `rtr_` prefix |
+| **04** win state | ✅ **done** (was recorded open) | `scripts/ui/win_screen.gd`, `scripts/ui/credits.gd`, `GameManager.last_run_was_win`, `final_boss_defeated` |
+| 09 settings core | ✅ done | `scripts/managers/settings.gd`, `scripts/ui/settings_panel.gd` |
+| 10 main menu | ✅ done | `scenes/main_menu.tscn` |
+| 11 save versioning | ✅ done (2026-07-21) | `SAVE_VERSION`, `_migrate_save`, corrupt backup, newer-version refusal; snapshot `tests/save_snapshots/v1.json`; 4 cases verified in-engine |
+| 12 settings phase 2 | ✅ done | rebinding + `screen_shake` + `colorblind_mode` in `settings.gd` |
+| 13 SFX manifest | ✅ done | `docs/audio_asset_manifest.md` |
+| 14 audio architecture | ✅ done | `scripts/managers/audio_manager.gd`, `data/factories/sound_table.gd` (54 entries) |
+| **15 audio wiring** | ⚠️ **partial** | weapon fire wired via `on_ability_used`; channel loops + dash/skill/pet stingers outstanding |
+| 16 onboarding | ✅ done | `scripts/ui/first_run_overlay.gd` |
+| 17 juice pass | ✅ done | hit-stop / shake in `combat_utils.gd`, `player.gd`, `main_arena.gd`, shake respects `Settings.screen_shake` |
+| 18 balance instrumentation | ✅ done | `scripts/systems/run_report_manager.gd` (debug-only) |
+| 19 controller bindings | ✅ done | commit `19d28ef`; analog stick `be3c9a6` |
+| 20 UI nav + glyphs | ✅ done | `ui_nav_utils.gd`, `glyph_bar.gd`, `InputGlyphs` autoload |
+| 21 achievements | ✅ done | `AchievementManager`, `data/achievements.gd` (12), Records tab |
+| 22 crash logging + version | ✅ done | `Logger` autoload, `config/version="0.0.3"` |
+| 23 export presets | ✅ done | `export_presets.cfg`, `build.ps1`, both targets smoke-tested |
+| **24 Steam** | 🚧 **blocked** | needs a Steam App ID from Ben |
+| **25 store copy** | 🚧 **blocked** | needs the final game name (decision D5) |
+| 26–28 passive tree | ✅ done | `data/passive_tree.gd` (59 nodes), `hub_passives_panel.gd` |
+| 29 pacing pass 2 | ✅ done | move speeds rebalanced 2026-07-07 |
+| 30 roster completion | ✅ done | 12/12 — Verdant + Devout |
+| 31–33 class mods + level-up | ✅ done | 48 class mods, `ModApplicability`, `ability_upgrades.gd` (36) |
+| 34 class gear & rarity | ✅ done | 42 weapons, `trinkets.gd`, `gear_unique_factory.gd` |
+
+**Remaining work: the rest of 15 (audio wiring), and two Ben-blocked items (24, 25).** Task 11 (save versioning) shipped 2026-07-21 — the plan has no unstarted tasks left.
+
+> Note on scope drift: mods are getting a **fresh pass after the current character/ability polish
+> phase**, and weapons are becoming class-locked rather than transferable (Ben, 2026-07-21). Treat
+> any mod/weapon assumptions baked into the prompts below as provisional.
 
 ## How to Use
 
@@ -22,12 +56,11 @@ Run phases in order. Tasks inside a phase marked ∥ can run in parallel session
 
 ## Phases
 
-### Phase M1 — Close out the core loop ✅ (except 04)
+### Phase M1 — Close out the core loop ✅
 - ~~01 [HAIKU] Commit cleanup~~ ✅
 - ~~02 [SONNET] Boss spawning from LdtkLevelDirector~~ ✅
 - ~~03 [SONNET] Inner block variants + altar markers~~ ✅ (block compiler now generates blocks)
-- 04 [SONNET] **STILL OPEN** — Win state: win flow, credits, account flag (audit 2026-07-06:
-  no win/credits/game-cleared code exists in scripts). Tasks 10, 21, 22, 25 reference it.
+- ~~04 [SONNET] Win state: win flow, credits, account flag~~ ✅ (shipped since the 2026-07-06 audit)
 - **HUMAN (Ben):** paint `PropCollision` IntGrid layer in the LDtk GUI (see `docs/ldtk_schema.md` §2.1)
 
 ### Phase M2 — Character Overhaul ✅
@@ -52,11 +85,15 @@ Run phases in order. Tasks inside a phase marked ∥ can run in parallel session
 - **HUMAN (Ben):** approve Druid/Cleric kits (30) and the class-mod design doc (31); playtest
   the pacing pass (29) and passive tree branches (26–28)
 
-### Phase M3 — Product shell
-- 09 [SONNET] Settings system core (audio buses, display, ConfigFile persistence, UI)
-- 10 [SONNET] Main menu scene — after 09
-- 11 [SONNET] ∥ Save versioning + migration scaffold
-- 12 [SONNET] Settings phase 2 — rebinding + accessibility (can defer to post-M6)
+### Phase M3 — Product shell ✅
+- ~~09 [SONNET] Settings system core~~ ✅
+- ~~10 [SONNET] Main menu scene~~ ✅
+- ~~11 [SONNET] ∥ Save versioning + migration scaffold~~ ✅ (2026-07-21). `SAVE_VERSION` + versioned
+  saves, `_migrate_save()` incremental chain (v0→v1), corrupt-file backup to
+  `user://save_corrupt_<unix>.json` + fresh start, newer-version refusal with a main-menu warning.
+  Regression fixture `tests/save_snapshots/v1.json`. Four cases verified in-engine
+  (versionless→migrate, v1 clean, corrupt→backup, v99→refuse).
+- ~~12 [SONNET] Settings phase 2 — rebinding + accessibility~~ ✅
 
 ### Phase M4 — Audio
 - 13 [HAIKU] SFX/music asset manifest (shopping list for Ben)

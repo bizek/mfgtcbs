@@ -1,0 +1,322 @@
+{
+  "The Devout": {
+    "pray_heal": {
+      "base": "healing_words_back",
+      "fx": "healing_words_front"
+    }
+  },
+  "The Drifter": {
+    "taunt": {
+      "dirs": {
+        "down_left": {
+          "to": 8.0
+        },
+        "down_right": {
+          "to": 8.0
+        },
+        "up_left": {
+          "to": 8.0
+        },
+        "up_right": {
+          "to": 8.0
+        }
+      },
+      "fps": 16.0,
+      "from": 0.0,
+      "to": 4.0
+    }
+  },
+  "The Herald": {
+    "song_ballad": {
+      "base": "ballad_base"
+    },
+    "song_enhance": {
+      "base": "enhancement_base"
+    }
+  },
+  "The Ravager": {
+    "cry": {
+      "base": "battle_cry_back"
+    },
+    "guard": {
+      "stages": {
+        "intro": [
+          0.0,
+          2.0
+        ],
+        "loop": [
+          3.0,
+          3.0
+        ],
+        "outro": {
+          "from": 0.0,
+          "sheet": "res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Guard/Minifantasy_TrueHeroesBarbarianBlockGuardDown.png",
+          "to": 3.0
+        }
+      }
+    }
+  },
+  "The Spark": {
+    "attack": {
+      "fps": 24.0,
+      "from": 0,
+      "to": 6
+    },
+    "attack_2": {
+      "fps": 24.0,
+      "from": 0,
+      "to": 6
+    },
+    "attack_2_fx": {
+      "fps": 24.0,
+      "from": 0,
+      "to": 6
+    },
+    "damage": {
+      "fps": 12.0,
+      "from": 0,
+      "to": 3
+    },
+    "fireball_2": {
+      "fps": 11.0,
+      "from": 0,
+      "to": 10
+    },
+    "summon": {
+      "fps": 12.0,
+      "from": 0,
+      "to": 11
+    },
+    "torrent": {
+      "fps": 13.0,
+      "from": 0,
+      "stages": {
+        "intro": [
+          0.0,
+          3.0
+        ],
+        "loop": [
+          4.0,
+          15.0
+        ],
+        "outro": [
+          16.0,
+          19.0
+        ]
+      },
+      "to": 19
+    }
+  },
+  "The Warden": {
+    "dictum": {
+      "stages": {
+        "intro": {
+          "from": 0.0,
+          "fx": "blades_start",
+          "to": 7.0
+        },
+        "loop": {
+          "from": 8.0,
+          "fx": "blades_cycle",
+          "to": 11.0
+        },
+        "outro": {
+          "from": 12.0,
+          "fx": "blades_end",
+          "to": 14.0
+        }
+      }
+    },
+    "dome": {
+      "stages": {
+        "intro": {
+          "base": "dome_base_start",
+          "from": 0.0,
+          "fx": "dome_start",
+          "to": 7.0
+        },
+        "loop": {
+          "base": "dome_base_cycle",
+          "from": 8.0,
+          "fx": "dome_cycle",
+          "to": 11.0
+        },
+        "outro": {
+          "base": "dome_base_end",
+          "from": 12.0,
+          "fx": "dome_end",
+          "to": 14.0
+        }
+      }
+    }
+  },
+  "_comment": "Animation Lab overrides. '_custom_anims' registers PNGs the code never referenced; the per-character blocks trim/stage/layer them. See docs/dev_tools.md. Seeded 2026-07-20 from a full pack audit — Ben to audit and tweak.",
+  "_custom_anims": {
+    "The Devout": {
+      "healing_words_back": [
+        "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Cleric/Special_Animations/Prayers/Healing_Words/HealingwodsBackLayer.png",
+        20.0,
+        20.0
+      ],
+      "healing_words_front": [
+        "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Cleric/Special_Animations/Prayers/Healing_Words/HealingwodsFrontLayer.png",
+        20.0,
+        20.0
+      ]
+    },
+    "The Drifter": {
+      "figther_taunt": [
+        "res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/Special_Animations/Taunt/Figther_Taunt.png",
+        9.0,
+        16.0
+      ]
+    },
+    "The Herald": {
+      "ballad_base": [
+        "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/BalladSongBase.png",
+        16.0,
+        20.0
+      ],
+      "enhancement_base": [
+        "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/EnhancementSongBase.png",
+        16.0,
+        20.0
+      ],
+      "enhancement_shimmer": [
+        "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/Enhancement/Enhamcement.png",
+        8.0,
+        10.0
+      ]
+    },
+    "The Ravager": {
+      "battle_cry_back": [
+        "res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Battle_Cry/Minifantasy_TrueHeroesBarbarianBattleCryEffectBackLayer.png",
+        11.0,
+        14.0
+      ]
+    },
+    "The Spark": {
+      "deflagration": [
+        "res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Wizard/Special_Animations/Fireball/Deflagration_Only_Effect.png",
+        24.0,
+        15.0,
+        64.0
+      ],
+      "explosion_full": [
+        "res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Wizard/Special_Animations/Fireball/Explossion_Full_Effect.png",
+        26.0,
+        15.0,
+        64.0
+      ]
+    },
+    "The Verdant": {
+      "beast_dmg": [
+        "res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Druid/Special_Animations/Shape_Shifting/Forest_Beast/Minifantasy_TrueHeroesForestBeastDmg.png",
+        4.0,
+        15.0
+      ],
+      "beast_idle": [
+        "res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Druid/Special_Animations/Shape_Shifting/Forest_Beast/Minifantasy_TrueHeroesForestBeastIdle.png",
+        11.0,
+        9.0
+      ],
+      "beast_revert": [
+        "res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Druid/Special_Animations/Shape_Shifting/Forest_Beast/Minifantasy_TrueHeroesDruidShapeShiftForestBeastToHuman.png",
+        15.0,
+        18.0
+      ],
+      "beast_walk": [
+        "res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Druid/Special_Animations/Shape_Shifting/Forest_Beast/Minifantasy_TrueHeroesForestBeastWalk.png",
+        6.0,
+        10.0
+      ],
+      "hound_dmg": [
+        "res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Druid/Special_Animations/Shape_Shifting/Forest_Hound/Minifantasy_TrueHeroesForestHoundDmg.png",
+        4.0,
+        15.0
+      ],
+      "hound_idle": [
+        "res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Druid/Special_Animations/Shape_Shifting/Forest_Hound/Minifantasy_TrueHeroesForestHoundIdle.png",
+        12.0,
+        9.0
+      ],
+      "hound_morph": [
+        "res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Druid/Special_Animations/Shape_Shifting/Forest_Hound/Minifantasy_TrueHeroesDruidShapeShiftHumanToForestHound.png",
+        21.0,
+        18.0
+      ],
+      "hound_revert": [
+        "res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Druid/Special_Animations/Shape_Shifting/Forest_Hound/Minifantasy_TrueHeroesDruidShapeShiftForestHoundToHuman.png",
+        15.0,
+        18.0
+      ],
+      "hound_walk": [
+        "res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Druid/Special_Animations/Shape_Shifting/Forest_Hound/Minifantasy_TrueHeroesForestHoundWalk.png",
+        4.0,
+        10.0
+      ],
+      "owl_dmg": [
+        "res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Druid/Special_Animations/Shape_Shifting/Forest_Owl/Minifantasy_TrueHeroesForestOwlDmg.png",
+        4.0,
+        15.0
+      ],
+      "owl_idle": [
+        "res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Druid/Special_Animations/Shape_Shifting/Forest_Owl/Minifantasy_TrueHeroesForestOwlFlyIdle.png",
+        2.0,
+        8.0
+      ],
+      "owl_revert": [
+        "res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Druid/Special_Animations/Shape_Shifting/Forest_Owl/Minifantasy_TrueHeroesDruidShapeShiftForestowlToHuman.png",
+        15.0,
+        18.0
+      ]
+    },
+    "The Warden": {
+      "blades_cycle": [
+        "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Dictums/Blades_Of_Justice/BladesCycle.png",
+        4.0,
+        20.0
+      ],
+      "blades_end": [
+        "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Dictums/Blades_Of_Justice/BladesEnd.png",
+        10.0,
+        20.0
+      ],
+      "blades_start": [
+        "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Dictums/Blades_Of_Justice/BladesStart.png",
+        9.0,
+        20.0
+      ],
+      "dome_base_cycle": [
+        "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Dictums/Dome_Of_Rightfulness/DomeBaseCycle.png",
+        8.0,
+        20.0
+      ],
+      "dome_base_end": [
+        "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Dictums/Dome_Of_Rightfulness/DomeBaseEnd.png",
+        8.0,
+        20.0
+      ],
+      "dome_base_start": [
+        "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Dictums/Dome_Of_Rightfulness/DomeBaseStart.png",
+        8.0,
+        20.0
+      ],
+      "dome_cycle": [
+        "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Dictums/Dome_Of_Rightfulness/DomeCycle.png",
+        8.0,
+        20.0
+      ],
+      "dome_end": [
+        "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Dictums/Dome_Of_Rightfulness/DomeEnd.png",
+        8.0,
+        20.0
+      ],
+      "dome_start": [
+        "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Dictums/Dome_Of_Rightfulness/DomeStart.png",
+        8.0,
+        20.0
+      ]
+    }
+  }
+}

@@ -14,6 +14,11 @@ var use_ldtk_level_1: bool = true
 ## instead of loading a single monolithic level.
 var use_descent_mode: bool = true
 
+## Training room (F11 / main-menu entry): MainArena runs on a flat arena with no wave
+## spawning, no phase clock and no extraction — just the player, dummies and the training
+## panel. Set before change_scene_to_file("res://scenes/main_arena.tscn").
+var training_mode: bool = false
+
 signal run_started
 signal phase_started(phase_number: int)
 signal phase_timer_updated(time_remaining: float)
@@ -131,6 +136,10 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	if current_state != GameState.RUN_ACTIVE or is_paused:
+		return
+
+	## Training room: no clock, no phases, no extraction pressure — the run never advances.
+	if training_mode:
 		return
 
 	run_time += delta

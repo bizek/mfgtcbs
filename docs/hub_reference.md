@@ -43,8 +43,11 @@ Start the next run. Script: `hub_launch_panel.gd`.
 
 ---
 
+## Shipped, but not as their own station
+
+- **Codex** — the mod-combo discovery viewer ships as `CodexGridPanel` (`scripts/ui/codex_grid_panel.gd`), embedded inside the **Armory** panel rather than as an eighth station. In-run discoveries pop through `combo_discovery_popup.gd`.
+- **Insurance UI** — `insurance_panel.gd` is an in-run `CanvasLayer` added by `main_arena.gd`, not a hub station. The player designates the insured item during the run, not before it.
+
 ## Not Yet Implemented
 
 - **Lore Archive** — planned viewer for lore fragments collected during runs. No script exists.
-- **Codex** — planned viewer for mod combo discovery state. `CodexManager` autoload is wired; hub panel not built.
-- **Insurance UI** — pre-run item insurance workflow exists in `ProgressionManager`; dedicated hub panel not yet built.

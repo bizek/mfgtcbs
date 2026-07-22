@@ -166,6 +166,8 @@ var _combo_pulse_tween: Tween = null
 ## Swing-effect overlay (the white slash), centered on the player and scaled per-node so the white's
 ## outer edge lands on that node's actual hit-zone radius — the visual IS the hitbox guide.
 var _combo_fx: AnimatedSprite2D = null
+## Ground layer for packs' "Base" sheets — same frames, drawn UNDER the character (z -1).
+var _combo_base: AnimatedSprite2D = null
 const FX_NATIVE_RADIUS: float = 14.0   ## radius (px) the white slash reaches inside the 32px frame
 const COMBO_FX_SCALE: float = 2.4   ## fallback upscale for nodes with no AreaDamage radius
 ## Frame-matched full-body overlays that must play at NATIVE scale — never stretched to the
@@ -188,6 +190,7 @@ var _bomb_atlases: Array = []             ## the spin frames' AtlasTextures (reg
 ## (down_left / down_right / up_left / up_right — Minifantasy oblique style);
 ## CharacterSpriteFactory slices them as "<anim>_<facing>" and _play_anim picks the variant.
 var _facing: String = "down_left"
+var _aim_dir: Vector2 = Vector2.DOWN   ## last aim/travel vector — picks the fallback facing side
 var _has_dir_anims: bool = false
 const BOMB_PROJ_SHEETS: Array[String] = [
 	"res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Rogue/Special_Animations/Throw Bomb/Minifantasy_TrueHeroesRogueBombProjectileFrame1.png",
@@ -214,6 +217,14 @@ const DOME_ABSORB_CAP: float = 0.30    ## fraction of max HP the dome can hold b
 const DOME_REFLECT_MULT: float = 1.5   ## stored damage → detonation damage
 const DOME_BURST_RADIUS: float = 70.0  ## detonation hit zone (scales with melee_range)
 var _dome_absorbed: float = 0.0
+## Warden Aegis Shield (Q, Ben 2026-07-20): a STANDING absorb pool — soaks incoming hits whole
+## until it's SPENT (no timer — it stays on the Warden until the absorb is used up, Ben's call),
+## with the pack's DomeCycle bubble looping over him the whole time. Distinct from Reckoning
+## (which stores hits to detonate); this one just protects.
+const ABSORB_SHIELD_FRAC: float = 0.25   ## pool = 25% max HP
+const DOME_CYCLE_SHEET: String = "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Dictums/Dome_Of_Rightfulness/DomeCycle.png"
+var _absorb_shield: float = 0.0
+var _shield_bubble: AnimatedSprite2D = null
 var _active_choreo_id: String = ""     ## ability_id of the running choreography ("" = none)
 ## Gunslinger Desert Storm: the pack's directional barrage strips (8 files, 16f @ 96px cells)
 ## blaze ahead of the Deadeye toward the cursor while the channel pours, torrent-style.
@@ -231,6 +242,19 @@ const THROW_JUNK_REGION: Rect2 = Rect2(499, 13, 13, 8)   ## the airborne slab in
 const TORRENT_FX_SHEET: String = "res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Wizard/Special_Animations/Fire_Torrent/Fire_Torrent_Effect.png"
 var _fire_familiar: Node2D = null
 var _torrent_fx: AnimatedSprite2D = null
+## Spark Q/E overhaul (Ben 2026-07-20): Frost Burst leaves a looping ring of ice shards; Storm
+## Call drops a two-bolt lightning strike over every enemy on the field. Sheets from the shared
+## Spell Effects pack (32px cells; Aura sheets = row0 start / row1 loop / row2 end).
+const SPELLFX_DIR: String = "res://assets/minifantasy/Minifantasy_Spell Effects_v1.0/Minifantasy_Spell_Effects_Assets/"
+const AURA_ELECTRIC_SHEET: String = SPELLFX_DIR + "Electric/Aura/Aura_Electric.png"
+const BURST_ELECTRIC_SHEET: String = SPELLFX_DIR + "Electric/Burst/Burst_Electric.png"
+const BURST_ICE_SHEET: String = SPELLFX_DIR + "Ice/Burst/Burst_Ice.png"
+const AURA_ICE_SHEET: String = SPELLFX_DIR + "Ice/Aura/Aura_Ice.png"
+const STORM_CALL_DAMAGE_MULT: float = 1.6   ## per-enemy Lightning chunk (of weapon damage)
+const STORM_CALL_RANGE: float = 1400.0       ## covers the whole arena (±800 × ±600)
+const ICE_AURA_TIME: float = 10.0            ## shards loop this long, then deteriorate (row2)
+var _ice_aura: AnimatedSprite2D = null
+var _ice_aura_timer: float = 0.0
 ## Blood Mage kit (The Cursed): Extract Power HP cost, Vampirize heal-per-drink, and the
 ## Vampirize/Blood_Spikes loose effect sheets (drawn host-side, not body anims).
 const BLOOD_COST_FRAC: float = 0.05      ## Extract Power costs 5% max HP (never lethal)
@@ -430,19 +454,67 @@ func _update_facing() -> void:
 	var to_mouse: Vector2 = _get_aim_world_position() - global_position
 	if to_mouse.length_squared() < 4.0:
 		return   ## cursor on top of the player — keep the last facing
-	_facing = ("down" if to_mouse.y >= 0.0 else "up") \
-			+ ("_right" if to_mouse.x >= 0.0 else "_left")
+	_aim_dir = to_mouse
+	_facing = _facing_from_vector(to_mouse)
 
 
-## Play `base` in the row matching the current facing when the frames carry it (4-row sheets);
-## fall back to the base slice (single-row sheets like death, or baked scene frames).
+## 8-way facing: bucket a direction into one of 8 sectors (screen space: +x right, +y down).
+## The four CARDINAL facings are only rendered by anims that ship an orthogonal companion sheet;
+## every other anim falls back to the nearest DIAGONAL at play time, which resolves to exactly
+## the same row the old 4-quadrant split picked — so 4-row sheets are visually unchanged.
+func _facing_from_vector(v: Vector2) -> String:
+	var a: float = rad_to_deg(atan2(v.y, v.x))   ## 0 = right, 90 = down
+	if a < 0.0:
+		a += 360.0
+	var sector: int = int(round(a / 45.0)) % 8
+	return FACING_SECTORS[sector]
+const FACING_SECTORS: Array[String] = ["right", "down_right", "down", "down_left",
+		"left", "up_left", "up", "up_right"]
+## Resolve "<base>_<facing>" to an animation that actually exists: exact facing row → nearest
+## neighbouring facing row (chosen by the true aim direction, so a diagonal-only sheet renders
+## IDENTICALLY to the old 4-quadrant split and a cardinal-only sheet snaps to the nearer
+## cardinal) → the base slice → "". One place so body, combo, and fx overlays fall back alike.
+func _facing_variant(frames: SpriteFrames, base: String) -> String:
+	if frames == null:
+		return ""
+	var exact: String = base + "_" + _facing
+	if frames.has_animation(exact):
+		return exact
+	for near in _facing_fallback_order():
+		var v: String = base + "_" + near
+		if frames.has_animation(v):
+			return v
+	if frames.has_animation(base):
+		return base
+	return ""
+
+
+## Neighbouring facings to try for the current facing, ordered by the live aim so the side
+## matches where the cursor actually is (no left/right flip near the axes).
+func _facing_fallback_order() -> Array:
+	var ax: float = _aim_dir.x
+	var ay: float = _aim_dir.y
+	match _facing:
+		"down":  return ["down_right", "down_left"] if ax >= 0.0 else ["down_left", "down_right"]
+		"up":    return ["up_right", "up_left"] if ax >= 0.0 else ["up_left", "up_right"]
+		"left":  return ["down_left", "up_left"] if ay >= 0.0 else ["up_left", "down_left"]
+		"right": return ["down_right", "up_right"] if ay >= 0.0 else ["up_right", "down_right"]
+		"down_right": return ["down", "right"] if absf(ay) >= absf(ax) else ["right", "down"]
+		"down_left":  return ["down", "left"] if absf(ay) >= absf(ax) else ["left", "down"]
+		"up_right":   return ["up", "right"] if absf(ay) >= absf(ax) else ["right", "up"]
+		"up_left":    return ["up", "left"] if absf(ay) >= absf(ax) else ["left", "up"]
+	return []
+
+
+## Play `base` in the row matching the current facing when the frames carry it; fall back to the
+## base slice (single-row sheets like death, or baked scene frames).
 func _play_anim(base: String) -> void:
 	if sprite == null or sprite.sprite_frames == null:
 		return
-	var dir_name: String = base + "_" + _facing
-	if sprite.sprite_frames.has_animation(dir_name):
-		sprite.flip_h = false   ## real left row — never mirror on top of it
-		sprite.play(dir_name)
+	var variant: String = _facing_variant(sprite.sprite_frames, base)
+	if variant != "" and variant != base:
+		sprite.flip_h = false   ## real directional row — never mirror on top of it
+		sprite.play(variant)
 	else:
 		sprite.play(base)
 
@@ -450,10 +522,8 @@ func _play_anim(base: String) -> void:
 ## Resolve a canonical anim name to its facing variant (ChoreographyRunner host hook — combo
 ## phases play the row matching the cursor; hit_frame indices are identical across rows).
 func choreo_anim_name(base: String) -> String:
-	if sprite and sprite.sprite_frames \
-			and sprite.sprite_frames.has_animation(base + "_" + _facing):
-		return base + "_" + _facing
-	return base
+	var variant: String = _facing_variant(sprite.sprite_frames if sprite else null, base)
+	return variant if variant != "" else base
 
 
 ## True if the character SpriteFrames carries any "<node>_fx" swing-effect animation. Not every
@@ -936,6 +1006,11 @@ func _physics_process(delta: float) -> void:
 	knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 1400.0 * delta)
 
 	_dash_anim_timer = maxf(_dash_anim_timer - delta, 0.0)
+	## Spark Frost Burst: the shard aura loops for ICE_AURA_TIME, then plays its deteriorate pass.
+	if _ice_aura != null and _ice_aura.visible and _ice_aura_timer > 0.0:
+		_ice_aura_timer -= delta
+		if _ice_aura_timer <= 0.0 and _ice_aura.animation == &"loop":
+			_ice_aura.play(&"end")
 	if sprite:
 		_update_facing()
 		## Stealth legibility: ghost the body while invisible (Conceal / Smoke Bomb / Vanish)
@@ -1309,6 +1384,17 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 	## just a shove — Ben 2026-07-19).
 	if ability != null and ability.ability_id == "ranger_skirmish_step":
 		_dash_charges = mini(_dash_charges + 1, _max_dash_charges())
+	## Warden Aegis Shield (Q): the cast raises a standing absorb pool + persistent DomeCycle bubble.
+	if ability != null and ability.ability_id == "paladin_aegis_vow":
+		_grant_absorb_shield()
+	## Spark Storm Call (E): call the sky down on the whole arena — a lightning strike + a
+	## Lightning chunk over every enemy, plus an electric pulse around the caster.
+	if ability != null and ability.ability_id == "wizard_storm_call":
+		_cast_storm_call(ability)
+	## Spark Frost Burst (Q): the point-blank ice nova's damage/chill are in the skill's own
+	## effects; the host just adds the Burst_Ice pop + the lingering shard aura.
+	if ability != null and ability.ability_id == "wizard_ice_burst":
+		_cast_ice_burst()
 	var is_torrent: bool = cur_anim.begins_with("torrent")
 	var is_throw: bool = cur_anim.begins_with("throw")
 	var is_teleport: bool = cur_anim.begins_with("teleport_out")
@@ -1497,10 +1583,18 @@ func _nearby_enemies(radius: float) -> Array:
 	return out
 
 
-func choreo_on_phase_anim(phase: ChoreographyPhase) -> void:
+func choreo_on_phase_anim(phase: ChoreographyPhase, stage: String = "") -> void:
 	## Runner calls this when a combo node's body anim starts → play the matching swing effect, sized
 	## to THIS node's hit-zone radius so the white edge marks exactly where the hitbox reaches.
+	## `stage` is set for staged channel bodies ("intro"/"loop"/"outro") — a stage may declare
+	## its OWN overlay, published by the factory as "<anim>_<stage>_fx".
 	var anim: String = phase.animation
+	if stage != "" and _combo_fx != null and _combo_fx.sprite_frames != null \
+			and _combo_fx.sprite_frames.has_animation("%s_%s_fx" % [phase.animation, stage]):
+		anim = "%s_%s" % [phase.animation, stage]
+	## Ground layer: packs ship "Base" sheets meant to render BELOW the character (see the
+	## Dictums _AnimationInfo.txt). Played on its own sprite under the body.
+	_play_base_layer(anim)
 	var reach: float = _melee_range()
 	var radius: float = _node_hit_radius(phase) * reach   ## effective hit-zone radius (incl. capped Reach)
 
@@ -1513,12 +1607,10 @@ func choreo_on_phase_anim(phase: ChoreographyPhase) -> void:
 	elif anim == "fireball_2":
 		modifier_component.remove_by_source_prefix("combo_charge")
 
-	## Big-impact nodes with no _fx sheet (Taunt, Paladin Hammer) ring out a procedural
-	## shockwave at the hit-zone radius instead.
-	## ("nova" = Flame Nova: the fire ring IS the tell — without it the burst reads as
-	## invisible hot air, Ben playtest 2026-07-19.) Hammer dropped from the list 2026-07-20:
-	## the spiraling hammers ARE the visual, and the ring read as a stray Taunt circle.
-	if anim == "taunt" or anim == "nova":
+	## Big-impact nodes with no _fx sheet (Taunt) ring out a procedural shockwave at the
+	## hit-zone radius instead. (Flame Nova retired 2026-07-20 → the Spark's E is Storm Call
+	## now; Hammer dropped earlier — the spiraling hammers ARE its visual.)
+	if anim == "taunt":
 		if _combo_fx:
 			_combo_fx.visible = false
 		_spawn_shockwave_ring(radius)
@@ -1558,16 +1650,14 @@ func choreo_on_phase_anim(phase: ChoreographyPhase) -> void:
 		_vamp_fx.visible = false      ## any non-vampirize node ends the float
 	if _combo_fx == null or _combo_fx.sprite_frames == null:
 		return
-	## Facing variant of the swing effect when the fx sheet has directional rows.
-	var fx: String = anim + "_fx"
-	if _combo_fx.sprite_frames.has_animation(fx + "_" + _facing):
-		fx = fx + "_" + _facing
-		_combo_fx.flip_h = false
-	elif _combo_fx.sprite_frames.has_animation(fx):
-		_combo_fx.flip_h = sprite.flip_h
-	else:
+	## Facing variant of the swing effect when the fx sheet has directional rows (falls back
+	## cardinal → nearest diagonal → base, same as the body).
+	var fx_base: String = anim + "_fx"
+	var fx: String = _facing_variant(_combo_fx.sprite_frames, fx_base)
+	if fx == "":
 		_combo_fx.visible = false
 		return
+	_combo_fx.flip_h = sprite.flip_h if fx == fx_base else false
 	## Centered, scaled so the white's outer edge sits on the node's hit-zone radius. Nodes with
 	## no AreaDamage radius (projectile casts — e.g. Wizard bolts) play frame-matched at native
 	## size, only growing with Reach. Frame-matched FULL-BODY overlays (Apotheosis halo,
@@ -1596,6 +1686,29 @@ func _node_hit_radius(phase: ChoreographyPhase) -> float:
 func _melee_range() -> float:
 	## melee_range stat, capped at MELEE_RANGE_MAX so reach tops out at the end-of-the-road size.
 	return minf(get_stat("melee_range"), MELEE_RANGE_MAX)
+
+
+## Ground-layer overlay ("<anim>_base"): the packs' "Base" sheets belong UNDER the character.
+## Shares the character SpriteFrames like ComboFx; hidden whenever the node has no base sheet.
+func _play_base_layer(anim: String) -> void:
+	if sprite == null or sprite.sprite_frames == null:
+		return
+	var want: String = anim + "_base"
+	if not sprite.sprite_frames.has_animation(want):
+		if _combo_base:
+			_combo_base.visible = false
+		return
+	if _combo_base == null:
+		_combo_base = AnimatedSprite2D.new()
+		_combo_base.name = "ComboBase"
+		_combo_base.centered = true
+		_combo_base.z_index = -1          ## below the body, per the packs' instructions
+		_combo_base.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		add_child(_combo_base)
+	_combo_base.sprite_frames = sprite.sprite_frames
+	_combo_base.visible = true
+	if _combo_base.animation != StringName(want) or not _combo_base.is_playing():
+		_combo_base.play(want)
 
 
 func _on_combo_fx_finished() -> void:
@@ -1830,11 +1943,9 @@ func _spawn_drain_wisp(at: Vector2) -> void:
 func _spawn_sunder_cracks() -> void:
 	if sprite == null or sprite.sprite_frames == null:
 		return
-	var fx_anim: String = "sunder_fx_" + _facing
-	if not sprite.sprite_frames.has_animation(fx_anim):
-		fx_anim = "sunder_fx"
-		if not sprite.sprite_frames.has_animation(fx_anim):
-			return
+	var fx_anim: String = _facing_variant(sprite.sprite_frames, "sunder_fx")
+	if fx_anim == "":
+		return
 	var last: int = sprite.sprite_frames.get_frame_count(fx_anim) - 1
 	var decal := Sprite2D.new()
 	decal.texture = sprite.sprite_frames.get_frame_texture(fx_anim, last)
@@ -1931,6 +2042,81 @@ func _spawn_oneshot_fx(sheet_path: String, at: Vector2, fps: float) -> void:
 	fx.global_position = at
 	fx.play(&"play")
 	fx.animation_finished.connect(fx.queue_free)
+
+
+## Storm Call (Spark E): every live enemy on the field takes a two-bolt lightning strike
+## (Aura_Electric row 0 dropped over them) + a Lightning chunk; the caster crackles with an
+## electric pulse. Screen-wide — the long cooldown is the balance.
+func _cast_storm_call(ability) -> void:
+	var chunk: float = _weapon_data.get("damage", 42.0) * STORM_CALL_DAMAGE_MULT
+	for en in _nearby_enemies(STORM_CALL_RANGE):
+		_spawn_oneshot_fx(AURA_ELECTRIC_SHEET, en.global_position + Vector2(0.0, -8.0), 14.0)
+		var hit := DealDamageEffect.new()
+		hit.damage_type = "Lightning"
+		hit.base_damage = chunk
+		EffectDispatcher.execute_effects([hit], self, [en], ability, combat_manager)
+	_spawn_oneshot_fx(BURST_ELECTRIC_SHEET, global_position, 15.0)
+	_spawn_shockwave_ring(64.0, Color(0.55, 0.8, 1.0, 0.95))
+
+
+## Frost Burst (Spark Q): the Burst_Ice pop, then the lingering ice-shard aura. The nova's
+## damage + chill ride the skill's own effects (choreo_fire_effects), not this hook.
+func _cast_ice_burst() -> void:
+	_spawn_oneshot_fx(BURST_ICE_SHEET, global_position, 15.0)
+	_show_ice_aura()
+
+
+## The ice-shard aura (Ben's frame plan): the Aura_Ice sheet counted as ONE flat row-major
+## sequence over its 8×3 grid — the shards pop in and shimmer over frames 7-16 (looped for
+## ICE_AURA_TIME), then frames 17-24 play once as the shards deteriorate. A child of the player,
+## so it tracks the Spark.
+func _show_ice_aura() -> void:
+	if _ice_aura == null:
+		if not ResourceLoader.exists(AURA_ICE_SHEET):
+			return
+		var tex: Texture2D = load(AURA_ICE_SHEET)
+		if tex == null:
+			return
+		var cols: int = int(tex.get_width() / 32.0)   ## 8 across; the sheet wraps to the next row
+		var frames := SpriteFrames.new()
+		frames.clear_all()
+		## Flat cell indices (0-based) = Ben's 1-based frames minus one:
+		##   loop = frames 7-16  → cells 6..15   ·   deteriorate = frames 17-24 → cells 16..23
+		_add_ice_aura_anim(frames, tex, &"loop", 6, 15, cols, true)
+		_add_ice_aura_anim(frames, tex, &"end", 16, 23, cols, false)
+		_ice_aura = AnimatedSprite2D.new()
+		_ice_aura.name = "IceAura"
+		_ice_aura.centered = true
+		_ice_aura.z_index = 2
+		_ice_aura.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		add_child(_ice_aura)
+		_ice_aura.animation_finished.connect(_on_ice_aura_finished)
+	_ice_aura.visible = true
+	_ice_aura.play(&"loop")
+	_ice_aura_timer = ICE_AURA_TIME
+
+
+## Slice a FLAT (row-major) cell range [flat_first..flat_last] out of the Aura grid into one
+## animation — so a range can span across the sheet's rows, matching how Ben counts the frames.
+func _add_ice_aura_anim(frames: SpriteFrames, tex: Texture2D, anim: StringName,
+		flat_first: int, flat_last: int, cols: int, loops: bool) -> void:
+	frames.add_animation(anim)
+	frames.set_animation_loop(anim, loops)
+	frames.set_animation_speed(anim, 12.0)
+	for flat in range(flat_first, flat_last + 1):
+		var col: int = flat % cols
+		var row: int = int(flat / float(cols))
+		var cell := AtlasTexture.new()
+		cell.atlas = tex
+		cell.region = Rect2(col * 32, row * 32, 32, 32)
+		cell.filter_clip = true
+		frames.add_frame(anim, cell)
+
+
+func _on_ice_aura_finished() -> void:
+	## The deteriorate ("end") pass finished → drop the aura.
+	if _ice_aura and _ice_aura.animation == &"end":
+		_ice_aura.visible = false
 
 
 func _show_vamp_fx() -> void:
@@ -2040,6 +2226,57 @@ func _dome_flash() -> void:
 	t.tween_property(sprite, "self_modulate", Color.WHITE, 0.12)
 
 
+## Warden Aegis Shield (Q): raise a standing absorb pool = ABSORB_SHIELD_FRAC of max HP and
+## turn on the persistent DomeCycle bubble. It stays until the pool is spent (no timer);
+## re-casting re-tops the pool.
+func _grant_absorb_shield() -> void:
+	_absorb_shield = health.max_hp * ABSORB_SHIELD_FRAC
+	_ensure_shield_bubble()
+	if _shield_bubble:
+		_shield_bubble.visible = true
+		_shield_bubble.play(&"bubble")
+	_spawn_shockwave_ring(30.0, Color(0.45, 0.75, 1.0, 0.9))
+
+
+func _end_absorb_shield() -> void:
+	_absorb_shield = 0.0
+	if _shield_bubble:
+		_shield_bubble.visible = false
+	if status_effect_component and status_effect_component.has_status("aegis_shield"):
+		status_effect_component.force_remove_status("aegis_shield", self)
+
+
+## Lazily build the looping DomeCycle bubble sprite (a child, so it tracks the Warden). Kept at
+## z_index 2 so it reads as a dome OVER the body.
+func _ensure_shield_bubble() -> void:
+	if _shield_bubble != null:
+		return
+	if not ResourceLoader.exists(DOME_CYCLE_SHEET):
+		return
+	var tex: Texture2D = load(DOME_CYCLE_SHEET)
+	if tex == null:
+		return
+	var frames := SpriteFrames.new()
+	frames.clear_all()
+	frames.add_animation(&"bubble")
+	frames.set_animation_loop(&"bubble", true)
+	frames.set_animation_speed(&"bubble", 12.0)
+	var cols: int = int(tex.get_width() / 32.0)
+	for i in range(cols):
+		var cell := AtlasTexture.new()
+		cell.atlas = tex
+		cell.region = Rect2(i * 32, 0, 32, 32)
+		cell.filter_clip = true
+		frames.add_frame(&"bubble", cell)
+	_shield_bubble = AnimatedSprite2D.new()
+	_shield_bubble.name = "ShieldBubble"
+	_shield_bubble.centered = true
+	_shield_bubble.z_index = 2
+	_shield_bubble.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_shield_bubble.visible = false
+	add_child(_shield_bubble)
+
+
 func _detonate_bomb_fx(reach: float) -> void:
 	## Swap the tossed bomb for the package explosion at its world landing spot. Starts at the
 	## sheet's native size and scales ONLY with the melee_range stat (Reach mods / level picks),
@@ -2094,6 +2331,17 @@ const MIN_TAP_CADENCE: float = 0.22
 
 func choreo_min_advance_time(_phase: ChoreographyPhase) -> float:
 	return MIN_TAP_CADENCE / maxf(get_stat("attack_speed"), 0.25)
+
+
+## Runner hook: the hit frame for the row that's about to play. Ben can pin a different impact
+## frame per FACING in the Animation Lab (a swing's contact moment genuinely lands on a
+## different frame in some packs' rows); -1 from the lookup means "keep what the kit authored".
+func choreo_hit_frame(phase: ChoreographyPhase) -> int:
+	if phase.animation == "":
+		return phase.hit_frame
+	var pinned: int = CharacterSpriteFactory.get_hit_frame(
+			ProgressionManager.selected_character, phase.animation, _facing)
+	return pinned if pinned >= 0 else phase.hit_frame
 
 
 func choreo_execute_displacement(disp, targets: Array) -> void:
@@ -2195,6 +2443,8 @@ func choreo_on_end() -> void:
 	_combo_last_hit_phase = -1
 	if _combo_fx:
 		_combo_fx.visible = false
+	if _combo_base:
+		_combo_base.visible = false
 	## An un-detonated bomb toss (combo interrupted mid-wind-up) disappears; a detonated
 	## explosion is world-anchored and finishes on its own.
 	if _bomb_toss and _bomb_toss.animation != &"explode":
@@ -2335,8 +2585,11 @@ func _teleport_dash(dir: Vector2) -> void:
 	## Instant blink: Start cast ghosts at the departure point, End cast plays on arrival.
 	## Same charge/cooldown economy as a normal dash; brief i-frames cover the reappearance.
 	## Blink anims face the TRAVEL direction, not the cursor — otherwise every teleport plays
-	## the mouse-facing row (Ben 2026-07-19). _update_facing re-follows the cursor next frame.
-	_facing = ("down" if dir.y >= 0.0 else "up") + ("_right" if dir.x >= 0.0 else "_left")
+	## the mouse-facing row (Ben 2026-07-19). Now 8-way: with the orthogonal teleport sheets
+	## wired, a straight up/down/left/right blink plays its true cardinal row instead of the
+	## nearest diagonal. _update_facing re-follows the cursor next frame.
+	_aim_dir = dir
+	_facing = _facing_from_vector(dir)
 	_spawn_teleport_ghost()
 	global_position += dir * TELEPORT_RANGE * 0.9
 	is_invulnerable = true
@@ -2525,6 +2778,14 @@ func take_damage(hit_data) -> void:
 		if _dome_absorbed >= health.max_hp * DOME_ABSORB_CAP:
 			choreography_runner.interrupt()
 		return
+	## Warden Aegis Shield: a standing absorb pool eats hits whole until it's spent (no i-frames,
+	## so it soaks a rapid flurry like Reckoning does), then the remainder falls through next hit.
+	if _absorb_shield > 0.0:
+		_absorb_shield -= (hit_data.amount if hit_data is HitData else 0.0)
+		_dome_flash()
+		if _absorb_shield <= 0.0:
+			_end_absorb_shield()
+		return
 	# NOTE: Dodge is handled by DamageCalculator Step 4 — all incoming hits
 	# already went through the pipeline. If the hit wasn't dodged, it reaches here.
 	# Shade invisibility on dodge is triggered by EventBus.on_dodge (see _ready).
@@ -2581,11 +2842,9 @@ func _is_guard_blocking(hit_data) -> bool:
 func _on_guard_block() -> void:
 	if _combo_fx == null or _combo_fx.sprite_frames == null:
 		return
-	var anim: String = "guard_impact_" + _facing
-	if not _combo_fx.sprite_frames.has_animation(anim):
-		anim = "guard_impact"
-		if not _combo_fx.sprite_frames.has_animation(anim):
-			return
+	var anim: String = _facing_variant(_combo_fx.sprite_frames, "guard_impact")
+	if anim == "":
+		return
 	_combo_fx.position = Vector2.ZERO
 	_combo_fx.scale = Vector2.ONE
 	_combo_fx.flip_h = false

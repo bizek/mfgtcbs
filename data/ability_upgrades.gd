@@ -260,12 +260,12 @@ const ALL: Dictionary = {
 	},
 	"wizard_torrent_mastery": {
 		"id": "wizard_torrent_mastery",
-		"name": "Torrent Mastery",
-		"description": "Fire Torrent AoE +40% radius",
+		"name": "Burst Mastery",
+		"description": "Fire Burst AoE +40% radius",
 		"kit": "wizard",
 		"is_ability_upgrade": true,
 		"op": "scale_aoe",
-		"target": { "anim": "torrent" },
+		"target": { "anim": "fireburst" },
 		"params": { "radius_mult": 1.40 },
 	},
 	"wizard_arcane_surge": {

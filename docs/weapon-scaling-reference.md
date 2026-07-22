@@ -4,11 +4,32 @@ tags: [design, weapons, mods, upgrades, reference]
 
 # Weapon Scaling Reference
 
+> # ⛔ FROZEN — historical record of a model being replaced
+>
+> **Decision (Ben, 2026-07-21):** weapons are becoming **class-locked and no longer transferable
+> between characters**, and the **mod system is getting a fresh pass** once the current
+> character / attack / ability polish phase is finished. This doc describes the *old* model.
+>
+> **Do not extend it.** Do not add the 33 class-gear weapons to these tables, and do not spend
+> effort reconciling the matrix — the redesign will invalidate the work. It is kept because the
+> reasoning about *how mod categories interact with weapon behavior types* is the useful input to
+> that redesign.
+>
+> What is stale, for the record:
+> - Covers **9 of 42** weapons. Hunter's Bow and the ~32 class-gear weapons of task 34 are absent.
+> - "Hurled Steel — Starter, never drops" is wrong. Every character now starts on class gear; the
+>   Drifter starts on Mercenary's Edge.
+> - Predates the **two-layer mod model**. The matrix is *generic* mods only; class mods are a
+>   separate family (`docs/class_mod_system.md`).
+> - Assumes any weapon can be carried by any character — the assumption being removed.
+>
+> **For live weapon stats, read `data/weapons.gd`.**
+
 Two independent scaling axes: **Level-Up Upgrades** (player-wide stat boosts) and **Weapon Mods** (per-weapon behavior changes). Both affect every weapon, but mods interact differently depending on weapon behavior type.
 
 ---
 
-## Weapons at a Glance
+## Weapons at a Glance (v1 universal weapons — 9 of 42)
 
 | Weapon | Behavior | Damage Type | Mod Slots | Notes |
 |---|---|---|---|---|

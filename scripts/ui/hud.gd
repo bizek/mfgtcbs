@@ -607,6 +607,7 @@ const BUFF_NAMES: Dictionary = {
 	"blood_power": "PACT",       "battle_fury": "FURY",     "honed_edge": "HONED",
 	"loaded_chambers": "LOADED", "apotheosis": "ASCEND",    "enhancement_song": "ANTHEM",
 	"ballad_song": "BALLAD",     "concealed": "HIDDEN",     "slippery": "SLIPPERY",
+	"aegis_shield": "SHIELD",    "hallowed": "HALLOWED",
 }
 
 func _build_skill_slots() -> void:

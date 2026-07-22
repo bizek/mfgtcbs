@@ -1,7 +1,14 @@
 # Verification Findings — Late-Alpha Doc Audit
 
 Generated: 2026-05-02
-Source of truth for the doc-update pass that follows.
+
+> **HISTORICAL — do not treat as current state.** This was the finding list for the 2026-05-02 doc
+> pass, and other docs still cite it by section ("see verification_findings §5"). Those citations
+> point at a snapshot of the codebase from before the combo-chain combat layer, the 12-class roster,
+> the two-layer mod system, the passive tree, and descent mode. Several findings here have since been
+> resolved (e.g. §8's extraction-window uncertainty — it is 18s, confirmed 2026-07-21).
+>
+> Superseded by the 2026-07-21 audit; see `docs/doc_audit_2026-07-21.md`.
 
 ---
 

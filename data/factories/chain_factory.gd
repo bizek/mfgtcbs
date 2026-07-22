@@ -31,6 +31,7 @@ const DICTUM_TICK: float = 0.75     ## Paladin channel tick (dictum/dome: 15f @ 
 const TORRENT_TICK: float = 0.67    ## Wizard Fire Torrent tick (torrent: 20f @ 30fps ≈ 0.67s)
 const VAMP_TICK: float = 0.5        ## Blood Mage Vampirize half-cycle (7f @ 14fps = 0.5s)
 const CONCEAL_TICK: float = 0.9     ## Ranger Conceal loop (14f @ 16fps ≈ 0.875s crouch cycle)
+const VOLLEY_TICK: float = 0.85     ## Ranger Volley channel beat — slower than the light chain (sustained, not burst)
 const SONG_TICK: float = 0.8        ## Bard song beat (16f @ 20fps = 0.8s)
 const GUARD_TICK: float = 0.4       ## Barbarian Guard stance re-check beat (the block is host-side)
 const BLADES_TICK: float = 0.4      ## Ninja Thousand Blades storm beat (blades body 4f @ 10fps)
@@ -67,7 +68,7 @@ static func build_kit(kit_id: String, weapon_data: Dictionary) -> Dictionary:
 			return {
 				"light": build_wizard_light(weapon_data),
 				"heavy": build_wizard_summon(weapon_data),
-				"channel": build_wizard_torrent(weapon_data),
+				"channel": build_wizard_fireball(weapon_data),
 			}
 		"blood_mage":
 			return {
@@ -79,7 +80,7 @@ static func build_kit(kit_id: String, weapon_data: Dictionary) -> Dictionary:
 			return {
 				"light": build_ranger_light(weapon_data),
 				"heavy": build_ranger_heavy(weapon_data),
-				"channel": build_ranger_conceal(weapon_data),
+				"channel": build_ranger_volley(weapon_data),
 			}
 		"bard":
 			return {
@@ -467,66 +468,56 @@ static func build_paladin_dome(weapon_data: Dictionary) -> AbilityDefinition:
 	return _ability("paladin_dome", "Reckoning", choreo)
 
 
-# --- Wizard: light combo (LMB) — tap bolts, HOLD TO CHARGE the Fireball ---
-## The Spark — tap alternates two quick bolt casts (distinct anim names so each re-fires its
-## hit frame); holding LMB from either flows into the Charge: the cast anim crawls at
-## telegraph speed while the player is slowed (greed is punishable), and releasing — or
-## overcharging past the cap — looses a Fireball scaled by charge time (player.gd builds the
-## scaled projectile on release). Phase indices: 0 Bolt A · 1 Bolt B · 2 Charge · 3 Release.
+# --- Wizard: light combo (LMB) — escalating fire: bolt → twin bolts → 8-way Fire Burst ---
+## The Spark's chain (redesigned Ben 2026-07-20 — Fire Torrent cut, the charge moved to the
+## RMB-hold Fireball): tap looses one firebolt, tap again fires a Ranger-style pair, and the
+## finisher is a Fire Burst that nukes point-blank AND corkscrews firebolts out in all eight
+## directions. Loops back to the opener on a fresh tap. Phase indices:
+## 0 Bolt · 1 Twin Bolt · 2 Fire Burst.
 static func build_wizard_light(weapon_data: Dictionary) -> AbilityDefinition:
 	var dmg: float = weapon_data.get("damage", 42.0)
 	var dtype: String = _damage_type(weapon_data)
 
-	# 0 — Bolt A (crisp cursor bolt).
-	var bolt_a := ChoreographyPhase.new()
-	bolt_a.animation = "attack"
-	bolt_a.hit_frame = 2
-	bolt_a.effects = [_wizard_bolt(dtype, dmg * 0.75)]
-	bolt_a.exit_type = "wait"
-	bolt_a.wait_duration = CANCEL_WIN
-	bolt_a.default_next = -1
-	bolt_a.branches = [
-		_branch_held("light_attack", HOLD_ENTER, 2),       # hold → Charge
-		_branch_buffered("light_attack", 1),               # tap  → Bolt B
+	# 0 — Bolt (single cursor firebolt).
+	var bolt := ChoreographyPhase.new()
+	bolt.animation = "attack"
+	bolt.hit_frame = 2
+	bolt.effects = [_wizard_bolt(dtype, dmg * 0.8)]
+	bolt.exit_type = "wait"
+	bolt.wait_duration = CANCEL_WIN
+	bolt.default_next = -1
+	bolt.branches = [
+		_branch_buffered("light_attack", 1),               # tap → Twin Bolt
 	]
 
-	# 1 — Bolt B (alternate cast).
-	var bolt_b := ChoreographyPhase.new()
-	bolt_b.animation = "attack_2"
-	bolt_b.hit_frame = 2
-	bolt_b.effects = [_wizard_bolt(dtype, dmg * 0.75)]
-	bolt_b.exit_type = "wait"
-	bolt_b.wait_duration = CANCEL_WIN
-	bolt_b.default_next = -1
-	bolt_b.branches = [
-		_branch_held("light_attack", HOLD_ENTER, 2),       # hold → Charge
-		_branch_buffered("light_attack", 0),               # tap  → Bolt A
+	# 1 — Twin Bolt (two firebolts in a tight pair — the Ranger's double-shot cadence).
+	var twin := ChoreographyPhase.new()
+	twin.animation = "attack_2"
+	twin.hit_frame = 2
+	twin.effects = [_wizard_bolt_volley(dtype, dmg * 0.55, 2, 10.0)]
+	twin.exit_type = "wait"
+	twin.wait_duration = CANCEL_WIN
+	twin.default_next = -1
+	twin.branches = [
+		_branch_buffered("light_attack", 2),               # tap → Fire Burst
 	]
 
-	# 2 — Charge (held): the fireball cast at telegraph crawl. Release → loose it; holding
-	# past the window overcharges and auto-releases at full power.
-	var charge := ChoreographyPhase.new()
-	charge.animation = "fireball"
-	charge.telegraph_speed_scale = 0.3
-	charge.hit_frame = -1
-	charge.exit_type = "wait"
-	charge.wait_duration = WIZARD_CHARGE_MAX
-	charge.default_next = 3                                 # overcharge cap → auto-release
-	charge.branches = [
-		_branch_held("light_attack", HOLD_KEEP, 3, true),  # released → Release
+	# 2 — Fire Burst (finisher): point-blank fire nova + eight radial firebolts; the
+	# "fireburst" body carries the Burst_Fire overlay (characters.gd). Loops back on a tap.
+	var burst := ChoreographyPhase.new()
+	burst.animation = "fireburst"
+	burst.hit_frame = 3
+	burst.effects = [_aoe(dtype, dmg * 0.9, 46.0), _fire_burst_bolts(dtype, dmg * 0.5)]
+	burst.exit_type = "wait"
+	burst.wait_duration = CANCEL_WIN
+	burst.default_next = -1
+	burst.is_finisher = true
+	burst.branches = [
+		_branch_buffered("light_attack", 0),               # tap → loop to Bolt
 	]
-
-	# 3 — Release: the cast snaps to full speed and the Fireball flies. The base effect here
-	# is the floor; player.gd swaps in a charge-scaled copy at the hit frame.
-	var release := ChoreographyPhase.new()
-	release.animation = "fireball_2"
-	release.hit_frame = 6
-	release.effects = [_wizard_fireball(dtype, dmg)]
-	release.exit_type = "anim_finished"
-	release.default_next = -1
 
 	var choreo := ChoreographyDefinition.new()
-	choreo.phases = [bolt_a, bolt_b, charge, release]
+	choreo.phases = [bolt, twin, burst]
 	return _ability("wizard_light", "Spark Combo", choreo)
 
 
@@ -549,29 +540,42 @@ static func build_wizard_summon(weapon_data: Dictionary) -> AbilityDefinition:
 	return _ability("wizard_summon", "Summon Fire Familiar", choreo)
 
 
-# --- Wizard: Fire Torrent channel (RMB hold) ---
-## Pours flame toward the cursor while held: each cast loop ticks an AoE centered a short way
-## ahead of the Spark along the aim direction (player.gd centers it and drives the directional
-## Fire_Torrent_Effect overlay). Player slow applied host-side like all channels.
-static func build_wizard_torrent(weapon_data: Dictionary) -> AbilityDefinition:
+# --- Wizard: Fireball charge (RMB hold) — replaces Fire Torrent (Ben 2026-07-20) ---
+## Hold RMB to charge, release to loose a Fireball scaled by how long it was held. The
+## "fireball"/"fireball_2" anim NAMES carry the host charge-clock + release-scaling hooks
+## (player.gd choreo_on_phase_anim / choreo_fire_effects), so moving the charge here keeps the
+## overcharge feel intact. The charge body is trimmed to the wind-up (characters.gd
+## "fireball" = 7 frames) and holds, so the throw reads ONCE on release — fixing the old
+## "fires twice" look. Phase indices: 0 Charge · 1 Release.
+static func build_wizard_fireball(weapon_data: Dictionary) -> AbilityDefinition:
 	var dmg: float = weapon_data.get("damage", 42.0)
 	var dtype: String = _damage_type(weapon_data)
 
-	var torrent := ChoreographyPhase.new()
-	torrent.animation = "torrent"
-	torrent.hit_frame = 7                                   # the flame pours out
-	torrent.effects = [_aoe(dtype, dmg * 0.55, 30.0)]      # per-tick (lower; repeats)
-	torrent.exit_type = "wait"
-	torrent.wait_duration = TORRENT_TICK
-	torrent.default_next = 0                                # still held → keep pouring
-	torrent.hold_anim_on_reentry = true                     # hold the pour pose; the flame fx loops
-	torrent.branches = [
-		_branch_held("heavy_attack", HOLD_KEEP, -1, true), # released → end
+	# 0 — Charge (held): the wind-up crawls at telegraph speed, then holds on its last frame.
+	# Release → loose it; holding past the cap overcharges and auto-releases at full power.
+	var charge := ChoreographyPhase.new()
+	charge.animation = "fireball"
+	charge.telegraph_speed_scale = 0.3
+	charge.hit_frame = -1
+	charge.exit_type = "wait"
+	charge.wait_duration = WIZARD_CHARGE_MAX
+	charge.default_next = 1                                 # overcharge cap → auto-release
+	charge.branches = [
+		_branch_held("heavy_attack", HOLD_KEEP, 1, true),  # released → Release
 	]
 
+	# 1 — Release: the cast snaps to full speed and the Fireball flies. The base effect here
+	# is the floor; player.gd swaps in a charge-scaled copy at the hit frame.
+	var release := ChoreographyPhase.new()
+	release.animation = "fireball_2"
+	release.hit_frame = 6
+	release.effects = [_wizard_fireball(dtype, dmg)]
+	release.exit_type = "anim_finished"
+	release.default_next = -1
+
 	var choreo := ChoreographyDefinition.new()
-	choreo.phases = [torrent]
-	return _ability("wizard_torrent", "Fire Torrent", choreo)
+	choreo.phases = [charge, release]
+	return _ability("wizard_fireball", "Fireball", choreo)
 
 
 # --- Blood Mage: light combo (LMB) ---
@@ -804,27 +808,30 @@ static func build_ranger_heavy(weapon_data: Dictionary) -> AbilityDefinition:
 	return _ability("ranger_heavy", "Scavenger Melee", choreo)
 
 
-# --- Ranger: Conceal channel (RMB hold) ---
-## Crouch under the cloak: each loop refreshes the "concealed" status (player.is_invisible —
-## enemies stop chasing) while held. No damage; the payoff is disappearing from the horde.
-## Player slow applied host-side like all channels (moving while concealed is slow, fittingly).
-static func build_ranger_conceal(weapon_data: Dictionary) -> AbilityDefinition:
-	var _dmg: float = weapon_data.get("damage", 42.0)   ## unused — conceal deals no damage
+# --- Ranger: Volley channel (RMB hold) — the Scavenger's sustained fire (Ben 2026-07-20) ---
+## Hold RMB to loose repeating arrow volleys: each beat fans three arrows at the cursor, but on
+## a slower cadence than the light chain (VOLLEY_TICK) and for LESS per-arrow damage — sustained
+## pressure that trades the light chain's burst for uptime. Conceal moved to the E skill. The
+## body holds the triple-shot draw pose across beats (hold_anim_on_reentry). Single looping node.
+static func build_ranger_volley(weapon_data: Dictionary) -> AbilityDefinition:
+	var dmg: float = weapon_data.get("damage", 42.0)
+	var dtype: String = _damage_type(weapon_data)
 
-	var conceal := ChoreographyPhase.new()
-	conceal.animation = "conceal"
-	conceal.hit_frame = -1                                  # refresh on every loop entry
-	conceal.effects = [_concealed_status()]
-	conceal.exit_type = "wait"
-	conceal.wait_duration = CONCEAL_TICK
-	conceal.default_next = 0                                # still held → stay hidden
-	conceal.branches = [
+	var volley := ChoreographyPhase.new()
+	volley.animation = "triple_shot"
+	volley.hit_frame = 6                                    # the loose
+	volley.effects = [_arrow_volley(dtype, dmg * 0.4, 3, 20.0)]  # 3 arrows, weaker than the chain
+	volley.exit_type = "wait"
+	volley.wait_duration = VOLLEY_TICK
+	volley.default_next = 0                                 # still held → another volley
+	volley.hold_anim_on_reentry = true                      # draw once, re-loose per beat
+	volley.branches = [
 		_branch_held("heavy_attack", HOLD_KEEP, -1, true), # released → end
 	]
 
 	var choreo := ChoreographyDefinition.new()
-	choreo.phases = [conceal]
-	return _ability("ranger_conceal", "Conceal", choreo)
+	choreo.phases = [volley]
+	return _ability("ranger_volley", "Volley", choreo)
 
 
 # --- Bard: light combo (LMB) ---
@@ -2172,6 +2179,25 @@ static func _wizard_bolt(dtype: String, hit_damage: float) -> SpawnProjectilesEf
 	e.projectile = cfg
 	e.spawn_pattern = "aimed_single"
 	e.count = 1
+	return e
+
+
+## Twin/multi firebolt volley (Spark light chain 2nd hit): N cursor bolts in a small fan.
+static func _wizard_bolt_volley(dtype: String, per_bolt: float, count: int, spread: float) -> SpawnProjectilesEffect:
+	var e := _wizard_bolt(dtype, per_bolt)
+	e.spawn_pattern = "spread"
+	e.count = count
+	e.spread_angle = spread
+	return e
+
+
+## Fire Burst finisher (Spark, Ben 2026-07-20): eight firebolts corkscrew out in every
+## direction. The "radial" pattern needs no aim target, so it fires even with no enemy under
+## the cursor — the burst itself is the point.
+static func _fire_burst_bolts(dtype: String, per_bolt: float) -> SpawnProjectilesEffect:
+	var e := _wizard_bolt(dtype, per_bolt)
+	e.spawn_pattern = "radial"
+	e.count = 8
 	return e
 
 

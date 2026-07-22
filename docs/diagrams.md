@@ -36,21 +36,33 @@ graph TD
     UM[UpgradeManager]:::manager
     ESM[EnemySpawnManager]:::manager
     EM[ExtractionManager]:::manager
-    AM[ArenaManager]:::manager
+    LT[LootTables]:::manager
+    SET[Settings]:::manager
 
     AUDIO[AudioManager]:::listener
-    UI[UIManager]:::listener
+    CODEX[CodexManager]:::listener
+    ACH[AchievementManager]:::listener
+    GLYPH[InputGlyphs]:::listener
+    LOG[Logger]:::listener
 
     GM -->|phase / run signals| EB
-    GM --> ESM & EM & AM
+    GM --> ESM & EM
     EM -->|extraction events| EB
     UM -->|upgrade_chosen| EB
 
-    EB -->|on_kill| ESM
+    EB -->|on_kill| ESM & LT
     EB -->|extraction_complete| GM
     EB -->|player_died| GM
-    EB -->|combat signals| AUDIO & UI
+    EB -->|combat signals| AUDIO & ACH & CODEX
+
+    GM -->|run end| PM
+    CODEX -->|combo state| PM
+    ACH -->|unlocks| PM
+    SET -->|options| AUDIO
+    GLYPH -.->|kb / pad prompts| UI_NOTE[UI panels]
 ```
+
+> There is no `ArenaManager` and no `UIManager`. Arena assembly is scene-owned (`MainArena` + `LdtkLoader` / `BlockManager`); UI panels are plain `CanvasLayer` scenes owned by their host scene. Editor-only autoloads from the `godot_mcp` addon (`MCPScreenshot`, `MCPInputService`, `MCPGameInspector`) are omitted here.
 
 ---
 
@@ -66,14 +78,18 @@ graph TD
 
     PM[ProjectileManager<br/>256-slot pool]:::sys
     VFX[VfxManager]:::sys
+    TM[TelegraphManager]:::sys
     DS[DisplacementSystem]:::sys
     CFM[CombatFeedbackManager<br/>128-slot damage numbers]:::sys
+    CER[ComboEffectResolver]:::sys
+    FF[FlowField<br/>8px nav, amortized flood]:::sys
+    DD[DebugDraw]:::sys
     SG[SpatialGrid<br/>rebuilt every frame]:::sys
     GZ[Ground Zones<br/>persistent AoE]:::sys
-    DD[DebugDraw]:::sys
 
     MA --> CO
-    CO --> PM & VFX & DS & CFM & SG & GZ & DD
+    CO --> PM & VFX & TM & DS & CFM & CER & FF & DD
+    CO -.owns, not a child node.-> SG & GZ
 ```
 
 ---
@@ -94,13 +110,18 @@ graph LR
     BC[BehaviorComponent<br/>AI / auto-attack]:::comp
     SEC[StatusEffectComponent<br/>active statuses / auras]:::comp
     TC[TriggerComponent<br/>EventBus listeners]:::comp
+    SC[SkillComponent<br/>Q / E slots — player only]:::comp
+    CR[ChoreographyRunner<br/>combo graphs — player]:::comp
     ED[EffectDispatcher]:::hub
 
     E --> HC & MC & AC & BC & SEC & TC
+    E -.player only.-> SC & CR
     BC -->|resolve targets| AC
     AC -->|fire ability| ED
     SEC -->|sync| MC
     TC -->|on event| ED
+    CR -->|hit frame| ED
+    SC -->|skill press| CR
 ```
 
 ---

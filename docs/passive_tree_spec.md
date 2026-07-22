@@ -6,7 +6,13 @@ Supersedes the passive-tree sketch in
 `docs/Archived Session Prompts - Completed/deliberate-pacing-dash-passive-tree.md` (Tasks 4.1/4.2).
 Implementation prompts: `docs/Session Prompts - Road to Release/26–28_passive_tree_*.md`.
 
-This is the last unbuilt piece of the deliberate-pacing roadmap (Phases 1–3 shipped: rebalance,
+> **Implemented — this is no longer a forward-looking spec.** The backend, the 59-node table, the
+> gate rules and the hub panel all shipped (prompts 26–28). The deliberate-pacing roadmap is complete.
+> For the live data contract read `docs/passive_tree.md` and `data/passive_tree.gd`; this doc holds the
+> design intent. Note it was written against a **10**-character roster and predates the Verdant and
+> Devout; affinity assignments for those two live in code, not here. (Reconciled 2026-07-21.)
+
+Originally the last unbuilt piece of the deliberate-pacing roadmap (Phases 1–3: rebalance,
 dash, level-up mobility routes — see `docs/pacing_rebalance.md`, `docs/dash.md`).
 
 ---

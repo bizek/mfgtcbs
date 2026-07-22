@@ -2,6 +2,16 @@
 
 **69 authored doubles, 8 authored triples, ~150+ emergent triples possible.**
 
+> **⛔ FROZEN pending the mod redesign (Ben, 2026-07-21).** The mod system gets a **fresh pass**
+> after the current character / attack / ability polish phase. Don't extend this matrix; it is the
+> record of the model going into that redesign, and its combo reasoning is the useful input to it.
+>
+> Scope, for the record: this is the **generic** (weapon) mod layer only — class mods are a separate
+> family with no cross-interactions here (`docs/class_mod_system.md`). The 69/8 counts still match
+> `data/factories/mod_combo_factory.gd`. The Mod Reference table below lists 15 mods; `data/mods.gd`
+> holds **18** — `multishot`, `napalm`, and `abyssal_pull` came later and have no authored pair
+> entries, falling through to the emergent/unnamed path.
+
 Every mod pair has a defined interaction. Named combos have unique mechanical effects. Stat mod interactions are scaling notes rather than named combos unless the combination is particularly distinctive. Numbers are placeholders — balance pass comes later.
 
 ---
@@ -14,6 +24,7 @@ Every mod pair has a defined interaction. Named combos have unique mechanical ef
 | **Elemental** | Fire, Cryo, Shock, DOT Applicator |
 | **Stat** | Lifesteal, Size, Crit Amplifier |
 | **Unique** | Instability Siphon, Accelerating |
+| **Not covered below** | Multishot, Napalm, Abyssal Pull *(added after this matrix was authored)* |
 
 ---
 

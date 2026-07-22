@@ -1,6 +1,12 @@
 # Character Overhaul Design — Fantasy Class Identities
 
-**Status:** Proposal for Ben's approval.
+> **Status: SHIPPED and superseded in scope.** Approved and built. This doc proposes the overhaul for
+> the **7** characters that existed on 2026-06-21; the roster completed at **12/12** (Ravager, Whisper,
+> Deadeye 2026-07-05; Verdant, Devout 2026-07-07), so five classes are described nowhere below. It
+> remains the best record of *why* each class's identity and sprite pack was chosen. For the live
+> roster read `data/characters.gd`; for the resulting kits read `docs/combat_chain_architecture.md`.
+
+**Original status:** Proposal for Ben's approval.
 **Author:** Claude (game designer hat), 2026-06-21.
 **Goal:** Map all 7 existing characters (`data/characters.gd`) onto coherent fantasy-class
 archetypes backed by **Minifantasy True Heroes** sprite sets, so future kit design answers to

@@ -42,6 +42,8 @@ const HITSTOP_ELITE_KILL_FRAMES: int = 3    ## elite kill
 const HITSTOP_BOSS_KILL_FRAMES: int = 4     ## miniboss/final-boss kill
 const HITSTOP_FINISHER_FRAMES: int = 6      ## combo finisher landing — strongest in the game (design-audit D6)
 var _hitstop_locks: int = 0
+## Ambient time scale hit-stop returns to (1.0 normally; the training room's slow-mo sets it).
+var base_time_scale: float = 1.0
 
 const SHAKE_SMALL_INTENSITY: float = 2.0    ## player takes damage
 const SHAKE_SMALL_DURATION: float = 0.10
@@ -151,8 +153,10 @@ func _ready() -> void:
 			wall.collision_mask = 0
 
 	# Level setup — LDtk descent, LDtk single-level, or procedural
+	## Training room always uses the plain generated arena — a flat, open, predictable box
+	## is the point (no descent blocks, no LDtk chokepoints).
 	_using_ldtk = GameManager.debug_mode and GameManager.use_ldtk_level_1 \
-			and GameManager.current_level == 1
+			and GameManager.current_level == 1 and not GameManager.training_mode
 	_using_descent = _using_ldtk and GameManager.use_descent_mode
 	if _using_descent:
 		await _setup_ldtk_descent()
@@ -206,6 +210,15 @@ func _ready() -> void:
 	## to straight-line, so this is safe in all three arena modes.
 	orchestrator.flow_field.set_target(player)
 	EnemySpawnManager.flow_field = orchestrator.flow_field
+
+	## Training room: no wave spawning, no extraction zones — the training panel owns what
+	## exists in the arena (dummies, on-demand packs).
+	if GameManager.training_mode:
+		var TrainingScript := preload("res://scripts/ui/training_panel.gd")
+		var training: CanvasLayer = TrainingScript.new()
+		add_child(training)
+		training.setup(player, self)
+		return
 
 	if _using_descent:
 		## Descent mode: BlockManager already registered spawn zones.
@@ -959,7 +972,9 @@ func _request_hitstop(frames: int) -> void:
 func _on_hitstop_expired() -> void:
 	_hitstop_locks = maxi(_hitstop_locks - 1, 0)
 	if _hitstop_locks == 0:
-		Engine.time_scale = 1.0
+		## Restore to the ambient scale, not a hardcoded 1.0 — the training room's slow-mo
+		## would otherwise be cancelled by the first crit that landed.
+		Engine.time_scale = base_time_scale
 
 
 func _exit_tree() -> void:

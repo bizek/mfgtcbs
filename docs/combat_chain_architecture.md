@@ -1,6 +1,24 @@
 # Combat Chain Architecture (T1.1)
 
-**Status:** Design, 2026-06-24 (Claude, architecture hat). The keystone design for the manual combo-chain
+> **Status: SHIPPED.** Written as a design doc 2026-06-24; the design was built and all 12 class kits
+> ship on it. The architecture below is **current and authoritative** — it is how the combat layer
+> actually works, and it remains the rule for any new kit or chain work.
+>
+> Two things in §0 are now **history, not present tense**, and are kept because the reasoning still
+> explains the design:
+> - §0 describes the executor as living on `enemy.gd`. Decision 5 was carried out — the shared
+>   `ChoreographyRunner` (`scripts/components/choreography_runner.gd`) exists and is what the
+>   **player** runs. `enemy.gd` still holds its own in-place copy; that migration is deferred.
+>   Line numbers cited in §0 are from the June 2026 `enemy.gd` and have drifted.
+> - "Choreography has zero content today" was true when written. It is emphatically not true now:
+>   four bosses plus every player kit's light/heavy/channel graph and Q/E skills run on it. Refactors
+>   in this area are **no longer low-risk**.
+>
+> Reconciled 2026-07-21. Implementation entry points: `data/factories/chain_factory.gd`,
+> `data/factories/skill_factory.gd`, `scripts/systems/combat_input_buffer.gd`,
+> `data/resources/conditions/condition_input_{buffered,held}.gd`.
+
+**Original status:** Design, 2026-06-24 (Claude, architecture hat). The keystone design for the manual combo-chain
 combat layer. Implements the model in `docs/fighter_kit_spec.md` on top of the existing engine. Build
 tasks T2.2–T2.6 follow this; if any of them tempts you toward a new FSM / `AttackData` / `Hitbox`, stop —
 it's wrong per this doc.
@@ -199,6 +217,12 @@ both entities.** Rationale:
 - **Refactor risk is low**: `docs/engine_reference.md` records choreography as *"Zero content"* — no boss
   data drives it yet, so re-routing `enemy.gd` through the runner can't regress live content. (Verify by
   searching for any `AbilityDefinition` that sets `choreography` — expected: none in shipped data.)
+
+  > ⚠️ **No longer true (2026-07-21).** That verification step now returns `goblin_king_data.gd`,
+  > `heart_of_the_deep_data.gd`, `warped_colossus_data.gd`, and `ancient_troll_data.gd`, plus every
+  > kit graph from `chain_factory.gd` / `skill_factory.gd`. `engine_reference.md` has been corrected.
+  > The `enemy.gd` → runner migration is **still open**, but it is no longer a free refactor — it now
+  > has live boss behavior to regress. Prove any such change against those four bosses.
 
 ### Host interface (what the runner needs from its owner)
 

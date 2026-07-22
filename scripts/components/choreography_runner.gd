@@ -5,9 +5,13 @@ extends Node
 ## resolution, effect firing, condition evaluation, and start/end hooks via the duck-typed Host
 ## interface below. See docs/combat_chain_architecture.md §5.
 ##
-## Currently wired to the player (melee combo graphs). enemy.gd keeps its own copy until a later
-## migration task moves it onto this runner (deferred — choreography has no shipped content yet, so
-## there's no live behavior to regress, but no reason to destabilize it mid-feature either).
+## Wired to BOTH the player (melee combo graphs) and enemy.gd (boss/elite attack sequences) as of
+## 2026-07-21 — enemy.gd's in-place duplicate was retired in favour of this runner.
+##
+## WARNING: choreography carries heavy live content. Four bosses (Goblin King, Heart of the Deep,
+## Warped Colossus, Ancient Troll) plus every one of the 12 player kits' light/heavy/channel graphs
+## and Q/E skills run through here. Changes are NOT low-risk; regress the bosses and at least one
+## melee kit in the Training Room before calling a change done.
 ##
 ## Host interface (the owner Node must implement):
 ##   choreo_sprite() -> AnimatedSprite2D
@@ -26,6 +30,9 @@ extends Node
 ##   choreo_on_chain_timeout(phase) -> void
 ##       (optional; called when a "wait" phase's window lapses with default_next < 0 — the chain
 ##        ended by the player letting it drop, as opposed to interrupt() or a finisher completing.)
+##   choreo_displacement_active() -> bool
+##       (optional; only consulted by "displacement_complete" phases — true while the host is still
+##        being carried by the displacement. Hosts that omit it fall back to the watchdog timer.)
 
 var _host = null                      ## untyped for duck-typed host dispatch
 var _sprite: AnimatedSprite2D = null
@@ -39,6 +46,11 @@ var _targets: Array = []
 var _current_anim: String = ""
 var _hit_fired: bool = false
 var _running: bool = false
+## Staged-channel playback: "" = unstaged, else "intro" | "loop" | "outro".
+var _stage: String = ""
+## Effective hit frame for the phase currently playing. Normally phase.hit_frame, but the host
+## may override it per FACING (Animation Lab per-direction edits), so it's resolved on entry.
+var _hit_frame: int = -1
 
 
 func setup(host) -> void:
@@ -81,6 +93,7 @@ func start(ability: AbilityDefinition, targets: Array) -> void:
 	_timer = 0.0
 	_current_anim = ""
 	_hit_fired = false
+	_stage = ""
 	_running = true
 	_sprite = _host.choreo_sprite()
 	_host.choreo_on_start(ability)
@@ -112,8 +125,22 @@ func _enter_phase(index: int) -> void:
 	if phase.displacement:
 		_host.choreo_execute_displacement(phase.displacement, _targets)
 
-	## Fire immediately when no hit_frame is specified (hit_frame < 0).
-	if phase.hit_frame < 0 and not phase.effects.is_empty():
+	## Staged channel: Ben authored intro/loop/outro segments for this body in the Animation
+	## Lab, so the wind-up plays once and only the LOOP segment repeats while held (see
+	## CharacterSpriteFactory.STAGE_NAMES). Purely additive — a body with no authored stages
+	## keeps the freeze-on-last-frame behavior in the animation block below.
+	var staged: bool = phase.animation != "" and phase.hold_anim_on_reentry \
+			and _has_stage(phase.animation, "loop")
+
+	## Resolve the hit frame for THIS entry — the host may pin a different one per facing.
+	_hit_frame = phase.hit_frame
+	if _host.has_method("choreo_hit_frame"):
+		_hit_frame = _host.choreo_hit_frame(phase)
+
+	## Fire immediately when no hit_frame is specified (hit_frame < 0), or on every entry of a
+	## staged channel body — a looping segment's frame indices don't line up with the phase's
+	## authored hit_frame, so the wait cadence IS the damage tick.
+	if not phase.effects.is_empty() and (_hit_frame < 0 or staged):
 		_fire(phase)
 
 	if _sprite:
@@ -126,15 +153,17 @@ func _enter_phase(index: int) -> void:
 		if _host.has_method("choreo_anim_name"):
 			anim_name = _host.choreo_anim_name(phase.animation)
 		if phase.hold_anim_on_reentry and index == prev_index:
-			## Channel self-loop: leave the body alone — a finished one-shot stays frozen on
-			## its last frame (Guard's raised sword, the Torrent pour). Re-fire the overlay
-			## hook, and fire tick effects here if the first pass's hit already landed
-			## (a frozen body never reaches its hit_frame again). If the body is still
-			## mid-swing toward its first hit, frame_changed fires it normally.
+			## Channel self-loop: leave the body alone — a staged body keeps looping its loop
+			## segment, an unstaged one stays frozen on its last frame (Guard's raised sword).
+			## An unstaged frozen body never reaches its hit_frame again, so tick it here.
+			## (hit_frame < 0 and staged bodies already fired at the top — don't double.)
 			if _host.has_method("choreo_on_phase_anim"):
-				_host.choreo_on_phase_anim(phase)
-			if _hit_fired and phase.hit_frame >= 0 and not phase.effects.is_empty():
+				_host.choreo_on_phase_anim(phase, _stage)
+			if not staged and _hit_fired and _hit_frame >= 0 and not phase.effects.is_empty():
 				_fire(phase)
+		elif staged:
+			_hit_fired = false
+			_begin_stage("intro" if _has_stage(phase.animation, "intro") else "loop", phase)
 		else:
 			_current_anim = anim_name
 			_hit_fired = false
@@ -152,9 +181,49 @@ func _enter_phase(index: int) -> void:
 	match phase.exit_type:
 		"wait":
 			_timer = phase.wait_duration
+		"displacement_complete":
+			## Watchdog — a displacement that never ran (dead/invalid target, or a
+			## Displacement-negated entity) would otherwise never report completion and the phase
+			## would hard-lock the host in whatever flags it set (invulnerable frozen boss).
+			var disp_duration: float = phase.displacement.duration if phase.displacement else 0.0
+			_timer = disp_duration + 1.5
 		"anim_finished":
 			if phase.animation == "":
 				_on_phase_exit()
+
+
+## True when the sprite carries an authored "<anim>_<stage>" segment (Animation Lab).
+func _has_stage(anim: String, stage: String) -> bool:
+	return _sprite != null and _sprite.sprite_frames != null \
+			and _sprite.sprite_frames.has_animation(StringName("%s_%s" % [anim, stage]))
+
+
+## Play one segment of a staged body, resolved through the host's facing variants.
+func _begin_stage(stage: String, phase: ChoreographyPhase) -> void:
+	_stage = stage
+	var base: String = "%s_%s" % [phase.animation, stage]
+	var resolved: String = base
+	if _host.has_method("choreo_anim_name"):
+		resolved = _host.choreo_anim_name(base)
+	_current_anim = resolved
+	if _sprite and _sprite.sprite_frames and _sprite.sprite_frames.has_animation(resolved):
+		_sprite.play(resolved)
+		if phase.telegraph_speed_scale != 1.0:
+			_sprite.speed_scale = phase.telegraph_speed_scale
+	## Pass the stage so the host can pick this segment's own fx overlay.
+	if _host.has_method("choreo_on_phase_anim"):
+		_host.choreo_on_phase_anim(phase, stage)
+
+
+## Channel released on a staged body: play the outro and let IT end the sequence.
+## Returns false when there's nothing authored to play (caller ends normally).
+func _begin_outro(phase: ChoreographyPhase) -> bool:
+	if _stage == "" or _stage == "outro":
+		return false
+	if not _has_stage(phase.animation, "outro"):
+		return false
+	_begin_stage("outro", phase)
+	return true
 
 
 ## Host calls this each physics frame; only does work during a "wait" phase.
@@ -163,8 +232,22 @@ func tick(delta: float) -> void:
 		return
 	if _phase_index < 0 or _phase_index >= _choreo.phases.size():
 		return
+	## The outro owns the rest of the sequence — nothing but interrupt() cuts it short.
+	if _stage == "outro":
+		return
 	var phase: ChoreographyPhase = _choreo.phases[_phase_index]
 	_phase_time += delta
+
+	## Charge/leap phases: hold until the displacement reports done, or the watchdog fires.
+	if phase.exit_type == "displacement_complete":
+		_timer -= delta
+		var still_moving: bool = false
+		if _host.has_method("choreo_displacement_active"):
+			still_moving = _host.choreo_displacement_active()
+		if not still_moving or _timer <= 0.0:
+			_on_phase_exit()
+		return
+
 	if phase.exit_type != "wait":
 		return
 	## Combo feel — "buffer during the swing, cancel at impact" (standard action-game input
@@ -172,9 +255,11 @@ func tick(delta: float) -> void:
 	## hit has fired (or the anim ended / it has no hit_frame). Without the gate, a fast tap
 	## advances on frame 0 — the swing is cut before its hit_frame (no damage) and the chain
 	## visually restarts; with it, mashing advances exactly at each node's impact frame.
+	## (A staged body's loop segment plays forever, so its "anim still running" is not a
+	## wind-up — input must stay live or the release branch could never fire.)
 	var anim_playing: bool = _sprite != null and _sprite.is_playing() \
 			and String(_sprite.animation) == _current_anim
-	if _hit_fired or phase.hit_frame < 0 or not anim_playing:
+	if _stage != "" or _hit_fired or _hit_frame < 0 or not anim_playing:
 		## Spam cap: tap-advance (buffered) branches also wait out the host's minimum
 		## cadence — presses stay buffered, so queued input still advances the instant the
 		## gate opens. Held/release branches (channel exits) are never delayed.
@@ -186,6 +271,9 @@ func tick(delta: float) -> void:
 			if branch.condition is ConditionInputBuffered and _phase_time < min_tap:
 				continue
 			if _evaluate_branch(branch, phase):
+				## Channel released on a staged body → play the authored outro first.
+				if branch.next_phase < 0 and _begin_outro(phase):
+					return
 				_enter_phase(branch.next_phase)
 				return
 	_timer -= delta
@@ -203,9 +291,13 @@ func notify_frame_changed() -> void:
 		return
 	if _phase_index < 0 or _phase_index >= _choreo.phases.size():
 		return
+	## Staged bodies tick on the wait cadence (_enter_phase), not on frame matches — segment
+	## frame indices don't line up with the phase's authored hit_frame.
+	if _stage != "":
+		return
 	var phase: ChoreographyPhase = _choreo.phases[_phase_index]
-	if phase.hit_frame >= 0 and _sprite.animation == _current_anim \
-			and _sprite.frame == phase.hit_frame and not _hit_fired:
+	if _hit_frame >= 0 and _sprite.animation == _current_anim \
+			and _sprite.frame == _hit_frame and not _hit_fired:
 		_hit_fired = true
 		_fire(phase)
 
@@ -217,6 +309,13 @@ func notify_animation_finished() -> void:
 	if _phase_index < 0 or _phase_index >= _choreo.phases.size():
 		return
 	var phase: ChoreographyPhase = _choreo.phases[_phase_index]
+	## Staged channel handoffs: the wind-up rolls into the loop; the outro ends the sequence.
+	if _stage == "intro":
+		_begin_stage("loop", phase)
+		return
+	if _stage == "outro":
+		_end()
+		return
 	if phase.exit_type == "anim_finished":
 		_on_phase_exit()
 
@@ -225,6 +324,9 @@ func _on_phase_exit() -> void:
 	if _choreo == null:
 		return
 	var phase: ChoreographyPhase = _choreo.phases[_phase_index]
+	## A staged body ending for good (not looping back) still gets its outro.
+	if phase.default_next < 0 and _begin_outro(phase):
+		return
 	_enter_phase(phase.default_next)
 
 
@@ -253,6 +355,8 @@ func _end() -> void:
 	_targets = []
 	_current_anim = ""
 	_hit_fired = false
+	_stage = ""
+	_hit_frame = -1
 	if _sprite:
 		_sprite.speed_scale = 1.0
 	if _host:

@@ -125,7 +125,12 @@ func _build_button_panel() -> void:
 	vbox.add_theme_constant_override("separation", 6)
 	panel.add_child(vbox)
 
-	var has_save: bool = ProgressionManager.has_save()
+	## A save from a newer game version is on disk but was refused by ProgressionManager
+	## (loading it would drop fields we don't understand; the first save afterwards would
+	## then overwrite it with our partial state). Hide CONTINUE and warn — New Game, which
+	## explicitly erases, is the only safe path.
+	var save_newer: bool = ProgressionManager.save_newer_than_supported
+	var has_save: bool = ProgressionManager.has_save() and not save_newer
 
 	var continue_btn := _make_button("CONTINUE", C_AMBER, C_AMBER_HI)
 	continue_btn.visible = has_save
@@ -134,10 +139,25 @@ func _build_button_panel() -> void:
 	if has_save:
 		_menu_buttons.append(continue_btn)
 
+	if save_newer:
+		var warn := Label.new()
+		warn.text = "Save is from a newer version.\nStart a New Game to continue."
+		warn.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		warn.add_theme_color_override("font_color", C_RED_HI)
+		warn.add_theme_font_size_override("font_size", FS_XS)
+		vbox.add_child(warn)
+
 	var new_game_btn := _make_button("NEW GAME", C_T0, C_AMBER_HI)
 	new_game_btn.pressed.connect(_on_new_game_pressed)
 	vbox.add_child(new_game_btn)
 	_menu_buttons.append(new_game_btn)
+
+	## Dev-only sandbox: flat arena, dummies, live class swap (see TrainingPanel).
+	if GameManager.debug_mode:
+		var training_btn := _make_button("TRAINING ROOM", C_T0, C_AMBER_HI)
+		training_btn.pressed.connect(_on_training_pressed)
+		vbox.add_child(training_btn)
+		_menu_buttons.append(training_btn)
 
 	var settings_btn := _make_button("SETTINGS", C_T0, C_AMBER_HI)
 	settings_btn.pressed.connect(_on_settings_pressed)
@@ -233,6 +253,10 @@ func _on_new_game_pressed() -> void:
 		_show_confirm_dialog()
 	else:
 		_start_new_game()
+
+func _on_training_pressed() -> void:
+	GameManager.training_mode = true
+	get_tree().change_scene_to_file("res://scenes/main_arena.tscn")
 
 func _on_settings_pressed() -> void:
 	if ResourceLoader.exists("res://scripts/ui/settings_panel.gd"):

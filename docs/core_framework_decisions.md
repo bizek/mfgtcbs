@@ -1,7 +1,25 @@
 # Core Framework Decisions
 ### Phase 8 Output | The Math Behind Everything
 
-> **Status (Late-Alpha):** Numbers in this doc represent the design baseline. Live values for tuned systems live in `data/characters.gd`, `data/weapons.gd`, and the relevant manager scripts. When in conflict, code wins. Last reconciled with code: 2026-05-02.
+> **Status (Late-Alpha):** Live values live in `data/characters.gd`, `data/loot_tables.gd`, and the relevant manager scripts. **When in conflict, code wins.**
+>
+> **Reconciled with code 2026-07-21.** Section-by-section:
+>
+> | Section | State |
+> |---|---|
+> | Character stats & roster | ✅ live (12 characters, post-pacing-rebalance speeds) |
+> | Phase timing & names | ✅ live (`GameManager.PHASE_DURATIONS`) |
+> | Extraction window | ✅ live (18s) |
+> | Enemy phase scaling | ✅ live (HP/DMG/SPAWN multipliers match) |
+> | Instability tiers & bonuses | ✅ live (`LootTables.INSTABILITY_TIERS`) |
+> | Instability per loot item | ✅ live (`LootTables.RARITY_INSTABILITY`) |
+> | Enemy cap | ✅ live (90) |
+> | Loot drop rates | ✅ live (bumped 2026-07-19) |
+> | Rarity weights per phase | ✅ live (`LootTables.PHASE_RARITY_WEIGHTS`) |
+> | Spawn rates (per-minute table) | ⚠️ design intent — spawn loop is formula-driven, not rate-driven |
+> | Baseline stat table (200 px/s etc.) | ⚠️ design history — superseded per-character |
+> | Economy / hub costs / meta XP | ⚠️ unverified — last checked 2026-05-02 |
+> | Weapon rarity stat ranges | ⚠️ unverified, and the weapon model is being reworked (see `weapon-scaling-reference.md`) |
 
 ---
 
@@ -43,19 +61,28 @@ The Drifter is the baseline. All other characters are defined as modifications t
 
 ### Character Stat Modifiers (Relative to Drifter Baseline)
 
-**All 7 Characters (live — source: `data/characters.gd`):**
+**All 12 Characters (live — source: `data/characters.gd`, reconciled 2026-07-21):**
 
-| Character | HP | Armor | Move Speed | Starting Weapon | Passive |
-|-----------|-----|-------|------------|-----------------|---------|
-| The Drifter | 100 | 0 | 120 | Hurled Steel | None — pure baseline |
-| The Scavenger | 80 | 0 | 132 | Arcane Blade | +25% Pickup Radius, +15% Loot Find |
-| The Warden | 150 | 5 | 96 | Warden's Repeater | Armor doubles below 50% HP |
-| The Spark | 60 | 0 | 126 | Spark's Pistol | +50% Crit Damage (2.25× total) |
-| The Shade | 75 | 0 | 144 | Arcane Blade | 15% Dodge; dodge grants 0.5s invisibility |
-| The Herald | 90 | 0 | 120 | Herald's Call | Abilities +30% dmg, −20% cooldown; extra ability slot |
-| The Cursed | 120 | 3 | 126 | Void Mortar | Starts Unsettled; +20% to all base stats |
+The roster completed at 12/12. Each character now carries a `char_class` (its fantasy archetype) and a `melee_kit` id, which is what actually selects its combo-chain moveset from `ChainFactory` / `SkillFactory`. Internal `id` keys are the original Drifter-era names; `display_name` is what the player sees.
 
-*Base damage is not defined at the character level — damage scaling flows through the modifier and upgrade system. Move Speed values are from `data/characters.gd` and differ from the 200 px/s figure in the baseline table above; the relationship between the two units is unverified — see verification_findings §5.*
+| id (internal) | Display / Class | Kit | HP | Armor | Move | Starting Weapon | Passive |
+|---|---|---|---|---|---|---|---|
+| The Drifter | THE SELLSWORD · Fighter | `fighter` | 100 | 0 | 54 | Mercenary's Edge | — (pure baseline) |
+| The Scavenger | THE SCAVENGER · Ranger | `ranger` | 80 | 0 | 60 | Hunter's Bow | Forager's Eye |
+| The Warden | THE WARDEN · Paladin | `paladin` | 150 | 5 | 48 | Warden's Repeater | Last Bastion |
+| The Spark | THE SPARK · Wizard | `wizard` | 60 | 0 | 58 | Apprentice Flame | Arcane Overload |
+| The Shade | THE SHADE · Rogue | `rogue` | 75 | 0 | 66 | Shadowfang | Shadowstep |
+| The Herald | THE HERALD · Bard | `bard` | 90 | 0 | 54 | Herald's Call | Rallying Anthem |
+| The Cursed | THE CURSED · Blood Mage | `blood_mage` | 120 | 3 | 58 | Void Mortar | Blood Pact |
+| The Ravager | THE RAVAGER · Barbarian | `barbarian` | 130 | 2 | 52 | Ravager's Cleaver | Bloodrage |
+| The Whisper | THE WHISPER · Ninja | `ninja` | 70 | 0 | 64 | Whisper's Kiss | Killing Intent |
+| The Deadeye | THE DEADEYE · Gunslinger | `gunslinger` | 85 | 0 | 58 | Peacemaker | Calm Hands |
+| The Verdant | THE VERDANT · Druid | `druid` | 110 | 2 | 56 | Thornstaff | Primal Vigor |
+| The Devout | THE DEVOUT · Cleric | `cleric` | 100 | 4 | 52 | Ember Censer | Last Rites |
+
+*Base damage is not defined at the character level — damage scaling flows through the modifier and upgrade system.*
+
+> **Move speed — read this before "fixing" anything.** The 200 px/s figure in the baseline table above is the **original design target and is no longer the live value**. The deliberate-pacing rebalance (2026-07-07, `docs/pacing_rebalance.md`) cut every character roughly 2.2× from the original numbers — the Drifter went 120 → 66 → **54**. The live spread is 48 (Warden, slowest) to 66 (Shade, fastest). The baseline table's 200 is design-history; `data/characters.gd` is the truth.
 
 ---
 
@@ -149,23 +176,27 @@ XP Gain bonus stat accelerates this curve. +50% XP Gain at Level 10 means reachi
 
 ## Phase Timing
 
-Each biome run comprises 5 wave-phases. The durations below are design targets; actual run-timer values have not been confirmed against code — treat this table as **TUNING-VALUES** until a timing audit is done.
+Each biome run comprises 5 wave-phases. **Confirmed against `GameManager.PHASE_DURATIONS` on 2026-07-21** — the table below is live, not a target.
 
 ### Wave-Phase Duration (per biome)
 
-| Wave-Phase | Target Duration | Cumulative Time | Notes |
-|------------|-----------------|-----------------|-------|
-| Wave-Phase 1 | 3:00 | 0:00 - 3:00 | Short intro. Learn the build. |
-| Wave-Phase 2 | 3:30 | 3:00 - 6:30 | Slightly longer. Build developing. |
-| Wave-Phase 3 | 4:00 | 6:30 - 10:30 | Mid-run. Stakes rising. |
-| Wave-Phase 4 | 3:30 | 10:30 - 14:00 | Intense. Tightens before the climax. |
-| Wave-Phase 5 | 4:00 - 6:00 | 14:00 - 18:00/20:00 | Variable length. Ends when player extracts or dies. |
-| **Total** | **~18 minutes** *(TUNING-VALUES)* | | Within our 15-20 minute target |
+| Wave-Phase | Name | Duration | Cumulative | Notes |
+|------------|------|----------|------------|-------|
+| Wave-Phase 1 | The Threshold | 3:00 | 0:00 – 3:00 | Short intro. Learn the build. |
+| Wave-Phase 2 | The Descent | 3:30 | 3:00 – 6:30 | Slightly longer. Build developing. |
+| Wave-Phase 3 | The Deep | 4:00 | 6:30 – 10:30 | Mid-run. Stakes rising. |
+| Wave-Phase 4 | The Abyss | 3:30 | 10:30 – 14:00 | Intense. Tightens before the climax. |
+| Wave-Phase 5 | The Core | 4:00 | 14:00 – 18:00 | Ends when the player extracts, dies, or downs the final boss. |
+| **Total** | | **~18 minutes** | | Within the 15–20 minute target |
+
+`PHASE_NAMES` and `MAX_PHASES = 5` live alongside the durations in `scripts/managers/game_manager.gd`.
+
+> **In descent mode the clock is not the difficulty.** `phase_number` still advances on this timer because other systems hang off `phase_started` (carrier/herald resets, miniboss arming), but combat and loot scaling read `GameManager.get_effective_phase()`, which derives the 1–5 tier from **spatial depth** via `DepthTracker`. A player who descends fast meets phase-4 enemies well before the 10:30 mark. Treat the timings above as pacing intent, not as the difficulty curve.
 
 ### Phase Transitions
 
-- Extraction window: 15 seconds (Timed extraction available) *(unverified — see verification_findings §8)*
-- Transition animation: 3-5 seconds
+- Extraction window: **18 seconds** (`GameManager.extraction_window_duration`) — confirmed 2026-07-21. The 15-second figure previously recorded here was never the shipped value.
+- Transition animation: 3–5 seconds
 - Total between-phase downtime: ~20 seconds
 
 Wave-Phase 5 has no automatic timer — it continues until the player extracts or dies. The Final Extraction point activates at the 4-minute mark, but enemies keep spawning and escalating. Surviving past 6 minutes in Wave-Phase 5 should be nearly impossible for most builds, creating a natural endpoint.
@@ -208,12 +239,20 @@ This feels like a significant threat that requires a developed build to handle e
 
 ### Instability Scaling (Stacks on Top of Phase Scaling)
 
-| Instability Tier | Enemy Stat Bonus | Elite Spawn Rate Bonus | Other Effects |
-|------------------|-----------------|----------------------|---------------|
-| Stable (0-25%) | +0% | +0% | None |
-| Unsettled (25-50%) | +12% all stats | +5% elite rate | Subtle — player may not notice |
-| Volatile (50-75%) | +28% all stats | +12% elite rate | Noticeable. Hazards deal 25% more damage. |
-| Critical (75-100%) | +50% all stats | +20% elite rate | Oppressive. Hazards intensify. Spawn rate +20%. |
+**Live — matches `LootTables.INSTABILITY_TIERS` exactly (verified 2026-07-21).** Thresholds are
+absolute instability points, *not* percentages; an earlier revision of this table labelled them
+0-25% / 25-50% / etc., which contradicted the threshold table further down this doc.
+
+| Instability Tier | Threshold | Enemy Stat Bonus | Elite Spawn Rate Bonus | Other Effects |
+|------------------|-----------|-----------------|----------------------|---------------|
+| STABLE | 0+ | +0% | +0% | None |
+| UNSETTLED | 31+ | +12% all stats | +5% elite rate | Subtle — player may not notice |
+| VOLATILE | 71+ | +28% all stats | +12% elite rate | Noticeable. Hazards deal 25% more damage. |
+| CRITICAL | 121+ | +50% all stats | +20% elite rate | Oppressive. Hazards intensify. Spawn rate +20%. |
+
+Applied via `GameManager.get_instability_multiplier()` → `1.0 + tier.stat_bonus`, which
+`EnemySpawnManager` folds into enemy HP alongside the phase multiplier. The Cursed starts every run
+at 31 (Unsettled) by passive.
 
 **Instability + Phase stacking example: Wave-Phase 4 Brute at Critical Instability**
 - Base HP: 80
@@ -235,7 +274,15 @@ This feels like a significant threat that requires a developed build to handle e
 | Phase 4 | 35 | 20 | 6 | 5 | 4 |
 | Phase 5 | 40 | 25 | 8 | 8 | 8 |
 
-**Active enemies on screen cap: 150.** New spawns queue if cap is reached. This prevents both performance issues and visual noise overload.
+**Active enemies on screen cap: 90** (`EnemySpawnManager.max_enemies`, verified 2026-07-21 — the
+150 figure recorded here previously was a design target, never the shipped value). New spawns queue
+if the cap is reached. This prevents both performance issues and visual noise overload.
+
+> The per-minute table above is a design-era estimate and has **not** been reconciled against
+> `EnemySpawnManager`'s actual spawn loop, which derives counts from `enemies_per_spawn × difficulty ×
+> PHASE_SPAWN_MULT` rather than from fixed rates. Treat it as intent. The multipliers themselves are
+> live: `PHASE_HP_MULT = [1.0, 1.5, 2.5, 4.0, 6.0]`, `PHASE_DMG_MULT = [1.0, 1.2, 1.4, 1.7, 2.0]`,
+> `PHASE_SPAWN_MULT = [1.0, 1.2, 1.5, 1.8, 2.2]` — all three match this doc's scaling tables.
 
 ### Special Enemy Spawn Rules
 

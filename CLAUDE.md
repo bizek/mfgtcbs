@@ -21,51 +21,87 @@ Top-down 2D arena survivor / extraction hybrid. WASD movement, auto-firing weapo
 Component-based entity system with data-driven content. CombatOrchestrator (scene-owned, child of MainArena) manages all combat subsystems. All effects route through `EffectDispatcher`. New content = new data factories, not new scripts.
 
 ### Autoloads
-`EventBus` (combat signal bus), `GameManager` (state machine, phases, difficulty), `ProgressionManager` (save/load, unlocks, meta-progression), `UpgradeManager` (level-up choices), `EnemySpawnManager` (wave composition, spawn timing), `ExtractionManager` (channeling state)
+`EventBus` (combat signal bus), `GameManager` (state machine, phases, difficulty), `ProgressionManager` (save/load, unlocks, meta-progression), `UpgradeManager` (level-up choices), `EnemySpawnManager` (wave composition, spawn timing), `ExtractionManager` (channeling state), `CodexManager` (combo discovery/mastery), `LootTables` (drop rolls), `Settings` (options + persistence), `AudioManager` (SFX/music routing), `InputGlyphs` (kb/controller prompt glyphs), `AchievementManager` (detection + unlock), `Logger` (levelled logging)
+
+Source of truth is `project.godot [autoload]`. `MCPScreenshot` / `MCPInputService` / `MCPGameInspector` are editor-tooling autoloads from the `godot_mcp` addon, not game systems.
 
 ### Entity Components
-Every entity owns: `HealthComponent`, `ModifierComponent`, `AbilityComponent`, `BehaviorComponent`, `StatusEffectComponent`, `TriggerComponent`. Contract in `scripts/entities/entity_interface.gd`.
+Every entity owns: `HealthComponent`, `ModifierComponent`, `AbilityComponent`, `BehaviorComponent`, `StatusEffectComponent`, `TriggerComponent`. The player additionally owns `SkillComponent` (Q/E skill slots, built per kit by `SkillFactory`). Contract in `scripts/entities/entity_interface.gd`.
 
 ### Tick Order
-SpatialGrid rebuild → StatusEffect.tick → AbilityComponent.tick_cooldowns → BehaviorComponent.tick
+SpatialGrid rebuild → StatusEffect.tick → AbilityComponent.tick_cooldowns → BehaviorComponent.tick → ground-zone ticks
 
 ### Key Pipelines
-- **Damage**: 8-step in DamageCalculator (base → conversion → offensive mods → dodge → block → resist → damage_taken → crit)
-- **Effects**: EffectDispatcher type-switches on 15 effect Resource types → delegates to subsystems
+- **Damage**: 8-step in DamageCalculator (base → conversion → offensive mods → dodge → block → resist → damage_taken → vulnerability → crit)
+- **Effects**: EffectDispatcher type-switches on 16 effect Resource types → delegates to subsystems
 - **Abilities**: BehaviorComponent resolves targets → emits signal → entity fires EffectDispatcher
 - **Statuses**: StatusEffectComponent manages stacking, duration, modifier sync, aura ticks, trigger registration
+- **Combo chains**: a kit's light/heavy/channel graph is one `AbilityDefinition` whose `ChoreographyDefinition` has one phase per node; `ChoreographyRunner` (shared by `player.gd` and `enemy.gd`) walks it, branching on `ConditionInputBuffered` / `ConditionInputHeld`
 
 ## Documentation
 
 | Doc | Contents |
 |-----|----------|
-| `docs/engine_reference.md` | **Read this first for any implementation work.** Full engine reference: all systems, data patterns, unused capabilities, effect/targeting vocabularies, wiring examples. Includes enemy role taxonomy and extraction system. |
-| `docs/mechanical_vocabulary.md` | Game-specific mechanical vocabulary: damage types, status effects, weapon behaviors, mod effects, triggers |
+**Tier 1 — engine + grammar (read for any implementation work):**
+
+| Doc | Contents |
+|-----|----------|
+| `docs/engine_reference.md` | **Read this first for any implementation work.** Full engine reference: all systems, data patterns, effect/targeting vocabularies, wiring examples. Includes enemy role taxonomy and extraction system. |
+| `docs/combat_chain_architecture.md` | **The combo-chain combat layer** — the game's identity system. Combo-graph-as-choreography, the input-condition seam, `ChoreographyRunner`, held channels, kit composition. Shipped; read before touching any kit, chain, or skill. |
+| `docs/mechanical_vocabulary.md` | Game-specific mechanical vocabulary: damage types, status effects, weapon behaviors, mod effects, class-mod ops, triggers |
 | `docs/core_framework_decisions.md` | Formulas: damage, XP curve, phase timing, enemy scaling, instability thresholds, economy |
+| `docs/architecture_blueprint.md` | Architectural principles, save-system policy, performance constraints |
+| `docs/diagrams.md` | Mermaid diagrams: state machine, autoload map, orchestrator ownership, tick order, damage pipeline, signal hub |
+
+**Tier 2 — subsystem references:**
+
+| Doc | Contents |
+|-----|----------|
+| `docs/class_mod_system.md` | Two-layer mod model: kit capability tags, generic-mod applicability, `ClassModFactory`, per-class mod rosters |
+| `docs/mod_interaction_matrix.md` | Generic-mod combos: two-mod pairs and triples with resolved effects |
+| `docs/passive_tree.md` + `docs/passive_tree_spec.md` | Passive tree data contract (59 nodes), gate rules, rendering recipe; spec holds the design intent |
 | `docs/hub_reference.md` | Hub stations: what each panel does, what's implemented vs planned |
-| `docs/architecture_blueprint.md` | System architecture, entity scene structures, signal flows, data file examples |
+| `docs/boss_authoring_reference.md` | Boss/miniboss authoring: choreography patterns, telegraphs, phase structure |
+| `docs/weapon-scaling-reference.md` | Per-weapon base stats and mod-synergy matrix (v1 universal weapons only — class gear is not covered) |
+| `docs/dev_tools.md` | Training Room (flat sandbox: dummies, live class swap, DPS meter, slow-mo) and Animation Lab (F10: trim/retime anims, re-pin hit frames, author intro/loop/outro staging for held abilities) |
+| `docs/audio_pipeline.md` + `docs/audio_asset_manifest.md` | AudioManager/SoundTable wiring, REAPER forge tooling, per-sound manifest |
+| `docs/release_pipeline.md` | Export presets, `build.ps1`, itch.io/Steam packaging |
 | `docs/asset_inventory.md` | Free asset sources, palette-shift strategy, license tracking |
+
+**Tier 3 — level authoring:**
+
+| Doc | Contents |
+|-----|----------|
 | `docs/ldtk_schema.md` | LDtk schema contract: entity defs, enums, level fields, IntGrid values, layer stack — read first for any level work |
 | `docs/ldtk_workflow.md` | LDtk authoring workflow: where files live, biome asset map, how to add a level/biome, arena design principles |
 | `docs/block_sketch_workflow.md` | **Preferred path for new descent blocks**: text sketch → `tools/block_compiler.py` → .ldtkl + PNG preview. Sketch format, grid legend, validators, prop decorator. Use the `/blockgen` skill for the full operating procedure |
+
+**Live worklist:** `docs/Session Prompts - Road to Release/00_EXECUTION_PLAN.md` is the release plan and is **current** — it carries a per-task status table verified against source. As of 2026-07-21 the only unstarted task is **11 (save versioning)**; 15 (audio wiring) is partial; 24/25 are blocked on Ben. The numbered prompt files beside it are self-contained session prompts.
+
+**Historical / point-in-time** (design records and playtest logs — do NOT treat as current state): `character_overhaul_design.md`, `pacing_rebalance.md`, `fighter_kit_spec.md`, `combo_feedback_spec.md`, `dash.md`, `manual_fire.md`, `design_audit_2026-07-06.md`, `verification_findings.md`, `cave_audit.md`, `clerveu_triage_prompts.md`, `ability_playtest_checklist.md`, `block_architecture.md`, `block_system_implementation_notes.md`, `biome_authoring_template.md`, `hub_ui_redesign_prompts.md`, `sprite_catalogue.md`, `item_icon_catalogue.md`, `weapon-scaling-reference.md` (frozen — see below), and everything under `docs/design_archive/`, `docs/obsidian/`, `docs/Archived Session Prompts - Completed/`.
+
+**Direction note (Ben, 2026-07-21):** weapons are becoming **class-locked, not transferable between characters**, and the **mod system gets a fresh pass** once the current character/attack/ability polish phase is done. Treat `weapon-scaling-reference.md` and `mod_interaction_matrix.md` as frozen records of the old model — do not extend them, and don't assume cross-character weapon portability in new work.
 
 ### When to read what
 
 | Task | Read these |
 |------|-----------|
 | **Any implementation** | `engine_reference.md` (always) |
-| **New enemy/boss** | `engine_reference.md` → "New Enemy" + "Enemy Role Taxonomy" + "Choreography" + "Enemy Skills" sections |
+| **Kits / combos / Q-E skills / dashes** | `combat_chain_architecture.md` + `engine_reference.md` → "Combo-Chain Combat Layer" |
+| **New enemy/boss** | `engine_reference.md` → "New Enemy" + "Enemy Role Taxonomy" · `boss_authoring_reference.md` |
 | **New weapon** | `engine_reference.md` → "New Weapon" + WeaponData/WeaponFactory patterns |
 | **New status/buff/debuff** | `engine_reference.md` → "New Status Effect" + "Trigger System" |
+| **Mods** | `class_mod_system.md` (class layer) · `mod_interaction_matrix.md` (generic layer) |
 | **Combat balancing** | `core_framework_decisions.md` + `mechanical_vocabulary.md` |
 | **Game design questions** | `architecture_blueprint.md` (design principles section) |
-| **Hub / meta-progression** | `hub_reference.md` |
+| **Hub / meta-progression** | `hub_reference.md` · `passive_tree.md` |
 | **Extraction mechanics** | `engine_reference.md` → "Extraction System" section |
-| **Level / map authoring** | `ldtk_schema.md` + `ldtk_workflow.md` |
+| **Level / map authoring** | `ldtk_schema.md` + `ldtk_workflow.md` + `block_sketch_workflow.md` |
 
 ## Project Orientation
 
 - When reading project state, verify against actual source files rather than trusting docs, which are often stale (e.g., loader status).
+- Docs were audited and reconciled with code on 2026-07-21 — findings and remaining open items in `docs/doc_audit_2026-07-21.md`. The fastest-drifting section in the whole doc set is `engine_reference.md`'s content-coverage list; re-grep `data/` before trusting a "no content uses this" claim.
 
 ## Content Creation — The Pattern
 
@@ -82,9 +118,9 @@ All content follows the data factory pattern: `static func create() -> Resource`
 ## Coding Conventions
 
 - GDScript, typed variables: `var speed: float = 200.0`
-- Godot 4.6.1, Compatibility renderer
+- Godot 4.6.1-stable, Compatibility renderer (editor build; `project.godot config/features` carries the coarser "4.6" feature tag)
 - 640x360 viewport, 3x integer scaling to 1920x1080
-- Collision layers: 1=player, 2=enemies, 3=walls, 4=player_projectiles, 5=pickups, 6=extraction
+- Collision layers (source of truth: `project.godot [layer_names]`): 1=player, 2=enemies, 3=player_projectiles, 4=enemy_projectiles, 5=pickups, 6=extraction. There is no named "walls" layer — level collision is built by `LdtkLoader` on the default layer.
 - Signals for inter-system communication, autoloads for managers
 - Entity scenes: CharacterBody2D for player/enemies, Area2D for pickups/projectiles
 - File organization: `scripts/systems/`, `scripts/components/`, `scripts/entities/`, `scripts/managers/`, `scripts/ui/`, `data/resources/`, `data/factories/`
@@ -154,4 +190,5 @@ All content follows the data factory pattern: `static func create() -> Resource`
 - SpatialGrid: cell-based proximity queries, rebuilt every frame
 - Resistance formula: `raw * (1.0 - resist / (resist + 100.0))`
 - XP formula: `base(10) * (1.0 + (level - 1) * 0.3)`
-- Debug mode: `GameManager.debug_mode = true` enables F1-F5 hotkeys, debug panel, entity inspector
+- Debug mode: `GameManager.debug_mode = true` enables the debug panel and entity inspector. Hotkeys: F1 panel, F2 god mode, F3 level-up, F4 skip extraction, F5 test telegraph / inspector toggle, F6 spawn miniboss, F7 spawn final boss, F10 Animation Lab, F11 Training Room panel. (F8/F9 are Godot's own Stop/Pause — never bind them.)
+- Run modes on `GameManager`: `use_descent_mode` (block-based vertical descent, the default path) and `training_mode` (flat sandbox, no waves/clock/extraction). Combat and loot scaling read `get_effective_phase()` — spatial depth in descent mode, wall-clock `phase_number` otherwise.

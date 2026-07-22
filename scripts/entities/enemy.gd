@@ -98,12 +98,11 @@ var _aura_pulse: float = 0.0
 var _loot_drop_scene: PackedScene = null
 var _loot_value: float = 45.0
 
-## Choreography state (multi-phase boss abilities)
-var _choreography: ChoreographyDefinition = null
-var _choreography_ability: AbilityDefinition = null
-var _choreography_phase_index: int = -1
-var _choreography_timer: float = 0.0
-var _choreography_targets: Array = []
+## Choreography (multi-phase boss abilities) — executed by the SHARED ChoreographyRunner,
+## the same executor the player's combo graphs use. Migrated off enemy.gd's private copy
+## 2026-07-21; the host contract is the `choreo_*` methods further down this file.
+var _choreo_runner: ChoreographyRunner = null
+var _choreo_ability: AbilityDefinition = null   ## ability driving the active sequence (for effects)
 var _ability_anim_active: bool = false
 var _current_attack_anim: String = "attack"
 var _current_hit_frame: int = 3
@@ -287,34 +286,15 @@ func _setup_components() -> void:
 
 
 func _process(delta: float) -> void:
-	## Per-frame monitoring during choreography phases only.
-	if not is_alive or _choreography == null:
-		_choreography = null
-		_choreography_phase_index = -1
+	## Per-frame monitoring during choreography phases only. The runner self-guards when idle;
+	## _choreo_on_start/_end toggle set_process so we don't tick every enemy every frame.
+	if not is_alive:
 		set_process(false)
 		return
-
-	if _choreography_phase_index < 0 or _choreography_phase_index >= _choreography.phases.size():
-		_end_choreography()
+	if _choreo_runner == null or not _choreo_runner.is_running():
+		set_process(false)
 		return
-
-	var phase: ChoreographyPhase = _choreography.phases[_choreography_phase_index]
-
-	if phase.exit_type == "wait":
-		_choreography_timer -= delta
-		# Evaluate branches each frame
-		for branch in phase.branches:
-			if _evaluate_choreography_branch(branch):
-				_enter_choreography_phase(branch.next_phase)
-				return
-		# Timeout → default_next
-		if _choreography_timer <= 0.0:
-			_on_choreography_phase_exit()
-
-	elif phase.exit_type == "displacement_complete":
-		_choreography_timer -= delta
-		if not is_channeling or _choreography_timer <= 0.0:
-			_on_choreography_phase_exit()
+	_choreo_runner.tick(delta)
 
 
 func _physics_process(delta: float) -> void:
@@ -323,19 +303,23 @@ func _physics_process(delta: float) -> void:
 
 	_contact_damage_timer = maxf(_contact_damage_timer - delta, 0.0)
 
-	# Choreography active: movement suppressed (boss is executing an attack sequence)
-	if _choreography != null:
+	# Stunned/frozen: cannot move or act. Interrupts choreography.
+	# NOTE (2026-07-21): this check MUST precede the choreography block below. Previously the
+	# choreography early-return came first, so this block's interrupt branch was unreachable
+	# and a stunned boss kept executing its attack sequence — contradicting both this comment and
+	# docs/engine_reference.md. Ordering fixed during the ChoreographyRunner migration.
+	if status_effect_component.is_disabled():
+		if _choreo_runner != null and _choreo_runner.is_running():
+			_choreo_runner.interrupt()
+		elif _ability_anim_active:
+			_end_animated_ability()
 		velocity = knockback_velocity
 		move_and_slide()
 		knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 800.0 * delta)
 		return
 
-	# Stunned/frozen: cannot move or act. Interrupts choreography.
-	if status_effect_component.is_disabled():
-		if _choreography != null:
-			_end_choreography()
-		elif _ability_anim_active:
-			_end_animated_ability()
+	# Choreography active: movement suppressed (boss is executing an attack sequence)
+	if _choreo_runner != null and _choreo_runner.is_running():
 		velocity = knockback_velocity
 		move_and_slide()
 		knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 800.0 * delta)
@@ -466,6 +450,7 @@ func _on_ability_requested(ability: AbilityDefinition, targets: Array) -> void:
 		_start_choreography(ability, targets)
 		return
 
+
 	# Standard animated ability: play attack animation, fire on hit frame
 	if ability.anim_override != "" or ability.hit_frame_override >= 0:
 		_start_animated_ability(ability, targets)
@@ -490,7 +475,7 @@ func _on_auto_attack_requested(ability: AbilityDefinition, targets: Array) -> vo
 	# its phases. The animated path below would play a bare attack anim and fire the
 	# ability's top-level effects list, which is empty for choreographed abilities.
 	if ability.choreography != null:
-		if _choreography == null and not _ability_anim_active:
+		if not _is_choreographing() and not _ability_anim_active:
 			_start_choreography(ability, targets)
 		return
 
@@ -562,15 +547,9 @@ func _on_frame_changed() -> void:
 	if not is_attacking or not is_alive:
 		return
 
-	# Choreography phase: fire effects on the phase's hit frame
-	if _choreography != null:
-		if _choreography_phase_index < 0 or _choreography_phase_index >= _choreography.phases.size():
-			return
-		var phase: ChoreographyPhase = _choreography.phases[_choreography_phase_index]
-		if phase.hit_frame >= 0 and sprite.animation == _current_attack_anim \
-				and sprite.frame == phase.hit_frame and not _hit_frame_fired:
-			_hit_frame_fired = true
-			_execute_choreography_phase_effects(phase)
+	# Choreography phase: the runner owns hit-frame matching and firing.
+	if _is_choreographing():
+		_choreo_runner.notify_frame_changed()
 		return
 
 	# Standard animated ability: fire on hit frame
@@ -585,8 +564,8 @@ func _on_animation_finished() -> void:
 		return
 
 	# Choreography: animation finished for current phase
-	if _choreography != null:
-		_on_choreography_animation_finished()
+	if _is_choreographing():
+		_choreo_runner.notify_animation_finished()
 		return
 
 	# Damage reaction: resume walk after damage anim
@@ -605,144 +584,81 @@ func _on_animation_finished() -> void:
 
 
 # --- Choreography System (multi-phase boss abilities) ---
+#
+# The sequencing itself lives in the SHARED ChoreographyRunner (scripts/components/
+# choreography_runner.gd) — the same executor the player's combo graphs run on. Everything below
+# is this entity's implementation of the runner's duck-typed host contract.
+#
+# Migrated 2026-07-21 off enemy.gd's private copy of the executor. Behavior is preserved except
+# for one deliberate fix: stun now actually interrupts choreography (see _physics_process).
+
+func _is_choreographing() -> bool:
+	return _choreo_runner != null and _choreo_runner.is_running()
+
 
 func _start_choreography(ability: AbilityDefinition, targets: Array) -> void:
-	## Begin a choreography sequence. Sets up state and enters phase 0.
-	_choreography = ability.choreography
-	_choreography_ability = ability
-	_choreography_targets = targets.duplicate()
-	_choreography_phase_index = -1
-	_choreography_timer = 0.0
-
-	is_channeling = true
-	is_attacking = true
-	_ability_anim_active = true
-	_is_damage_anim_active = false  # choreography supersedes damage anim
-	_pending_ability = null
-	_pending_targets = []
-
-	EventBus.on_ability_used.emit(self, ability)
-	_enter_choreography_phase(0)
+	## Begin a choreography sequence via the shared runner.
+	if _choreo_runner == null:
+		_choreo_runner = ChoreographyRunner.new()
+		_choreo_runner.name = "ChoreographyRunner"
+		add_child(_choreo_runner)
+		_choreo_runner.setup(self)
+	_choreo_ability = ability
+	_choreo_runner.start(ability, targets)
 
 
-func _enter_choreography_phase(index: int) -> void:
-	## Enter a specific phase. index = -1 or out of bounds ends the choreography.
-	if _choreography == null or index < 0 or index >= _choreography.phases.size():
-		_end_choreography()
+# --- ChoreographyRunner host contract ---
+
+func choreo_sprite() -> AnimatedSprite2D:
+	return sprite
+
+
+func choreo_resolve_targets(rule: TargetingRule) -> Array:
+	if not spatial_grid or behavior_component == null:
+		return []
+	return behavior_component.resolve_targets_with_rule(rule, self)
+
+
+func choreo_fire_effects(effects: Array, targets: Array, ability: AbilityDefinition) -> void:
+	## Fire one phase's effects. Falls back to the nearest hostile when the phase has no targets
+	## (a telegraphed slam that outlived its original target still needs somewhere to land).
+	if effects.is_empty():
 		return
 
-	_choreography_phase_index = index
-	var phase: ChoreographyPhase = _choreography.phases[index]
-
-	# Entity state flags
-	is_untargetable = phase.set_untargetable
-	is_invulnerable = phase.set_invulnerable
-
-	# Retarget if specified
-	if phase.retarget and spatial_grid:
-		var targets: Array = behavior_component.resolve_targets_with_rule(phase.retarget, self)
-		if not targets.is_empty():
-			_choreography_targets = targets
-
-	# Execute displacement if specified. This entity is the effect's "self";
-	# choreography targets provide the destination (displaced="self" resolves the
-	# source arg, so passing the target there displaced the PLAYER and left our
-	# is_channeling flag permanently set — invulnerable frozen boss).
-	if phase.displacement and combat_manager and combat_manager.get("displacement_system"):
-		combat_manager.displacement_system.execute(
-			self, _choreography_ability, phase.displacement, _choreography_targets)
-
-	# Fire effects immediately if no hit_frame specified
-	if phase.hit_frame < 0 and not phase.effects.is_empty():
-		_execute_choreography_phase_effects(phase)
-
-	# Reset speed scale from any previous telegraph phase
-	if sprite:
-		sprite.speed_scale = 1.0
-
-	# Play animation or set up exit monitoring
-	if phase.animation != "":
-		_current_attack_anim = phase.animation
-		_hit_frame_fired = false
-		is_attacking = true
-
-		if sprite and sprite.sprite_frames and sprite.sprite_frames.has_animation(phase.animation):
-			sprite.play(phase.animation)
-			if phase.telegraph_speed_scale != 1.0:
-				sprite.speed_scale = phase.telegraph_speed_scale
-		elif phase.exit_type == "anim_finished":
-			# No animation available — skip to next
-			_on_choreography_phase_exit()
-			return
-
-	# Set up phase exit monitoring
-	match phase.exit_type:
-		"wait":
-			_choreography_timer = phase.wait_duration
-			set_process(true)
-		"displacement_complete":
-			## Watchdog — a displacement that never ran (dead/invalid target,
-			## Displacement-negated entity) never clears is_channeling; without a
-			## timer cap the phase would hard-lock the boss in an invulnerable state.
-			var disp_duration: float = phase.displacement.duration if phase.displacement else 0.0
-			_choreography_timer = disp_duration + 1.5
-			set_process(true)
-		"anim_finished":
-			if phase.animation == "":
-				_on_choreography_phase_exit()
-
-
-func _execute_choreography_phase_effects(phase: ChoreographyPhase) -> void:
-	## Fire effects for the current choreography phase.
-	if phase.effects.is_empty():
-		return
-
-	var targets: Array = _choreography_targets.duplicate()
-	if targets.is_empty() and spatial_grid:
+	var resolved: Array = targets.duplicate()
+	if resolved.is_empty() and spatial_grid:
 		var enemy_faction: int = 1 if int(faction) == 0 else 0
 		var nearest: Node2D = spatial_grid.find_nearest(global_position, enemy_faction)
 		if nearest:
-			targets = [nearest]
+			resolved = [nearest]
 
 	# Set attack_target for projectile aim direction
-	if not targets.is_empty():
-		attack_target = targets[0]
+	if not resolved.is_empty():
+		attack_target = resolved[0]
 
-	EffectDispatcher.execute_effects(
-		phase.effects, self, targets, _choreography_ability, combat_manager)
+	EffectDispatcher.execute_effects(effects, self, resolved, ability, combat_manager)
 
 	# Dispatch ability modifications (talent/item augments)
-	if _choreography_ability and ability_component:
-		var mod_effects: Array = ability_component.get_ability_modifications(
-			_choreography_ability.ability_id)
+	if ability and ability_component:
+		var mod_effects: Array = ability_component.get_ability_modifications(ability.ability_id)
 		if not mod_effects.is_empty():
 			EffectDispatcher.execute_effects(
-				mod_effects, self, targets, _choreography_ability, combat_manager)
+				mod_effects, self, resolved, ability, combat_manager)
 
 
-func _on_choreography_animation_finished() -> void:
-	## Animation finished during a choreography phase.
-	if _choreography_phase_index < 0 or _choreography_phase_index >= _choreography.phases.size():
+func choreo_execute_displacement(disp, targets: Array) -> void:
+	## This entity is the effect's "self"; choreography targets provide the destination
+	## (displaced="self" resolves the source arg, so passing the target there displaced the
+	## PLAYER and left our is_channeling flag permanently set — invulnerable frozen boss).
+	if disp == null or combat_manager == null or not combat_manager.get("displacement_system"):
 		return
-	var phase: ChoreographyPhase = _choreography.phases[_choreography_phase_index]
-	if phase.exit_type == "anim_finished":
-		_on_choreography_phase_exit()
+	combat_manager.displacement_system.execute(self, _choreo_ability, disp, targets)
 
 
-func _on_choreography_phase_exit() -> void:
-	## Current phase complete. Transition to default_next.
-	set_process(false)
-	if _choreography == null:
-		return
-	var phase: ChoreographyPhase = _choreography.phases[_choreography_phase_index]
-	_enter_choreography_phase(phase.default_next)
-
-
-func _evaluate_choreography_branch(branch: ChoreographyBranch) -> bool:
-	## Evaluate a choreography branch condition.
-	if not branch.condition:
+func choreo_evaluate_condition(condition: Resource, _phase: ChoreographyPhase) -> bool:
+	## Enemies branch on world state only — no input conditions (that's the player's vocabulary).
+	if condition == null:
 		return true
-	var condition: Resource = branch.condition
 	if condition is ConditionEntityCount:
 		return ability_component._check_entity_count(condition, self)
 	if condition is ConditionHpThreshold:
@@ -750,17 +666,39 @@ func _evaluate_choreography_branch(branch: ChoreographyBranch) -> bool:
 	return false
 
 
-func _end_choreography() -> void:
+func choreo_set_flags(untargetable: bool, invulnerable: bool) -> void:
+	is_untargetable = untargetable
+	is_invulnerable = invulnerable
+
+
+func choreo_displacement_active() -> bool:
+	## "displacement_complete" phases hold until the DisplacementSystem clears is_channeling.
+	return is_channeling
+
+
+func choreo_on_start(ability: AbilityDefinition) -> void:
+	is_channeling = true
+	is_attacking = true
+	_ability_anim_active = true
+	_is_damage_anim_active = false  # choreography supersedes damage anim
+	_pending_ability = null
+	_pending_targets = []
+	set_process(true)
+	EventBus.on_ability_used.emit(self, ability)
+
+
+func choreo_on_phase_anim(_phase: ChoreographyPhase, _stage: String = "") -> void:
+	## A phase started playing its body — keep the attack gate open so frame_changed forwards.
+	is_attacking = true
+
+
+func choreo_on_end() -> void:
 	## Clean up all choreography state and return to normal behavior.
 	if sprite:
 		sprite.speed_scale = 1.0
 	if combat_manager and combat_manager.get("telegraph_manager"):
 		combat_manager.telegraph_manager.cleanup_entity(self)
-	_choreography = null
-	_choreography_ability = null
-	_choreography_phase_index = -1
-	_choreography_timer = 0.0
-	_choreography_targets = []
+	_choreo_ability = null
 	is_untargetable = false
 	is_invulnerable = false
 	is_channeling = false

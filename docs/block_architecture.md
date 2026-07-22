@@ -1,7 +1,10 @@
 # Block-Tile Architecture — Cave Descent System
 
 **Date:** 2026-05-19
-**Status:** Design document. Implementation follows in Tasks 2.2 and 2.3.
+**Status:** Design document — **implemented**. Tasks 2.2/2.3 shipped; descent runs on `BlockManager` +
+`DepthTracker` + `LdtkLevelDirector`. Kept for the design rationale. **Block authoring has moved on:**
+blocks are no longer hand-painted — write a `.block` text sketch and compile it. See
+`docs/block_sketch_workflow.md` and the `/blockgen` skill.
 
 ---
 

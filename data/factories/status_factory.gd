@@ -3,6 +3,21 @@ extends RefCounted
 ## Builds all StatusEffectDefinitions for the game. Called once at startup.
 ## These are the engine-pattern equivalents of the old inline status effects.
 
+
+## Attach the looping elemental aura overlay that plays while this status is on an entity.
+## VfxManager spawns/despawns it off on_status_applied / on_status_expired / on_cleanse — no
+## per-status wiring beyond this call. Silently no-ops when the sheet is unavailable, so a
+## missing asset degrades to "no overlay", never to a broken status.
+##
+## Pilot scope (2026-07-21 doc audit): burning / chilled / frozen only. Statuses previously had
+## no visual at all. Extend to the other elements once Ben has eyeballed these three.
+static func _attach_aura(def: StatusEffectDefinition, element: String,
+		scale: Vector2 = Vector2.ONE) -> void:
+	var layer: VfxLayerConfig = StatusVfxFactory.build_aura_layer(element, 1, Vector2.ZERO, scale)
+	if layer != null:
+		def.vfx_layers = [layer]
+
+
 ## Cached definitions — built once, reused everywhere
 static var burning: StatusEffectDefinition
 static var bleed: StatusEffectDefinition
@@ -167,6 +182,7 @@ static func _build_burning() -> StatusEffectDefinition:
 	tick_dmg.base_damage = 4.0
 	def.tick_effects = [tick_dmg]
 
+	_attach_aura(def, "fire")
 	return def
 
 
@@ -229,6 +245,8 @@ static func _build_chilled() -> StatusEffectDefinition:
 	frostfire_listener.effects = [frostfire_dmg, frostfire_consume]
 	def.trigger_listeners = [frostfire_listener]
 
+	## Chilled is the lighter of the two ice states — same sheet, smaller read than Frozen.
+	_attach_aura(def, "ice", Vector2(0.8, 0.8))
 	return def
 
 
@@ -274,6 +292,7 @@ static func _build_frozen() -> StatusEffectDefinition:
 	hemorrhage_dmg.base_damage = 20.0
 	def.on_expire_effects = [hemorrhage_dmg]
 
+	_attach_aura(def, "ice")
 	return def
 
 

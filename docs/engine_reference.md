@@ -1,13 +1,21 @@
 # Engine Reference
 
+> **Status:** Reconciled with code 2026-07-21. Where this doc and the source disagree, the source wins — verify against `project.godot [autoload]`, `scripts/systems/combat_orchestrator.gd`, and `scripts/autoloads/event_bus.gd`.
+
 Component-based combat engine. All content = Resource definitions routed through EffectDispatcher. New enemies, abilities, statuses, weapons = data factories, zero code changes.
 
 ## Architecture at a Glance
 
 ```
-Autoloads:  EventBus, GameManager, ProgressionManager, UpgradeManager, EnemySpawnManager, ExtractionManager, CodexManager, LootTables
+Autoloads (game):   EventBus, GameManager, ProgressionManager, UpgradeManager,
+                    EnemySpawnManager, ExtractionManager, CodexManager, LootTables,
+                    Settings, AudioManager, InputGlyphs, AchievementManager, Logger
+Autoloads (editor): MCPScreenshot, MCPInputService, MCPGameInspector  (godot_mcp addon — not game systems)
+
 Scene-owned: CombatOrchestrator (child of MainArena)
-  Children:  ProjectileManager, VfxManager, DisplacementSystem, CombatFeedbackManager, DebugDraw
+  Children:  ProjectileManager, VfxManager, TelegraphManager, DisplacementSystem,
+             CombatFeedbackManager, ComboEffectResolver, DebugDraw, FlowField
+  Owned (not a node): SpatialGrid, ground-zone list, corpse list, run RNG
 ```
 
 Every entity (player, enemy, summon) owns 6 components created in `_init()` or `_ready()`:
@@ -18,15 +26,31 @@ Every entity (player, enemy, summon) owns 6 components created in `_init()` or `
 - `status_effect_component: StatusEffectComponent` — active statuses, modifier sync, aura ticks
 - `trigger_component: TriggerComponent` — EventBus listeners, condition evaluation, effect dispatch
 
+The **player** owns a 7th: `skill_component: SkillComponent` — the Q/E skill slots, populated per kit by `SkillFactory.build_kit_skills()`.
+
 Entity contract: see `scripts/entities/entity_interface.gd` for required properties/methods.
 
-Orchestrator tick order per frame: SpatialGrid rebuild → StatusEffect.tick → AbilityComponent.tick_cooldowns → BehaviorComponent.tick (enemies only; player ticks own behavior in _physics_process).
+Orchestrator tick order per frame: SpatialGrid rebuild → StatusEffect.tick → AbilityComponent.tick_cooldowns → BehaviorComponent.tick (enemies only; player ticks own behavior in _physics_process) → ground-zone ticks.
+
+## Run Modes
+
+`GameManager` carries three switches that change what MainArena builds:
+
+| Flag | Effect |
+|------|--------|
+| `use_ldtk_level_1` | Load `Level_0` from the LDtk project instead of the procedural `ArenaGenerator`. |
+| `use_descent_mode` | Block-based vertical descent (`BlockManager` + `DepthTracker` + `LdtkLevelDirector`) instead of one monolithic level. This is the live path. |
+| `training_mode` | Flat sandbox: no waves, no phase clock, no extraction. Dummies + `training_panel.gd`. See `docs/dev_tools.md`. |
+
+In descent mode `phase_number` still advances on the wall clock (other systems depend on `phase_started` firing), but **combat and loot scaling must read `GameManager.get_effective_phase()`**, which derives the 1–5 tier from spatial depth. Never scale off `phase_number` directly.
 
 ## Level Loading
 
 Levels are authored in LDtk, one `.ldtkl` file per biome. See `docs/ldtk_schema.md` for the full entity/enum/IntGrid contract and `docs/ldtk_workflow.md` for authoring steps.
 
-`LdtkLoader` (`scripts/systems/ldtk_loader.gd`) parses the active level's `.ldtkl` file at arena start and instantiates: spawn zones (IntGrid regions fed to `EnemySpawnManager`), boss spawn markers, level exit triggers, and environmental decoration layers. Biome-level metadata — wave compositions, music track ID, extraction type pool — lives in `data/level_data.gd` and is read by `GameManager` during phase setup.
+`LdtkLoader` (`scripts/systems/ldtk_loader.gd`) parses the active level's `.ldtkl` file at arena start and instantiates: spawn zones (IntGrid regions fed to `EnemySpawnManager`), boss spawn markers, level exit triggers, and environmental decoration layers. Biome-level metadata — wave compositions, music track ID, extraction type pool — lives in `data/factories/level_data.gd` and is read by `GameManager` during phase setup.
+
+In descent mode this is only half the story — the arena is streamed from blocks rather than loaded whole. See "Descent & Level Streaming" below.
 
 > Cross-references: `docs/ldtk_schema.md` (entity defs, layer stack) · `docs/ldtk_workflow.md` (add a biome, add a level)
 
@@ -35,6 +59,52 @@ Levels are authored in LDtk, one `.ldtkl` file per biome. See `docs/ldtk_schema.
 All game effects route through `EffectDispatcher.execute_effects(effects, source, targets, ability, combat_manager)`. This is THE dispatch hub. Never execute effects manually — always go through EffectDispatcher.
 
 `BehaviorComponent` resolves targets via `_resolve_targets_internal(TargetingRule, entity)` using SpatialGrid, then emits `ability_requested` or `auto_attack_requested`. The entity handler calls `EffectDispatcher.execute_effects()`.
+
+---
+
+## Combo-Chain Combat Layer
+
+**This is the game's identity system** — the manual, input-driven melee/caster chain layer that sits on top of the effect pipeline. Full design: `docs/combat_chain_architecture.md`. Read it before touching any kit.
+
+The load-bearing idea: **a combo graph is not a new construct.** It is one `AbilityDefinition` whose `ChoreographyDefinition` has one phase per combo node, with `ChoreographyBranch` arrays conditioned on input. No FSM, no `AttackData`, no `Hitbox` type. If a task tempts you toward one, it's the wrong solution.
+
+### The pieces
+
+| Piece | File | Role |
+|-------|------|------|
+| `ChoreographyRunner` | `scripts/components/choreography_runner.gd` | Host-agnostic executor. Walks phases, fires effects on hit frames, evaluates branches each frame during `"wait"` phases. Duck-typed `choreo_*` host interface. |
+| `ChainFactory` | `data/factories/chain_factory.gd` | Builds the `light` / `heavy` / `channel` graphs per `melee_kit`. Base radii, tick cadences, cancel windows. |
+| `SkillFactory` | `data/factories/skill_factory.gd` | Builds the `skill_q` / `skill_e` abilities per kit. Populates `SkillComponent`. |
+| `CombatInputBuffer` | `scripts/systems/combat_input_buffer.gd` | Press timestamps + hold durations. Pure input state — no FSM, no anim, no damage. |
+| `ConditionInputBuffered` / `ConditionInputHeld` | `data/resources/conditions/` | The branch vocabulary. Evaluated by the host, **held before buffered**. |
+| `ComboRegistry` / `ComboDetector` / `ComboEffectResolver` | `scripts/data/`, `scripts/systems/` | Mod-combo discovery and resolution (see Codex System below). |
+
+### How a press becomes a hit
+
+1. Player polls `CombatInputBuffer.tick()` every physics frame.
+2. An entry input (`light_attack` / `heavy_attack` tap or hold) starts the matching graph at its phase 0 via `ChoreographyRunner`.
+3. Each node is a `"wait"` phase. Its `wait_duration` **is** the cancel/buffer window — there is no separate window timer.
+4. During that window the runner evaluates the phase's branches every frame; first passing branch wins and enters the next node. Timeout falls through to `default_next` (`-1` = chain ends → `choreo_on_chain_timeout`).
+5. Effects fire when `sprite.frame == phase.hit_frame`. An early hit frame (0–1) is how "crisp on press" is achieved — no extra mechanism.
+6. A held channel is a phase whose `ConditionInputHeld` branch points **at itself**: re-entry replays the animation and re-fires the hit frame, which is the tick. Release falls through to `default_next`.
+
+### Input contract
+
+Actions: `light_attack` (LMB / RT), `heavy_attack` (RMB / LT), `skill_q`, `skill_e`, `dash`. `fire` is a legacy alias sharing LMB's bindings. Aim is cursor-based (`aim_left/right/up/down` provide the right-stick equivalent).
+
+Dash is host-side on `player.gd`, not a choreography: `DASH_DURATION` is a fixed feel constant; distance, cooldown and charge count are modifier-driven (`dash_speed`, `dash_cooldown`, `dash_charges`). `_dash_style` selects the per-class variant (e.g. the Spark's teleport blink).
+
+### Cadence feedback
+
+`EventBus` carries three combo-specific signals consumed by audio/HUD: `on_combo_step(entity, depth, is_finisher)`, `on_finisher_hit(entity)`, and `on_combo_dropped(entity, depth)` (a chain at depth ≥ 2 that lapsed rather than being interrupted or finished — the "exhale"). Spec: `docs/combo_feedback_spec.md`.
+
+### Kit coverage
+
+All 12 classes ship `light` / `heavy` / `channel` graphs from `ChainFactory.build_kit()` plus Q/E skills from `SkillFactory.build_kit_skills()`. A character selects its graphs with the `melee_kit` key in `CharacterData.ALL` — `"fighter"`, `"rogue"`, `"paladin"`, `"wizard"`, `"blood_mage"`, `"ranger"`, `"bard"`, `"barbarian"`, `"ninja"`, `"gunslinger"`, `"druid"`, `"cleric"`.
+
+Animations for these phases are sliced/retimed through the Animation Lab (F10) and persist to `data/anim_overrides.json`, which **exported builds read**. See `docs/dev_tools.md`.
+
+---
 
 ## Content Creation Patterns
 
@@ -142,7 +212,7 @@ entity.modifier_component.add_modifier(mod)
 
 ### Codex System
 
-`CodexManager` (autoload, `scripts/systems/codex_manager.gd`) tracks per-combo discovery state across runs. Each `ModCombo` in `ComboRegistry` gets a `CodexEntry` with three progressive states: **discovered** (slotted in armory), **revealed** (triggered in a run), and **mastered** (triggered ≥ 50 times lifetime). The codex state serializes through `CodexManager.save_data()` / `load_data()` and is persisted by `ProgressionManager`. No hub UI panel exists yet — the data layer is complete but the viewer is planned.
+`CodexManager` (autoload, `scripts/systems/codex_manager.gd`) tracks per-combo discovery state across runs. Each `ModCombo` in `ComboRegistry` gets a `CodexEntry` with three progressive states: **discovered** (slotted in armory), **revealed** (triggered in a run), and **mastered** (triggered ≥ 50 times lifetime). The codex state serializes through `CodexManager.save_data()` / `load_data()` and is persisted by `ProgressionManager`. The viewer ships as `CodexGridPanel` (`scripts/ui/codex_grid_panel.gd`), embedded in the Armory hub panel rather than as its own station. In-run discoveries surface through `combo_discovery_popup.gd`.
 
 ### Mastery Bonuses
 
@@ -238,9 +308,11 @@ On death: all extractable loot is lost. Meta XP is granted at 25% of what a succ
 
 **Save triggers**: after successful extraction (`GameManager.on_extraction_complete`), on player death (`GameManager` run-end flow), after every hub action that mutates state (buy upgrade, equip mod, select character — each mutation method calls `save_data()` inline). Armory equip changes also save via `hub_armory_panel.gd`. No mid-run save — intentional; runs are atomic.
 
-## Unused / Underleveraged Systems
+## Engine Capabilities & Content Coverage
 
-Everything below is fully wired and functional but has zero or minimal content using it. These are the systems where new content can be created purely through data.
+Everything below is fully wired and functional. The **Coverage** line on each says how much content actually uses it today — a low-coverage system is where new content can be created purely through data, and a stub is a genuine gap.
+
+> Coverage claims were re-verified against `data/` on 2026-07-21. Before relying on a "no content" line, re-grep — this section drifts faster than any other.
 
 ### Trigger System
 
@@ -254,7 +326,7 @@ listener.conditions = [TriggerConditionSourceIsSelf.new()]  # only my kills
 listener.effects = [heal_effect]    # what happens
 ```
 
-**Available events**: `on_hit_dealt`, `on_hit_received`, `on_kill`, `on_crit`, `on_block`, `on_dodge`, `on_heal`, `on_death`, `on_status_applied`, `on_status_expired`, `on_absorb`, `on_displacement_resisted`, `on_overkill`, `on_revive`, `on_status_resisted`, `on_summon`, `on_summon_death`, `on_ability_used`
+**Available events**: any signal on `EventBus` — see the full vocabulary near the end of this doc.
 
 **Trigger conditions** (filter when effects fire):
 - `TriggerConditionSourceIsSelf` / `TriggerConditionTargetIsSelf` — event participant is trigger bearer
@@ -265,7 +337,7 @@ listener.effects = [heal_effect]    # what happens
 - `TriggerConditionTargetHitByTag` — target was recently hit by ability with tag
 - `TriggerConditionNotCrit` — hit was NOT a crit
 
-**Current usage**: Zero content uses triggers. TriggerComponent is fully wired — statuses register/unregister listeners automatically on apply/expire.
+**Coverage**: Heavy. Used by `status_factory.gd`, `mod_combo_factory.gd`, `passive_tree_factory.gd`, `gear_unique_factory.gd`, and `warped_enemy_data.gd`. Statuses register/unregister listeners automatically on apply/expire, so a trigger attached to a `StatusEffectDefinition` needs no wiring.
 
 ### Enemy Skills (Cooldown Abilities)
 
@@ -281,7 +353,7 @@ def.skills = [skill]
 
 AbilityComponent evaluates conditions (HP thresholds, stack counts, entity counts, etc.) and BehaviorComponent only fires if targets resolve and conditions pass.
 
-**Current usage**: All 8 enemy types only have auto_attack. No enemy uses skills.
+**Coverage**: Used by `ancient_troll`, `caster`, `goblin_king`, `heart_of_the_deep`, `stalker`, `warped_colossus`, `warped_enemy`. Basic roles (fodder, swarmer, brute, carrier, guardian, herald) still run auto-attack only.
 
 ### Choreography System (Boss Abilities)
 
@@ -310,9 +382,13 @@ Each phase can: play animation, fire effects on hit frame, execute displacement,
 
 **Branching**: Phases with `exit_type = "wait"` evaluate `branches: Array[ChoreographyBranch]` each frame. Each branch has a condition Resource and a `next_phase` index. First passing branch wins. Timeout falls through to `default_next`.
 
-Executor lives on `enemy.gd` (`_start_choreography()` through `_end_choreography()`). Stun interrupts choreography. Player currently lacks choreography execution but the pattern is identical.
+**One executor.** `ChoreographyRunner` (`scripts/components/choreography_runner.gd`) is host-agnostic and runs choreography for **both** the player (combo graphs) and `enemy.gd` (boss/elite sequences). enemy.gd's private duplicate was retired 2026-07-21, so a behavior change now lands in exactly one place.
 
-**Current usage**: Zero content. Fully ported and functional.
+Hosts implement the duck-typed `choreo_*` contract listed at the top of the runner. Enemies additionally implement `choreo_displacement_active()`, backing the `"displacement_complete"` exit type: charge/leap phases hold until the DisplacementSystem clears `is_channeling`, with a `duration + 1.5s` watchdog so a displacement that never ran can't hard-lock the boss in an invulnerable state.
+
+Stun/freeze interrupts choreography — genuinely, as of that migration. Before it, enemy.gd's choreography early-return preceded its stun check, making the interrupt branch unreachable; a stunned boss kept executing its attack.
+
+**Coverage**: Heavy on both sides. Bosses/elites: `goblin_king`, `heart_of_the_deep`, `warped_colossus`, `ancient_troll`. Player: every one of the 12 kits' light/heavy/channel graphs plus Q/E skills, via `ChainFactory` and `SkillFactory`. See "Combo-Chain Combat Layer" above and `docs/boss_authoring_reference.md`.
 
 ### Displacement System
 
@@ -344,7 +420,7 @@ Gates on ability firing. Evaluated by AbilityComponent before BehaviorComponent 
 - `ConditionCorpseExists` — allied/enemy corpse available
 - `ConditionTakingDamage` — entity hit within N seconds (optionally by ability tag)
 
-**Current usage**: Zero content uses ability conditions.
+**Coverage**: Used across `chain_factory.gd`, `skill_factory.gd`, `status_factory.gd`, `mod_combo_factory.gd`, `passive_tree_factory.gd`, `gear_unique_factory.gd`, and the boss data factories. The two input conditions (`ConditionInputBuffered`, `ConditionInputHeld`) are the combo layer's branch vocabulary and are evaluated by the host, not by AbilityComponent.
 
 ### Ground Zones
 
@@ -361,7 +437,7 @@ zone.tick_effects = [DealDamageEffect, ApplyStatusEffectData]
 
 Zone ticks run in `CombatOrchestrator._tick_ground_zones()`. Uses SpatialGrid for proximity.
 
-**Current usage**: Only Void Mortar weapon (single-tick detonation pattern).
+**Coverage**: Heavy. Weapons (`weapon_factory.gd`), player kits (`chain_factory.gd`, `skill_factory.gd`), class mods, mod combos, gear uniques, and enemy factories (`caster`, `guardian`, `herald`, `goblin_king`, `heart_of_the_deep`, `warped_colossus`, `warped_enemy`).
 
 ### Aura System
 
@@ -375,7 +451,7 @@ aura_status.aura_tick_effects = [ApplyStatusEffectData]  # buff/debuff per tick
 
 Uses SpatialGrid. Applied to bearer at spawn via `EnemyDefinition.on_spawn_statuses`.
 
-**Current usage**: Herald enemy only.
+**Coverage**: Herald enemy only (`herald_data.gd`). Still the cheapest untapped lever for enemy design.
 
 ### VFX System
 
@@ -394,7 +470,23 @@ layer.offset = Vector2(0, -10)
 layer.scale = Vector2(1.5, 1.5)
 ```
 
-**Current usage**: No content has VFX configured. System is fully wired.
+**Two different mechanisms own visuals — don't confuse them:**
+
+| Visual | Owner | Why |
+|---|---|---|
+| **Ability / combo VFX** | the player's **ComboFx overlay** (`player.gd`), NOT `vfx_layers` | The packs' `_Effect` sheets are declared as `<node>_fx` entries in `CharacterData.sprite.anims` and played on an overlay sprite that is **frame-locked to the choreography phase** and **facing-aware**. `AbilityDefinition.vfx_layers` fires once on `on_ability_used` with only offset/scale — strictly weaker. Treat `vfx_layers` on abilities as **dormant by choice**; wiring it there would duplicate working code. |
+| **Status VFX** | `StatusEffectDefinition.vfx_layers` → `VfxManager` | This is what `vfx_layers` is genuinely for: a looping overlay that lives as long as the status, with intro/loop/outro phases. |
+
+**Status coverage**: `burning`, `chilled`, `frozen` (`StatusFactory._attach_aura()` → `StatusVfxFactory`, added 2026-07-21). Before that, statuses had **no** visual at all — an afflicted enemy looked identical to a healthy one.
+
+Adding one to another status is a single line in its `_build_*`:
+
+```gdscript
+_attach_aura(def, "fire")               # or "ice" / "poison"
+_attach_aura(def, "ice", Vector2(0.8, 0.8))   # lighter states read smaller
+```
+
+`StatusVfxFactory` slices the Minifantasy Spell Effects **Aura** sheets, whose three rows map 1:1 onto `VfxLayerConfig` (row 0 → `start_animation`, row 1 → `animation` loop, row 2 → `end_animation`; 32px, 8 frames/row, 10fps). Missing sheets degrade to "no overlay", never to a broken status. Only fire/ice/poison sheets are wired — shock/void statuses have no aura yet.
 
 ### Talent Tree System
 
@@ -402,11 +494,14 @@ Fully wired data model. `TalentDefinition` carries modifiers, trigger listeners,
 
 `CharacterDefinition.talent_tree` holds the tree. Entity setup reads `talent_picks` and registers all talent effects.
 
-**Current usage**: Resource types exist. No character has a talent tree defined.
+**Coverage**: None — no character defines a `talent_tree`. **Superseded in practice** by the account-wide passive tree (`data/passive_tree.gd`, 59 nodes, `PassiveTreeFactory`, `ProgressionManager` allocation API) plus the per-run level-up ability upgrades (`data/ability_upgrades.gd`). Treat `TalentDefinition` / `TalentTreeDefinition` as dormant engine surface, not as the progression plan. See `docs/passive_tree.md`.
 
 ### Summon System
 
-`SummonEffect` resource type exists. `EffectDispatcher` routes to `CombatOrchestrator.spawn_summon()` which is currently a stub (`push_warning`). To implement: create summon entity from template, register with orchestrator, track in `source._active_summons`.
+Two distinct paths, and picking the wrong one is a common mistake:
+
+- **Enemy-side** — implemented. `SummonEffect.summon_id` is an `EnemyRegistry` id; `CombatOrchestrator.spawn_summon()` refills the summoner's retinue up to `max_active` live adds, tagging each with a `summoned_by` meta. Used by `goblin_king_data.gd`.
+- **Player-side** — deliberately *not* routed through `SummonEffect`. Pets are autonomous entities with their own scripts (`fire_familiar.gd`, `blood_elemental.gd`, `spirit_guardian.gd`, `holy_hammer.gd`, `orbit_orb.gd`, `summon_altar.gd`). Calling `spawn_summon()` from player content emits a `push_warning` and does nothing. Per project rule, pets own their locomotion — never lerp-glue them to the player.
 
 ### Death Prevention
 
@@ -435,6 +530,42 @@ Fully wired data model. `TalentDefinition` carries modifiers, trigger listeners,
 ### Overflow Chain
 
 `OverflowChainEffect` — overkill damage chains to nearest unhit enemy. If that also overkills, keeps chaining up to `max_chains`. Optional `heal_percent` heals source for total damage dealt.
+
+### Resurrection
+
+`ResurrectEffect` dispatches to `CombatOrchestrator.revive_entity()`, which is **still a stub** (`push_warning`, no behavior). `get_nearest_corpse()` and the orchestrator's `corpses` list are real; only the revival itself is unimplemented. `ConditionCorpseExists` will evaluate correctly against that list.
+
+---
+
+## Two-Layer Mod System
+
+Mods split into two families that never mix. Full reference: `docs/class_mod_system.md`.
+
+| Layer | Data | Applies to | Count |
+|-------|------|-----------|-------|
+| **Generic mods** | `data/mods.gd` | Any weapon whose capability tags match. Resolved by `data/mod_applicability.gd`. | 18 |
+| **Class mods** | `data/class_mods.gd` → `ClassModFactory` | One class's kit — modifies that kit's chain/skill primitives. | 48 (4 per class × 12) |
+
+Generic mods carry applicability tags; kits carry capability tags; the resolver decides what can slot where, including the switch-character edge case. Generic-mod pair/triple interactions are catalogued in `docs/mod_interaction_matrix.md` and resolved at runtime by `ComboRegistry` → `ComboDetector` → `ComboEffectResolver`, with discovery state in `CodexManager`.
+
+## Descent & Level Streaming
+
+In `use_descent_mode` the arena is assembled from **blocks** rather than one authored level:
+
+| Piece | File | Role |
+|-------|------|------|
+| `BlockManager` | `scripts/systems/block_manager.gd` | Selects and streams blocks. |
+| `DepthTracker` | `scripts/systems/depth_tracker.gd` | Spatial depth 0.0–1.0, pushed to `GameManager.set_descent_depth()` once per frame by MainArena. |
+| `LdtkLevelDirector` | `scripts/systems/ldtk_level_director.gd` | Level/biome sequencing. |
+| `LdtkLoader` | `scripts/systems/ldtk_loader.gd` | Parses `.ldtkl`, builds collision, spawn zones, exits, decoration. |
+| `LdtkExitZone` | `scripts/systems/ldtk_exit_zone.gd` | Block-to-block transitions. |
+| `FlowField` | `scripts/systems/flow_field.gd` | 8px navigation grid with amortized flood fill — enemy pathing through block geometry. Orchestrator-owned. |
+
+Blocks live in `blocks/{caves,crypt,nmrealm}/` as `.block` text sketches, compiled by `tools/block_compiler.py` into `.ldtkl` + PNG previews in `blocks/previews/`. **Authoring path: `docs/block_sketch_workflow.md` and the `/blockgen` skill — do not hand-paint.**
+
+## Audio
+
+`AudioManager` (autoload) routes SFX and music; `data/factories/sound_table.gd` maps ~54 sound ids to assets. Weapon fire is wired through `on_ability_used`. Tooling and per-sound status: `docs/audio_pipeline.md`, `docs/audio_asset_manifest.md`.
 
 ---
 
@@ -489,20 +620,43 @@ All in `data/resources/effects/`. Each is a Resource with @export fields, zero b
 
 **DebugDraw** (`CombatOrchestrator.debug_draw`): Toggle with debug panel button. Visualizes targeting areas and ability hitboxes on `on_ability_used`. Set `debug_draw.enabled = true`, optionally filter with `debug_draw.ability_filter = ["ability_id"]`.
 
-**Entity Inspector** (F5): Click-to-inspect overlay. Shows all entity state: HP, stats, behavior, abilities with cooldowns, active statuses with stacks/duration, modifiers, trigger listeners. Mouse wheel scrolls. ESC deselects.
+**Entity Inspector** (F5): Click-to-inspect overlay. Shows all entity state: HP, stats, behavior, abilities with cooldowns, active statuses with stacks/duration, modifiers, trigger listeners. Mouse wheel scrolls. ESC deselects. Click-select is gated behind the debug toggle.
 
 **Debug Panel** (F1): God mode, level-up, spawn enemies, give weapons/mods/resources, kill all, skip extraction, activate all extractions, spawn keystone, debug draw toggle.
 
+**Hotkeys** (all require `GameManager.debug_mode`):
+
+| Key | Action |
+|-----|--------|
+| F1 | Toggle debug panel |
+| F2 | God mode |
+| F3 | Level up once |
+| F4 | Skip extraction |
+| F5 | Spawn test telegraph / entity-inspector toggle |
+| F6 | Spawn miniboss |
+| F7 | Spawn final boss |
+| F10 | Animation Lab |
+| F11 | Training Room panel show/hide |
+
+F8/F9 are Godot's built-in Stop/Pause — never bind them.
+
+**Training Room** (main menu → TRAINING ROOM): flat sandbox with dummies, live class swap, hit-back toggle, live fodder pack, slow-mo, and a DPS meter. **Animation Lab** (F10): re-slice and retime any kit animation, re-pin hit frames, author intro/loop/outro staging for held abilities; writes `data/anim_overrides.json`, which exported builds read. Full guide: `docs/dev_tools.md`.
+
 ## EventBus Signal Vocabulary
 
-Combat: `on_hit_dealt`, `on_hit_received`, `on_kill`, `on_death`, `on_heal`, `on_crit`, `on_block`, `on_dodge`, `on_overkill`, `on_reflect`, `on_absorb`
-Status: `on_status_applied`, `on_status_expired`, `on_status_consumed`, `on_status_resisted`, `on_cleanse`
-Movement: `on_displacement_resisted`
-Ability: `on_ability_used`
-Entity: `on_summon`, `on_summon_death`, `on_revive`
-System: `on_chain_threshold`, `on_conversion`, `on_doom_trigger`
+Source of truth: `scripts/autoloads/event_bus.gd`.
 
-All signals flow through `EventBus` (autoload). TriggerComponent connects lazily via refcount. CombatFeedbackManager and VfxManager also listen directly.
+| Group | Signals |
+|-------|---------|
+| Combat | `on_hit_dealt`, `on_hit_received`, `on_kill`, `on_death`, `on_heal`, `on_crit`, `on_block`, `on_dodge`, `on_overkill`, `on_consecutive_hit`, `on_first_hit`, `on_interrupt`, `on_reflect`, `on_absorb`, `on_friendly_fire` |
+| Combo cadence | `on_finisher_hit`, `on_combo_step`, `on_combo_dropped` |
+| Status | `on_status_applied`, `on_status_expired`, `on_status_consumed`, `on_status_resisted`, `on_cleanse` |
+| Movement | `on_displacement_resisted` |
+| Ability | `on_ability_used` |
+| Entity | `on_ally_death`, `on_ally_hit_received`, `on_summon`, `on_summon_death`, `on_revive`, `on_transform` |
+| System | `on_chain_threshold`, `on_chain_break`, `on_threshold_cross`, `on_echo`, `on_conversion`, `on_idle`, `on_pickup`, `on_doom_trigger`, `on_proximity_enter`, `on_proximity_exit` |
+
+All signals flow through `EventBus` (autoload). TriggerComponent connects lazily via refcount. CombatFeedbackManager, VfxManager, AudioManager, and AchievementManager also listen directly.
 
 ## Key File Locations
 
@@ -520,19 +674,32 @@ All signals flow through `EventBus` (autoload). TriggerComponent connects lazily
 | Systems | `scripts/systems/*.gd` |
 | Orchestrator | `scripts/systems/combat_orchestrator.gd` |
 | Arena wiring | `scripts/main_arena.gd` |
-| Game data | `data/characters.gd`, `data/weapons.gd`, `data/mods.gd` |
+| Combo chains / kits | `data/factories/chain_factory.gd`, `data/factories/skill_factory.gd`, `scripts/components/choreography_runner.gd`, `scripts/systems/combat_input_buffer.gd` |
+| Game data | `data/characters.gd` (12), `data/weapons.gd` (42), `data/mods.gd` (18), `data/class_mods.gd` (48), `data/trinkets.gd` (9), `data/ability_upgrades.gd` (36), `data/passive_tree.gd` (59), `data/achievements.gd` (12) |
+| Class mods | `data/class_mods.gd`, `data/factories/class_mod_factory.gd`, `data/mod_applicability.gd` |
+| Progression | `data/passive_tree.gd`, `data/factories/passive_tree_factory.gd`, `data/ability_upgrades.gd`, `data/achievements.gd` |
+| Gear | `data/trinkets.gd`, `data/factories/gear_unique_factory.gd` |
 | Loot tables | `data/loot_tables.gd` (autoload) |
-| Codex / mastery | `scripts/systems/codex_manager.gd`, `scripts/systems/mastery_applicator.gd`, `scripts/resources/codex_entry.gd`, `scripts/resources/mastery_bonus.gd` |
-| Level loading | `scripts/systems/ldtk_loader.gd`, `data/level_data.gd` |
+| Codex / mastery | `scripts/systems/codex_manager.gd`, `scripts/systems/mastery_applicator.gd`, `scripts/resources/codex_entry.gd`, `scripts/resources/mastery_bonus.gd`, `scripts/ui/codex_grid_panel.gd` |
+| Level loading / descent | `scripts/systems/ldtk_loader.gd`, `scripts/systems/block_manager.gd`, `scripts/systems/depth_tracker.gd`, `scripts/systems/ldtk_level_director.gd`, `scripts/systems/flow_field.gd`, `data/factories/level_data.gd` |
+| Audio | `scripts/managers/audio_manager.gd`, `data/factories/sound_table.gd` |
+| Dev tools | `scripts/ui/anim_lab_panel.gd`, `scripts/ui/training_panel.gd`, `data/anim_overrides.json` |
 | Save file | `user://progression.json` (written by `ProgressionManager`) |
 
 ## See Also
 
 | Doc | Contents |
 |-----|---------|
-| `docs/mechanical_vocabulary.md` | Game grammar: damage types, status effects, weapon behaviors, mod effects, trigger events |
+| `docs/combat_chain_architecture.md` | The combo-chain layer: combo-graph-as-choreography, input conditions, `ChoreographyRunner`, kit composition |
+| `docs/mechanical_vocabulary.md` | Game grammar: damage types, status effects, weapon behaviors, mod effects, class-mod ops, trigger events |
 | `docs/core_framework_decisions.md` | Math baselines: damage formula, XP curve, phase scaling, extraction timing, instability thresholds, economy |
-| `docs/mod_interaction_matrix.md` | All 69 two-mod pairs and 8 triple combos with resolved effects |
-| `docs/weapon-scaling-reference.md` | Per-weapon base stats, DPS figures, attack patterns |
+| `docs/class_mod_system.md` | Two-layer mod model, applicability resolver, per-class mod rosters |
+| `docs/mod_interaction_matrix.md` | Generic-mod pairs and triples with resolved effects |
+| `docs/passive_tree.md` | Passive tree data contract, gate rules, render recipe |
+| `docs/boss_authoring_reference.md` | Boss/miniboss choreography patterns and telegraphs |
+| `docs/dev_tools.md` | Training Room and Animation Lab |
+| `docs/weapon-scaling-reference.md` | Per-weapon base stats and mod synergies (v1 universal weapons only) |
 | `docs/ldtk_schema.md` | LDtk contract: entity defs, enums, IntGrid values, layer stack |
 | `docs/ldtk_workflow.md` | LDtk authoring: add a biome, add a level, biome asset map |
+| `docs/block_sketch_workflow.md` | Descent block authoring via text sketches + `tools/block_compiler.py` |
+| `docs/diagrams.md` | Mermaid views of the same systems |
