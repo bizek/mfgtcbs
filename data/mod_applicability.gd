@@ -32,7 +32,7 @@ const KIT_CAPABILITIES: Dictionary = {
 	"ninja":      ["melee_hit"],
 	"cleric":     ["melee_hit"],
 	"druid":      ["melee_hit"],
-	"rogue":      ["melee_hit", "projectile"],   ## shuriken fan + thrown bomb
+	"necromancer": ["melee_hit", "projectile"],  ## staff-cast jabs + bone missiles
 	"ranger":     ["melee_hit", "projectile"],   ## arrow volleys + throwing knife
 	"wizard":     ["melee_hit", "projectile"],   ## bolts + charged fireball
 	"blood_mage": ["melee_hit", "projectile"],   ## blood shard volleys

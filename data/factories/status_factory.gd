@@ -25,7 +25,6 @@ static var chilled: StatusEffectDefinition
 static var frozen: StatusEffectDefinition
 static var shocked: StatusEffectDefinition
 static var void_touched: StatusEffectDefinition
-static var shade_invisible: StatusEffectDefinition
 static var abyssal_slow: StatusEffectDefinition  ## The Deep's Pull: void wake slow
 
 ## Trigger-based upgrade effects (passive statuses on player)
@@ -74,7 +73,6 @@ static func build_all() -> void:
 	frozen = _build_frozen()
 	shocked = _build_shocked()
 	void_touched = _build_void_touched()
-	shade_invisible = _build_shade_invisible()
 	abyssal_slow = _build_abyssal_slow()
 
 	bloodthirst = _build_bloodthirst()
@@ -123,8 +121,6 @@ static func get_by_id(status_id: String) -> StatusEffectDefinition:
 			return void_touched
 		"abyssal_slow":
 			return abyssal_slow
-		"shade_invisible":
-			return shade_invisible
 		"bloodthirst":
 			return bloodthirst
 		"static_discharge":
@@ -362,16 +358,6 @@ static func _build_void_touched() -> StatusEffectDefinition:
 	return def
 
 
-static func _build_shade_invisible() -> StatusEffectDefinition:
-	## Brief invisibility on dodge. 0.5 seconds.
-	var def := StatusEffectDefinition.new()
-	def.status_id = "shade_invisible"
-	def.tags = ["Stealth"]
-	def.is_positive = true
-	def.max_stacks = 1
-	def.base_duration = 0.5
-
-	return def
 
 
 # ── Trigger-based upgrade effects ──────────────────────────────────────────

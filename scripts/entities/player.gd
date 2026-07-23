@@ -270,6 +270,13 @@ var _vamp_hit: bool = false              ## last extract beat found blood to dri
 const ROOT_DECAL_SHEET: String = "res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Druid/Special_Animations/Root_Summoning/Minifantasy_TrueHeroesDruidRootAttack.png"
 const PAIN_DECAL_SHEET: String = "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Cleric/Special_Animations/Prayers/Word_Of_Pain/WordOfPain.png"
 var _spirit_guardian: Node2D = null
+## Necromancer kit (The Shade): the persistent Skeletal Champion companion (pet standard) + Soul
+## Harvest state — kills bank souls that heal and, every SOUL_HARVEST_THRESHOLD, empower the next summon.
+var _skeletal_champion: Node2D = null
+const SOUL_HARVEST_HEAL: float = 2.0        ## HP restored per soul reaped
+const SOUL_HARVEST_THRESHOLD: int = 3       ## souls banked → next Rise Corpse / Bone Legion is empowered
+var _soul_charges: int = 0
+var _next_summon_empowered: bool = false
 ## Bard kit (The Herald): Ballad heal-per-beat + the loose Songs effect sheets.
 const BALLAD_HEAL_FRAC: float = 0.01     ## Ballad beat heals 1% max HP
 const BALLAD_NOTE_SHEET: String = "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/Ballad/BalladEnchant1.png"
@@ -310,8 +317,9 @@ func _ready() -> void:
 	sprite.animation_finished.connect(_on_sprite_animation_finished)
 	sprite.frame_changed.connect(_on_sprite_frame_changed)
 
-	# Shade passive: dodge triggers invisibility
-	EventBus.on_dodge.connect(_on_dodge_received)
+	# Necromancer Soul Harvest: kills feed souls (heal + empowered summons). Gated on the passive
+	# inside the handler; connecting unconditionally is safe (the char is loaded before enemies die).
+	EventBus.on_kill.connect(_on_kill_soul_harvest)
 
 	# Blood Eruption pools: deaths inside an active pool feed the Cursed.
 	EventBus.on_death.connect(_on_any_entity_death)
@@ -1370,6 +1378,12 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 	## Cleric Spirit Guardians: the prayer summons/refreshes the guardian companion.
 	if cur_anim.begins_with("pray_guardian"):
 		_spawn_spirit_guardian()
+	## Necromancer summons: Rise Corpse raises the persistent champion; Bone Legion raises a swarm.
+	## (Order matters — "bone_legion" must not fall into the generic "rise_corpse" case.)
+	if cur_anim.begins_with("bone_legion"):
+		_spawn_bone_legion()
+	elif cur_anim.begins_with("rise_corpse"):
+		_spawn_skeletal_champion()
 	## Second Wind: the salute lands — green mend ring + flash so the heal reads on cast.
 	if cur_anim.begins_with("rally"):
 		_spawn_shockwave_ring(26.0, Color(0.35, 1.0, 0.45, 0.9))
@@ -1872,6 +1886,52 @@ func _spawn_spirit_guardian() -> void:
 	var side: float = -1.0 if _facing.ends_with("left") else 1.0
 	g.global_position = global_position + Vector2(22.0 * side, 4.0)
 	_spirit_guardian = g
+
+
+func _spawn_skeletal_champion() -> void:
+	## Rise Corpse (Q): one persistent champion at a time — resummon replaces the old one. Mirrors
+	## the SpiritGuardian/BloodElemental pet standard (autonomous locomotion + leash; CLAUDE.md).
+	if is_instance_valid(_skeletal_champion):
+		_skeletal_champion.banish()
+	var champ := SkeletalChampion.new()
+	champ.player_ref = self
+	champ.damage_type = ChainFactory._damage_type(_weapon_data)
+	get_tree().current_scene.add_child(champ)
+	var side: float = -1.0 if _facing.ends_with("left") else 1.0
+	champ.global_position = global_position + Vector2(22.0 * side, 4.0)
+	_skeletal_champion = champ
+	## Soul Harvest: a banked soul quota conjures an extra, longer-lived champion alongside it.
+	if _consume_summon_empower():
+		var extra := SkeletalChampion.new()
+		extra.player_ref = self
+		extra.damage_type = champ.damage_type
+		extra.lifetime = 30.0
+		get_tree().current_scene.add_child(extra)
+		extra.global_position = global_position + Vector2(-22.0 * side, 4.0)
+
+
+func _spawn_bone_legion() -> void:
+	## Bone Legion (E): raise a short-lived pack of weaker skeletons at once (they self-free on their
+	## lifetime timer; not tracked as the persistent champion). Soul Harvest adds one more to the pack.
+	var count: int = 3 if _consume_summon_empower() else 2
+	var dtype: String = ChainFactory._damage_type(_weapon_data)
+	for i in range(count):
+		var sk := SkeletalChampion.new()
+		sk.player_ref = self
+		sk.damage_type = dtype
+		sk.lifetime = 8.0
+		sk.damage_mult = 0.35
+		get_tree().current_scene.add_child(sk)
+		var ang: float = TAU * float(i) / float(count)
+		sk.global_position = global_position + Vector2(cos(ang), sin(ang)) * 26.0
+
+
+## True (and clears the flag) when a banked Soul Harvest quota should empower this summon.
+func _consume_summon_empower() -> bool:
+	if not _next_summon_empowered:
+		return false
+	_next_summon_empowered = false
+	return true
 
 
 func _pay_blood_cost() -> void:
@@ -2553,6 +2613,11 @@ func _try_dash(input_dir: Vector2) -> void:
 	if _dash_style == "deadly":
 		_spawn_teleport_ghost("dash_out")
 		_deadly_dash_strike(_dash_dir)
+	## Plane Shift (the Shade): dematerialize to the invulnerable Soul form for the dash window (the
+	## "dodge" anim above is mapped to Soul_Fly, so the soul body plays automatically); the departure
+	## ghost sells the phase-out. The dash's own i-frames + phasing ARE the pass-through.
+	if _dash_style == "planeshift":
+		_spawn_teleport_ghost("dash_out")
 	## Start the refill clock if it isn't already running (don't reset a charge mid-refill).
 	if _dash_cooldown_timer <= 0.0:
 		_dash_cooldown_timer = _dash_cooldown_seconds()
@@ -2574,6 +2639,8 @@ func _dash_sound_id() -> String:
 	## Class-flavored dash SFX: blink, blade trail, dodge roll, or the generic whoosh.
 	if _dash_style == "teleport":
 		return "sfx_dash_teleport"
+	if _dash_style == "planeshift":
+		return "sfx_dash_teleport"   ## soul phase-out reuses the blink stinger
 	if _dash_style == "deadly":
 		return "sfx_dash_deadly"
 	if sprite and sprite.sprite_frames and sprite.sprite_frames.has_animation("dodge"):
@@ -2739,11 +2806,10 @@ func is_dead() -> bool:
 
 
 func is_invisible() -> bool:
-	## Shade dodge invisibility, or the Ranger's Conceal channel (refreshed while held).
+	## The Ninja's Smoke Bomb / Ranger's Conceal "concealed" stealth (refreshed while held).
 	if status_effect_component == null:
 		return false
-	return status_effect_component.has_status("shade_invisible") \
-			or status_effect_component.has_status("concealed")
+	return status_effect_component.has_status("concealed")
 
 
 func apply_knockback(force: Vector2) -> void:
@@ -2891,25 +2957,20 @@ func _start_hit_flash() -> void:
 		st.tween_property(cam, "offset", Vector2.ZERO, 0.14)
 
 
-func _on_dodge_received(_source, target, _hit_data) -> void:
-	if target != self:
+func _on_kill_soul_harvest(killer: Node, victim: Node) -> void:
+	## Necromancer Soul Harvest: each enemy the Shade fells yields a soul — a trickle of life now,
+	## and every SOUL_HARVEST_THRESHOLD souls empowers the next Rise Corpse / Bone Legion. (Auto-
+	## collected on the kill; the world-mote pickup form is a noted follow-up.)
+	if _passive_id != "necro_soul_harvest":
 		return
-	_trigger_dodge()
-
-
-func _trigger_dodge() -> void:
-	## Shade invisibility on dodge via engine StatusEffectDefinition — Shade only
-	if _passive_id != "shade_passive":
+	if killer != self or not victim.is_in_group("enemies"):
 		return
-	StatusFactory.build_all()
-	status_effect_component.apply_status(StatusFactory.shade_invisible, self)
-	sprite.modulate = Color(0.72, 0.52, 1.0, 0.35)
-	status_effect_component.status_expired.connect(
-		func(sid: String):
-			if sid == "shade_invisible" and is_instance_valid(self) and is_alive:
-				if _iframes_timer <= 0.0:
-					sprite.modulate = Color.WHITE
-	, CONNECT_ONE_SHOT)
+	if is_alive and health.current_hp < health.max_hp:
+		health.apply_healing(SOUL_HARVEST_HEAL)
+	_soul_charges += 1
+	if _soul_charges >= SOUL_HARVEST_THRESHOLD:
+		_soul_charges = 0
+		_next_summon_empowered = true
 
 
 func heal(amount: float) -> void:

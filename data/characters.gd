@@ -247,49 +247,54 @@ const ALL: Dictionary = {
 	},
 
 	## ─── The Shade ────────────────────────────────────────────────────────────
-	## Untouchable. Highest move speed; dodges grant brief invisibility.
+	## Necromancer. A summoner-caster: bone missiles, a void nova, and raised dead.
 	"The Shade": {
 		"id":              "The Shade",
 		"display_name":    "THE SHADE",
-		"char_class":      "Rogue",
-		"description":     "A cutthroat who simply isn't where the blow lands — gone in a wisp of shadow.",
-		"starting_weapon": "Shadowfang",   ## Rogue GREEN (task 34 class gear)
-		"melee_kit":       "rogue",          ## drives the combo-chain moveset (ChainFactory)
-		"passive_id":      "shade_passive",
-		"passive_name":    "Shadowstep",
-		"passive_desc":    "15% Dodge Chance. Dodge grants 0.5s invisibility.",
+		"char_class":      "Necromancer",
+		"description":     "A shrouded reaper who empties graves against the horde — bone, void, and the risen dead answer the call.",
+		"starting_weapon": "Boneculler Staff",   ## Necromancer GREEN (task 34 class gear)
+		"melee_kit":       "necromancer",         ## drives the combo-chain moveset (ChainFactory/SkillFactory)
+		"passive_id":      "necro_soul_harvest",
+		"passive_name":    "Soul Harvest",
+		"passive_desc":    "Kills reap souls — a little life each, and every 3rd empowers your next summon.",
+		"dash_style":      "planeshift",          ## Plane Shift: dematerialize to the invulnerable Soul form
 		"portrait":        "res://assets/characters/portraits/the_shade.png",
 		"unlock_cost":     2000,
-		"base_hp":         75.0,
-		"base_armor":      0.0,
-		"base_move_speed": 66.0,   ## deliberate-pacing rebalance 2 2026-07-07 (was 80, orig 144) — fastest character
+		"base_hp":         95.0,
+		"base_armor":      2.0,
+		"base_move_speed": 46.0,   ## slow summoner-caster — leans on minions and range, not footwork
 		"color":           Color(0.65, 0.38, 0.92),   ## deep violet
 		"color_body":      Color(0.35, 0.22, 0.55),
 		"color_head":      Color(0.58, 0.38, 0.78),
-		## Rogue (True Heroes I) — hooded cutthroat; native Dodge anim suits the dodge passive. §2.5
+		## Supreme Necromancer (True Villains I) — bare sheet filenames (no class-name prefix); the
+		## villain pack bakes its glow into the base sheets (Only_Effect/No_Effect split), so no _fx
+		## overlays are needed. Combo timing/damage live in ChainFactory.build_necro_* / SkillFactory.
 		"sprite": {
-			"dir":        "res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Rogue/General_Animations/",
+			"dir":        "res://assets/minifantasy/Minifantasy_True_Villains_I_v1.0/_Minifantasy_True_Villains_Assets/Supreme_Necromancer/General_Animations/",
 			"frame_size": 32,
 			"dir_row":    0,
 			"anims": {
-				"idle":   ["Minifantasy_TrueHeroesRogueIdle.png",   16,  9.0],
-				"walk":   ["Minifantasy_TrueHeroesRogueWalk.png",    4, 10.0],
-				"attack": ["Minifantasy_TrueHeroesRogueAttack.png",  4, 20.0],
-				"damage": ["Minifantasy_TrueHeroesRogueDmg.png",     4, 15.0],
-				"death":  ["Minifantasy_TrueHeroesRogueDie.png",    26, 26.0],
-				## Class-flavored dash: the pack's real Dodge roll plays during Space dashes.
-				"dodge":  ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Rogue/Special_Animations/Mobility/Minifantasy_TrueHeroesRogueDodge.png", 8, 30.0],
-				## Combo specials (Special_Animations/ subfolders → absolute res:// paths).
-				## Timing/damage live in ChainFactory.build_rogue_* (provisional).
-				## "attack_2" re-slices the Attack sheet at a higher fps: a distinct anim NAME so
-				## the runner's play() restarts it on back-to-back slash phases (same-anim play()
-				## doesn't restart mid-anim).
-				## The Throw Bomb package's projectile + explosion sheets are wired directly in
-				## player.gd (BOMB_PROJ_SHEETS / BOMB_EXPLOSION_SHEET) — world-anchored visuals,
-				## not body-overlay anims, so they don't slice into the character SpriteFrames.
-				"attack_2": ["Minifantasy_TrueHeroesRogueAttack.png", 4, 26.0],
-				"fan":      ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Rogue/Special_Animations/Shurikens/Minifantasy_TrueHeroesRogueShurikens.png", 15, 30.0],
-				"bomb":     ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Rogue/Special_Animations/Throw Bomb/Minifantasy_TrueHeroesRogueThrowBomb.png", 11, 18.0],
+				"idle":   ["Idle.png",   27, 12.0],
+				"walk":   ["Walk.png",     4,  9.0],
+				"attack": ["Attack.png",  13, 24.0],
+				"damage": ["Dmg.png",      4, 15.0],
+				"death":  ["Die.png",     22, 24.0],
+				## "attack_2" re-slices the cast faster — a distinct anim NAME so the runner's play()
+				## restarts it on back-to-back cast phases (same-anim play() doesn't restart mid-anim).
+				"attack_2":   ["Attack.png", 13, 30.0],
+				## "bone_cast" re-slices the cast for the Bone Missile finisher + barrage channel; the
+				## bolt itself is a world-anchored projectile built in ChainFactory (not a body anim).
+				"bone_cast":  ["Attack.png", 13, 26.0],
+				## Bone Swirl heavy nova — the pack's cast pose (Bone_Swirl_Cast, 32px, 4 rows).
+				"bone_swirl": ["res://assets/minifantasy/Minifantasy_True_Villains_I_v1.0/_Minifantasy_True_Villains_Assets/Supreme_Necromancer/Special_Animations/Bone_Swirl/Bone_Swirl_Cast.png", 29, 26.0],
+				## Summons: one shared Rise_Corpse cast body under two anim NAMES so the host branches
+				## (rise_corpse → persistent champion; bone_legion → short-lived swarm).
+				"rise_corpse":["res://assets/minifantasy/Minifantasy_True_Villains_I_v1.0/_Minifantasy_True_Villains_Assets/Supreme_Necromancer/Special_Animations/Rise_Corpse/Rise_Corpse.png", 18, 18.0],
+				"bone_legion":["res://assets/minifantasy/Minifantasy_True_Villains_I_v1.0/_Minifantasy_True_Villains_Assets/Supreme_Necromancer/Special_Animations/Rise_Corpse/Rise_Corpse.png", 18, 18.0],
+				## "dodge" is mapped to the Soul form (Plane_Shift/Soul_Shape) so the planeshift dash
+				## plays the invulnerable soul flight via the shared dash-anim path in player.gd.
+				"dodge":      ["res://assets/minifantasy/Minifantasy_True_Villains_I_v1.0/_Minifantasy_True_Villains_Assets/Supreme_Necromancer/Special_Animations/Plane_Shift/Soul_Shape/Soul_Fly.png", 4, 16.0],
 			},
 		},
 	},

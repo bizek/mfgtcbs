@@ -26,7 +26,7 @@ const CANCEL_WIN: float = 0.75      ## light-chain cancel/buffer window (forgivi
 const HEAVY_WIN: float = 0.55       ## Uppercut → Cataclysm follow-up window
 const WHIRL_TICK: float = 0.22      ## one Swirl rotation ≈ Whirlwind tick
 const TAUNT_TICK: float = 0.56      ## Taunt anim length (9f @ 16fps) ≈ shockwave tick
-const FAN_TICK: float = 0.50        ## Rogue Fan of Blades tick (fan: 15f @ 30fps = 0.5s)
+const BONE_TICK: float = 0.42       ## Necromancer Bone Barrage channel beat (one bone_cast loose per tick)
 const DICTUM_TICK: float = 0.75     ## Paladin channel tick (dictum/dome: 15f @ 20fps = 0.75s)
 const TORRENT_TICK: float = 0.67    ## Wizard Fire Torrent tick (torrent: 20f @ 30fps ≈ 0.67s)
 const VAMP_TICK: float = 0.5        ## Blood Mage Vampirize half-cycle (7f @ 14fps = 0.5s)
@@ -52,11 +52,11 @@ static func build_kit(kit_id: String, weapon_data: Dictionary) -> Dictionary:
 				"heavy": build_fighter_heavy(weapon_data),
 				"channel": build_fighter_taunt(weapon_data),
 			}
-		"rogue":
+		"necromancer":
 			return {
-				"light": build_rogue_light(weapon_data),
-				"heavy": build_rogue_heavy(weapon_data),
-				"channel": build_rogue_fan(weapon_data),
+				"light": build_necro_light(weapon_data),
+				"heavy": build_necro_heavy(weapon_data),
+				"channel": build_necro_barrage(weapon_data),
 			}
 		"paladin":
 			return {
@@ -242,109 +242,123 @@ static func build_fighter_taunt(weapon_data: Dictionary) -> AbilityDefinition:
 	return _ability("fighter_taunt", "Taunt", choreo)
 
 
-# --- Rogue: light combo (LMB) ---
-## The Shade — fast blades ending in a shuriken fan. Tighter radii than the Fighter (a knife, not a
-## greatsword) but a longer-reach ranged finisher. No held-LMB channel (Flurry cut after playtest
-## 2026-07-04 — felt bad; RMB-hold Fan of Blades remains the kit's channel). Phase indices:
-## 0 Slash · 1 Slash II · 2 Shuriken Fan · 3 Bomb.
-static func build_rogue_light(weapon_data: Dictionary) -> AbilityDefinition:
+# --- Necromancer: light combo (LMB) ---
+## The Shade — a summoner-caster. Staff-cast jabs feed a Bone Missile finisher; RMB at depth erupts
+## into a Bone Swirl. The bone bolt is a directional projectile (Bone_Missile package, ortho+diagonal
+## flight sheets), so this kit declares "projectile" capability. Phase indices:
+## 0 Cast · 1 Cast II · 2 Bone Missile · 3 Bone Swirl.
+static func build_necro_light(weapon_data: Dictionary) -> AbilityDefinition:
 	var dmg: float = weapon_data.get("damage", 42.0)
 	var dtype: String = _damage_type(weapon_data)
 
-	# 0 — Slash (crisp opener). No bomb branch here (gate = depth ≥ Slash II).
-	var slash := ChoreographyPhase.new()
-	slash.animation = "attack"
-	slash.hit_frame = 1
-	slash.effects = [_aoe(dtype, dmg * 0.9, 26.0)]
-	slash.exit_type = "wait"
-	slash.wait_duration = CANCEL_WIN
-	slash.default_next = -1
-	slash.branches = [
-		_branch_buffered("light_attack", 1),               # tap → Slash II
+	# 0 — Cast (staff jab, small void burst). No swirl branch here (gate = depth ≥ Cast II).
+	var cast := ChoreographyPhase.new()
+	cast.animation = "attack"
+	cast.hit_frame = 5
+	cast.effects = [_aoe(dtype, dmg * 0.8, 28.0)]
+	cast.exit_type = "wait"
+	cast.wait_duration = CANCEL_WIN
+	cast.default_next = -1
+	cast.branches = [
+		_branch_buffered("light_attack", 1),               # tap → Cast II
 	]
 
-	# 1 — Slash II (faster re-slice of the same sheet; gate now met → bomb branch available).
-	var slash2 := ChoreographyPhase.new()
-	slash2.animation = "attack_2"
-	slash2.hit_frame = 1
-	slash2.effects = [_aoe(dtype, dmg * 0.7, 26.0)]
-	slash2.exit_type = "wait"
-	slash2.wait_duration = CANCEL_WIN
-	slash2.default_next = -1
-	slash2.branches = [
-		_branch_buffered("light_attack", 2),               # tap → Shuriken Fan
-		_branch_buffered("heavy_attack", 3),               # RMB → Bomb
+	# 1 — Cast II (faster re-slice; gate now met → Bone Swirl branch available).
+	var cast2 := ChoreographyPhase.new()
+	cast2.animation = "attack_2"
+	cast2.hit_frame = 5
+	cast2.effects = [_aoe(dtype, dmg * 0.6, 28.0)]
+	cast2.exit_type = "wait"
+	cast2.wait_duration = CANCEL_WIN
+	cast2.default_next = -1
+	cast2.branches = [
+		_branch_buffered("light_attack", 2),               # tap → Bone Missile
+		_branch_buffered("heavy_attack", 3),               # RMB → Bone Swirl
 	]
 
-	# 2 — Shuriken Fan (ranged finisher; loops back to Slash on a fresh tap).
-	var fan := ChoreographyPhase.new()
-	fan.animation = "fan"
-	fan.hit_frame = 7
-	fan.effects = [_aoe(dtype, dmg * 1.05, 60.0)]
-	fan.exit_type = "wait"
-	fan.wait_duration = CANCEL_WIN
-	fan.default_next = -1
-	fan.is_finisher = true
-	fan.branches = [
-		_branch_buffered("heavy_attack", 3),               # RMB → Bomb
-		_branch_buffered("light_attack", 0),               # tap → loop to Slash
+	# 2 — Bone Missile (ranged finisher; loops back to Cast on a fresh tap).
+	var missile := ChoreographyPhase.new()
+	missile.animation = "bone_cast"
+	missile.hit_frame = 6
+	missile.effects = [_bone_missile(dtype, dmg * 1.0)]
+	missile.exit_type = "wait"
+	missile.wait_duration = CANCEL_WIN
+	missile.default_next = -1
+	missile.is_finisher = true
+	missile.branches = [
+		_branch_buffered("heavy_attack", 3),               # RMB → Bone Swirl
+		_branch_buffered("light_attack", 0),               # tap → loop to Cast
 	]
 
-	# 3 — Bomb (heavy finisher; terminal).
-	var bomb := _bomb_phase(dtype, dmg)
+	# 3 — Bone Swirl (shared void nova; terminal).
+	var swirl := _bone_swirl_phase(dtype, dmg)
 
 	var choreo := ChoreographyDefinition.new()
-	choreo.phases = [slash, slash2, fan, bomb]
-	return _ability("rogue_light", "Shade Combo", choreo)
+	choreo.phases = [cast, cast2, missile, swirl]
+	return _ability("necro_light", "Shade Combo", choreo)
 
 
-# --- Rogue: heavy combo (RMB tap) ---
-## Shuriken Fan → Bomb. Ranged poke into an area nuke. Phase indices: 0 Fan · 1 Bomb.
-static func build_rogue_heavy(weapon_data: Dictionary) -> AbilityDefinition:
+# --- Necromancer: heavy combo (RMB tap) ---
+## Bone Missile poke → Bone Swirl nova. Ranged prod into a wide void burst. Phase indices:
+## 0 Bone Missile · 1 Bone Swirl.
+static func build_necro_heavy(weapon_data: Dictionary) -> AbilityDefinition:
 	var dmg: float = weapon_data.get("damage", 42.0)
 	var dtype: String = _damage_type(weapon_data)
 
-	# 0 — Fan: throw a spread of shurikens; RMB again → Bomb.
-	var fan := ChoreographyPhase.new()
-	fan.animation = "fan"
-	fan.hit_frame = 7
-	fan.effects = [_aoe(dtype, dmg * 0.6, 60.0)]
-	fan.exit_type = "wait"
-	fan.wait_duration = HEAVY_WIN
-	fan.default_next = -1
-	fan.branches = [
-		_branch_buffered("heavy_attack", 1),               # RMB → Bomb
+	# 0 — Bone Missile poke; RMB again → Swirl.
+	var missile := ChoreographyPhase.new()
+	missile.animation = "bone_cast"
+	missile.hit_frame = 6
+	missile.effects = [_bone_missile(dtype, dmg * 0.7)]
+	missile.exit_type = "wait"
+	missile.wait_duration = HEAVY_WIN
+	missile.default_next = -1
+	missile.branches = [
+		_branch_buffered("heavy_attack", 1),               # RMB → Bone Swirl
 	]
 
-	# 1 — Bomb (shared finisher).
-	var bomb := _bomb_phase(dtype, dmg)
+	# 1 — Bone Swirl (shared finisher).
+	var swirl := _bone_swirl_phase(dtype, dmg)
 
 	var choreo := ChoreographyDefinition.new()
-	choreo.phases = [fan, bomb]
-	return _ability("rogue_heavy", "Shade Heavy", choreo)
+	choreo.phases = [missile, swirl]
+	return _ability("necro_heavy", "Shade Nova", choreo)
 
 
-# --- Rogue: Fan of Blades channel (RMB hold) ---
-## Loops the shuriken throw, ticking a wide AoE while held. Player slow is applied host-side
-## (player.gd) like the Fighter Taunt. Single looping node.
-static func build_rogue_fan(weapon_data: Dictionary) -> AbilityDefinition:
+# --- Necromancer: Bone Barrage channel (RMB hold) ---
+## Looses a stream of bone missiles at the cursor while held (one per beat). Single looping node,
+## same shape as the Cleric Healing-Words channel. Lower per-bolt damage — it's sustained, not burst.
+static func build_necro_barrage(weapon_data: Dictionary) -> AbilityDefinition:
 	var dmg: float = weapon_data.get("damage", 42.0)
 	var dtype: String = _damage_type(weapon_data)
 
-	var fan := ChoreographyPhase.new()
-	fan.animation = "fan"
-	fan.hit_frame = 7                                       # the release of the spread
-	fan.effects = [_aoe(dtype, dmg * 0.5, 60.0)]           # per-tick (lower; repeats)
-	fan.exit_type = "wait"
-	fan.wait_duration = FAN_TICK
-	fan.default_next = 0                                    # tick elapsed & still held → throw again
-	fan.branches = [
+	var bolt := ChoreographyPhase.new()
+	bolt.animation = "bone_cast"
+	bolt.hit_frame = 6                                      # the bone looses
+	bolt.effects = [_bone_missile(dtype, dmg * 0.55)]      # per-tick (lower; repeats)
+	bolt.exit_type = "wait"
+	bolt.wait_duration = BONE_TICK
+	bolt.default_next = 0                                   # tick elapsed & still held → loose again
+	bolt.branches = [
 		_branch_held("heavy_attack", HOLD_KEEP, -1, true), # released → end
 	]
 
 	var choreo := ChoreographyDefinition.new()
-	choreo.phases = [fan]
-	return _ability("rogue_fan", "Fan of Blades", choreo)
+	choreo.phases = [bolt]
+	return _ability("necro_barrage", "Bone Barrage", choreo)
+
+
+## Shared Bone Swirl finisher: the cast pose looses a wide void nova around the cursor. Terminal
+## (no branches) so both the light and heavy graphs can reuse it (mirrors _word_of_pain_phase).
+static func _bone_swirl_phase(dtype: String, dmg: float) -> ChoreographyPhase:
+	var p := ChoreographyPhase.new()
+	p.animation = "bone_swirl"
+	p.hit_frame = 10                                        # the bones fly outward
+	p.effects = [_aoe(dtype, dmg * 1.4, 64.0)]
+	p.exit_type = "anim_finished"
+	p.default_next = -1
+	p.is_finisher = true
+	return p
 
 
 # --- Paladin: light combo (LMB) ---
@@ -1681,6 +1695,58 @@ static func _get_divine_fire_impact() -> SpriteFrames:
 	return _divine_fire_impact_frames
 
 
+# --- Necromancer Bone Missile projectile (Bone_Missile package) ---
+
+const NECRO_BONE_DIR: String = "res://assets/minifantasy/Minifantasy_True_Villains_I_v1.0/_Minifantasy_True_Villains_Assets/Supreme_Necromancer/Special_Animations/Bone_Missile/"
+static var _bone_missile_frames: SpriteFrames = null
+static var _bone_impact_frames: SpriteFrames = null
+
+
+## A spinning bone bolt at the cursor: 8-way directional flight (ortho + diagonal sheets, like the
+## Ranger's throwing knife) + the Bone_Impact one-shot burst on landing.
+static func _bone_missile(dtype: String, hit_damage: float) -> SpawnProjectilesEffect:
+	var cfg := ProjectileConfig.new()
+	cfg.motion_type = "directional"
+	cfg.speed = 240.0
+	cfg.max_range = 240.0
+	cfg.hit_radius = 8.0
+	cfg.sprite_frames = _get_bone_missile_frames()
+	cfg.use_directional_anims = true
+	var hit := DealDamageEffect.new()
+	hit.damage_type = dtype
+	hit.base_damage = hit_damage
+	cfg.on_hit_effects = [hit]
+	cfg.impact_sprite_frames = _get_bone_impact_frames()
+	cfg.impact_animation = "impact"
+	var e := SpawnProjectilesEffect.new()
+	e.projectile = cfg
+	e.spawn_pattern = "aimed_single"
+	e.count = 1
+	return e
+
+
+## Bone flight: ortho sheet rows = cardinal travel, diagonal sheet rows = diagonals (same
+## row-mapping convention as _get_knife_frames — swap rows here if a scrub shows a mismatch).
+static func _get_bone_missile_frames() -> SpriteFrames:
+	if _bone_missile_frames:
+		return _bone_missile_frames
+	var frames := SpriteFrames.new()
+	frames.clear_all()
+	var ortho_rows: Dictionary = {"n": 0, "e": 1, "s": 2, "w": 3}
+	var diag_rows: Dictionary = {"ne": 0, "se": 1, "sw": 2, "nw": 3}
+	_slice_dir_rows(frames, NECRO_BONE_DIR + "Bone_Missile_Orthogonal.png", ortho_rows, 18, 18.0)
+	_slice_dir_rows(frames, NECRO_BONE_DIR + "Bone_Missile_Diagonal.png", diag_rows, 18, 18.0)
+	_bone_missile_frames = frames
+	return frames
+
+
+static func _get_bone_impact_frames() -> SpriteFrames:
+	if _bone_impact_frames:
+		return _bone_impact_frames
+	_bone_impact_frames = _oneshot_row_frames(NECRO_BONE_DIR + "Bone_Impact.png", 18.0)
+	return _bone_impact_frames
+
+
 # --- Gunslinger projectile builders (Shot / Fan_The_Hammer packages) ---
 
 const GUNSLINGER_ASSET_DIR: String = "res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Tech-Augmented_Gunslinger/"
@@ -2318,35 +2384,6 @@ static func _shove() -> DisplacementEffect:
 	d.duration = 0.22
 	d.arc_height = 8.0
 	d.distance = 48.0
-	return d
-
-
-## Rogue's shared heavy finisher: lob a bomb at the cursor (clamped range) — blast + knockback
-## centered on the landing point. Visuals come from the Throw Bomb asset package (player.gd arcs
-## the spinning projectile, then plays the BombExplosion sheet where it lands). The blast radius
-## matches the explosion sheet's NATIVE size (≈16px half-extent) so the visual IS the hit zone at
-## 1× — both scale together with the melee_range stat (Reach mods / level picks).
-static func _bomb_phase(dtype: String, dmg: float) -> ChoreographyPhase:
-	var b := ChoreographyPhase.new()
-	b.animation = "bomb"
-	b.hit_frame = 6                                          # the detonation
-	b.effects = [_aoe(dtype, dmg * 1.8, 16.0), _blast_wave()]
-	b.exit_type = "anim_finished"
-	b.default_next = -1
-	b.is_finisher = true
-	return b
-
-
-## Bomb knockback: flatter and shorter than the Uppercut fling — a blast shove, not a launch.
-## Same DisplacementEffect system, so it stays i-frame-gated (CLAUDE.md).
-static func _blast_wave() -> DisplacementEffect:
-	var d := DisplacementEffect.new()
-	d.displaced = "target"
-	d.destination = "away_from_source"
-	d.motion = "arc"
-	d.duration = 0.26
-	d.arc_height = 16.0
-	d.distance = 64.0
 	return d
 
 

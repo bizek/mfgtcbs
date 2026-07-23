@@ -330,30 +330,30 @@ const ALL: Dictionary = {
 		"unique": "u_wildfire",
 	},
 
-	## ─── Rogue / The Shade (Physical) ───────────────────────────────────────
-	"Shadowfang": {
-		"id": "Shadowfang", "display_name": "Shadowfang",
-		"description": "A thin blade for close, quiet work.",
-		"damage_type": "physical", "damage": 25.0, "tint": Color(0.72, 0.72, 0.82),
+	## ─── Necromancer / The Shade (Void) ─────────────────────────────────────
+	"Boneculler Staff": {
+		"id": "Boneculler Staff", "display_name": "Boneculler Staff",
+		"description": "A gnarled stave that stirs the marrow of the fallen.",
+		"damage_type": "void", "damage": 25.0, "tint": Color(0.72, 0.62, 0.88),
 		"drop_weight": 0, "mod_slots": 1, "unlock_id": "",
-		"class_lock": "The Shade", "kit": "rogue", "rarity": "uncommon", "tier": "green",
+		"class_lock": "The Shade", "kit": "necromancer", "rarity": "uncommon", "tier": "green",
 	},
-	"Nightslip Daggers": {
-		"id": "Nightslip Daggers", "display_name": "Nightslip Daggers",
-		"description": "Twin edges that find the seam every time.",
-		"damage_type": "physical", "damage": 34.0, "tint": Color(0.72, 0.72, 0.82),
-		"drop_weight": 0, "mod_slots": 2, "unlock_id": "gear_rogue_blue",
-		"class_lock": "The Shade", "kit": "rogue", "rarity": "rare", "tier": "blue",
-		"modifiers": [ {"tag": "crit_chance", "op": "add", "value": 0.06} ],
+	"Tome of the Restless": {
+		"id": "Tome of the Restless", "display_name": "Tome of the Restless",
+		"description": "Its pages whisper names the grave forgot — the dead answer faster.",
+		"damage_type": "void", "damage": 34.0, "tint": Color(0.72, 0.62, 0.88),
+		"drop_weight": 0, "mod_slots": 2, "unlock_id": "gear_necro_blue",
+		"class_lock": "The Shade", "kit": "necromancer", "rarity": "rare", "tier": "blue",
+		"modifiers": [ {"tag": "All", "op": "cooldown_reduce", "value": 0.10} ],
 	},
-	"Whispering Death": {
-		"id": "Whispering Death", "display_name": "Whispering Death",
-		"description": "You won't feel the first cut. You won't get a second.",
-		"damage_type": "physical", "damage": 40.0, "tint": Color(0.78, 0.74, 0.88),
-		"drop_weight": 0, "mod_slots": 3, "unlock_id": "gear_rogue_purple",
-		"class_lock": "The Shade", "kit": "rogue", "rarity": "epic", "tier": "purple",
-		"modifiers": [ {"tag": "crit_chance", "op": "add", "value": 0.08}, {"tag": "move_speed", "op": "bonus", "value": 0.06} ],
-		"unique": "u_serrated",
+	"Soulcage Scepter": {
+		"id": "Soulcage Scepter", "display_name": "Soulcage Scepter",
+		"description": "A lantern of trapped souls. What it kills, it keeps.",
+		"damage_type": "void", "damage": 40.0, "tint": Color(0.78, 0.68, 0.92),
+		"drop_weight": 0, "mod_slots": 3, "unlock_id": "gear_necro_purple",
+		"class_lock": "The Shade", "kit": "necromancer", "rarity": "epic", "tier": "purple",
+		"modifiers": [ {"tag": "max_hp", "op": "bonus", "value": 0.08}, {"tag": "All", "op": "cooldown_reduce", "value": 0.10} ],
+		"unique": "u_soulrend",
 	},
 
 	## ─── Bard / The Herald (Lightning) — GREEN = Herald's Call above ─────────

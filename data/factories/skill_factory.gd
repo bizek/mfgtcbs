@@ -33,10 +33,10 @@ static func build_kit_skills(kit_id: String, weapon_data: Dictionary) -> Diction
 				"skill_q": build_wizard_ice_burst(weapon_data),
 				"skill_e": build_wizard_storm_call(weapon_data),
 			}
-		"rogue":
+		"necromancer":
 			return {
-				"skill_q": build_rogue_vanish(weapon_data),
-				"skill_e": build_rogue_eviscerate(weapon_data),
+				"skill_q": build_necro_rise_corpse(weapon_data),
+				"skill_e": build_necro_bone_legion(weapon_data),
 			}
 		"blood_mage":
 			return {
@@ -265,42 +265,46 @@ static func _chilled_debuff() -> ApplyStatusEffectData:
 	return apply
 
 
-## Vanish (Rogue, Q): the pack's real Dodge roll into 3s of "concealed" (player.is_invisible —
-## enemies stop chasing; aggression breaks it, same rule as the Ninja's Smoke Bomb).
-static func build_rogue_vanish(_weapon_data: Dictionary) -> AbilityDefinition:
-	var conceal := StatusEffectDefinition.new()
-	conceal.status_id = "concealed"
-	conceal.is_positive = true
-	conceal.max_stacks = 1
-	conceal.base_duration = 3.0
-	conceal.duration_refresh_mode = "overwrite"
-	var apply := ApplyStatusEffectData.new()
-	apply.status = conceal
-	apply.stacks = 1
-	apply.apply_to_self = true
-
-	var phase := ChoreographyPhase.new()
-	phase.animation = "dodge"
-	phase.hit_frame = 4
-	phase.effects = [apply]
-	phase.exit_type = "anim_finished"
-	phase.default_next = -1
-	return _ability("rogue_vanish", "Vanish", phase, 14.0)
-
-
-## Eviscerate (Rogue, E): a tight, vicious burst — big damage in a small ring. Rides the
-## fast "attack_2" re-slice; the assassin gets in your face or gets nothing.
-static func build_rogue_eviscerate(weapon_data: Dictionary) -> AbilityDefinition:
+## Rise Corpse (Necromancer, Q): summon the persistent Skeletal Champion companion. The "rise_corpse"
+## body triggers the host spawn (player._spawn_skeletal_champion); the small void pulse both reads on
+## cast and ensures choreo_fire_effects fires so the spawn hook runs. Mirrors Spirit Guardians.
+static func build_necro_rise_corpse(weapon_data: Dictionary) -> AbilityDefinition:
 	var dmg: float = weapon_data.get("damage", 42.0)
 	var dtype: String = _damage_type(weapon_data)
 
+	var pulse := AreaDamageEffect.new()
+	pulse.damage_type = dtype
+	pulse.base_damage = dmg * 0.3
+	pulse.aoe_radius = 26.0
+
 	var phase := ChoreographyPhase.new()
-	phase.animation = "attack_2"
-	phase.hit_frame = 1
-	phase.effects = [ChainFactory._aoe(dtype, dmg * 1.5, 36.0)]
+	phase.animation = "rise_corpse"
+	phase.hit_frame = 9
+	phase.effects = [pulse]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
-	return _ability("rogue_eviscerate", "Eviscerate", phase, 6.0)
+	return _ability("necro_rise_corpse", "Rise Corpse", phase, 14.0)
+
+
+## Bone Legion (Necromancer, E): raise a short-lived pack of lesser skeletons at once. Reuses the
+## Rise_Corpse cast body under a distinct anim NAME ("bone_legion") so the host branches to the swarm
+## spawn (player._spawn_bone_legion) instead of the single champion. Faster cooldown, weaker minions.
+static func build_necro_bone_legion(weapon_data: Dictionary) -> AbilityDefinition:
+	var dmg: float = weapon_data.get("damage", 42.0)
+	var dtype: String = _damage_type(weapon_data)
+
+	var pulse := AreaDamageEffect.new()
+	pulse.damage_type = dtype
+	pulse.base_damage = dmg * 0.3
+	pulse.aoe_radius = 30.0
+
+	var phase := ChoreographyPhase.new()
+	phase.animation = "bone_legion"
+	phase.hit_frame = 9
+	phase.effects = [pulse]
+	phase.exit_type = "anim_finished"
+	phase.default_next = -1
+	return _ability("necro_bone_legion", "Bone Legion", phase, 10.0)
 
 
 ## Blood Surge (Blood Mage, Q): the pact, on demand — +30% damage for 6s. Reuses the

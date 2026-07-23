@@ -40,8 +40,8 @@ static func build_passive_modifiers(passive_id: String) -> Array[ModifierDefinit
 			mods.append(_mod("pickup_radius", "bonus",        0.25, "passive_scavenger"))
 		"spark_passive":
 			mods.append(_mod("crit_multiplier", "add",        0.75, "passive_spark"))
-		"shade_passive":
-			mods.append(_mod("dodge_chance", "add",           0.15, "passive_shade"))
+		"necro_soul_harvest":
+			pass  # Soul Harvest (kills drop souls → heal + empowered summon) fires in player._on_kill_soul_harvest — no flat mods
 		"herald_passive":
 			mods.append(_mod("All", "bonus",                  0.30, "passive_herald"))
 			mods.append(_mod("All", "cooldown_reduce",        0.20, "passive_herald"))

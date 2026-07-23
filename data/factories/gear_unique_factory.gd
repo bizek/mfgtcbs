@@ -29,9 +29,12 @@ static func build(unique_id: String) -> Dictionary:
 		# Wizard — Cinderbrand: everything it strikes catches.
 		"u_wildfire":
 			result.statuses = [_on_hit_apply(StatusFactory.get_by_id("burning"), "wildfire")]
-		# Rogue — Whispering Death: sustained serrated bleed (reuse the shipped passive).
-		"u_serrated":
-			result.statuses = [StatusFactory.get_by_id("serrated_strikes")]
+		# Necromancer — Soulcage Scepter: reaping souls mends the caster and quickens the hands.
+		"u_soulrend":
+			result.statuses = [
+				_on_kill_heal("soulrend", 0.06),
+				_self_buff_on_kill("soulrend_haste", "attack_speed", 0.20, 3.0),
+			]
 		# Bard — Chorus of the Void: the chord staggers the crowd.
 		"u_discord":
 			result.statuses = [_on_hit_apply(_slow_status("discord_slow", -0.25, 2.0), "discord")]
@@ -80,7 +83,7 @@ static func describe(unique_id: String) -> String:
 		"u_hemorrhage":   return "Crits apply Bleed."
 		"u_retribution":  return "+5 Armor. On kill: heal 6% max HP."
 		"u_wildfire":     return "Hits apply Burning."
-		"u_serrated":     return "Hits apply Bleed."
+		"u_soulrend":     return "On kill: heal 6% max HP and +20% Attack Speed for 3s."
 		"u_discord":      return "Hits slow enemies by 25% for 2s."
 		"u_bloodrage":    return "Each hit: +4% Damage (stacks 5×, 4s)."
 		"u_killing_edge": return "On crit: 18 damage burst around the target."

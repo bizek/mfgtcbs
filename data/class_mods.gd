@@ -245,46 +245,44 @@ const ALL: Dictionary = {
 		"params": { "radius_mult": 1.35, "damage_mult": 1.2 },
 	},
 
-	## ── Rogue (The Shade) ────────────────────────────────────────────────────────────────────
+	## ── Necromancer (The Shade) ──────────────────────────────────────────────────────────────
 
-	"rogue_serrated_shuriken": {
-		"id": "rogue_serrated_shuriken",
-		"name": "SERRATED SHURIKEN",
-		"kit": "rogue",
-		"desc": "Shuriken Fan's blades are serrated — every hit applies Bleed.",
-		"color": Color(0.9, 0.2, 0.3),
-		"target": { "anim": "fan" },
-		"op": "add_projectile_status",
-		"params": { "status": "bleed", "stacks": 1 },
-	},
-	"rogue_bigger_bomb": {
-		"id": "rogue_bigger_bomb",
-		"name": "BIGGER BOMB",
-		"kit": "rogue",
-		"desc": "Bomb detonates 35% harder across a 40% wider blast radius.",
-		"color": Color(1.0, 0.5, 0.1),
-		"target": { "anim": "bomb" },
-		"op": "scale_aoe",
-		"params": { "radius_mult": 1.4, "damage_mult": 1.35 },
-	},
-	"rogue_twin_fan": {
-		"id": "rogue_twin_fan",
-		"name": "TWIN FAN",
-		"kit": "rogue",
-		"desc": "Fan of Blades channel covers 45% more area — cast a wider shadow.",
+	"necro_splintering_swirl": {
+		"id": "necro_splintering_swirl",
+		"name": "SPLINTERING SWIRL",
+		"kit": "necromancer",
+		"desc": "Bone Swirl scatters 40% wider and bites 25% harder.",
 		"color": Color(0.7, 0.15, 0.7),
-		"target": { "graph": "channel", "anim": "fan" },
+		"target": { "anim": "bone_swirl" },
 		"op": "scale_aoe",
-		"params": { "radius_mult": 1.45 },
+		"params": { "radius_mult": 1.4, "damage_mult": 1.25 },
 	},
-	"rogue_deep_cuts": {
-		"id": "rogue_deep_cuts",
-		"name": "DEEP CUTS",
-		"kit": "rogue",
-		"desc": "The Shade's blades find the gaps — +12% crit chance while equipped.",
+	"necro_grave_bond": {
+		"id": "necro_grave_bond",
+		"name": "GRAVE BOND",
+		"kit": "necromancer",
+		"desc": "The dead lend their vigor — +12% Max HP while equipped.",
+		"color": Color(0.5, 0.2, 0.55),
+		"op": "modifier",
+		"params": { "stat": "max_hp", "op": "bonus", "value": 0.12 },
+	},
+	"necro_dark_haste": {
+		"id": "necro_dark_haste",
+		"name": "DARK HASTE",
+		"kit": "necromancer",
+		"desc": "The grave answers quicker — 12% Cooldown Reduction on all abilities.",
+		"color": Color(0.4, 0.25, 0.7),
+		"op": "modifier",
+		"params": { "stat": "All", "op": "cooldown_reduce", "value": 0.12 },
+	},
+	"necro_soul_leech": {
+		"id": "necro_soul_leech",
+		"name": "SOUL LEECH",
+		"kit": "necromancer",
+		"desc": "Every wound drinks a little life back — +5% Lifesteal.",
 		"color": Color(0.55, 0.1, 0.5),
 		"op": "modifier",
-		"params": { "stat": "crit_chance", "op": "bonus", "value": 0.12 },
+		"params": { "stat": "leech", "op": "bonus", "value": 0.05 },
 	},
 
 	## ── Ranger (The Scavenger) ───────────────────────────────────────────────────────────────
@@ -567,11 +565,11 @@ const ORDER: Array = [
 	"druid_diving_owl",
 	"druid_strangling_roots",
 	"druid_pack_leader",
-	## Rogue
-	"rogue_serrated_shuriken",
-	"rogue_bigger_bomb",
-	"rogue_twin_fan",
-	"rogue_deep_cuts",
+	## Necromancer
+	"necro_splintering_swirl",
+	"necro_grave_bond",
+	"necro_dark_haste",
+	"necro_soul_leech",
 	## Ranger
 	"ranger_barbed_arrows",
 	"ranger_impaling_knife",
