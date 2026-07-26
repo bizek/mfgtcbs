@@ -2762,6 +2762,14 @@ func choreo_on_phase_hit(phase: ChoreographyPhase, phase_index: int, ability: Ab
 	if ability == _combo_ability:
 		_combo_step_depth += 1
 		EventBus.on_combo_step.emit(self, _combo_step_depth, phase.is_finisher)
+	## Heavy swing SFX rides the SWING, not the damage — same reasoning as the light chain's
+	## ladder above. AudioManager used to play it from on_hit_dealt, which is correct only for a
+	## melee heavy (swing and damage coincide); for a PROJECTILE heavy the damage lands at the
+	## bolt's impact, so a melee whoosh fired there arrived a beat late and on top of the impact
+	## sound — audible as a double hit (Ben, The Devout's RMB tap, 2026-07-26). Firing it here
+	## also makes a whiffed heavy audible, which the on-hit path never did.
+	elif ability == _combo_heavy:
+		AudioManager.play("sfx_swing_heavy", global_position)
 	## Cancel-window pulse (mechanism C) — only when a next press can actually chain.
 	if not phase.branches.is_empty():
 		_combo_window_pulse()

@@ -330,23 +330,13 @@ func _on_hit_dealt(source: Variant, target: Variant, hit_data: Variant) -> void:
 		damage_type = hit_data.get("damage_type", "Physical")
 	var sound_id: String = SoundTable.HIT_SOUND_BY_DAMAGE_TYPE.get(damage_type, "sfx_hit_physical")
 	play(sound_id, _entity_pos(target))
-	_play_swing_sfx(source, hit_data)
 
 
-## Weapon swing feel (P1 "weapon fire"): HitData.ability threads the AbilityDefinition through
-## from ChainFactory's per-kit combos, whose ability_id always ends "_light"/"_heavy" for the
-## base melee combo (per kit dispatcher table). Light-chain swings no longer play here — they
-## ride on_combo_step (the cadence ladder below), which also makes whiffed swings audible.
-## Special skill/channel abilities (fan, summon, torrent, storm, etc.) don't match the suffix
-## and are silent here by design — they're sfx_channel_loop/sfx_projectile_fire territory.
-func _play_swing_sfx(source: Variant, hit_data: Variant) -> void:
-	if not (hit_data is HitData):
-		return
-	var ability: AbilityDefinition = hit_data.ability
-	if ability == null or not ability.tags.has("Combo"):
-		return
-	if ability.ability_id.ends_with("_heavy"):
-		play("sfx_swing_heavy", _entity_pos(source))
+## A hit plays exactly ONE sound here — the damage-type impact. Combo swing SFX are emitted by
+## the player at the hit FRAME instead (player.choreo_on_phase_hit): the light chain via
+## on_combo_step's pitch ladder, the heavy directly. This used to also play "sfx_swing_heavy"
+## off the hit, which doubled up on projectile heavies — a melee whoosh landing wherever the
+## bolt hit, a beat after the actual swing (Ben, The Devout's RMB tap, 2026-07-26).
 
 
 ## Weapon/ability fire (task 15 "weapon fire" P2). Fires on every ability release:

@@ -103,6 +103,36 @@ SpatialGrid rebuild → StatusEffect.tick → AbilityComponent.tick_cooldowns �
 - When reading project state, verify against actual source files rather than trusting docs, which are often stale (e.g., loader status).
 - Docs were audited and reconciled with code on 2026-07-21 — findings and remaining open items in `docs/doc_audit_2026-07-21.md`. The fastest-drifting section in the whole doc set is `engine_reference.md`'s content-coverage list; re-grep `data/` before trusting a "no content uses this" claim.
 
+## In-Game Testing — Training Room ONLY (non-negotiable)
+
+**Every in-game test Claude runs MUST happen in the Training Room. Never start a real run.**
+(Ben, 2026-07-26, after a "training room" probe silently became a live run and killed him.)
+A real run spawns waves that chase and kill the player, so the measurement dies before it yields
+anything and the tokens are wasted. Use the F11 Training Panel's own controls: live class swap,
+dummy spawn, **DUMMIES HIT BACK** toggle, DPS meter, slow-mo, PACK / CLEAR.
+
+**The footgun — read this before writing any entry code.** `TrainingPanel._exit_tree()`
+(`scripts/ui/training_panel.gd:67`) sets `GameManager.training_mode = false` unless its own
+`_reloading` flag is set. `change_scene_to_file()` frees the old scene *before* the new one's
+`_ready()`, so **re-entering the training room from inside the training room clears the flag on
+the way out** and `main_arena._ready()` then builds a real run — waves, phase clock, death screen.
+Setting `training_mode = true` before the scene change does not help; the panel's exit runs after it.
+
+Entry procedure:
+- **Not currently in the room** — set `GameManager.training_mode = true`, then
+  `change_scene_to_file("res://scenes/main_arena.tscn")`.
+- **Already in the room** (swapping class) — do NOT change scene. Set
+  `ProgressionManager.selected_character`, then drive the panel's own reload
+  (`_cycle_class`, which sets `_reloading` so the flag survives). If you must change scene
+  anyway, call `TrainingPanel.keep_training_mode()` on the live panel FIRST.
+- **Always assert on arrival, before measuring anything:** `GameManager.training_mode == true`
+  AND a `TrainingPanel` exists in the tree. If either is false, you are in a real run — stop.
+- Turn **HIT BACK OFF** unless the test is about damage the player takes; dummies deal contact
+  damage by default and will flood any `on_hit_dealt` log. Filter event logs by
+  `source == player` regardless.
+- Restart the played scene only when GDScript changed — the running process caches compiled
+  scripts, so edits are invisible until a fresh `play_scene`.
+
 ## Content Creation — The Pattern
 
 All content follows the data factory pattern: `static func create() -> Resource`. Register in the appropriate registry. The engine wires everything automatically.

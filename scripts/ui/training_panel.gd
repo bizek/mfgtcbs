@@ -72,6 +72,18 @@ func _exit_tree() -> void:
 		GameManager.training_mode = false
 
 
+## Tell the panel it is being torn down to be REPLACED by another training session, not to leave
+## the room — so _exit_tree keeps GameManager.training_mode set.
+##
+## Without this, re-entering the training room while already inside it silently starts a REAL RUN:
+## change_scene_to_file() frees this scene before the new one's _ready(), so our _exit_tree clears
+## the flag on the way out and main_arena._ready() then builds waves, a phase clock and an
+## extraction. Setting training_mode = true before the scene change does not help — we run after it.
+## (Cost a live playtest, Ben 2026-07-26. See CLAUDE.md "In-Game Testing".)
+func keep_training_mode() -> void:
+	_reloading = true
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F11:
 		_panel.visible = not _panel.visible
