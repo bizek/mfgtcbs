@@ -26,14 +26,6 @@
       "to": 4.0
     }
   },
-  "The Herald": {
-    "song_ballad": {
-      "base": "ballad_base"
-    },
-    "song_enhance": {
-      "base": "enhancement_base"
-    }
-  },
   "The Ravager": {
     "cry": {
       "base": "battle_cry_back"
@@ -169,23 +161,6 @@
         "res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/Special_Animations/Taunt/Figther_Taunt.png",
         9.0,
         16.0
-      ]
-    },
-    "The Herald": {
-      "ballad_base": [
-        "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/BalladSongBase.png",
-        16.0,
-        20.0
-      ],
-      "enhancement_base": [
-        "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/EnhancementSongBase.png",
-        16.0,
-        20.0
-      ],
-      "enhancement_shimmer": [
-        "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/Enhancement/Enhamcement.png",
-        8.0,
-        10.0
       ]
     },
     "The Ravager": {

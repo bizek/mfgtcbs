@@ -410,46 +410,45 @@ const ALL: Dictionary = {
 		"params": { "stat": "damage", "op": "bonus", "value": 0.18 },
 	},
 
-	## ── Bard (The Herald) ────────────────────────────────────────────────────────────────────
+	## ── Demonologist (The Demon) ─────────────────────────────────────────────────────────────
 
-	"bard_piercing_chord": {
-		"id": "bard_piercing_chord",
-		"name": "PIERCING CHORD",
-		"kit": "bard",
-		"desc": "Dissonant Chord rings 35% louder — the sound-bolt hits harder.",
-		"color": Color(0.75, 0.35, 1.0),
-		"target": { "anim": "chord" },
-		"op": "scale_aoe",
-		"params": { "damage_mult": 1.35 },
-	},
-	"bard_cruel_mockery": {
-		"id": "bard_cruel_mockery",
-		"name": "CRUEL MOCKERY",
-		"kit": "bard",
-		"desc": "Vicious Mockery insults a 35% wider crowd, hitting each victim 20% harder.",
-		"color": Color(0.9, 0.3, 0.7),
-		"target": { "anim": "mockery" },
+	"demon_searing_hellfire": {
+		"id": "demon_searing_hellfire",
+		"name": "SEARING HELLFIRE",
+		"kit": "demonologist",
+		"desc": "Hellfire sprays 35% wider and sears 20% harder.",
+		"color": Color(1.0, 0.45, 0.15),
+		"target": { "anim": "hellfire" },
 		"op": "scale_aoe",
 		"params": { "radius_mult": 1.35, "damage_mult": 1.2 },
 	},
-	"bard_rousing_ballad": {
-		"id": "bard_rousing_ballad",
-		"name": "ROUSING BALLAD",
-		"kit": "bard",
-		"desc": "The ballad lifts the Herald's spirit — +15% damage while equipped.",
-		"color": Color(0.8, 0.55, 1.0),
+	"demon_ninefold_circle": {
+		"id": "demon_ninefold_circle",
+		"name": "NINEFOLD CIRCLE",
+		"kit": "demonologist",
+		"desc": "The Brimstone Circle is drawn 40% wider and burns 25% hotter.",
+		"color": Color(0.95, 0.25, 0.20),
+		"target": { "anim": "brimstone" },
+		"op": "scale_aoe",
+		"params": { "radius_mult": 1.4, "damage_mult": 1.25 },
+	},
+	"demon_infernal_hide": {
+		"id": "demon_infernal_hide",
+		"name": "INFERNAL HIDE",
+		"kit": "demonologist",
+		"desc": "Pact-scarred skin drinks the heat — +25 Fire Resist.",
+		"color": Color(0.75, 0.30, 0.15),
+		"op": "modifier",
+		"params": { "stat": "Fire", "op": "resist", "value": 25.0 },
+	},
+	"demon_greater_pact": {
+		"id": "demon_greater_pact",
+		"name": "GREATER PACT",
+		"kit": "demonologist",
+		"desc": "He signs for more than he can pay — +15% damage while equipped.",
+		"color": Color(0.85, 0.20, 0.35),
 		"op": "modifier",
 		"params": { "stat": "damage", "op": "bonus", "value": 0.15 },
-	},
-	"bard_encore": {
-		"id": "bard_encore",
-		"name": "ENCORE",
-		"kit": "bard",
-		"desc": "Apotheosis divine burst is 25% stronger across a 50% wider radius — they beg for more.",
-		"color": Color(1.0, 0.85, 0.4),
-		"target": { "anim": "apotheosis" },
-		"op": "scale_aoe",
-		"params": { "radius_mult": 1.5, "damage_mult": 1.25 },
 	},
 
 	## ── Barbarian (The Ravager) ───────────────────────────────────────────────────────────────
@@ -585,11 +584,11 @@ const ORDER: Array = [
 	"blood_mage_deeper_pact",
 	"blood_mage_bloodquake",
 	"blood_mage_sanguine_drain",
-	## Bard
-	"bard_piercing_chord",
-	"bard_cruel_mockery",
-	"bard_rousing_ballad",
-	"bard_encore",
+	## Demonologist
+	"demon_searing_hellfire",
+	"demon_ninefold_circle",
+	"demon_infernal_hide",
+	"demon_greater_pact",
 	## Barbarian
 	"barbarian_earthsplitter",
 	"barbarian_chained_lightning",

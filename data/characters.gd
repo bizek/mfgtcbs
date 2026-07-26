@@ -44,7 +44,7 @@ const ALL: Dictionary = {
 				## Combo specials (Special_Animations/ subfolders → absolute res:// paths).
 				## Timing/damage live in ChainFactory.build_fighter_combo (provisional).
 				"swirl":     ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/Special_Animations/Swirl/Figther_Swirl.png",         4, 18.0],
-				"tempest":   ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/Special_Animations/Tempest/Figther_Tempest.png",      7, 18.0],
+				"tempest":   ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/Special_Animations/Tempest/Figther_Tempest.png",      7, 18.0, {"cancel_open": 5}],
 				"cataclysm": ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Fighter/Special_Animations/Cataclysm/Figther_Cataclysm.png", 12, 18.0],
 				## Swing-effect overlays (the white slash). Played on a separate ComboFx sprite,
 				## scaled by COMBO_FX_SCALE × melee_range so the visual tracks the (scalable) hit range.
@@ -97,16 +97,16 @@ const ALL: Dictionary = {
 				"walk":   ["Ranger_walk.png",                4, 10.0],
 				## Diagonal shot sheet — rows match the quadrant facing system (the old
 				## Orthogonal @50fps was the auto-fire fire_delay hack; combos don't need it).
-				"attack": ["Ranger_SingleShot_Diagonal.png", 10, 24.0],
+				"attack": ["Ranger_SingleShot_Diagonal.png", 10, 24.0, {"cancel_open": 7}],
 				"damage": ["Ranger_Dmg.png",                 4, 15.0],
 				"death":  ["Ranger_Die.png",                24, 24.0],
 				## Combo specials — timing/damage in ChainFactory.build_ranger_* (provisional).
 				## Arrow/knife projectiles + knife-ground impact are wired in ChainFactory;
 				## Conceal is a 2-row sheet (no facing variants — base row only, by design).
-				"double_shot": ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Ranger/Special_Animations/Double_Shot/Ranger_DoubleShot_Diagonal.png",           11, 20.0],
-				"triple_shot": ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Ranger/Special_Animations/Triple_Shot/Ranger_TripleShot.png",                    12, 20.0],
+				"double_shot": ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Ranger/Special_Animations/Double_Shot/Ranger_DoubleShot_Diagonal.png",           11, 20.0, {"cancel_open": 8}],
+				"triple_shot": ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Ranger/Special_Animations/Triple_Shot/Ranger_TripleShot.png",                    12, 20.0, {"cancel_open": 9}],
 				"knife":       ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Ranger/Special_Animations/Throwing_Knife/Throwing_Knife_Diagonal.png",           11, 20.0],
-				"melee":       ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Ranger/Special_Animations/Single_Melee_Attack/Ranger_Single_Melee_Attack.png",    5, 16.0],
+				"melee":       ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Ranger/Special_Animations/Single_Melee_Attack/Ranger_Single_Melee_Attack.png",    5, 16.0, {"cancel_open": 4}],
 				"melee_fx":    ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Ranger/Special_Animations/Single_Melee_Attack/Single_Melee_Attack_Effect.png",    5, 16.0],
 				"melee_2":     ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Ranger/Special_Animations/Double_Melee_Attack/Ranger_Double_Melee_Attack.png",    5, 16.0],
 				"melee_2_fx":  ["res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Ranger/Special_Animations/Double_Melee_Attack/Double_Melee_Attack_Effect.png",    5, 16.0],
@@ -156,11 +156,11 @@ const ALL: Dictionary = {
 				## Shield Bash sheets are CARDINAL 4-row (down/up/left/right), not diagonal — so the bash
 				## fires up/down/left/right (Ben 2026-07-20). Row order is a best guess; if a direction
 				## faces wrong, remap in the Lab (dirs.<cardinal>.row). Diagonal aims snap to nearest.
-				"bash":      ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Shield_Bash/PaladinShieldBash.png",       8, 18.0, {"cardinal": true}],
+				"bash":      ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Shield_Bash/PaladinShieldBash.png",       8, 18.0, {"cardinal": true, "cancel_open": 5}],
 				"bash_fx":   ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Shield_Bash/ShieldBashEffect.png",        8, 18.0, {"cardinal": true}],
 				## Hammer throw uses the DIAGONAL char sheet — its rows match the quadrant facing
 				## system (the Orthogonal sheet's N/E/S/W rows are reserved for a future 8-way pass).
-				"hammer":    ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Holy_Hammer/PaladinHolyHammerDiagonal.png", 12, 18.0],
+				"hammer":    ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Holy_Hammer/PaladinHolyHammerDiagonal.png", 12, 18.0, {"cancel_open": 9}],
 				"dictum":    ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Dictums/_PaladinDictum.png",             15, 20.0],
 				"dictum_fx": ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Dictums/BladesDictumEffect.png",         15, 20.0],
 				"dome":      ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Paladin/Special_Animations/Dictums/_PaladinDictum.png",             15, 20.0],
@@ -277,15 +277,15 @@ const ALL: Dictionary = {
 			"anims": {
 				"idle":   ["Idle.png",   27, 12.0],
 				"walk":   ["Walk.png",     4,  9.0],
-				"attack": ["Attack.png",  13, 24.0],
+				"attack": ["Attack.png",  13, 24.0, {"cancel_open": 10}],
 				"damage": ["Dmg.png",      4, 15.0],
 				"death":  ["Die.png",     22, 24.0],
 				## "attack_2" re-slices the cast faster — a distinct anim NAME so the runner's play()
 				## restarts it on back-to-back cast phases (same-anim play() doesn't restart mid-anim).
-				"attack_2":   ["Attack.png", 13, 30.0],
+				"attack_2":   ["Attack.png", 13, 30.0, {"cancel_open": 10}],
 				## "bone_cast" re-slices the cast for the Bone Missile finisher + barrage channel; the
 				## bolt itself is a world-anchored projectile built in ChainFactory (not a body anim).
-				"bone_cast":  ["Attack.png", 13, 26.0],
+				"bone_cast":  ["Attack.png", 13, 26.0, {"cancel_open": 10}],
 				## Bone Swirl heavy nova — the pack's cast pose (Bone_Swirl_Cast, 32px, 4 rows).
 				"bone_swirl": ["res://assets/minifantasy/Minifantasy_True_Villains_I_v1.0/_Minifantasy_True_Villains_Assets/Supreme_Necromancer/Special_Animations/Bone_Swirl/Bone_Swirl_Cast.png", 29, 26.0],
 				## Summons: one shared Rise_Corpse cast body under two anim NAMES so the host branches
@@ -299,56 +299,70 @@ const ALL: Dictionary = {
 		},
 	},
 
-	## ─── The Herald ───────────────────────────────────────────────────────────
-	## Ability specialist. Mediocre weapon; active abilities are supercharged.
-	"The Herald": {
-		"id":              "The Herald",
-		"display_name":    "THE HERALD",
-		"char_class":      "Bard",
-		"description":     "A battle-bard whose songs do the real damage — the blade is just punctuation.",
-		"starting_weapon": "Herald's Call",
-		"melee_kit":       "bard",           ## drives the combo-chain moveset (ChainFactory)
-		"passive_id":      "herald_passive",
-		"passive_name":    "Rallying Anthem",
-		"passive_desc":    "Abilities +30% damage, -20% cooldown. Extra ability slot.",
-		"portrait":        "res://assets/characters/portraits/the_herald.png",
+	## ─── The Demon ────────────────────────────────────────────────────────────
+	## Demonologist. A close-range hellfire bruiser who binds what he burns: fire bursts,
+	## a brimstone pact circle, one bound Angry Demon, and the Archdemon on a long cooldown.
+	"The Demon": {
+		"id":              "The Demon",
+		"display_name":    "THE DEMON",
+		"char_class":      "Demonologist",
+		"description":     "A pact-scarred binder who calls the pit up through the floor — hellfire, brimstone, and something with horns.",
+		"starting_weapon": "Pact-Brand Stave",   ## Demonologist GREEN (task 34 class gear)
+		"melee_kit":       "demonologist",       ## drives the combo-chain moveset (ChainFactory/SkillFactory)
+		"passive_id":      "demon_hellborn",
+		"passive_name":    "Hellborn",
+		"passive_desc":    "+25% Fire Damage. +30 Fire Resist — hell does not burn its own.",
+		"dash_style":      "hellbreach",         ## Hell Breach: leap, land, and the ground splits
+		"portrait":        "res://assets/characters/portraits/the_demon.png",
 		"unlock_cost":     2500,
-		"base_hp":         90.0,
-		"base_armor":      0.0,
-		"base_move_speed": 54.0,   ## deliberate-pacing rebalance 2 2026-07-07 (was 66, orig 120)
-		"color":           Color(0.30, 0.86, 0.96),   ## signal teal
-		"color_body":      Color(0.20, 0.58, 0.75),
-		"color_head":      Color(0.38, 0.82, 0.95),
-		## Bard (True Heroes II) — teal performer; the instrument is "the Call". §2.6
+		"base_hp":         100.0,
+		"base_armor":      1.0,
+		"base_move_speed": 52.0,   ## close-range caster — has to walk into his own hellfire
+		"color":           Color(0.95, 0.30, 0.20),   ## infernal red
+		"color_body":      Color(0.55, 0.15, 0.15),
+		"color_head":      Color(0.85, 0.45, 0.30),
+		## Demonologist (True Villains I) — bare sheet filenames (no class-name prefix); the villain
+		## pack bakes its glow into the base sheets (No_Effect/Only_Effect split), so no _fx overlays.
+		## The pack ships NO projectile sheets — Hellfire's motes are baked into the body — so this kit
+		## is short-range by construction (see ModApplicability: "melee_hit" only).
+		## Combo timing/damage live in ChainFactory.build_demon_* / SkillFactory.
 		"sprite": {
-			"dir":        "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/General_Animations/",
+			"dir":        "res://assets/minifantasy/Minifantasy_True_Villains_I_v1.0/_Minifantasy_True_Villains_Assets/Demonologist/General_Animations/",
 			"frame_size": 32,
 			"dir_row":    0,
+			## `cancel_open` (4th spec element) is the frame a chain node may first be cancelled by a
+			## buffered tap — player.choreo_min_advance_time enforces it, and the Animation Lab can
+			## retune it live. It exists because this pack's bodies are 10-15 frames where the True
+			## Heroes packs are 4-7: the flat 0.22s spam cadence alone cut Hellfire at frame 5 of 15,
+			## so its fire never drew (Ben, 2026-07-26). Each value is that anim's commitment point —
+			## the frame after which the action reads as done and the recovery can be skipped.
 			"anims": {
-				"idle":   ["BardIdle.png",   16,  9.0],
-				"walk":   ["BardWalk.png",    4, 10.0],
-				"attack": ["BardAttack.png",  4, 20.0],
-				"damage": ["BardDmg.png",     4, 15.0],
-				"death":  ["BardDie.png",    25, 25.0],
-				## Combo specials — timing/damage in ChainFactory.build_bard_* (provisional).
-				## Chord projectile/impact + ballad note and mockery wisps are wired host-side.
-				## The Songs sheets (ViciousMockerySong/BalladSong/EnhancementSong) are EFFECT-ONLY
-				## (floating faces/notes, no bard drawn) — they ride the _fx overlay while the
-				## _BardSinging body plays underneath (Ben playtest 2026-07-19: body vanished).
-				"attack_2":       ["BardAttack.png", 4, 26.0],
-				"chord":          ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Dissonant_Chord/BardDissonantChordDiagonal.png", 12, 20.0],
-				## "chord_2" re-slices the same cast under a distinct NAME so back-to-back chords
-				## re-fire (chord-opener flow, Ben 2026-07-19).
-				"chord_2":        ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Dissonant_Chord/BardDissonantChordDiagonal.png", 12, 22.0],
-				"apotheosis":     ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Apotheosis/BardApotheosis.png",                  13, 18.0],
-				"apotheosis_fx":  ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Apotheosis/ApotheosisEffect.png",                13, 18.0],
-				"mockery":        ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/_BardSinging.png",                       16, 18.0],
-				"mockery_fx":     ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/ViciousMockerySong.png",                   16, 18.0],
-				"song_enhance":   ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/_BardSinging.png",                       16, 20.0],
-				"song_enhance_fx": ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/EnhancementSong.png",                    16, 20.0],
-				"song_ballad":    ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/_BardSinging.png",                       16, 20.0],
-				"song_ballad_fx": ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/BalladSong.png",                           16, 20.0],
-				"serenade":       ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/_BardSinging.png",                       16, 18.0],
+				"idle":   ["Idle.png",   24, 12.0],
+				"walk":   ["Walk.png",    4,  9.0],
+				## Staff swing: white arc lands frames 4-5, frames 6-9 are recovery.
+				"attack": ["Attack.png", 10, 20.0, {"cancel_open": 6}],
+				"damage": ["Dmg.png",     4, 15.0],
+				"death":  ["Die.png",    27, 24.0],
+				## Hellfire does double duty (light finisher / heavy opener) plus the RMB-hold channel
+				## beat, each a separate NAME at its own tempo so re-entry always restarts the spray.
+				## The motes fly frames 3-12 and fade 13-14 — cancelling before ~10 hides the fire,
+				## which IS the ability.
+				"hellfire":    ["res://assets/minifantasy/Minifantasy_True_Villains_I_v1.0/_Minifantasy_True_Villains_Assets/Demonologist/Special_Animations/Hellfire/Hellfire.png", 15, 22.0, {"cancel_open": 11}],
+				"hellfire_2":  ["res://assets/minifantasy/Minifantasy_True_Villains_I_v1.0/_Minifantasy_True_Villains_Assets/Demonologist/Special_Animations/Hellfire/Hellfire.png", 15, 26.0, {"cancel_open": 11}],
+				"hellfire_ch": ["res://assets/minifantasy/Minifantasy_True_Villains_I_v1.0/_Minifantasy_True_Villains_Assets/Demonologist/Special_Animations/Hellfire/Hellfire.png", 15, 20.0],
+				## One shared Summon_Ritual cast body under two anim NAMES so the host branches:
+				## "brimstone" → the gated pact-circle finisher, "pact_ritual" → the Q summon.
+				## NB: neither may start with "summon" — player.choreo_fire_effects routes any
+				## anim beginning "summon" to the Wizard's Fire Familiar.
+				"brimstone":   ["res://assets/minifantasy/Minifantasy_True_Villains_I_v1.0/_Minifantasy_True_Villains_Assets/Demonologist/Special_Animations/Summon_Demon/Summon_Ritual.png", 19, 26.0],
+				"pact_ritual": ["res://assets/minifantasy/Minifantasy_True_Villains_I_v1.0/_Minifantasy_True_Villains_Assets/Demonologist/Special_Animations/Summon_Demon/Summon_Ritual.png", 19, 16.0],
+				## Archdemon's Call (E): the long cast; the 27-frame Archdemon_Call_Spell erupts at the
+				## cursor as a world-anchored VFX over the ground zone (host-side).
+				"archdemon_call": ["res://assets/minifantasy/Minifantasy_True_Villains_I_v1.0/_Minifantasy_True_Villains_Assets/Demonologist/Special_Animations/Archdemon_Call/Archdemon_Call_Cast.png", 19, 15.0],
+				## "dodge" is mapped to Hell_Breach so the hellbreach dash plays the real leap+slam via
+				## the shared dash-anim path in player.gd. The landing fissure (Hell_Breach_Spell, 64px,
+				## CARDINAL rows) is spawned world-anchored by _spawn_hellbreach_fissure.
+				"dodge":       ["res://assets/minifantasy/Minifantasy_True_Villains_I_v1.0/_Minifantasy_True_Villains_Assets/Demonologist/Special_Animations/Hell_Breach/Hell_Breach.png", 13, 30.0],
 			},
 		},
 	},
@@ -391,9 +405,9 @@ const ALL: Dictionary = {
 				"attack_2":    ["Attack.png",        6, 24.0],
 				"attack_fx":   ["Attack_Effect.png", 6, 30.0],
 				"attack_2_fx": ["Attack_Effect.png", 6, 24.0],
-				"shards":       ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Blood_Mage/Special_Animations/Blood_Shard/Blood_Shards_Diagonal.png",        10, 20.0],
+				"shards":       ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Blood_Mage/Special_Animations/Blood_Shard/Blood_Shards_Diagonal.png",        10, 20.0, {"cancel_open": 8}],
 				"shards_fx":    ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Blood_Mage/Special_Animations/Blood_Shard/Blood_Shards_Diagonal_Effect.png", 10, 20.0],
-				"slam":         ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Blood_Mage/Special_Animations/Blood_Slam/Blood_Slam.png",                     6, 18.0],
+				"slam":         ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Blood_Mage/Special_Animations/Blood_Slam/Blood_Slam.png",                     6, 18.0, {"cancel_open": 5}],
 				"slam_fx":      ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Blood_Mage/Special_Animations/Blood_Slam/Blood_Slam_Effect.png",              6, 18.0],
 				"spikes":       ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Blood_Mage/Special_Animations/Blood_Spikes/Blood_Spikes.png",                 8, 16.0],
 				"spikes_fx":    ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Blood_Mage/Special_Animations/Blood_Spikes/Blood_Spikes_Effect.png",          8, 16.0],
@@ -441,11 +455,11 @@ const ALL: Dictionary = {
 				## Combo specials — timing/damage in ChainFactory.build_barbarian_* (provisional).
 				## "attack_2" re-slices the Attack sheet slower (heavier follow-through) under a
 				## distinct anim NAME so play() restarts it on back-to-back cleave phases.
-				"attack_2": ["Minifantasy_TrueHeroesBarbarianAttack.png",            6, 16.0],
+				"attack_2": ["Minifantasy_TrueHeroesBarbarianAttack.png",            6, 16.0, {"cancel_open": 4}],
 				## AttackBrokenGround is an EFFECT-ONLY sheet (ground cracks, no body) frame-matched
 				## to the Attack sheet — so Sunder's body is a third Attack re-slice and the cracks
 				## ride the automatic "<anim>_fx" ComboFx overlay.
-				"sunder":    ["Minifantasy_TrueHeroesBarbarianAttack.png",            6, 13.0],
+				"sunder":    ["Minifantasy_TrueHeroesBarbarianAttack.png",            6, 13.0, {"cancel_open": 4}],
 				"sunder_fx": ["Minifantasy_TrueHeroesBarbarianAttackBrokenGround.png", 6, 13.0],
 				"thunder":  ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Thunder_Blade_Attack/Minifantasy_TrueHeroesBarbarianThunderBlade.png", 17, 22.0],
 				"throw":    ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Throw_Things/Minifantasy_TrueHeroesBarbarianThrowThings.png",          16, 20.0],
@@ -547,7 +561,7 @@ const ALL: Dictionary = {
 				"damage": ["Dmg.png",             4, 15.0],
 				"death":  ["Die.png",            21, 22.0],
 				## "attack_2" re-slices the shot at a different pace so back-to-back pulls restart.
-				"attack_2": ["Shot_Diagonal.png", 7, 20.0],
+				"attack_2": ["Shot_Diagonal.png", 7, 20.0, {"cancel_open": 5}],
 				"fan":      ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Tech-Augmented_Gunslinger/Special_Animations/Fan_The_Hammer/FTH_Diagonal.png", 15, 24.0],
 				"storm":    ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Tech-Augmented_Gunslinger/Special_Animations/Desert_Storm/DS_Diagonal.png",    14, 20.0],
 				"reload":   ["res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Tech-Augmented_Gunslinger/Special_Animations/Reload/Reload.png",              37, 30.0],
@@ -642,7 +656,7 @@ const ALL: Dictionary = {
 				## "attack_2" re-slices the smite slower for the combo filler.
 				"attack_2":  ["ClericAttack.png", 6, 24.0],
 				## Divine Fire finisher cast (looses the holy bolt at the cursor).
-				"divine_fire": ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Cleric/Special_Animations/Divine Fire/ClericDivineFireDiagonal.png", 12, 22.0],
+				"divine_fire": ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Cleric/Special_Animations/Divine Fire/ClericDivineFireDiagonal.png", 12, 22.0, {"cancel_open": 9}],
 				## Prayers: one shared 22f pray body, three names → three frame-matched _fx overlays.
 				"pray_pain":        ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Cleric/Special_Animations/Prayers/_ClericPray.png",              22, 20.0],
 				"pray_pain_fx":     ["res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Cleric/Special_Animations/Prayers/WordOfPainPrayEffect.png",       22, 20.0],
@@ -662,7 +676,7 @@ const ORDER: Array = [
 	"The Warden",
 	"The Spark",
 	"The Shade",
-	"The Herald",
+	"The Demon",
 	"The Ravager",
 	"The Whisper",
 	"The Cursed",

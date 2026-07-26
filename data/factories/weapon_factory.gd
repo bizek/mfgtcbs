@@ -33,7 +33,7 @@ static func build_weapon_ability(weapon_id: String, weapon_data: Dictionary,
 	return _build_projectile_weapon(weapon_id, weapon_data, active_mods)
 
 
-# --- Projectile weapon (Hurled Steel, Warden's Repeater, Spark's Pistol, Herald's Call) ---
+# --- Projectile weapon (Hurled Steel, Warden's Repeater, Spark's Pistol) ---
 
 static func _build_projectile_weapon(weapon_id: String, data: Dictionary,
 		mods: Array) -> AbilityDefinition:

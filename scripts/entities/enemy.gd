@@ -325,7 +325,7 @@ func _physics_process(delta: float) -> void:
 		knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 800.0 * delta)
 		return
 
-	# Charmed (Bard's Serenade): fight for the player — chase and strike other enemies.
+	# Charmed: fight for the player — chase and strike other enemies.
 	if _charm_tinted and not status_effect_component.has_status("charmed"):
 		## Charm wore off — drop the love-struck tint.
 		_charm_tinted = false
@@ -790,10 +790,14 @@ func apply_status(effect: String, params: Dictionary = {}) -> void:
 	status_effect_component.apply_status(status_def, self, 1, duration)
 
 
-# --- Charm (Bard's Charming Serenade) ---
+# --- Charm ---
 ## While "charmed" runs, this enemy turns on its own: chases the nearest other enemy and
 ## strikes it with boosted contact damage. It deals no contact damage to the player and its
 ## normal attack pipeline is suspended (this branch returns before both).
+##
+## NOTE: no shipped kit applies "charmed" since the Bard was replaced by the Demonologist
+## (2026-07-26). The mechanic is generic and kept intact for future content — it is dormant,
+## not dead. Apply StatusEffectDefinition "charmed" from anywhere to switch it back on.
 var _charm_target: Node2D = null
 var _charm_rescan: float = 0.0
 var _charm_strike_cd: float = 0.0
@@ -840,7 +844,7 @@ func _process_charmed(delta: float) -> void:
 					target.take_damage(hit)
 		else:
 			## Straight-line chase: the flow field flows toward the PLAYER, so steering by it
-			## here made charmed enemies orbit the Herald instead of hunting their victim
+			## here made charmed enemies orbit the player instead of hunting their victim
 			## (targets are within the 160px charm scan — walls rarely matter at that range).
 			velocity = to_t.normalized() * base_move_speed * maxf(speed_mult, 0.0) + knockback_velocity
 	else:

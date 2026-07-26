@@ -4,10 +4,7 @@
       "command": "node",
       "args": [
         "E:/Projects/godot-pro-mcp/server/build/index.js"
-      ],
-      "env": {
-        "GODOT_MCP_PORT": "6505"
-      }
+      ]
     }
   }
 }

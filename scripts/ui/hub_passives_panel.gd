@@ -39,7 +39,8 @@ const FS_TINY := 13
 const CLASS_BRANCH := {
 	"Fighter": "might", "Paladin": "might", "Barbarian": "might", "Cleric": "might",
 	"Ranger": "finesse", "Rogue": "finesse", "Ninja": "finesse", "Gunslinger": "finesse",
-	"Wizard": "arcana", "Bard": "arcana", "Blood Mage": "arcana", "Druid": "arcana",
+	"Wizard": "arcana", "Demonologist": "arcana", "Blood Mage": "arcana", "Druid": "arcana",
+	"Necromancer": "arcana",
 }
 
 const _COL_W: int = 122   ## branch column card width

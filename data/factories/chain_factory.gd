@@ -27,12 +27,26 @@ const HEAVY_WIN: float = 0.55       ## Uppercut → Cataclysm follow-up window
 const WHIRL_TICK: float = 0.22      ## one Swirl rotation ≈ Whirlwind tick
 const TAUNT_TICK: float = 0.56      ## Taunt anim length (9f @ 16fps) ≈ shockwave tick
 const BONE_TICK: float = 0.42       ## Necromancer Bone Barrage channel beat (one bone_cast loose per tick)
+## Necromancer Bone Swirl. SWIRL_ORBIT_TIME must stay equal to player.NECRO_SWIRL_ORBIT_LIFE so the
+## burst fires on the exact frame the orbit VFX ends. SWIRL_BASE_BONES is the starting bone count —
+## it's the projectile count, so "add_projectiles" mods raise both the burst AND the bones drawn.
+const SWIRL_ORBIT_TIME: float = 1.35    ## how long the ring grinds before it fires
+const SWIRL_GRIND_TICK: float = 0.25    ## contact-damage beat → 5 ticks per swirl
+const SWIRL_ORBIT_RADIUS: float = 46.0  ## the ring's reach (the bones orbit ~26px out; this is generous)
+const SWIRL_GRIND_MULT: float = 0.20    ## per-tick damage ≈ 1.0x total for an enemy that eats the whole swirl
+const SWIRL_BURST_MULT: float = 0.60    ## per-bone damage on the outward volley
+const SWIRL_BASE_BONES: int = 3         ## pack row 0 = 3 bones; rows 1/2 add 2/1 for higher counts
 const DICTUM_TICK: float = 0.75     ## Paladin channel tick (dictum/dome: 15f @ 20fps = 0.75s)
 const TORRENT_TICK: float = 0.67    ## Wizard Fire Torrent tick (torrent: 20f @ 30fps ≈ 0.67s)
 const VAMP_TICK: float = 0.5        ## Blood Mage Vampirize half-cycle (7f @ 14fps = 0.5s)
 const CONCEAL_TICK: float = 0.9     ## Ranger Conceal loop (14f @ 16fps ≈ 0.875s crouch cycle)
 const VOLLEY_TICK: float = 0.85     ## Ranger Volley channel beat — slower than the light chain (sustained, not burst)
-const SONG_TICK: float = 0.8        ## Bard song beat (16f @ 20fps = 0.8s)
+const HELL_TICK: float = 0.75       ## Demonologist Immolate channel beat (hellfire_ch 15f @ 20fps = 0.75s)
+## Demonologist Brimstone Circle. BRIMSTONE_ZONE_TIME must stay equal to player.BRIMSTONE_SIGIL_LIFE
+## so the burning sigil fades on the same frame its ground zone stops ticking.
+const BRIMSTONE_ZONE_TIME: float = 4.0    ## how long the pact circle burns after the slam
+const BRIMSTONE_ZONE_TICK: float = 0.5    ## burn beat inside the circle
+const BRIMSTONE_RADIUS: float = 52.0      ## the circle's reach (slam AoE and zone share it)
 const GUARD_TICK: float = 0.4       ## Barbarian Guard stance re-check beat (the block is host-side)
 const BLADES_TICK: float = 0.4      ## Ninja Thousand Blades storm beat (blades body 4f @ 10fps)
 const STORM_TICK: float = 0.7       ## Gunslinger Desert Storm volley beat (storm body 14f @ 20fps)
@@ -82,11 +96,11 @@ static func build_kit(kit_id: String, weapon_data: Dictionary) -> Dictionary:
 				"heavy": build_ranger_heavy(weapon_data),
 				"channel": build_ranger_volley(weapon_data),
 			}
-		"bard":
+		"demonologist":
 			return {
-				"light": build_bard_light(weapon_data),
-				"heavy": build_bard_heavy(weapon_data),
-				"channel": build_bard_perform(weapon_data, "ballad"),
+				"light": build_demon_light(weapon_data),
+				"heavy": build_demon_heavy(weapon_data),
+				"channel": build_demon_immolate(weapon_data),
 			}
 		"barbarian":
 			return {
@@ -348,17 +362,57 @@ static func build_necro_barrage(weapon_data: Dictionary) -> AbilityDefinition:
 	return _ability("necro_barrage", "Bone Barrage", choreo)
 
 
-## Shared Bone Swirl finisher: the cast pose looses a wide void nova around the cursor. Terminal
-## (no branches) so both the light and heavy graphs can reuse it (mirrors _word_of_pain_phase).
+## Shared Bone Swirl finisher: the cast raises a ring of bones that orbit the Shade, grinding
+## everything they sweep through, then fire outward when the swirl runs out. Terminal (no branches)
+## so both the light and heavy graphs can reuse it (mirrors _word_of_pain_phase).
+##
+## The orbit is a self-applied aura status rather than a one-shot nova (Ben, 2026-07-25: "they should
+## be hitting multiple times as it's playing and shoot out"). That buys three things for free: the
+## bones keep grinding while the Shade walks (the aura re-queries the grid around him each tick), the
+## burst rides on_expire_effects so it always lands exactly when the orbit ends, and the burst is a
+## plain SpawnProjectilesEffect — so "add_projectiles" mods and level-ups scale the bone count.
 static func _bone_swirl_phase(dtype: String, dmg: float) -> ChoreographyPhase:
 	var p := ChoreographyPhase.new()
 	p.animation = "bone_swirl"
-	p.hit_frame = 10                                        # the bones fly outward
-	p.effects = [_aoe(dtype, dmg * 1.4, 64.0)]
+	## The last bone is up on the final frames of the cast — that's when the swirl takes over.
+	p.hit_frame = 27
+	p.effects = [_bone_swirl_orbit(dtype, dmg)]
 	p.exit_type = "anim_finished"
 	p.default_next = -1
 	p.is_finisher = true
 	return p
+
+
+## The orbiting-bones status: ticks contact damage on everything inside the ring for its duration,
+## then looses the bones radially as it expires. Built fresh per ability so per-run mods that mutate
+## the burst count never leak into another character's copy.
+static func _bone_swirl_orbit(dtype: String, dmg: float) -> ApplyStatusEffectData:
+	var grind := DealDamageEffect.new()
+	grind.damage_type = dtype
+	grind.base_damage = dmg * SWIRL_GRIND_MULT
+
+	## Loosed on expiry, evenly spaced around the Shade. `count` is THE bone-count dial: mods and
+	## level-ups with op "add_projectiles" increment it (see ClassModFactory._apply_op_to_phase),
+	## and player.gd reads it back to draw the matching number of orbiting bones.
+	var burst := SpawnProjectilesEffect.new()
+	burst.projectile = _bone_projectile(dtype, dmg * SWIRL_BURST_MULT, 200.0, 200.0)
+	burst.spawn_pattern = "radial"
+	burst.count = SWIRL_BASE_BONES
+
+	var st := StatusEffectDefinition.new()
+	st.status_id = "BoneSwirl"
+	st.is_positive = true
+	st.base_duration = SWIRL_ORBIT_TIME
+	st.tick_interval = SWIRL_GRIND_TICK
+	st.aura_radius = SWIRL_ORBIT_RADIUS
+	st.aura_target_faction = "enemy"
+	st.aura_tick_effects = [grind]
+	st.on_expire_effects = [burst]
+
+	var apply := ApplyStatusEffectData.new()
+	apply.status = st
+	apply.apply_to_self = true                              # the ring rides the caster, not a target
+	return apply
 
 
 # --- Paladin: light combo (LMB) ---
@@ -848,140 +902,149 @@ static func build_ranger_volley(weapon_data: Dictionary) -> AbilityDefinition:
 	return _ability("ranger_volley", "Volley", choreo)
 
 
-# --- Bard: light combo (LMB) ---
-## The Herald — the sound leads, the blade punctuates (flow flipped per Ben 2026-07-19: the
-## ranged character plays ranged by DEFAULT, no melee gate in front of the chord). Tap = a
-## chord bolt immediately; two chords into the melee Strike payoff up close. Phase indices:
-## 0 Chord · 1 Chord II · 2 Strike (finisher) · 3 Apotheosis.
-static func build_bard_light(weapon_data: Dictionary) -> AbilityDefinition:
+# --- Demonologist: light combo (LMB) ---
+## The Demon — a close-range binder. A staff strike feeds a Hellfire spray; RMB at depth slams a
+## Brimstone Circle into the floor. The pack ships NO projectile sheets (Hellfire's motes are baked
+## into the body anim), so every node here is a player-centred AoE — this kit declares "melee_hit"
+## only. Phase indices: 0 Strike · 1 Hellfire · 2 Brimstone Circle.
+##
+## THREE nodes, not the usual four (Ben, 2026-07-26). This pack ships exactly one melee swing, so a
+## "Strike II" could only be the Attack sheet restarting from frame 0 — under a fast tap that read as
+## the same pose stuttering rather than a second blow. Two distinct beats into the finisher is a
+## full-length chain in TIME here anyway: these bodies are 0.5-0.68s where a True Heroes swing is
+## 0.2s. Node damage is up accordingly so the shorter chain lands in the same DPS neighbourhood.
+static func build_demon_light(weapon_data: Dictionary) -> AbilityDefinition:
 	var dmg: float = weapon_data.get("damage", 42.0)
 	var dtype: String = _damage_type(weapon_data)
 
-	# 0 — Chord (sound-bolt opener at the cursor).
-	var chord := ChoreographyPhase.new()
-	chord.animation = "chord"
-	chord.hit_frame = 6
-	chord.effects = [_chord_bolt(dtype, dmg * 0.85)]
-	chord.exit_type = "wait"
-	chord.wait_duration = CANCEL_WIN
-	chord.default_next = -1
-	chord.branches = [
-		_branch_buffered("light_attack", 1),               # tap → Chord II
-	]
-
-	# 1 — Chord II (re-slice under a distinct name so the cast re-fires; gate now met).
-	var chord2 := ChoreographyPhase.new()
-	chord2.animation = "chord_2"
-	chord2.hit_frame = 6
-	chord2.effects = [_chord_bolt(dtype, dmg * 0.85)]
-	chord2.exit_type = "wait"
-	chord2.wait_duration = CANCEL_WIN
-	chord2.default_next = -1
-	chord2.branches = [
-		_branch_buffered("light_attack", 2),               # tap → Strike
-		_branch_buffered("heavy_attack", 3),               # RMB → Apotheosis
-	]
-
-	# 2 — Strike (melee finisher: the instrument comes down; loops back to Chord on a tap).
+	# 0 — Strike (staff swing opener). No brimstone branch here (gate = depth ≥ Hellfire).
 	var strike := ChoreographyPhase.new()
 	strike.animation = "attack"
-	strike.hit_frame = 1
+	strike.hit_frame = 4                                    # the white arc lands on frame 4
 	strike.effects = [_aoe(dtype, dmg * 1.2, 30.0)]
 	strike.exit_type = "wait"
 	strike.wait_duration = CANCEL_WIN
 	strike.default_next = -1
-	strike.is_finisher = true
 	strike.branches = [
-		_branch_buffered("heavy_attack", 3),               # RMB → Apotheosis
-		_branch_buffered("light_attack", 0),               # tap → loop to Chord
+		_branch_buffered("light_attack", 1),               # tap → Hellfire
 	]
 
-	# 3 — Apotheosis (gated finisher; terminal): divine burst + a self damage buff, with the
-	# frame-matched ApotheosisEffect overlay.
-	var apo := _apotheosis_phase(dtype, dmg)
+	# 1 — Hellfire (finisher: the motes spray out and stick; loops back to Strike on a fresh tap).
+	#     Gate now met → the Brimstone branch is available from here.
+	var hellfire := ChoreographyPhase.new()
+	hellfire.animation = "hellfire"
+	hellfire.hit_frame = 3                                  # the embers leave the staff
+	hellfire.effects = [_aoe(dtype, dmg * 1.6, 46.0), _burning()]
+	hellfire.exit_type = "wait"
+	hellfire.wait_duration = CANCEL_WIN
+	hellfire.default_next = -1
+	hellfire.is_finisher = true
+	hellfire.branches = [
+		_branch_buffered("heavy_attack", 2),               # RMB → Brimstone Circle
+		_branch_buffered("light_attack", 0),               # tap → loop to Strike
+	]
+
+	# 2 — Brimstone Circle (shared gated finisher; terminal).
+	var brimstone := _brimstone_phase(dtype, dmg)
 
 	var choreo := ChoreographyDefinition.new()
-	choreo.phases = [chord, chord2, strike, apo]
-	return _ability("bard_light", "Herald Combo", choreo)
+	choreo.phases = [strike, hellfire, brimstone]
+	return _ability("demon_light", "Demon Combo", choreo)
 
 
-# --- Bard: heavy combo (RMB tap) ---
-## Vicious Mockery → Apotheosis: insult the crowd (AoE + damage-down debuff on everyone hit),
-## then ascend. 0 Mockery · 1 Apotheosis.
-static func build_bard_heavy(weapon_data: Dictionary) -> AbilityDefinition:
+# --- Demonologist: heavy combo (RMB tap) ---
+## Hellfire prod → Brimstone Circle. Sear the pack, then drop the pact under everyone's feet.
+## Phase indices: 0 Hellfire · 1 Brimstone Circle.
+static func build_demon_heavy(weapon_data: Dictionary) -> AbilityDefinition:
 	var dmg: float = weapon_data.get("damage", 42.0)
 	var dtype: String = _damage_type(weapon_data)
 
-	var mockery := ChoreographyPhase.new()
-	mockery.animation = "mockery"
-	mockery.hit_frame = 8
-	mockery.effects = [_aoe(dtype, dmg * 0.6, 70.0), _mocked_debuff()]
-	mockery.exit_type = "wait"
-	mockery.wait_duration = HEAVY_WIN
-	mockery.default_next = -1
-	mockery.branches = [
-		_branch_buffered("heavy_attack", 1),               # RMB → Apotheosis
+	# 0 — Hellfire poke (distinct anim NAME so it re-fires back-to-back); RMB again → Brimstone.
+	var hellfire := ChoreographyPhase.new()
+	hellfire.animation = "hellfire_2"
+	hellfire.hit_frame = 3
+	hellfire.effects = [_aoe(dtype, dmg * 0.9, 44.0), _burning()]
+	hellfire.exit_type = "wait"
+	hellfire.wait_duration = HEAVY_WIN
+	hellfire.default_next = -1
+	hellfire.branches = [
+		_branch_buffered("heavy_attack", 1),               # RMB → Brimstone Circle
 	]
 
-	var apo := _apotheosis_phase(dtype, dmg)
+	# 1 — Brimstone Circle (shared finisher).
+	var brimstone := _brimstone_phase(dtype, dmg)
 
 	var choreo := ChoreographyDefinition.new()
-	choreo.phases = [mockery, apo]
-	return _ability("bard_heavy", "Herald Heavy", choreo)
+	choreo.phases = [hellfire, brimstone]
+	return _ability("demon_heavy", "Demon Heavy", choreo)
 
 
-# --- Bard: Perform (RMB hold) — plays the ACTIVE song, chosen with Q ---
-## Song stances (2026-07-05 control-scheme pass): Q cycles the song in the Herald's heart
-## (player.gd rebuilds this channel), RMB-hold performs it loudly. Ballad heals per beat
-## (host-side, floating notes); Enhancement refreshes the +damage buff — either way the song
-## only works while he plays it.
-static func build_bard_perform(weapon_data: Dictionary, song: String) -> AbilityDefinition:
-	var _dmg: float = weapon_data.get("damage", 42.0)   ## unused — songs don't damage
+# --- Demonologist: Immolate channel (RMB hold) ---
+## Keeps spraying hellfire while held — one mote burst per beat, each stacking Burning. Single
+## looping node, same shape as the Necromancer's Bone Barrage. Lower per-beat damage than the
+## light finisher: it's sustained, not burst.
+static func build_demon_immolate(weapon_data: Dictionary) -> AbilityDefinition:
+	var dmg: float = weapon_data.get("damage", 42.0)
+	var dtype: String = _damage_type(weapon_data)
 
 	var beat := ChoreographyPhase.new()
-	beat.animation = "song_ballad" if song == "ballad" else "song_enhance"
-	beat.hit_frame = -1                                     # fire on every beat entry
-	beat.effects = [_song_marker() if song == "ballad" else _enhancement_buff()]
+	beat.animation = "hellfire_ch"
+	beat.hit_frame = 3                                      # the embers leave the staff
+	beat.effects = [_aoe(dtype, dmg * 0.45, 42.0), _burning()]
 	beat.exit_type = "wait"
-	beat.wait_duration = SONG_TICK
-	beat.default_next = 0                                   # still held → keep playing
+	beat.wait_duration = HELL_TICK
+	beat.default_next = 0                                   # tick elapsed & still held → spray again
 	beat.branches = [
 		_branch_held("heavy_attack", HOLD_KEEP, -1, true), # released → end
 	]
 
 	var choreo := ChoreographyDefinition.new()
 	choreo.phases = [beat]
-	return _ability("bard_perform_" + song, "Perform: " + song.capitalize(), choreo)
+	return _ability("demon_immolate", "Immolate", choreo)
 
 
-## Ballad's per-beat marker status (no modifiers — the heal itself is host-side; this keeps
-## the beat's effects non-empty and leaves a visible "song active" status on the player).
-static func _song_marker() -> ApplyStatusEffectData:
-	var status := StatusEffectDefinition.new()
-	status.status_id = "ballad_song"
-	status.is_positive = true
-	status.max_stacks = 1
-	status.base_duration = 1.2
-	status.duration_refresh_mode = "overwrite"
+## Shared Brimstone Circle finisher: the ritual body slams a pact circle into the floor — a big
+## up-front nova plus a burning sigil that keeps eating anything standing in it. Terminal (no
+## branches) so both the light and heavy graphs can reuse it (mirrors _bone_swirl_phase).
+##
+## The lingering burn is a GroundZoneEffect rather than a second AoE, so the circle keeps working
+## while the Demon walks out of it, and player.gd drops the pack's Standalone_Summon sigil on the
+## same spot at the same radius (see _spawn_brimstone_sigil).
+static func _brimstone_phase(dtype: String, dmg: float) -> ChoreographyPhase:
+	var p := ChoreographyPhase.new()
+	p.animation = "brimstone"
+	## The circle completes and ignites on the ritual's final beats — that's the slam.
+	p.hit_frame = 14
+	p.effects = [_aoe(dtype, dmg * 1.5, BRIMSTONE_RADIUS), _brimstone_zone(dtype, dmg)]
+	p.exit_type = "anim_finished"
+	p.default_next = -1
+	p.is_finisher = true
+	return p
+
+
+## The pact circle's lingering burn. Built fresh per ability so per-run mods that scale the zone
+## never leak into another character's copy.
+static func _brimstone_zone(dtype: String, dmg: float) -> GroundZoneEffect:
+	var z := GroundZoneEffect.new()
+	z.zone_id = "brimstone_circle"
+	z.radius = BRIMSTONE_RADIUS
+	z.duration = BRIMSTONE_ZONE_TIME
+	z.tick_interval = BRIMSTONE_ZONE_TICK
+	z.target_faction = "enemy"
+	var burn := DealDamageEffect.new()
+	burn.damage_type = dtype
+	burn.base_damage = dmg * 0.22
+	z.tick_effects = [burn]
+	return z
+
+
+## Hellfire's motes stick: everything caught in the spray takes the shared Burning DoT. The
+## StatusFactory definition is a process-wide singleton, so this hands out a DUPLICATE — a mod or
+## level-up that mutates the applied status must never reach through and edit every burn in the game.
+static func _burning() -> ApplyStatusEffectData:
 	var apply := ApplyStatusEffectData.new()
-	apply.status = status
-	apply.stacks = 1
-	apply.apply_to_self = true
-	return apply
-
-
-## Charming Serenade (E skill): charmed enemies fight for the Herald — enemy.gd routes their
-## chase/strikes at other enemies while this status runs. Applied host-side to the nearest
-## few victims (with heart wisps), not broadcast to everything in range.
-static func _charm_effect() -> ApplyStatusEffectData:
-	var status := StatusEffectDefinition.new()
-	status.status_id = "charmed"
-	status.is_positive = false
-	status.max_stacks = 1
-	status.base_duration = 5.0
-	status.duration_refresh_mode = "overwrite"
-	var apply := ApplyStatusEffectData.new()
-	apply.status = status
+	var shared: StatusEffectDefinition = StatusFactory.get_by_id("burning")
+	apply.status = shared.duplicate(true) if shared != null else null
 	apply.stacks = 1
 	apply.apply_to_self = false
 	return apply
@@ -1702,40 +1765,60 @@ static var _bone_missile_frames: SpriteFrames = null
 static var _bone_impact_frames: SpriteFrames = null
 
 
-## A spinning bone bolt at the cursor: 8-way directional flight (ortho + diagonal sheets, like the
-## Ranger's throwing knife) + the Bone_Impact one-shot burst on landing.
+## A spinning bone bolt at the cursor + the Bone_Impact one-shot burst on landing. The projectile
+## uses the pack's dedicated Spinning_Bone loop (a clean, directionless tumbling bone) rather than the
+## Bone_Missile flight sheets — those bake the caster wind-up into their early frames, and directional
+## projectiles are frozen on frame 0 by the ProjectileManager (no config.animation), so they'd read as
+## a tiny necromancer instead of a bone. The manager rotates the spinning bone toward travel.
 static func _bone_missile(dtype: String, hit_damage: float) -> SpawnProjectilesEffect:
+	var e := SpawnProjectilesEffect.new()
+	e.projectile = _bone_projectile(dtype, hit_damage)
+	e.spawn_pattern = "aimed_single"
+	e.count = 1
+	return e
+
+
+## The bone bolt itself — shared by the aimed Bone Missile and the Bone Swirl's radial burst.
+static func _bone_projectile(dtype: String, hit_damage: float, speed: float = 240.0,
+		range_px: float = 240.0) -> ProjectileConfig:
 	var cfg := ProjectileConfig.new()
 	cfg.motion_type = "directional"
-	cfg.speed = 240.0
-	cfg.max_range = 240.0
+	cfg.speed = speed
+	cfg.max_range = range_px
 	cfg.hit_radius = 8.0
 	cfg.sprite_frames = _get_bone_missile_frames()
-	cfg.use_directional_anims = true
+	cfg.use_directional_anims = false
+	cfg.animation = "default"                              # animate the 8-frame spin in flight
 	var hit := DealDamageEffect.new()
 	hit.damage_type = dtype
 	hit.base_damage = hit_damage
 	cfg.on_hit_effects = [hit]
 	cfg.impact_sprite_frames = _get_bone_impact_frames()
 	cfg.impact_animation = "impact"
-	var e := SpawnProjectilesEffect.new()
-	e.projectile = cfg
-	e.spawn_pattern = "aimed_single"
-	e.count = 1
-	return e
+	return cfg
 
 
-## Bone flight: ortho sheet rows = cardinal travel, diagonal sheet rows = diagonals (same
-## row-mapping convention as _get_knife_frames — swap rows here if a scrub shows a mismatch).
+## The spinning bone: the pack's Spinning_Bone.png (single row, 8 frames) as a looping "default" anim.
 static func _get_bone_missile_frames() -> SpriteFrames:
 	if _bone_missile_frames:
 		return _bone_missile_frames
 	var frames := SpriteFrames.new()
 	frames.clear_all()
-	var ortho_rows: Dictionary = {"n": 0, "e": 1, "s": 2, "w": 3}
-	var diag_rows: Dictionary = {"ne": 0, "se": 1, "sw": 2, "nw": 3}
-	_slice_dir_rows(frames, NECRO_BONE_DIR + "Bone_Missile_Orthogonal.png", ortho_rows, 18, 18.0)
-	_slice_dir_rows(frames, NECRO_BONE_DIR + "Bone_Missile_Diagonal.png", diag_rows, 18, 18.0)
+	var tex: Texture2D = load(NECRO_BONE_DIR + "Spinning_Bone.png")
+	if tex != null:
+		## clear_all() leaves the built-in "default" animation in place, so adding it again pushes
+		## an error every time the Shade's kit is built. Only create it when it's genuinely absent.
+		if not frames.has_animation(&"default"):
+			frames.add_animation(&"default")
+		frames.set_animation_loop(&"default", true)
+		frames.set_animation_speed(&"default", 16.0)
+		var cols: int = int(tex.get_width() / 32.0)
+		for i in range(cols):
+			var cell := AtlasTexture.new()
+			cell.atlas = tex
+			cell.region = Rect2(i * 32, 0, 32, 32)
+			cell.filter_clip = true
+			frames.add_frame(&"default", cell)
 	_bone_missile_frames = frames
 	return frames
 
@@ -1867,15 +1950,12 @@ static func _get_thunder_proj_frames() -> SpriteFrames:
 	return frames
 
 
-# --- Ranger/Bard builders ---
+# --- Ranger builders ---
 
 const RANGER_ASSET_DIR: String = "res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Ranger/"
-const BARD_ASSET_DIR: String = "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/"
 static var _arrow_frames: SpriteFrames = null
 static var _knife_frames: SpriteFrames = null
 static var _knife_impact_frames: SpriteFrames = null
-static var _chord_frames: SpriteFrames = null
-static var _chord_impact_frames: SpriteFrames = null
 
 ## 3×3 directional grid cells shared by all single-frame projectile sheets.
 const GRID8_CELLS: Dictionary = {
@@ -1928,38 +2008,6 @@ static func _throwing_knife(dtype: String, hit_damage: float) -> SpawnProjectile
 	return e
 
 
-static func _chord_bolt(dtype: String, hit_damage: float) -> SpawnProjectilesEffect:
-	var cfg := ProjectileConfig.new()
-	cfg.motion_type = "directional"
-	cfg.speed = 250.0
-	cfg.max_range = 210.0
-	cfg.hit_radius = 8.0
-	cfg.sprite_frames = _grid8_frames(BARD_ASSET_DIR + "Special_Animations/Dissonant_Chord/DissonantChordProjectile.png", "_chord_frames")
-	cfg.use_directional_anims = true
-	var hit := DealDamageEffect.new()
-	hit.damage_type = dtype
-	hit.base_damage = hit_damage
-	cfg.on_hit_effects = [hit]
-	cfg.impact_sprite_frames = _get_chord_impact_frames()
-	cfg.impact_animation = "impact"
-	var e := SpawnProjectilesEffect.new()
-	e.projectile = cfg
-	e.spawn_pattern = "aimed_single"
-	e.count = 1
-	return e
-
-
-static func _apotheosis_phase(dtype: String, dmg: float) -> ChoreographyPhase:
-	var apo := ChoreographyPhase.new()
-	apo.animation = "apotheosis"
-	apo.hit_frame = 8
-	apo.effects = [_aoe(dtype, dmg * 1.6, 60.0), _timed_damage_buff("apotheosis", 0.20, 6.0)]
-	apo.exit_type = "anim_finished"
-	apo.default_next = -1
-	apo.is_finisher = true
-	return apo
-
-
 ## "Concealed": while refreshed, player.is_invisible() — enemies stop chasing. Duration
 ## outlasts the conceal loop tick so the stealth never blinks between refreshes.
 static func _concealed_status() -> ApplyStatusEffectData:
@@ -1976,33 +2024,7 @@ static func _concealed_status() -> ApplyStatusEffectData:
 	return apply
 
 
-## Vicious Mockery: enemies hit sing along at -20% damage for 4s (applied to targets, not self).
-static func _mocked_debuff() -> ApplyStatusEffectData:
-	var status := StatusEffectDefinition.new()
-	status.status_id = "mocked"
-	status.is_positive = false
-	status.max_stacks = 1
-	status.base_duration = 4.0
-	status.duration_refresh_mode = "overwrite"
-	var dmg_mod := ModifierDefinition.new()
-	dmg_mod.target_tag = "damage"
-	dmg_mod.operation = "bonus"
-	dmg_mod.value = -0.20
-	dmg_mod.source_name = "mocked"
-	status.modifiers = [dmg_mod]
-	var apply := ApplyStatusEffectData.new()
-	apply.status = status
-	apply.stacks = 1
-	apply.apply_to_self = false
-	return apply
-
-
-## Enhancement Song: short damage buff refreshed every beat — fades quickly once you stop playing.
-static func _enhancement_buff() -> ApplyStatusEffectData:
-	return _timed_damage_buff("enhancement_song", 0.15, 1.2)
-
-
-## Shared shape for self-applied +damage statuses (blood_power / apotheosis / enhancement_song).
+## Shared shape for self-applied +damage statuses (blood_surge / battle_fury / honed_edge / …).
 static func _timed_damage_buff(id: String, amount: float, duration: float) -> ApplyStatusEffectData:
 	var buff := StatusEffectDefinition.new()
 	buff.status_id = id
@@ -2083,13 +2105,6 @@ static func _get_knife_impact_frames() -> SpriteFrames:
 		return _knife_impact_frames
 	_knife_impact_frames = _oneshot_row_frames(RANGER_ASSET_DIR + "Special_Animations/Throwing_Knife/Knife_On_The_Ground.png", 12.0)
 	return _knife_impact_frames
-
-
-static func _get_chord_impact_frames() -> SpriteFrames:
-	if _chord_impact_frames:
-		return _chord_impact_frames
-	_chord_impact_frames = _oneshot_row_frames(BARD_ASSET_DIR + "Special_Animations/Dissonant_Chord/DissonantChordImpact.png", 16.0)
-	return _chord_impact_frames
 
 
 ## Single-row 32px sheet → one-shot "impact" animation.

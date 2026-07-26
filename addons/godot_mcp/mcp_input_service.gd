@@ -46,7 +46,7 @@ func _process_commands() -> void:
 	for event_data: Dictionary in events:
 		var event := _create_event(event_data)
 		if event != null:
-			Input.parse_input_event(event)
+			_dispatch_event(event, event_data)
 
 
 func _start_sequence(data: Dictionary) -> void:
@@ -71,6 +71,30 @@ func _dispatch_next_sequence_event() -> void:
 	var event_data: Dictionary = _sequence_queue.pop_front()
 	var event := _create_event(event_data)
 	if event != null:
+		_dispatch_event(event, event_data)
+
+
+## Dispatch an input event using the appropriate method.
+## Mouse drag motions (button_mask > 0) auto-promote to push_input to bypass
+## GUI consumption and reach _unhandled_input — needed for camera-pan use
+## cases where UI Controls would otherwise swallow drag events. But for UI
+## drag-and-drop *testing* we want events to reach the GUI dispatcher so
+## hit-testing and _get_drag_data / _drop_data fire. So: respect an explicit
+## "unhandled": false in the event payload — only auto-promote when the
+## caller did NOT pass an "unhandled" key. Default behavior preserved.
+func _dispatch_event(event: InputEvent, event_data: Dictionary = {}) -> void:
+	var force_unhandled: bool
+	if event_data.has("unhandled"):
+		force_unhandled = bool(event_data.get("unhandled"))
+	else:
+		force_unhandled = event is InputEventMouseMotion and event.button_mask != 0
+	if force_unhandled:
+		var vp := get_viewport()
+		if vp:
+			vp.push_input(event, true)
+		else:
+			Input.parse_input_event(event)
+	else:
 		Input.parse_input_event(event)
 
 
@@ -119,14 +143,20 @@ func _create_key_event(data: Dictionary) -> InputEventKey:
 	return event
 
 
+func _extract_position(data: Dictionary) -> Vector2:
+	# Support nested {"position": {"x": ..., "y": ...}} or flat {"x": ..., "y": ...}
+	var pos = data.get("position", null)
+	if pos is Dictionary:
+		return Vector2(pos.get("x", 0.0), pos.get("y", 0.0))
+	return Vector2(data.get("x", 0.0), data.get("y", 0.0))
+
+
 func _create_mouse_button_event(data: Dictionary) -> InputEventMouseButton:
 	var event := InputEventMouseButton.new()
 	event.button_index = data.get("button", MOUSE_BUTTON_LEFT)
 	event.pressed = data.get("pressed", true)
 	event.double_click = data.get("double_click", false)
-	var pos: Dictionary = data.get("position", {})
-	var viewport_pos := Vector2(pos.get("x", 0.0), pos.get("y", 0.0))
-	var window_pos := _viewport_to_window(viewport_pos)
+	var window_pos := _viewport_to_window(_extract_position(data))
 	event.position = window_pos
 	event.global_position = window_pos
 	return event
@@ -134,19 +164,29 @@ func _create_mouse_button_event(data: Dictionary) -> InputEventMouseButton:
 
 func _create_mouse_motion_event(data: Dictionary) -> InputEventMouseMotion:
 	var event := InputEventMouseMotion.new()
-	var pos: Dictionary = data.get("position", {})
-	var viewport_pos := Vector2(pos.get("x", 0.0), pos.get("y", 0.0))
-	var window_pos := _viewport_to_window(viewport_pos)
+	var window_pos := _viewport_to_window(_extract_position(data))
 	event.position = window_pos
 	event.global_position = window_pos
-	var rel: Dictionary = data.get("relative", {})
+	# Support nested {"relative": {"x": ..., "y": ...}} or flat {"relative_x": ..., "relative_y": ...}
+	var rel_x: float = 0.0
+	var rel_y: float = 0.0
+	var rel = data.get("relative", null)
+	if rel is Dictionary:
+		rel_x = float(rel.get("x", 0.0))
+		rel_y = float(rel.get("y", 0.0))
+	else:
+		rel_x = float(data.get("relative_x", 0.0))
+		rel_y = float(data.get("relative_y", 0.0))
 	# Scale relative movement by the same transform (scale only, no offset)
 	var vp := get_viewport()
 	if vp:
 		var scale := vp.get_final_transform().get_scale()
-		event.relative = Vector2(rel.get("x", 0.0), rel.get("y", 0.0)) * scale
+		event.relative = Vector2(rel_x, rel_y) * scale
 	else:
-		event.relative = Vector2(rel.get("x", 0.0), rel.get("y", 0.0))
+		event.relative = Vector2(rel_x, rel_y)
+	# Set button_mask so drag detection works (e.g. camera pan checks button_mask)
+	var button_mask: int = int(data.get("button_mask", 0))
+	event.button_mask = button_mask
 	return event
 
 

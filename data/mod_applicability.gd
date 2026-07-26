@@ -36,7 +36,9 @@ const KIT_CAPABILITIES: Dictionary = {
 	"ranger":     ["melee_hit", "projectile"],   ## arrow volleys + throwing knife
 	"wizard":     ["melee_hit", "projectile"],   ## bolts + charged fireball
 	"blood_mage": ["melee_hit", "projectile"],   ## blood shard volleys
-	"bard":       ["melee_hit", "projectile"],   ## dissonant chord bolt
+	"demonologist": ["melee_hit"],               ## the Demonologist pack ships NO projectile sheets —
+												 ## Hellfire's motes are baked into the body anim, so
+												 ## every hit this kit lands is a player-centred AoE
 	"barbarian":  ["melee_hit", "projectile"],   ## thunder blade bolt
 	"gunslinger": ["melee_hit", "projectile"],   ## gunfire volleys
 }

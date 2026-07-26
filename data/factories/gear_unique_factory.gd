@@ -35,9 +35,9 @@ static func build(unique_id: String) -> Dictionary:
 				_on_kill_heal("soulrend", 0.06),
 				_self_buff_on_kill("soulrend_haste", "attack_speed", 0.20, 3.0),
 			]
-		# Bard — Chorus of the Void: the chord staggers the crowd.
-		"u_discord":
-			result.statuses = [_on_hit_apply(_slow_status("discord_slow", -0.25, 2.0), "discord")]
+		# Demonologist — Sceptre of the Archfiend: what it kills, it lights.
+		"u_infernal":
+			result.statuses = [_on_kill_aoe("Fire", 20.0, 54.0, "infernal")]
 		# Barbarian — Skullcleaver: fury builds with every blow.
 		"u_bloodrage":
 			result.statuses = [_on_hit_self_stack("skull_fury", "damage", 0.04, 5, 4.0)]
@@ -84,7 +84,7 @@ static func describe(unique_id: String) -> String:
 		"u_retribution":  return "+5 Armor. On kill: heal 6% max HP."
 		"u_wildfire":     return "Hits apply Burning."
 		"u_soulrend":     return "On kill: heal 6% max HP and +20% Attack Speed for 3s."
-		"u_discord":      return "Hits slow enemies by 25% for 2s."
+		"u_infernal":     return "On kill: 20 Fire damage bursts around the fallen."
 		"u_bloodrage":    return "Each hit: +4% Damage (stacks 5×, 4s)."
 		"u_killing_edge": return "On crit: 18 damage burst around the target."
 		"u_sanguine":     return "+4% Lifesteal. On kill: heal 6% max HP."
@@ -188,6 +188,27 @@ static func _on_crit_aoe(dtype: String, dmg: float, radius: float, id: String) -
 	return def
 
 
+## Permanent passive: on kill, detonate an AoE on the corpse (same shape as _on_crit_aoe, on_kill event).
+static func _on_kill_aoe(dtype: String, dmg: float, radius: float, id: String) -> StatusEffectDefinition:
+	var def := StatusEffectDefinition.new()
+	def.status_id = "gu_" + id
+	def.tags = ["Passive"]
+	def.is_positive = true
+	def.max_stacks = 1
+	def.base_duration = -1.0
+	var aoe := AreaDamageEffect.new()
+	aoe.damage_type = dtype
+	aoe.base_damage = dmg
+	aoe.aoe_radius = radius
+	var l := TriggerListenerDefinition.new()
+	l.event = "on_kill"
+	l.target_self = false
+	l.conditions = [TriggerConditionSourceIsSelf.new()]
+	l.effects = [aoe]
+	def.trigger_listeners = [l]
+	return def
+
+
 ## Permanent passive: on kill, apply a timed self-buff on one stat (mirrors adrenaline_rush).
 static func _self_buff_on_kill(id: String, stat: String, value: float, duration: float) -> StatusEffectDefinition:
 	var def := StatusEffectDefinition.new()
@@ -241,19 +262,6 @@ static func _on_hit_self_stack(id: String, stat: String, per_stack: float, max_s
 	l.conditions = [TriggerConditionSourceIsSelf.new()]
 	l.effects = [apply]
 	def.trigger_listeners = [l]
-	return def
-
-
-## A stackable/timed move-speed slow applied to enemies (mirrors abyssal_slow shape).
-static func _slow_status(id: String, pct: float, duration: float) -> StatusEffectDefinition:
-	var def := StatusEffectDefinition.new()
-	def.status_id = id
-	def.tags = ["CC"]
-	def.is_positive = false
-	def.max_stacks = 1
-	def.base_duration = duration
-	def.duration_refresh_mode = "overwrite"
-	def.modifiers = [_stat_mod("move_speed", "bonus", pct, id)]
 	return def
 
 

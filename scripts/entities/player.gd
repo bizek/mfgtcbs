@@ -175,7 +175,6 @@ const COMBO_FX_SCALE: float = 2.4   ## fallback upscale for nodes with no AreaDa
 ## shockwave ring marks the zone for these instead). The generic white swing slashes stay
 ## radius-scaled — for those the stretch IS the hitbox guide.
 const NATIVE_FX_ANIMS: Array[String] = [
-	"apotheosis", "mockery", "song_ballad", "song_enhance",
 	"sunder", "bash", "dictum", "dome",
 ]
 ## Rogue Bomb visuals (Throw Bomb asset package): the spinning bomb projectile arcs a short hop in
@@ -272,22 +271,76 @@ const PAIN_DECAL_SHEET: String = "res://assets/minifantasy/Minifantasy_True_Hero
 var _spirit_guardian: Node2D = null
 ## Necromancer kit (The Shade): the persistent Skeletal Champion companion (pet standard) + Soul
 ## Harvest state — kills bank souls that heal and, every SOUL_HARVEST_THRESHOLD, empower the next summon.
-var _skeletal_champion: Node2D = null
+## Rise Corpse (Q) raises a whole squad — the Shade is up against hordes, so one skeleton isn't
+## enough. Resummon replaces the squad (the old one is banished). Empowered summons add one more.
+const RISE_CORPSE_SQUAD: int = 4
+var _skeletal_champions: Array[Node2D] = []
 const SOUL_HARVEST_HEAL: float = 2.0        ## HP restored per soul reaped
 const SOUL_HARVEST_THRESHOLD: int = 3       ## souls banked → next Rise Corpse / Bone Legion is empowered
 var _soul_charges: int = 0
 var _next_summon_empowered: bool = false
-## Bard kit (The Herald): Ballad heal-per-beat + the loose Songs effect sheets.
-const BALLAD_HEAL_FRAC: float = 0.01     ## Ballad beat heals 1% max HP
-const BALLAD_NOTE_SHEET: String = "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/Ballad/BalladEnchant1.png"
-const MOCKERY_WISP_SHEET: String = "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/Vicious_Mockery/ViciousMockery.png"
-const CHARM_HEART_SHEET: String = "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Bard/Special_Animations/Songs/Ballad/BalladEnchant2.png"
-const CHARM_MAX_TARGETS: int = 3
-const CHARM_RANGE: float = 110.0
-## Control-scheme pass (2026-07-05): kit id + class dash + Bard song stance + Wizard charge.
+## Necromancer world-VFX sheets (Bone_Swirl orbit/rise, corpse-rise + ground layer, Plane Shift bursts).
+## Spawned world-anchored via _spawn_pack_fx, NOT sliced into the character SpriteFrames.
+const NECRO_SPECIAL_DIR: String = "res://assets/minifantasy/Minifantasy_True_Villains_I_v1.0/_Minifantasy_True_Villains_Assets/Supreme_Necromancer/Special_Animations/"
+const NECRO_SWIRL_SHEET: String = NECRO_SPECIAL_DIR + "Bone_Swirl/Bone_Swirl.png"            ## 64px, 3 rows (row 0 = full), orbit loop
+const NECRO_SWIRL_RISE_SHEET: String = NECRO_SPECIAL_DIR + "Bone_Swirl/Bone_Swirl_Rise.png"  ## 64px, 1 row, bones erupt around caster
+## Bone_Swirl_Rise is NOT one continuous eruption: frames 0-12 are the bones clawing up, and frames
+## 13-28 are two verbatim copies of the 8-frame Bone_Swirl orbit loop (verified pixel-identical —
+## rise f13 == orbit f0). So the rise's fps sets the ORBIT SPIN RATE, not just a gesture speed, and
+## running it at the body cast's 26 fps span the bones at 3.25 rev/s ("helicopter blades", Ben
+## 2026-07-25). One 8-frame loop = one full revolution (-45°/frame), so fps/8 IS revolutions/sec.
+## We therefore play only the eruption and hand off to the loop at the SAME fps — the seam is
+## invisible because the frames are the same art, and the spin rate never changes.
+const NECRO_SWIRL_FPS: float = 12.0          ## 1.5 rev/s — pack-native is 10 fps (1.25 rev/s)
+const NECRO_SWIRL_RISE_LAST: int = 12        ## last eruption frame; 13+ is the orbit loop inlined
+## Must equal ChainFactory.SWIRL_ORBIT_TIME — the bones have to leave the screen on the same frame
+## the status expires and fires them outward as projectiles.
+const NECRO_SWIRL_ORBIT_LIFE: float = 1.35
+const NECRO_SWIRL_ORBIT_FADE: float = 0.08   ## short — the bones don't dissolve, they launch
+## Bone count → orbit rings. The sheet's three rows hold exactly 3, 2 and 1 bones, so any count
+## decomposes into rows with no leftovers: 5 bones = one 3-row + one 2-row, spread around the circle.
+const NECRO_SWIRL_BASE_BONES: int = 3
+const NECRO_SWIRL_MAX_RINGS: int = 5         ## sanity cap (15 bones) so a stacked build can't spam sprites
+var _swirl_rise_fx: AnimatedSprite2D = null
+var _swirl_orbit_fx: Array[AnimatedSprite2D] = []
+var _swirl_rings: Array[int] = []            ## sheet row per ring, resolved at cast time
+var _swirl_chain_tween: Tween = null
+const NECRO_RISE_GROUND_SHEET: String = NECRO_SPECIAL_DIR + "Rise_Corpse/Stand_Alone_Rise_Corpse_Ground.png"  ## 32px 2-row, ground scar below bodies (decoupled decal)
+## Rise_Skeletal_Champion (the emerge body) now lives on the SkeletalChampion's own "spawn" state, so
+## it's welded to the entity — see skeletal_champion.gd. Stand_Alone_Rise_Corpse (the generic fleshy
+## corpse) is reserved for a future non-skeletal minion; our summons are skeletal → they use the
+## matching champion emerge, per Ben's "the animation must match the skeleton" note (2026-07-23).
+const NECRO_PLANESHIFT_OUT_SHEET: String = NECRO_SPECIAL_DIR + "Plane_Shift/Plane_Shift_Out.png"                ## 32px, 4 facing rows, dematerialize
+const NECRO_PLANESHIFT_IN_SHEET: String = NECRO_SPECIAL_DIR + "Plane_Shift/Plane_Shift_In.png"                  ## 32px, 4 facing rows, rematerialize
+## Demonologist kit (The Demon): the bound Angry Demon companion (pet standard) + the pack's
+## world-anchored VFX. Spawned via _spawn_pack_fx, NOT sliced into the character SpriteFrames.
+const DEMON_SPECIAL_DIR: String = "res://assets/minifantasy/Minifantasy_True_Villains_I_v1.0/_Minifantasy_True_Villains_Assets/Demonologist/Special_Animations/"
+## Standalone_Summon: the pact sigil WITHOUT a demon in it (32px, 1 row, 18f) — the circle draws
+## itself, catches fire, and gutters out. Dropped under the Brimstone Circle finisher as a ground
+## decal (z -1) scaled to the zone radius.
+const BRIMSTONE_SIGIL_SHEET: String = DEMON_SPECIAL_DIR + "Summon_Demon/Standalone_Summon.png"
+## Must equal ChainFactory.BRIMSTONE_ZONE_TIME — the sigil has to gutter out on the frame its ground
+## zone stops burning. 18 frames spread across that life gives the playback fps.
+const BRIMSTONE_SIGIL_LIFE: float = 4.0
+const BRIMSTONE_SIGIL_FRAMES: int = 18
+## Archdemon_Call_Spell: 32px, 1 row, 27f — the pentagram opens, the archdemon puts its head
+## through, bites, and sinks back. World-anchored at the cursor over the Archdemon's Call zone.
+const ARCHDEMON_SPELL_SHEET: String = DEMON_SPECIAL_DIR + "Archdemon_Call/Archdemon_Call_Spell.png"
+## Must equal SkillFactory.ARCHDEMON_SPELL_TIME (27 frames @ ~11 fps ≈ 2.45s).
+const ARCHDEMON_SPELL_LIFE: float = 2.45
+const ARCHDEMON_SPELL_FRAMES: int = 27
+## Hell_Breach_Spell: 64px, 17f, and its four rows are CARDINAL directions, not the pack's usual
+## diagonal facings — measured off the sheet, each row's fissure grows a different way from the
+## cell centre (row 0 east, 1 west, 2 south, 3 north). Spawned at the dash's landing point.
+const HELLBREACH_FISSURE_SHEET: String = DEMON_SPECIAL_DIR + "Hell_Breach/Hell_Breach_Spell.png"
+const HELLBREACH_FISSURE_ROWS: Array[int] = [0, 1, 2, 3]   ## indexed by HELLBREACH_DIR order below
+const HELLBREACH_FISSURE_FPS: float = 20.0
+const HELLBREACH_DAMAGE_MULT: float = 1.0   ## × weapon damage, landed once on the slam
+const HELLBREACH_RADIUS: float = 54.0       ## the fissure's bite around the landing point
+var _angry_demon: Node2D = null
+## Control-scheme pass (2026-07-05): kit id + class dash + Wizard charge.
 var _kit_id: String = ""
 var _dash_style: String = ""             ## "" = standard dash; "teleport" = Spark blink
-var _active_song: String = "ballad"      ## Bard stance (Q cycles; Perform plays it)
 var _charge_start_ms: int = -1           ## Wizard Fireball charge start (real-time ms)
 const WIZARD_CHARGE_SLOW: float = -0.4   ## move_speed penalty while charging (the greed tax)
 const FIREBALL_MULT_MAX: float = 2.0     ## full overcharge doubles the Fireball
@@ -1199,7 +1252,6 @@ func _load_combo() -> void:
 	var kit_id: String = char_data.get("melee_kit", "")
 	_kit_id = kit_id
 	_dash_style = char_data.get("dash_style", "")
-	_active_song = "ballad"
 	## Class mods (task 31): the ids equipped for THIS character that belong to THIS kit. Applied
 	## to the freshly-built kit/skills at build time via the ClassModFactory seam. Rebuilt every
 	## _load_combo, so kit mutations never accumulate; player modifiers carry "classmod_" so they
@@ -1269,8 +1321,8 @@ func _tick_combo() -> void:
 		_rmb_pending = false   ## a combo started under us — drop any pending neutral RMB
 		return
 
-	## Q/E skills (control-scheme pass 2026-07-05). Q: instant stance actions (Bard song
-	## cycle — no runner); E: SkillComponent skill through the shared runner.
+	## Q/E skills (control-scheme pass 2026-07-05): both are SkillComponent skills fired
+	## through the shared runner.
 	if InputMap.has_action("skill_q") and Input.is_action_just_pressed("skill_q"):
 		_on_skill_q()
 	if InputMap.has_action("skill_e") and Input.is_action_just_pressed("skill_e") \
@@ -1301,23 +1353,15 @@ func _tick_combo() -> void:
 			_rmb_pending = false
 
 
-## HUD hook: the active melee kit id (the Bard's Q is a stance cycle, not a cooldown skill).
+## HUD hook: the active melee kit id.
 func get_kit_id() -> String:
 	return _kit_id
 
 
 func _on_skill_q() -> void:
-	## Non-bard kits: Q is a normal skill slot fired through the shared runner, like E.
-	if _kit_id != "bard":
-		if skill_component and skill_component.has_skill("skill_q"):
-			skill_component.trigger("skill_q")
-		return
-	## Bard: cycle the song stance — Perform (RMB hold) plays whichever song is active.
-	_active_song = "enhance" if _active_song == "ballad" else "ballad"
-	_combo_channel = ChainFactory.build_bard_perform(_weapon_data, _active_song)
-	## Feedback pop: a note for the Ballad, a heart-shimmer for the Enhancement.
-	_spawn_oneshot_fx(BALLAD_NOTE_SHEET if _active_song == "ballad" else CHARM_HEART_SHEET,
-			global_position + Vector2(0, -20), 12.0)
+	## Q is a normal skill slot fired through the shared runner, like E.
+	if skill_component and skill_component.has_skill("skill_q"):
+		skill_component.trigger("skill_q")
 
 
 func _start_taunt_channel() -> void:
@@ -1384,6 +1428,10 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 		_spawn_bone_legion()
 	elif cur_anim.begins_with("rise_corpse"):
 		_spawn_skeletal_champion()
+	## Demonologist: the pact ritual binds the Angry Demon. (The finisher shares this cast body under
+	## the name "brimstone", which must NOT reach this hook — hence the exact prefix.)
+	if cur_anim.begins_with("pact_ritual"):
+		_spawn_angry_demon()
 	## Second Wind: the salute lands — green mend ring + flash so the heal reads on cast.
 	if cur_anim.begins_with("rally"):
 		_spawn_shockwave_ring(26.0, Color(0.35, 1.0, 0.45, 0.9))
@@ -1414,6 +1462,10 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 	var is_teleport: bool = cur_anim.begins_with("teleport_out")
 	var is_extract: bool = cur_anim.begins_with("extract")
 	var is_spikes: bool = cur_anim.begins_with("spikes")
+	## Demonologist ground zones: the Brimstone Circle is slammed down UNDERFOOT (he's the epicentre);
+	## Archdemon's Call tears open at the cursor. Both carry their own pack decal below.
+	var is_brimstone: bool = cur_anim.begins_with("brimstone")
+	var is_archdemon: bool = cur_anim.begins_with("archdemon_call")
 	var is_vamp_rip: bool = cur_anim.begins_with("vampirize")
 	var is_vamp_drink: bool = cur_anim.begins_with("consume")
 	var self_effects: Array = []
@@ -1479,26 +1531,6 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 		scaled_fb.projectile.visual_scale = Vector2.ONE * sqrt(mult)
 		proj_effects = [scaled_fb]
 
-	## Charming Serenade: charm is capped to the nearest few victims (hearts overhead), not
-	## broadcast through the generic enemy dispatch below.
-	if cur_anim.begins_with("serenade"):
-		var charm_apply: Resource = null
-		for eff in enemy_effects:
-			if eff is ApplyStatusEffectData:
-				charm_apply = eff
-				break
-		if charm_apply:
-			enemy_effects.erase(charm_apply)
-			var victims: Array = _nearby_enemies(CHARM_RANGE * reach)
-			victims.sort_custom(func(a, b) -> bool:
-				return global_position.distance_squared_to(a.global_position) \
-						< global_position.distance_squared_to(b.global_position))
-			for i in range(mini(CHARM_MAX_TARGETS, victims.size())):
-				var v: Node2D = victims[i]
-				if v.status_effect_component:
-					v.status_effect_component.apply_status(charm_apply.status, self, 1)
-				_spawn_oneshot_fx(CHARM_HEART_SHEET, v.global_position + Vector2(0, -14), 12.0)
-
 	if not proj_effects.is_empty():
 		## Cursor-aimed casts (Wizard/Blood Mage projectiles): "aimed_single"/"spread" read
 		## source.attack_target — park it on the aim cursor, then route through the normal
@@ -1531,20 +1563,31 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 	## Ground zones (Druid Root, Cleric Word of Pain): drop at the clamped cursor and mark the
 	## spot with the pack's ground decal (a one-shot burst; the zone itself ticks host-side).
 	if not zone_effects.is_empty():
-		## Blood Eruption's pool erupts UNDERFOOT (the Cursed is the epicenter); Root / Word of
-		## Pain zones drop at the clamped cursor with their ground decal.
+		## Blood Eruption's pool and the Brimstone Circle erupt UNDERFOOT (the caster is the
+		## epicenter); Root / Word of Pain / Archdemon's Call drop at the clamped cursor.
+		var underfoot: bool = is_spikes or is_brimstone
 		var z_pos: Vector2 = global_position
-		if not is_spikes:
+		if not underfoot:
 			var z_aim: Vector2 = _get_aim_world_position() - global_position
 			if z_aim.length() > THROW_RANGE:
 				z_aim = z_aim.normalized() * THROW_RANGE
 			z_pos = global_position + z_aim
 		EffectDispatcher.execute_effects(zone_effects, self, [_get_aim_target(z_pos)], ability, combat_manager)
+		## The zone's live radius (incl. Reach and any mod scaling) sizes the pack decal over it.
+		var z_radius: float = 0.0
+		for z in zone_effects:
+			if z is GroundZoneEffect:
+				z_radius = z.radius * reach
+				break
 		if is_spikes:
 			for z in zone_effects:
 				if z is GroundZoneEffect:
 					_register_blood_pool(z_pos, z.radius * reach, z.duration)
 					break
+		elif is_brimstone:
+			_spawn_brimstone_sigil(z_pos, z_radius)
+		elif is_archdemon:
+			_spawn_archdemon_spell(z_pos, z_radius)
 		else:
 			_spawn_oneshot_fx(ROOT_DECAL_SHEET if cur_anim.begins_with("root_cast") else PAIN_DECAL_SHEET, z_pos, 12.0)
 
@@ -1563,17 +1606,6 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 		var victims: Array = _nearby_enemies(50.0 * reach)
 		if not victims.is_empty():
 			_spawn_drain_wisp(victims[0].global_position)
-	## Bard Ballad beat: the song restores (floating note over the Herald).
-	if cur_anim.begins_with("song_ballad"):
-		health.apply_healing(health.max_hp * BALLAD_HEAL_FRAC)
-		_spawn_oneshot_fx(BALLAD_NOTE_SHEET, global_position + Vector2(0, -20), 12.0)
-	## Vicious Mockery: taunt wisps over the nearest victims (the debuff itself rides the
-	## normal enemy-effects dispatch below).
-	if cur_anim.begins_with("mockery"):
-		var mocked: Array = _nearby_enemies(70.0 * reach)
-		for i in range(mini(3, mocked.size())):
-			_spawn_oneshot_fx(MOCKERY_WISP_SHEET, mocked[i].global_position + Vector2(0, -14), 12.0)
-
 	if not enemy_effects.is_empty():
 		var enemies: Array = _nearby_enemies(90.0 * reach)
 		if not enemies.is_empty():
@@ -1620,6 +1652,10 @@ func choreo_on_phase_anim(phase: ChoreographyPhase, stage: String = "") -> void:
 		_add_modifier("move_speed", "bonus", WIZARD_CHARGE_SLOW, "combo_charge")
 	elif anim == "fireball_2":
 		modifier_component.remove_by_source_prefix("combo_charge")
+
+	## Bone Swirl (Necromancer heavy): bones erupt and orbit the caster, starting with the cast.
+	if anim.begins_with("bone_swirl"):
+		_spawn_bone_swirl_fx(phase)
 
 	## Big-impact nodes with no _fx sheet (Taunt) ring out a procedural shockwave at the
 	## hit-zone radius instead. (Flame Nova retired 2026-07-20 → the Spark's E is Storm Call
@@ -1889,25 +1925,31 @@ func _spawn_spirit_guardian() -> void:
 
 
 func _spawn_skeletal_champion() -> void:
-	## Rise Corpse (Q): one persistent champion at a time — resummon replaces the old one. Mirrors
-	## the SpiritGuardian/BloodElemental pet standard (autonomous locomotion + leash; CLAUDE.md).
-	if is_instance_valid(_skeletal_champion):
-		_skeletal_champion.banish()
-	var champ := SkeletalChampion.new()
-	champ.player_ref = self
-	champ.damage_type = ChainFactory._damage_type(_weapon_data)
-	get_tree().current_scene.add_child(champ)
-	var side: float = -1.0 if _facing.ends_with("left") else 1.0
-	champ.global_position = global_position + Vector2(22.0 * side, 4.0)
-	_skeletal_champion = champ
-	## Soul Harvest: a banked soul quota conjures an extra, longer-lived champion alongside it.
-	if _consume_summon_empower():
-		var extra := SkeletalChampion.new()
-		extra.player_ref = self
-		extra.damage_type = champ.damage_type
-		extra.lifetime = 30.0
-		get_tree().current_scene.add_child(extra)
-		extra.global_position = global_position + Vector2(-22.0 * side, 4.0)
+	## Rise Corpse (Q): raise a SQUAD of persistent champions (RISE_CORPSE_SQUAD), each clawing up
+	## from its own spot with its own corpse-rise VFX — matched to the "several skeletons rise" read
+	## the pack art gives. Resummon replaces the whole squad. Each is an autonomous pet
+	## (SpiritGuardian/BloodElemental standard — own locomotion + leash; CLAUDE.md). Soul Harvest
+	## adds one more skeleton to the raising.
+	for old in _skeletal_champions:
+		if is_instance_valid(old):
+			old.banish()
+	_skeletal_champions.clear()
+	var dtype: String = ChainFactory._damage_type(_weapon_data)
+	var count: int = RISE_CORPSE_SQUAD + (1 if _consume_summon_empower() else 0)
+	## Spread them in a shallow fan ahead of the Shade so the emerges read as a rank of risen dead,
+	## not a stack. Centered on the aim direction, fanned across ~120°, ~34px out.
+	var base_ang: float = _aim_dir.angle() if _aim_dir.length_squared() > 0.01 else 0.0
+	for i in range(count):
+		var champ := SkeletalChampion.new()
+		champ.player_ref = self
+		champ.damage_type = dtype
+		get_tree().current_scene.add_child(champ)
+		var t: float = (float(i) / float(maxi(count - 1, 1))) - 0.5   # -0.5 .. 0.5
+		var ang: float = base_ang + t * (TAU / 3.0)                    # fan across ~120°
+		var dist: float = 30.0 + 8.0 * absf(t) * 2.0                   # outer skeletons a touch further
+		champ.global_position = global_position + Vector2(cos(ang), sin(ang)) * dist
+		_spawn_corpse_ground(champ.global_position)
+		_skeletal_champions.append(champ)
 
 
 func _spawn_bone_legion() -> void:
@@ -1924,6 +1966,73 @@ func _spawn_bone_legion() -> void:
 		get_tree().current_scene.add_child(sk)
 		var ang: float = TAU * float(i) / float(count)
 		sk.global_position = global_position + Vector2(cos(ang), sin(ang)) * 26.0
+		_spawn_corpse_ground(sk.global_position)
+
+
+func _spawn_angry_demon() -> void:
+	## Summon Angry Demon (Q): ONE bound elite, not a swarm — resummon banishes the old one. It rises
+	## on its own Summon_Angry_Demon emerge (welded to the entity, so it can't be left behind as a
+	## remnant) and then fights autonomously (AngryDemon owns its locomotion; CLAUDE.md pet standard).
+	if is_instance_valid(_angry_demon):
+		_angry_demon.banish()
+	var d := AngryDemon.new()
+	d.player_ref = self
+	d.damage_type = ChainFactory._damage_type(_weapon_data)
+	get_tree().current_scene.add_child(d)
+	## Place it a short way along the aim direction so the pit opens where he's pointing.
+	var ang: float = _aim_dir.angle() if _aim_dir.length_squared() > 0.01 else 0.0
+	d.global_position = global_position + Vector2(cos(ang), sin(ang)) * 30.0
+	_angry_demon = d
+
+
+## Brimstone Circle (Demonologist finisher): the pack's Standalone_Summon sigil — the circle draws
+## itself, ignites and gutters out — laid flat UNDER the bodies (z -1) at the ground zone's radius,
+## its fps stretched so the fire dies exactly when the zone stops burning.
+func _spawn_brimstone_sigil(at: Vector2, radius: float) -> void:
+	var fps: float = float(BRIMSTONE_SIGIL_FRAMES) / maxf(BRIMSTONE_SIGIL_LIFE, 0.01)
+	var fx: AnimatedSprite2D = _spawn_pack_fx(BRIMSTONE_SIGIL_SHEET, at, 32, 0, fps, false, -1)
+	_scale_pack_fx(fx, radius)
+
+
+## Archdemon's Call (Demonologist E): the pack's 27-frame Archdemon_Call_Spell over the ground zone
+## at the cursor — pentagram, eruption, bite, and back into the floor. Above bodies (z 1): the thing
+## coming through is bigger than anything standing on the field.
+func _spawn_archdemon_spell(at: Vector2, radius: float) -> void:
+	var fps: float = float(ARCHDEMON_SPELL_FRAMES) / maxf(ARCHDEMON_SPELL_LIFE, 0.01)
+	var fx: AnimatedSprite2D = _spawn_pack_fx(ARCHDEMON_SPELL_SHEET, at, 32, 0, fps, false, 1)
+	_scale_pack_fx(fx, radius)
+
+
+## Hell Breach (Demonologist dash): the landing fissure. Hell_Breach_Spell is 64px and its rows are
+## CARDINAL — the crack grows east/west/south/north out of the cell centre — so the row is picked
+## from the DASH vector, not the cursor facing. Fires on the slam, per the pack's AnimationInfo
+## ("start Hell_Breach_Spell aligned with the character after the jump landing").
+func _spawn_hellbreach_fissure(dir: Vector2) -> void:
+	if dir.length_squared() < 0.001:
+		dir = Vector2.RIGHT
+	## Cardinal quadrant of the dash: e / w / s / n → sheet rows 0 / 1 / 2 / 3.
+	var row: int = HELLBREACH_FISSURE_ROWS[0]
+	if absf(dir.x) >= absf(dir.y):
+		row = HELLBREACH_FISSURE_ROWS[0] if dir.x >= 0.0 else HELLBREACH_FISSURE_ROWS[1]
+	else:
+		row = HELLBREACH_FISSURE_ROWS[2] if dir.y >= 0.0 else HELLBREACH_FISSURE_ROWS[3]
+	_spawn_pack_fx(HELLBREACH_FISSURE_SHEET, global_position, 64, row,
+			HELLBREACH_FISSURE_FPS, false, 1)
+	## The ground splitting is not decoration — everything around the landing takes the breach.
+	var hit := AreaDamageEffect.new()
+	hit.damage_type = ChainFactory._damage_type(_weapon_data)
+	hit.base_damage = _weapon_data.get("damage", 42.0) * HELLBREACH_DAMAGE_MULT
+	hit.aoe_radius = HELLBREACH_RADIUS * _melee_range()
+	EffectDispatcher.execute_effects([hit], self, [self], null, combat_manager)
+
+
+## Scale a world-anchored pack VFX so its native art radius lands on `radius`. No-op for a null
+## sprite (missing sheet) or a zero radius (caller had no zone to size against).
+func _scale_pack_fx(fx: AnimatedSprite2D, radius: float) -> void:
+	if fx == null or radius <= 0.0:
+		return
+	var s: float = radius / FX_NATIVE_RADIUS
+	fx.scale = Vector2(s, s)
 
 
 ## True (and clears the flag) when a banked Soul Harvest quota should empower this summon.
@@ -1996,7 +2105,7 @@ func _spawn_drain_wisp(at: Vector2) -> void:
 	wisp.animation_finished.connect(wisp.queue_free)
 
 
-## Generic one-shot for loose single-row 32px effect sheets (ballad notes, mockery wisps).
+## Generic one-shot for loose single-row 32px effect sheets (ground decals, wisps, sparks).
 ## Sunder aftermath: the crack sheet's LAST frame lingers as a world-anchored ground decal
 ## (hold, then fade) so the slam reads as impact, not a blink (Ben feedback 2026-07-05).
 ## Drawn below bodies; matches the live ComboFx overlay scale so cracks == hit zone.
@@ -2077,6 +2186,154 @@ func _show_storm_fx() -> void:
 	_storm_fx.visible = true
 	_storm_fx.stop()
 	_storm_fx.play(StringName(names[octant]))
+
+
+## Flexible world-VFX spawner for pack sheets: slices one ROW of `sheet_path` at `cell` px into a
+## play-once or looping AnimatedSprite2D. `follow` parents it to the player (VFX that tracks the
+## caster — e.g. the orbiting swirl); otherwise it's world-anchored at `at`. Looping fx with `life`>0
+## fade out and free after `life` seconds; one-shots free on animation_finished. `z` places it above
+## (1) or below (-1) bodies. `first`/`last` take a sub-range of the row's columns (`last` < 0 = to the
+## end) for sheets that bake several beats into one strip. Returns the sprite so callers can nudge it.
+func _spawn_pack_fx(sheet_path: String, at: Vector2, cell: int, row: int, fps: float, loops: bool,
+		z: int = 1, follow: bool = false, life: float = 0.0,
+		first: int = 0, last: int = -1, fade: float = 0.25) -> AnimatedSprite2D:
+	if not ResourceLoader.exists(sheet_path):
+		return null
+	var tex: Texture2D = load(sheet_path)
+	if tex == null:
+		return null
+	var fx := AnimatedSprite2D.new()
+	var sf := SpriteFrames.new()
+	sf.clear_all()
+	sf.add_animation(&"play")
+	sf.set_animation_loop(&"play", loops)
+	sf.set_animation_speed(&"play", fps)
+	var cols: int = int(tex.get_width() / float(cell))
+	var from_col: int = clampi(first, 0, cols - 1)
+	var to_col: int = cols - 1 if last < 0 else clampi(last, from_col, cols - 1)
+	for i in range(from_col, to_col + 1):
+		var atl := AtlasTexture.new()
+		atl.atlas = tex
+		atl.region = Rect2(i * cell, row * cell, cell, cell)
+		atl.filter_clip = true
+		sf.add_frame(&"play", atl)
+	fx.sprite_frames = sf
+	fx.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	fx.z_index = z
+	if follow:
+		add_child(fx)
+		fx.position = Vector2.ZERO
+	else:
+		get_tree().current_scene.add_child(fx)
+		fx.global_position = at
+	fx.play(&"play")
+	if loops:
+		if life > 0.0:
+			var out: float = clampf(fade, 0.0, life)
+			var tw := fx.create_tween()
+			tw.tween_interval(maxf(0.0, life - out))
+			tw.tween_property(fx, "modulate:a", 0.0, out)
+			tw.tween_callback(fx.queue_free)
+	else:
+		fx.animation_finished.connect(fx.queue_free)
+	return fx
+
+
+## Bone Swirl (Necromancer heavy): a TWO-BEAT effect, not two simultaneous layers — the bones claw
+## up (eruption), then settle into their orbit. Playing the rise and the loop together from t=0 drew
+## a half-risen set over a full-density set and read as overlapping mush (Ben, 2026-07-25); running
+## the rise at the cast body's fps then span its inlined loop into helicopter blades. Both beats now
+## run at NECRO_SWIRL_FPS so the spin rate is constant and the handoff lands on identical art (see
+## the const block). Both 64px and follow the Shade. Row 0 of the orbit = full bone density (rows
+## 1-2 are the depleting-bones frames the pack ships for impact attrition — a future per-hit polish).
+func _spawn_bone_swirl_fx(phase: ChoreographyPhase) -> void:
+	## Re-cast inside a live swirl: drop the old set so orbits never stack on the player.
+	_clear_bone_swirl_fx()
+	_swirl_rings = _bone_swirl_rings(_bone_swirl_count(phase))
+	## The eruption is the pack's 3-bone rise — extra bones from mods join once the ring has formed
+	## (Bone_Swirl_Rise ships only the 3-bone version, so there's no 5-bone eruption to play).
+	_swirl_rise_fx = _spawn_pack_fx(NECRO_SWIRL_RISE_SHEET, global_position, 64, 0,
+			NECRO_SWIRL_FPS, false, 1, true, 0.0, 0, NECRO_SWIRL_RISE_LAST)
+	if _swirl_rise_fx == null:
+		return
+	## Hand off the instant the last bone is up — the loop's frame 0 IS the eruption's next frame.
+	var rise_time: float = float(NECRO_SWIRL_RISE_LAST + 1) / NECRO_SWIRL_FPS
+	_swirl_chain_tween = create_tween()
+	_swirl_chain_tween.tween_interval(rise_time)
+	_swirl_chain_tween.tween_callback(_begin_bone_swirl_orbit)
+
+
+## The swirl's live bone count = the burst's projectile count, so "add_projectiles" mods and
+## level-ups grow the ring and the outgoing volley together. Falls back to the pack's 3.
+func _bone_swirl_count(phase: ChoreographyPhase) -> int:
+	if phase == null:
+		return NECRO_SWIRL_BASE_BONES
+	for e in phase.effects:
+		if e is ApplyStatusEffectData and e.status != null:
+			for x in e.status.on_expire_effects:
+				if x is SpawnProjectilesEffect:
+					return maxi(x.count, 1)
+	return NECRO_SWIRL_BASE_BONES
+
+
+## Split a bone count into sheet rows (row 0 = 3 bones, row 1 = 2, row 2 = 1). Greedy on the densest
+## row, so every count lands exactly: 4 → [3,1], 5 → [3,2], 6 → [3,3].
+func _bone_swirl_rings(count: int) -> Array[int]:
+	var rows: Array[int] = []
+	var left: int = maxi(count, 1)
+	while left > 0 and rows.size() < NECRO_SWIRL_MAX_RINGS:
+		var take: int = mini(left, 3)
+		rows.append(3 - take)
+		left -= take
+	return rows
+
+
+## Second beat: the risen bones settle into their orbit around the Shade. One sprite per ring, each
+## started on a different frame so the rings sit at different angles instead of stacking — an orbit
+## frame is a 45° step, so two rings land 180° apart and read as one evenly-spaced set of 6.
+func _begin_bone_swirl_orbit() -> void:
+	_swirl_rise_fx = null   ## the rise freed itself on animation_finished
+	var ring_count: int = maxi(_swirl_rings.size(), 1)
+	for i in _swirl_rings.size():
+		var fx: AnimatedSprite2D = _spawn_pack_fx(NECRO_SWIRL_SHEET, global_position, 64,
+				_swirl_rings[i], NECRO_SWIRL_FPS, true, 1, true, NECRO_SWIRL_ORBIT_LIFE,
+				0, -1, NECRO_SWIRL_ORBIT_FADE)
+		if fx == null:
+			continue
+		fx.frame = (i * 8) / ring_count
+		_swirl_orbit_fx.append(fx)
+
+
+## Tear down whatever beat of the swirl is currently on the Shade, plus any pending hand-off.
+func _clear_bone_swirl_fx() -> void:
+	if _swirl_chain_tween and _swirl_chain_tween.is_valid():
+		_swirl_chain_tween.kill()
+	_swirl_chain_tween = null
+	if is_instance_valid(_swirl_rise_fx):
+		_swirl_rise_fx.queue_free()
+	_swirl_rise_fx = null
+	for fx in _swirl_orbit_fx:
+		if is_instance_valid(fx):
+			fx.queue_free()
+	_swirl_orbit_fx.clear()
+
+
+## Corpse-rise (Necromancer summons): the ground cracks and the dead claw up at each spawn point.
+## `champion` picks the Skeletal-Champion emerge (Rise Corpse Q) vs the generic corpse (Bone Legion E).
+## Both 64px; the ground layer renders below bodies. Nudged up so the effect's feet sit near `at`.
+func _spawn_corpse_ground(at: Vector2) -> void:
+	## The floor scar under a rising skeleton — a decoupled ground decal (z=-1). It's MEANT to stay
+	## put after the skeleton walks off. The rising skeleton itself is now the SkeletalChampion's own
+	## "spawn" state (welded to the entity), so there's no body VFX to leave behind. 32px, row 0.
+	_spawn_pack_fx(NECRO_RISE_GROUND_SHEET, at + Vector2(0, 2), 32, 0, 16.0, false, -1)
+
+
+## Plane Shift (Necromancer dash): the directional dematerialize/rematerialize burst. 4 facing rows
+## (32px) — plays the row matching the Shade's current facing at each end of the blink.
+func _spawn_planeshift_burst(sheet: String, at: Vector2) -> void:
+	var rows := {"down_right": 0, "down_left": 1, "up_right": 2, "up_left": 3}
+	var row: int = int(rows.get(_facing, 0))
+	_spawn_pack_fx(sheet, at, 32, row, 24.0, false, 1)
 
 
 func _spawn_oneshot_fx(sheet_path: String, at: Vector2, fps: float) -> void:
@@ -2389,8 +2646,44 @@ func _spawn_shockwave_ring(radius: float, color: Color = Color(1.0, 0.55, 0.10, 
 const MIN_TAP_CADENCE: float = 0.22
 
 
-func choreo_min_advance_time(_phase: ChoreographyPhase) -> float:
-	return MIN_TAP_CADENCE / maxf(get_stat("attack_speed"), 0.25)
+func choreo_min_advance_time(phase: ChoreographyPhase) -> float:
+	## Two brakes, whichever is slower:
+	##  • the flat spam cadence above (attack_speed tightens it), and
+	##  • the node's own `cancel_open` frame, if its anim declares one.
+	## The cadence alone was tuned against True Heroes bodies (4-7 frames, ~0.2s), which finish
+	## BEFORE the 0.22s gate opens. The True Villains packs draw 10-15 frame bodies, so mashing cut
+	## them at ~a third — the Demonologist's Hellfire reached frame 5 of 15 and its fire never drew
+	## at all (Ben, 2026-07-26: "looks like the demonologist is twitching"). `cancel_open` is the
+	## per-anim commitment point: presses still buffer, so a queued tap fires the instant it opens.
+	##
+	## NOT divided by attack_speed — the sprite plays at its authored fps regardless of the stat
+	## (only telegraph_speed_scale touches speed_scale), so the anim is a real floor: you cannot
+	## cancel out of frames that haven't been drawn yet.
+	var base: float = MIN_TAP_CADENCE / maxf(get_stat("attack_speed"), 0.25)
+	if phase == null or phase.animation == "":
+		return base
+	var open_frame: int = int(CharacterSpriteFactory.get_anim_meta(
+			ProgressionManager.selected_character, phase.animation).get("cancel_open", -1))
+	if open_frame < 0:
+		return base
+	var fps: float = _anim_fps(phase.animation)
+	if fps <= 0.0:
+		return base
+	return maxf(base, float(open_frame) / fps)
+
+
+## Playback fps of an anim as actually sliced (the facing variant carries the same speed as the
+## base, and the Animation Lab's fps override is already baked into the SpriteFrames).
+func _anim_fps(anim: String) -> float:
+	if sprite == null or sprite.sprite_frames == null:
+		return 0.0
+	var variant := StringName("%s_%s" % [anim, _facing])
+	if sprite.sprite_frames.has_animation(variant):
+		return sprite.sprite_frames.get_animation_speed(variant)
+	var base_sn := StringName(anim)
+	if sprite.sprite_frames.has_animation(base_sn):
+		return sprite.sprite_frames.get_animation_speed(base_sn)
+	return 0.0
 
 
 ## Runner hook: the hit frame for the row that's about to play. Ben can pin a different impact
@@ -2614,10 +2907,24 @@ func _try_dash(input_dir: Vector2) -> void:
 		_spawn_teleport_ghost("dash_out")
 		_deadly_dash_strike(_dash_dir)
 	## Plane Shift (the Shade): dematerialize to the invulnerable Soul form for the dash window (the
-	## "dodge" anim above is mapped to Soul_Fly, so the soul body plays automatically); the departure
-	## ghost sells the phase-out. The dash's own i-frames + phasing ARE the pass-through.
+	## "dodge" anim above is mapped to Soul_Fly, so the soul body plays automatically). The pack's
+	## Plane_Shift_Out burst sells the phase-out at departure; Plane_Shift_In fires at the arrival
+	## point when the dash window closes. The dash's own i-frames + phasing ARE the pass-through.
 	if _dash_style == "planeshift":
-		_spawn_teleport_ghost("dash_out")
+		_spawn_planeshift_burst(NECRO_PLANESHIFT_OUT_SHEET, global_position)
+		get_tree().create_timer(DASH_DURATION).timeout.connect(
+			func() -> void:
+				if is_instance_valid(self) and is_alive:
+					_spawn_planeshift_burst(NECRO_PLANESHIFT_IN_SHEET, global_position))
+	## Hell Breach (the Demon): the "dodge" anim above is the pack's real leap+staff-slam, so the
+	## body plays automatically. When the leap lands, the ground splits along the dash line and
+	## everything near the impact eats it.
+	if _dash_style == "hellbreach":
+		var breach_dir: Vector2 = _dash_dir
+		get_tree().create_timer(DASH_DURATION).timeout.connect(
+			func() -> void:
+				if is_instance_valid(self) and is_alive:
+					_spawn_hellbreach_fissure(breach_dir))
 	## Start the refill clock if it isn't already running (don't reset a charge mid-refill).
 	if _dash_cooldown_timer <= 0.0:
 		_dash_cooldown_timer = _dash_cooldown_seconds()
@@ -2643,6 +2950,8 @@ func _dash_sound_id() -> String:
 		return "sfx_dash_teleport"   ## soul phase-out reuses the blink stinger
 	if _dash_style == "deadly":
 		return "sfx_dash_deadly"
+	if _dash_style == "hellbreach":
+		return "sfx_dash_dodge_roll"   ## a physical leap, not a blink — reuses the roll stinger
 	if sprite and sprite.sprite_frames and sprite.sprite_frames.has_animation("dodge"):
 		return "sfx_dash_dodge_roll"
 	return "sfx_dash_generic"

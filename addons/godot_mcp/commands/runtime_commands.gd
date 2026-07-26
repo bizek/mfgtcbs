@@ -11,7 +11,6 @@ func get_commands() -> Dictionary:
 		"get_game_node_properties": _get_game_node_properties,
 		"set_game_node_property": _set_game_node_property,
 		"capture_frames": _capture_frames,
-		"record_frames": _record_frames,
 		"monitor_properties": _monitor_properties,
 		"execute_game_script": _execute_game_script,
 		"start_recording": _start_recording,
@@ -26,6 +25,7 @@ func get_commands() -> Dictionary:
 		"find_nearby_nodes": _find_nearby_nodes,
 		"navigate_to": _navigate_to,
 		"move_to": _move_to,
+		"watch_signals": _watch_signals,
 	}
 
 
@@ -105,28 +105,6 @@ func _capture_frames(params: Dictionary) -> Dictionary:
 		"frame_interval": frame_interval,
 		"half_resolution": half_resolution,
 	}, timeout)
-
-
-func _record_frames(params: Dictionary) -> Dictionary:
-	var count: int = optional_int(params, "count", 30)
-	var frame_interval: int = optional_int(params, "frame_interval", 10)
-	var half_resolution: bool = optional_bool(params, "half_resolution", true)
-
-	# Dynamic timeout: 600 frames * 10 interval / 60fps = 100s max
-	var estimated_seconds: float = (count * frame_interval) / 60.0 + 5.0
-	var timeout := minf(estimated_seconds, 120.0)
-
-	var cmd_params := {
-		"count": count,
-		"frame_interval": frame_interval,
-		"half_resolution": half_resolution,
-	}
-
-	# Optional node_data
-	if params.has("node_data") and params["node_data"] is Dictionary:
-		cmd_params["node_data"] = params["node_data"]
-
-	return await _send_game_command("record_frames", cmd_params, timeout)
 
 
 func _monitor_properties(params: Dictionary) -> Dictionary:
@@ -310,6 +288,22 @@ func _move_to(params: Dictionary) -> Dictionary:
 	return await _send_game_command("move_to", cmd_params, ipc_timeout)
 
 
+func _watch_signals(params: Dictionary) -> Dictionary:
+	if not params.has("node_paths") or not params["node_paths"] is Array:
+		return error_invalid_params("Missing required parameter: node_paths (Array)")
+
+	var cmd_params: Dictionary = {"node_paths": params["node_paths"]}
+	if params.has("signal_filter") and params["signal_filter"] is Array:
+		cmd_params["signal_filter"] = params["signal_filter"]
+	var duration_ms: int = optional_int(params, "duration_ms", 5000)
+	cmd_params["duration_ms"] = duration_ms
+
+	# Dynamic timeout: duration + overhead
+	var timeout_sec: float = (duration_ms / 1000.0) + 5.0
+
+	return await _send_game_command("watch_signals", cmd_params, timeout_sec)
+
+
 # ── IPC Helper ────────────────────────────────────────────────────────────────
 
 func _send_game_command(command: String, params: Dictionary, timeout_sec: float = 5.0) -> Dictionary:
@@ -349,7 +343,7 @@ func _send_game_command(command: String, params: Dictionary, timeout_sec: float 
 	if not FileAccess.file_exists(response_path):
 		# Try to auto-resume the debugger (runtime error may have paused the game)
 		if ei.is_playing_scene():
-			_try_debugger_continue()
+			try_debugger_continue()
 			# Give the game a chance to recover and write a response
 			for _retry in 20:
 				await get_tree().create_timer(0.1).timeout
@@ -359,9 +353,7 @@ func _send_game_command(command: String, params: Dictionary, timeout_sec: float 
 	if not FileAccess.file_exists(response_path):
 		if FileAccess.file_exists(request_path):
 			DirAccess.remove_absolute(request_path)
-		return error(-32000, "Game command timed out after %.1fs" % timeout_sec, {
-			"suggestion": "Ensure the game is running and MCPGameInspector autoload is active",
-		})
+		return build_timeout_error(timeout_sec)
 
 	# Read response
 	var file := FileAccess.open(response_path, FileAccess.READ)
@@ -379,26 +371,3 @@ func _send_game_command(command: String, params: Dictionary, timeout_sec: float 
 		return error(-32000, str(parsed["error"]))
 
 	return success(parsed)
-
-
-## Press the debugger "Continue" button to resume a paused game process.
-func _try_debugger_continue() -> void:
-	var base := EditorInterface.get_base_control()
-	if base == null:
-		return
-	var queue: Array[Node] = [base]
-	while not queue.is_empty():
-		var node := queue.pop_front()
-		if node.get_class() == "ScriptEditorDebugger":
-			var inner: Array[Node] = [node]
-			while not inner.is_empty():
-				var n := inner.pop_front()
-				if n is Button and n.tooltip_text == "Continue":
-					n.emit_signal("pressed")
-					push_warning("[MCP] Auto-resumed debugger after runtime error")
-					return
-				for c in n.get_children():
-					inner.append(c)
-			return
-		for child in node.get_children():
-			queue.append(child)

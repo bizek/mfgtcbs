@@ -588,7 +588,6 @@ func _on_final_boss_defeated() -> void:
 ## ── Skill slots (Q/E cooldowns) ──────────────────────────────────────────────
 ## Two Minifantasy keycap slots, bottom-center. Ready: bright key letter. Cooling:
 ## dark veil drains downward + the letter is replaced by the seconds countdown.
-## The Bard's Q (song cycle) has no cooldown — its slot is simply always ready.
 
 const SKILL_SLOT: float = 22.0
 const SKILL_SLOT_GAP: float = 4.0
@@ -605,8 +604,7 @@ const BUFF_NAMES: Dictionary = {
 	"steeled": "STEELED",        "aegis": "AEGIS",          "blessed": "BLESSED",
 	"fleetfoot": "SWIFT",        "mana_surge": "SURGE",     "blood_surge": "SURGE",
 	"blood_power": "PACT",       "battle_fury": "FURY",     "honed_edge": "HONED",
-	"loaded_chambers": "LOADED", "apotheosis": "ASCEND",    "enhancement_song": "ANTHEM",
-	"ballad_song": "BALLAD",     "concealed": "HIDDEN",     "slippery": "SLIPPERY",
+	"loaded_chambers": "LOADED", "concealed": "HIDDEN",     "slippery": "SLIPPERY",
 	"aegis_shield": "SHIELD",    "hallowed": "HALLOWED",
 }
 
@@ -778,22 +776,18 @@ func _update_skill_slots() -> void:
 	if player_ref == null or not is_instance_valid(player_ref):
 		return
 	var sc = player_ref.get("skill_component")
-	var kit_id: String = player_ref.get_kit_id()
 	for slot in _skill_slots:
 		var entry: Dictionary = _skill_slots[slot]
-		var is_bard_q: bool = slot == "skill_q" and kit_id == "bard"
-		var has_skill: bool = is_bard_q or (sc != null and sc.has_skill(slot))
+		var has_skill: bool = sc != null and sc.has_skill(slot)
 		entry.root.visible = has_skill
 		if not has_skill:
 			entry.prev_remaining = 0.0
 			continue
-		var remaining: float = 0.0
+		var remaining: float = sc.cooldown_remaining(slot)
 		var frac: float = 0.0
-		if not is_bard_q:
-			remaining = sc.cooldown_remaining(slot)
-			var ability: AbilityDefinition = sc.get_skill(slot)
-			if ability != null and ability.cooldown_base > 0.0:
-				frac = clampf(remaining / ability.cooldown_base, 0.0, 1.0)
+		var ability: AbilityDefinition = sc.get_skill(slot)
+		if ability != null and ability.cooldown_base > 0.0:
+			frac = clampf(remaining / ability.cooldown_base, 0.0, 1.0)
 		entry.veil.visible = frac > 0.0
 		entry.veil.size.y = (SKILL_SLOT - 4.0) * frac
 		if remaining > 0.0:

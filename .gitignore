@@ -22,3 +22,6 @@ tools/__pycache__/
 
 # SFX forge WAV masters (regenerable from tools/sfx_forge; keep OGG audition sets only)
 assets/audio/_incoming/**/*.wav
+
+# GIF/screenshot captures from tools/frames_to_gif.py
+out/

@@ -426,6 +426,9 @@ static func _slice_row(frames: SpriteFrames, anim_name: String, sheet: Texture2D
 ## Per-anim combat timing metadata (the optional 4th element of an anims spec), or {} if absent.
 ## Read by the choreography runner / chain factory: {hit_frame:int, cancel_open:int, cancel_close:int}
 ## in animation frames. Returns a copy with safe defaults so callers can index freely.
+##
+## The Animation Lab override wins over the authored spec, so `cancel_open` is retunable in-game
+## exactly like `hit_frame` — that's the point of the seam (player.choreo_min_advance_time reads it).
 static func get_anim_meta(char_id: String, anim_name: String) -> Dictionary:
 	var char_data: Dictionary = CharacterData.ALL.get(char_id, {})
 	var anims: Dictionary = char_data.get("sprite", {}).get("anims", {})
@@ -434,4 +437,8 @@ static func get_anim_meta(char_id: String, anim_name: String) -> Dictionary:
 	if spec.size() >= 4 and spec[3] is Dictionary:
 		for k in spec[3]:
 			meta[k] = spec[3][k]
+	var ov: Dictionary = get_anim_override(char_id, anim_name)
+	for k in ["hit_frame", "cancel_open", "cancel_close"]:
+		if ov.has(k):
+			meta[k] = int(ov[k])
 	return meta

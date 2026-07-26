@@ -113,22 +113,7 @@ static func _apply_op_to_phase(op: String, phase: ChoreographyPhase, params: Dic
 		"scale_aoe":
 			var rmult: float = params.get("radius_mult", 1.0)
 			var dmult: float = params.get("damage_mult", 1.0)
-			for eff in phase.effects:
-				if eff is AreaDamageEffect:
-					eff.aoe_radius  *= rmult
-					eff.base_damage *= dmult
-				elif eff is DealDamageEffect:
-					eff.base_damage *= dmult
-				elif eff is GroundZoneEffect:
-					eff.radius *= rmult
-				elif eff is SpawnProjectilesEffect:
-					if eff.projectile != null:
-						for hit in eff.projectile.on_hit_effects:
-							if hit is DealDamageEffect:
-								hit.base_damage *= dmult
-						for hit in eff.projectile.impact_aoe_effects:
-							if hit is DealDamageEffect:
-								hit.base_damage *= dmult
+			_scale_effects(phase.effects, rmult, dmult)
 		"add_pull":
 			phase.effects.append(_pull_effect(params))
 		"add_status":
@@ -146,9 +131,63 @@ static func _apply_op_to_phase(op: String, phase: ChoreographyPhase, params: Dic
 		"add_projectiles":
 			## Adds extra projectiles to a SpawnProjectilesEffect (Fan the Hammer +2, etc.).
 			var add_n: int = params.get("count", 1)
-			for eff in phase.effects:
-				if eff is SpawnProjectilesEffect:
-					eff.count += add_n
+			for eff in _projectile_effects(phase):
+				eff.count += add_n
+
+
+## Scale a pool of effects in place. Recurses one level into a status the phase applies, so ops still
+## reach abilities that keep their payload on a status rather than directly on the phase — the
+## Necromancer's Bone Swirl holds its grind damage on an aura and its bone burst on that aura's
+## expiry, and without this its two "scale_aoe" mods would silently do nothing.
+##
+## The status is DUPLICATED before mutation: `add_status` hands out shared StatusFactory singletons,
+## and scaling one in place would leak the buff into every other user of that status for the session.
+static func _scale_effects(effects: Array, rmult: float, dmult: float, depth: int = 0) -> void:
+	if depth > 2:
+		return                                   ## guard: a status that re-applies itself
+	for i in effects.size():
+		var eff: Resource = effects[i]
+		if eff is AreaDamageEffect:
+			eff.aoe_radius  *= rmult
+			eff.base_damage *= dmult
+		elif eff is DealDamageEffect:
+			eff.base_damage *= dmult
+		elif eff is GroundZoneEffect:
+			eff.radius *= rmult
+			## …and the burn itself. Without this a "damage_mult" op widened a zone but left every
+			## tick at base — the Demonologist's Brimstone Circle and the Cleric's Word of Pain both
+			## keep their real damage on tick_effects, not on the phase.
+			_scale_effects(eff.tick_effects, rmult, dmult, depth + 1)
+		elif eff is SpawnProjectilesEffect:
+			if eff.projectile != null:
+				for hit in eff.projectile.on_hit_effects:
+					if hit is DealDamageEffect:
+						hit.base_damage *= dmult
+				for hit in eff.projectile.impact_aoe_effects:
+					if hit is DealDamageEffect:
+						hit.base_damage *= dmult
+		elif eff is ApplyStatusEffectData and eff.status != null:
+			var st: StatusEffectDefinition = eff.status.duplicate(true)
+			eff.status = st
+			if st.aura_radius > 0.0:
+				st.aura_radius *= rmult
+			_scale_effects(st.aura_tick_effects, rmult, dmult, depth + 1)
+			_scale_effects(st.tick_effects, rmult, dmult, depth + 1)
+			_scale_effects(st.on_expire_effects, rmult, dmult, depth + 1)
+
+
+## Every SpawnProjectilesEffect a phase can loose — directly, or via the expiry of a status it
+## applies (the Bone Swirl's outgoing bones). `count` on these is the dial "add_projectiles" turns.
+static func _projectile_effects(phase: ChoreographyPhase) -> Array:
+	var out: Array = []
+	for eff in phase.effects:
+		if eff is SpawnProjectilesEffect:
+			out.append(eff)
+		elif eff is ApplyStatusEffectData and eff.status != null:
+			for x in eff.status.on_expire_effects:
+				if x is SpawnProjectilesEffect:
+					out.append(x)
+	return out
 
 
 ## A toward-player displacement — sucks the phase's hit targets inward. Same i-frame-gated

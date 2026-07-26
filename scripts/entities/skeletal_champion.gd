@@ -11,12 +11,19 @@ extends Node2D
 ##     and lower `damage_mult`); they self-free when their timer runs out.
 ##
 ## Mirrors the SpiritGuardian / FireFamiliar / BloodElemental pet standard (CLAUDE.md): no pooling,
-## damage reads the player's live damage stat through DamageCalculator at strike time. The pack has no
-## champion-owned summon/unsummon intro (the Rise_Corpse cast VFX is the summon), so it starts in idle.
+## damage reads the player's live damage stat through DamageCalculator at strike time.
+##
+## It rises in place: the Rise_Skeletal_Champion emerge plays as the champion's OWN "spawn" state (it
+## IS the skeleton clawing up), held inert until it finishes, THEN it goes active. This keeps the
+## animation welded to the entity — no walking off and leaving the rise behind as a remnant (Ben
+## 2026-07-23) — and because it's the champion's own body sheet's matching emerge, the risen bones
+## become the actual skeleton. Mirrors SpiritGuardian's spawn→walk state pattern.
 
 class_name SkeletalChampion
 
 const ASSET_DIR: String = "res://assets/minifantasy/Minifantasy_True_Villains_I_v1.0/_Minifantasy_True_Villains_Assets/Supreme_Necromancer/Special_Animations/Rise_Corpse/Skeletal_Champion/"
+## The emerge sheet lives one level up in Rise_Corpse/ (32px, 2 rows — row 0 = one skeleton clawing up).
+const RISE_SHEET: String = "res://assets/minifantasy/Minifantasy_True_Villains_I_v1.0/_Minifantasy_True_Villains_Assets/Supreme_Necromancer/Special_Animations/Rise_Corpse/Rise_Skeletal_Champion.png"
 ## Facing → sheet row (same diagonal-facing convention as CharacterSpriteFactory.DIR_ROWS).
 const DIR_ROWS: Dictionary = {"down_right": 0, "down_left": 1, "up_right": 2, "up_left": 3}
 
@@ -40,7 +47,7 @@ var damage_mult: float = 0.6             ## × the player's live damage stat
 
 var _sprite: AnimatedSprite2D = null
 var _facing: String = "down_left"
-var _state: String = "walk"              ## "walk" → "die"
+var _state: String = "spawn"             ## "spawn" (rising, inert) → "walk" → "die"
 var _life: float = 0.0
 var _cooldown: float = 0.0
 var _strike_timer: float = -1.0
@@ -63,14 +70,17 @@ func _ready() -> void:
 	_sprite.animation_finished.connect(_on_anim_finished)
 	if is_instance_valid(player_ref):
 		_home_side = -1.0 if global_position.x < player_ref.global_position.x else 1.0
-	_play_dir(&"idle")
+	## Play the emerge as our own sprite and stay inert (see _process) until it finishes — the bones
+	## assemble in place and become this skeleton, then _on_anim_finished flips us to active.
+	_sprite.play(&"spawn")
 
 
 func _process(delta: float) -> void:
 	if not is_instance_valid(player_ref):
 		queue_free()
 		return
-	if _state == "die":
+	## Inert while rising (spawn) or dissolving (die) — no hunting, no locomotion, holds its spot.
+	if _state == "die" or _state == "spawn":
 		return
 
 	_life -= delta
@@ -178,7 +188,11 @@ func disperse() -> void:
 
 
 func _on_anim_finished() -> void:
-	if _state == "die":
+	if _state == "spawn":
+		## Fully risen — hand off from the emerge to a facing idle and go active.
+		_state = "walk"
+		_play_dir(&"idle")
+	elif _state == "die":
 		queue_free()
 
 
@@ -217,6 +231,9 @@ static func _get_frames() -> SpriteFrames:
 		return _frames_cache
 	var frames := SpriteFrames.new()
 	frames.clear_all()
+	## "spawn" = the matching Rise_Skeletal_Champion emerge (32px, row 0 = one skeleton clawing up),
+	## non-directional, plays once. The body sheets are the risen skeleton it becomes.
+	_slice_single(frames, "spawn", RISE_SHEET, 18, 18.0, false)
 	_slice_rows(frames, "idle",   ASSET_DIR + "Idle.png",   18, 10.0, true)
 	_slice_rows(frames, "move",   ASSET_DIR + "Walk.png",    8, 12.0, true)
 	_slice_rows(frames, "attack", ASSET_DIR + "Attack.png",  8, 14.0, false)

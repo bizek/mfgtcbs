@@ -202,6 +202,18 @@ const ALL: Dictionary = {
 		"target": { "anim": "bone_swirl" },
 		"params": { "damage_mult": 1.35, "radius_mult": 1.20 },
 	},
+	## The bone-count dial. Bone Swirl's orbiting bones ARE its outgoing volley, so one op grows
+	## both: an extra bone rides the ring (player.gd draws the count) and an extra bolt flies out.
+	"necro_bone_choir": {
+		"id": "necro_bone_choir",
+		"name": "Bone Choir",
+		"description": "Bone Swirl carries +1 bone — it orbits, then it flies",
+		"kit": "necromancer",
+		"is_ability_upgrade": true,
+		"op": "add_projectiles",
+		"target": { "anim": "bone_swirl" },
+		"params": { "count": 1 },
+	},
 	"necro_grave_vigor": {
 		"id": "necro_grave_vigor",
 		"name": "Grave Vigor",
@@ -313,37 +325,37 @@ const ALL: Dictionary = {
 		"value": 0.20,
 	},
 
-	## ── Bard (The Herald) ─────────────────────────────────────────────────────
-	"bard_resonant_chord": {
-		"id": "bard_resonant_chord",
-		"name": "Resonant Chord",
-		"description": "Dissonant Chord +35% damage",
-		"kit": "bard",
+	## ── Demonologist (The Demon) ──────────────────────────────────────────────
+	"demon_conflagration": {
+		"id": "demon_conflagration",
+		"name": "Conflagration",
+		"description": "Hellfire +35% damage, +20% radius",
+		"kit": "demonologist",
 		"is_ability_upgrade": true,
 		"op": "scale_aoe",
-		"target": { "anim": "chord" },
-		"params": { "damage_mult": 1.35 },
+		"target": { "anim": "hellfire" },
+		"params": { "damage_mult": 1.35, "radius_mult": 1.20 },
 	},
-	"bard_grand_finale": {
-		"id": "bard_grand_finale",
-		"name": "Grand Finale",
-		"description": "Apotheosis +40% AoE, +20% damage",
-		"kit": "bard",
+	"demon_wider_circle": {
+		"id": "demon_wider_circle",
+		"name": "Wider Circle",
+		"description": "Brimstone Circle +40% radius, +20% damage",
+		"kit": "demonologist",
 		"is_ability_upgrade": true,
 		"op": "scale_aoe",
-		"target": { "anim": "apotheosis" },
+		"target": { "anim": "brimstone" },
 		"params": { "radius_mult": 1.40, "damage_mult": 1.20 },
 	},
-	"bard_inspiring_tempo": {
-		"id": "bard_inspiring_tempo",
-		"name": "Inspiring Tempo",
-		"description": "+15% Attack Speed this run",
-		"kit": "bard",
+	"demon_hellfire_heart": {
+		"id": "demon_hellfire_heart",
+		"name": "Hellfire Heart",
+		"description": "+20% Damage this run",
+		"kit": "demonologist",
 		"is_ability_upgrade": true,
 		"op": "modifier",
-		"stat": "attack_speed",
+		"stat": "damage",
 		"type": "percent",
-		"value": 0.15,
+		"value": 0.20,
 	},
 
 	## ── Barbarian (The Ravager) ───────────────────────────────────────────────
@@ -420,11 +432,15 @@ const ORDER_BY_KIT: Dictionary = {
 	"ninja":      ["ninja_blade_storm_surge",       "ninja_killing_edge",           "ninja_smoke_ambush"],
 	"cleric":     ["cleric_divine_wrath",           "cleric_greater_word",          "cleric_sanctified_smite"],
 	"druid":      ["druid_wild_maul",               "druid_strangling_roots",       "druid_pack_frenzy"],
-	"necromancer": ["necro_bone_barrage",           "necro_greater_swirl",          "necro_grave_vigor"],
+	## 4 entries — every other kit has 3. The Shade gets one extra class-flavored pick per run
+	## until Ben decides whether to cut one (necro_greater_swirl overlaps the SPLINTERING SWIRL
+	## class mod almost exactly, so it's the natural trim).
+	"necromancer": ["necro_bone_barrage",           "necro_greater_swirl",          "necro_grave_vigor",
+					"necro_bone_choir"],
 	"ranger":     ["ranger_triple_volley",          "ranger_keen_blade",            "ranger_eagle_eye"],
 	"wizard":     ["wizard_fireball_expansion",     "wizard_torrent_mastery",       "wizard_arcane_surge"],
 	"blood_mage": ["blood_mage_hemorrhage_wave",    "blood_mage_spike_field",       "blood_mage_blood_frenzy"],
-	"bard":       ["bard_resonant_chord",           "bard_grand_finale",            "bard_inspiring_tempo"],
+	"demonologist": ["demon_conflagration",        "demon_wider_circle",           "demon_hellfire_heart"],
 	"barbarian":  ["barbarian_seismic_sunder",      "barbarian_thunder_amp",        "barbarian_battle_rage"],
 	"gunslinger": ["gunslinger_hair_trigger",       "gunslinger_storm_surge",       "gunslinger_cold_steel"],
 }

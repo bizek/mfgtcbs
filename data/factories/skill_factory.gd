@@ -9,8 +9,7 @@ extends RefCounted
 
 ## Dispatcher: neutral-special skills for a character's melee_kit, as { slot: AbilityDefinition }.
 ## Slots are input actions ("skill_q" = Q, "skill_e" = E) fired by the player through
-## SkillComponent. Every kit has both; the Bard's Q is the song-cycle stance toggle handled
-## host-side in player._on_skill_q (no cooldown, no runner), so only E lives here.
+## SkillComponent. Every kit has both.
 static func build_kit_skills(kit_id: String, weapon_data: Dictionary) -> Dictionary:
 	match kit_id:
 		"fighter":
@@ -43,9 +42,10 @@ static func build_kit_skills(kit_id: String, weapon_data: Dictionary) -> Diction
 				"skill_q": build_blood_mage_blood_surge(weapon_data),
 				"skill_e": build_blood_mage_blood_eruption(weapon_data),
 			}
-		"bard":
+		"demonologist":
 			return {
-				"skill_e": build_bard_serenade(weapon_data),
+				"skill_q": build_demon_summon(weapon_data),
+				"skill_e": build_demon_archdemon(weapon_data),
 			}
 		"barbarian":
 			return {
@@ -75,16 +75,60 @@ static func build_kit_skills(kit_id: String, weapon_data: Dictionary) -> Diction
 	return {}
 
 
-## Charming Serenade (Bard, E): sing — the nearest few enemies fall in love and turn on the
-## horde for 5s (charm applied host-side to capped victims; see player.gd + enemy.gd).
-static func build_bard_serenade(_weapon_data: Dictionary) -> AbilityDefinition:
+## Summon Angry Demon (Demonologist, Q): the ritual opens a pit and ONE bound demon climbs out — an
+## elite companion, not a swarm (the Shade is the swarm summoner). The "pact_ritual" body triggers the
+## host spawn (player._spawn_angry_demon); the small hellfire pulse both reads on cast and ensures
+## choreo_fire_effects fires so the spawn hook runs. Mirrors Rise Corpse / Spirit Guardians.
+static func build_demon_summon(weapon_data: Dictionary) -> AbilityDefinition:
+	var dmg: float = weapon_data.get("damage", 42.0)
+	var dtype: String = _damage_type(weapon_data)
+
+	var pulse := AreaDamageEffect.new()
+	pulse.damage_type = dtype
+	pulse.base_damage = dmg * 0.3
+	pulse.aoe_radius = 28.0
+
 	var phase := ChoreographyPhase.new()
-	phase.animation = "serenade"
-	phase.hit_frame = 8
-	phase.effects = [ChainFactory._charm_effect()]
+	phase.animation = "pact_ritual"
+	phase.hit_frame = 13                                   # the circle catches and the pit opens
+	phase.effects = [pulse]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
-	return _ability("bard_serenade", "Charming Serenade", phase, 12.0)
+	return _ability("demon_summon", "Summon Angry Demon", phase, 16.0)
+
+
+## Archdemon's Call (Demonologist, E): the long cast tears a pentagram open AT THE CURSOR and
+## something far too large puts its head through it. The damage is a GroundZoneEffect timed to the
+## 27-frame Archdemon_Call_Spell (the host drops the VFX over it in choreo_fire_effects), so the
+## archdemon reads as CHEWING on whatever stood there rather than a single flat hit. Screen-shaking
+## payoff, long cooldown.
+static func build_demon_archdemon(weapon_data: Dictionary) -> AbilityDefinition:
+	var dmg: float = weapon_data.get("damage", 42.0)
+	var dtype: String = _damage_type(weapon_data)
+
+	var maw := GroundZoneEffect.new()
+	maw.zone_id = "archdemon_maw"
+	maw.radius = 56.0
+	maw.duration = ARCHDEMON_SPELL_TIME
+	maw.tick_interval = 0.35
+	maw.target_faction = "enemy"
+	var bite := DealDamageEffect.new()
+	bite.damage_type = dtype
+	bite.base_damage = dmg * 0.55
+	maw.tick_effects = [bite]
+
+	var phase := ChoreographyPhase.new()
+	phase.animation = "archdemon_call"
+	phase.hit_frame = 15                                   # the seal completes; the pit answers
+	phase.effects = [maw]
+	phase.exit_type = "anim_finished"
+	phase.default_next = -1
+	return _ability("demon_archdemon", "Archdemon's Call", phase, 22.0)
+
+
+## Must stay equal to player.ARCHDEMON_SPELL_LIFE — the archdemon has to sink back into the sigil on
+## the same frame its ground zone stops biting.
+const ARCHDEMON_SPELL_TIME: float = 2.45
 
 
 ## Second Wind (Fighter, Q): the soldier bangs his shield and catches his breath — heal 12%

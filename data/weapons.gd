@@ -213,24 +213,6 @@ const ALL: Dictionary = {
 		"unlock_id":       "",
 	},
 
-	## ─── Herald's Call ────────────────────────────────────────────────────
-	## The Herald's GREEN. A struck chord that carries. The song does the rest.
-	"Herald's Call": {
-		"id":              "Herald's Call",
-		"display_name":    "Herald's Call",
-		"description":     "A struck chord that carries across the dark.",
-		"damage_type":     "shock",
-		"damage":          6.0,
-		"tint":            Color(0.30, 0.86, 0.96),  ## herald teal
-		"drop_weight":     0,
-		"mod_slots":       1,
-		"unlock_id":       "",
-		"class_lock":      "The Herald",
-		"kit":             "bard",
-		"rarity":          "uncommon",
-		"tier":            "green",
-	},
-
 	# ═══════════════════════════════════════════════════════════════════════════
 	# CLASS GEAR (task 34) — class-locked weapon lines, green/blue/purple tiers.
 	# Weapons feed only `damage` + `damage_type` into the combo kit (ChainFactory);
@@ -356,23 +338,30 @@ const ALL: Dictionary = {
 		"unique": "u_soulrend",
 	},
 
-	## ─── Bard / The Herald (Lightning) — GREEN = Herald's Call above ─────────
-	"Resonant Lute": {
-		"id": "Resonant Lute", "display_name": "Resonant Lute",
-		"description": "Strung with storm-wire. The chord bites.",
-		"damage_type": "shock", "damage": 8.0, "tint": Color(0.30, 0.86, 0.96),
-		"drop_weight": 0, "mod_slots": 2, "unlock_id": "gear_bard_blue",
-		"class_lock": "The Herald", "kit": "bard", "rarity": "rare", "tier": "blue",
+	## ─── Demonologist / The Demon (Fire) ────────────────────────────────────
+	"Pact-Brand Stave": {
+		"id": "Pact-Brand Stave", "display_name": "Pact-Brand Stave",
+		"description": "Cut from a gallows-tree and branded with a name no mouth should hold.",
+		"damage_type": "fire", "damage": 25.0, "tint": Color(0.90, 0.35, 0.22),
+		"drop_weight": 0, "mod_slots": 1, "unlock_id": "",
+		"class_lock": "The Demon", "kit": "demonologist", "rarity": "uncommon", "tier": "green",
+	},
+	"Grimoire of the Nine Pits": {
+		"id": "Grimoire of the Nine Pits", "display_name": "Grimoire of the Nine Pits",
+		"description": "Nine seals, nine debts. He has read past the seventh.",
+		"damage_type": "fire", "damage": 34.0, "tint": Color(0.90, 0.35, 0.22),
+		"drop_weight": 0, "mod_slots": 2, "unlock_id": "gear_demon_blue",
+		"class_lock": "The Demon", "kit": "demonologist", "rarity": "rare", "tier": "blue",
 		"modifiers": [ {"tag": "damage", "op": "bonus", "value": 0.10} ],
 	},
-	"Chorus of the Void": {
-		"id": "Chorus of the Void", "display_name": "Chorus of the Void",
-		"description": "A hundred voices under one. They sing the horde apart.",
-		"damage_type": "shock", "damage": 10.0, "tint": Color(0.40, 0.90, 1.0),
-		"drop_weight": 0, "mod_slots": 3, "unlock_id": "gear_bard_purple",
-		"class_lock": "The Herald", "kit": "bard", "rarity": "epic", "tier": "purple",
-		"modifiers": [ {"tag": "damage", "op": "bonus", "value": 0.12}, {"tag": "attack_speed", "op": "bonus", "value": 0.06} ],
-		"unique": "u_discord",
+	"Sceptre of the Archfiend": {
+		"id": "Sceptre of the Archfiend", "display_name": "Sceptre of the Archfiend",
+		"description": "Borrowed from something that will want it back. Everything it kills, it lights.",
+		"damage_type": "fire", "damage": 40.0, "tint": Color(1.0, 0.42, 0.18),
+		"drop_weight": 0, "mod_slots": 3, "unlock_id": "gear_demon_purple",
+		"class_lock": "The Demon", "kit": "demonologist", "rarity": "epic", "tier": "purple",
+		"modifiers": [ {"tag": "damage", "op": "bonus", "value": 0.12}, {"tag": "Fire", "op": "resist", "value": 10.0} ],
+		"unique": "u_infernal",
 	},
 
 	## ─── Barbarian / The Ravager (Physical) ─────────────────────────────────
