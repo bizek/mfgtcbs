@@ -77,10 +77,13 @@ foreach ($t in $targets) {
 # uploads are distinguishable in the itch file list.
 Write-Host ""
 foreach ($t in $targets) {
-    $srcDir = Join-Path $ProjectRoot $t.OutDir
+    # Archive the freshly-exported binary BY NAME, not the whole OutDir. build/ is
+    # gitignored and accumulates old exports; globbing the folder silently shipped a
+    # stale 0.0.1 exe alongside the real one.
+    $srcFile = Join-Path (Join-Path $ProjectRoot $t.OutDir) $t.OutFile
     $zipPath = Join-Path (Join-Path $ProjectRoot "build") ("extraction-survivors-{0}-v{1}.zip" -f $t.Channel, $Version)
     if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
-    Compress-Archive -Path (Join-Path $srcDir "*") -DestinationPath $zipPath
+    Compress-Archive -Path $srcFile -DestinationPath $zipPath
     $zipMB = [math]::Round((Get-Item $zipPath).Length / 1MB, 1)
     Write-Host ("Packaged {0} ({1} MB)" -f $zipPath, $zipMB) -ForegroundColor Green
 }
