@@ -12,8 +12,9 @@ extends RefCounted
 ## Pilot scope (2026-07-21 doc audit): burning / chilled / frozen only. Statuses previously had
 ## no visual at all. Extend to the other elements once Ben has eyeballed these three.
 static func _attach_aura(def: StatusEffectDefinition, element: String,
-		scale: Vector2 = Vector2.ONE) -> void:
-	var layer: VfxLayerConfig = StatusVfxFactory.build_aura_layer(element, 1, Vector2.ZERO, scale)
+		scale: Vector2 = Vector2.ONE, tint: Color = Color.WHITE) -> void:
+	var layer: VfxLayerConfig = StatusVfxFactory.build_aura_layer(
+			element, 1, Vector2.ZERO, scale, tint)
 	if layer != null:
 		def.vfx_layers = [layer]
 
@@ -198,6 +199,10 @@ static func _build_bleed() -> StatusEffectDefinition:
 	tick_dmg.base_damage = 4.0
 	def.tick_effects = [tick_dmg]
 
+	## No pack ships a blood aura, but the Poison sheet's creeping motes recolour to arterial red
+	## and read correctly as bleeding. Small — a bleed is a wound, not a cloud.
+	_attach_aura(def, "poison", Vector2(0.7, 0.7), Color(1.0, 0.25, 0.28))
+
 	return def
 
 
@@ -320,6 +325,10 @@ static func _build_shocked() -> StatusEffectDefinition:
 	conductor_listener.effects = [chain_dmg, chain_consume]
 	def.trigger_listeners = [conductor_listener]
 
+	## Shocked is a live trap — hitting the target chains Lightning to everything nearby. It has
+	## to be visible for that to be a decision rather than a surprise.
+	_attach_aura(def, "electric")
+
 	return def
 
 
@@ -341,6 +350,9 @@ static func _build_abyssal_slow() -> StatusEffectDefinition:
 	slow_mod.source_name = "abyssal_slow"
 	def.modifiers = [slow_mod]
 
+	## Pack II's Shadow aura — the void motes mark who the Deep has hold of.
+	_attach_aura(def, "shadow", Vector2(0.8, 0.8), Color(0.72, 0.45, 1.0))
+
 	return def
 
 
@@ -354,6 +366,9 @@ static func _build_void_touched() -> StatusEffectDefinition:
 	def.is_positive = false
 	def.max_stacks = 1
 	def.base_duration = -1.0  ## Permanent
+
+	## Permanent and it explodes on death — the player needs to know which bodies are primed.
+	_attach_aura(def, "shadow", Vector2.ONE, Color(0.62, 0.30, 0.95))
 
 	return def
 

@@ -39,6 +39,8 @@ static func _create_corruption_circle() -> AbilityDefinition:
 	zone.target_faction = "enemy"  ## Damages player
 	zone.tick_effects = [tick_dmg]
 	zone.debug_color = Color(0.6, 0.1, 0.8, 0.5)
+	zone.vfx_element = "shadow"
+	zone.vfx_tint = Color(0.82, 0.42, 1.0)
 
 	var aa := AbilityDefinition.new()
 	aa.ability_id = "herald_corruption_circle"

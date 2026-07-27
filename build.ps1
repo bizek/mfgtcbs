@@ -12,9 +12,14 @@
 #
 # PowerShell 5.1 compatible (no &&, no ternary operators).
 
-# ---- Fill these in before pushing to itch.io -------------------------------
-$ButlerUser = "YOUR_ITCH_USERNAME"    # TODO(Ben): your itch.io username
-$ItchSlug   = "extraction-survivors"  # TODO(Ben): confirm the itch.io project slug
+# ---- itch.io ---------------------------------------------------------------
+# Current upload path is the itch.io WEB dashboard (Ben is logged in there), so this
+# script packages build/*.zip ready to drag into the uploader. The butler commands
+# below are still printed for later; $ItchSlug is a placeholder until the project
+# is actually created on itch (Ben 2026-07-26: the name is in flux -- the game reads
+# as a combo-based survivor now, not "extraction survivors").
+$ButlerUser = "bizek"                 # https://bizek.itch.io/
+$ItchSlug   = "extraction-survivors"  # TODO(Ben): set to the real slug once created
 # -----------------------------------------------------------------------------
 
 $GodotExe    = "E:\Godot\Godot_v4.6.1-stable_win64.exe"
@@ -65,6 +70,19 @@ foreach ($t in $targets) {
     }
     $sizeMB = [math]::Round((Get-Item $outPath).Length / 1MB, 1)
     Write-Host "OK: $($t.OutFile) ($sizeMB MB)" -ForegroundColor Green
+}
+
+# ---- Zip each target for the itch.io web uploader ---------------------------
+# The web dashboard takes one archive per channel. Version-stamped so successive
+# uploads are distinguishable in the itch file list.
+Write-Host ""
+foreach ($t in $targets) {
+    $srcDir = Join-Path $ProjectRoot $t.OutDir
+    $zipPath = Join-Path (Join-Path $ProjectRoot "build") ("extraction-survivors-{0}-v{1}.zip" -f $t.Channel, $Version)
+    if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+    Compress-Archive -Path (Join-Path $srcDir "*") -DestinationPath $zipPath
+    $zipMB = [math]::Round((Get-Item $zipPath).Length / 1MB, 1)
+    Write-Host ("Packaged {0} ({1} MB)" -f $zipPath, $zipMB) -ForegroundColor Green
 }
 
 # ---- Print (do not run) butler push commands --------------------------------

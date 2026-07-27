@@ -37,8 +37,13 @@ func _ready() -> void:
 	_create_popup_ui()
 
 	# Connect to the combo effect resolver signal in the next frame
-	# This allows the scene tree to fully initialize first
+	# This allows the scene tree to fully initialize first.
+	# The node can be torn down DURING that one-frame await — the Training Room's live class swap
+	# reloads the arena, which frees this popup mid-coroutine. Resuming then leaves us detached and
+	# get_tree() null, so bail before touching it (Ben, crash on Devout -> Verdant swap).
 	await get_tree().process_frame
+	if not is_inside_tree():
+		return
 	_connect_to_resolver()
 
 
@@ -103,15 +108,17 @@ func _create_panel_style() -> StyleBoxFlat:
 func _connect_to_resolver() -> void:
 	## Find CombatOrchestrator and its ComboEffectResolver child
 	## Scene structure: MainArena/CombatOrchestrator/ComboEffectResolver
-	var root = get_tree().root
-	if not root:
-		push_error("ComboDiscoveryPopup: Could not get tree root")
-		return
+	var tree := get_tree()
+	if tree == null:
+		return   ## detached (scene torn down) — nothing to connect to
 
-	## Get the main scene (MainArena)
-	var main_scene = root.get_child(0) if root.get_child_count() > 0 else null
+	## The main scene, NOT root.get_child(0): every autoload is a child of root and they are added
+	## FIRST, so get_child(0) returned an autoload (EventBus) and the orchestrator lookup below
+	## always missed. That is why "CombatOrchestrator not found in scene" fired on every load and
+	## combo-discovery popups never actually appeared.
+	var main_scene := tree.current_scene
 	if not main_scene:
-		push_error("ComboDiscoveryPopup: Could not get main scene")
+		push_warning("ComboDiscoveryPopup: no current scene")
 		return
 
 	## Find CombatOrchestrator

@@ -24,6 +24,7 @@ size = Vector2(16, 1232)
 script = ExtResource("1_2tmn8")
 
 [node name="ArenaFloor" type="TextureRect" parent="." unique_id=1974973810]
+z_index = -5
 offset_left = -800.0
 offset_top = -600.0
 offset_right = 800.0

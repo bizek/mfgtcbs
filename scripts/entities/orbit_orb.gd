@@ -43,7 +43,69 @@ func _ready() -> void:
 
 	body_entered.connect(_on_body_entered)
 
+## Pack II's Arcane Orb, continuous row. 32px cells, 16 frames per row, rows are
+## cast / continuous / end — we loop row 1 forever, since the orb lives until the player does.
+const ORB_SHEET: String = "res://assets/minifantasy/Minifantasy_Spell_Effects_II_v1.0/Spell_Effects_II/Arcane_Magic_School/Arcane_Orb/_Standalone_Effects/Orb_Only_Orb.png"
+const ORB_CELL: int = 32
+const ORB_FRAMES: int = 16
+const ORB_ROW: int = 1
+const ORB_FPS: float = 12.0
+## The art fills its 32px cell; the orb should read at roughly the old 20px glow, hence <1 scale.
+const ORB_ART_SCALE: float = 0.62
+static var _orb_frames: SpriteFrames = null
+
+
 func _build_visual() -> void:
+	## Prefer the pack sprite; the ColorRect stack below is the fallback when the sheet is absent.
+	if _build_sprite_visual():
+		return
+	_build_primitive_visual()
+
+
+## Returns false when the sheet is missing, so the caller can fall back rather than render nothing.
+func _build_sprite_visual() -> bool:
+	var frames: SpriteFrames = _get_orb_frames()
+	if frames == null:
+		return false
+	var orb := AnimatedSprite2D.new()
+	orb.sprite_frames = frames
+	orb.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	orb.centered = true
+	orb.scale = Vector2.ONE * ORB_ART_SCALE * size_mult
+	orb.modulate = tint
+	add_child(orb)
+	orb.play(&"spin")
+	## Same gentle breathing the primitive version had, so the orb still feels alive at rest.
+	var tween := create_tween().set_loops()
+	tween.tween_property(orb, "modulate:a", 0.72, 0.55)
+	tween.tween_property(orb, "modulate:a", 1.0,  0.55)
+	return true
+
+
+static func _get_orb_frames() -> SpriteFrames:
+	if _orb_frames != null:
+		return _orb_frames
+	if not ResourceLoader.exists(ORB_SHEET):
+		return null
+	var sheet: Texture2D = load(ORB_SHEET)
+	if sheet == null:
+		return null
+	var frames := SpriteFrames.new()
+	frames.clear_all()
+	frames.add_animation(&"spin")
+	frames.set_animation_loop(&"spin", true)
+	frames.set_animation_speed(&"spin", ORB_FPS)
+	for i in ORB_FRAMES:
+		var atlas := AtlasTexture.new()
+		atlas.atlas = sheet
+		atlas.region = Rect2(i * ORB_CELL, ORB_ROW * ORB_CELL, ORB_CELL, ORB_CELL)
+		atlas.filter_clip = true
+		frames.add_frame(&"spin", atlas)
+	_orb_frames = frames
+	return frames
+
+
+func _build_primitive_visual() -> void:
 	var s: float = size_mult
 	## Soft outer glow
 	var glow := ColorRect.new()

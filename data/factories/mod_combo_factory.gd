@@ -370,6 +370,7 @@ static func _combo_explosive_fire(config: ProjectileConfig, mods: Array, _data: 
 	zone.duration = 2.0
 	zone.tick_interval = 0.5
 	zone.target_faction = "enemy"
+	zone.vfx_element = "fire"
 	var zone_burn := ApplyStatusEffectData.new()
 	zone_burn.status = StatusFactory.burning
 	zone_burn.stacks = 1

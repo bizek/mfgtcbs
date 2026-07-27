@@ -47,6 +47,11 @@ const HELL_TICK: float = 0.75       ## Demonologist Immolate channel beat (hellf
 const BRIMSTONE_ZONE_TIME: float = 4.0    ## how long the pact circle burns after the slam
 const BRIMSTONE_ZONE_TICK: float = 0.5    ## burn beat inside the circle
 const BRIMSTONE_RADIUS: float = 52.0      ## the circle's reach (slam AoE and zone share it)
+## Hell Breach (light chain, node 1). Must stay equal to player.HELLBREACH_RADIUS — the phase's
+## AoE and the host-side fissure are the same slam and have to bite the same ground.
+## He does NOT move: the pack's leap is a vertical hop that lands where it took off, so there is
+## no lunge constant here by design (Ben 2026-07-26).
+const HELLBREACH_RADIUS: float = 54.0
 const GUARD_TICK: float = 0.4       ## Barbarian Guard stance re-check beat (the block is host-side)
 const BLADES_TICK: float = 0.4      ## Ninja Thousand Blades storm beat (blades body 4f @ 10fps)
 const STORM_TICK: float = 0.7       ## Gunslinger Desert Storm volley beat (storm body 14f @ 20fps)
@@ -929,17 +934,24 @@ static func build_demon_light(weapon_data: Dictionary) -> AbilityDefinition:
 		_branch_buffered("light_attack", 1),               # tap → Hellfire
 	]
 
-	# 1 — Hellfire (finisher: the motes spray out and stick; loops back to Strike on a fresh tap).
+	# 1 — Hell Breach (finisher: leap onto the pack and split the floor; loops back to Strike).
 	#     Gate now met → the Brimstone branch is available from here.
-	var hellfire := ChoreographyPhase.new()
-	hellfire.animation = "hellfire"
-	hellfire.hit_frame = 3                                  # the embers leave the staff
-	hellfire.effects = [_aoe(dtype, dmg * 1.6, 46.0), _burning()]
-	hellfire.exit_type = "wait"
-	hellfire.wait_duration = CANCEL_WIN
-	hellfire.default_next = -1
-	hellfire.is_finisher = true
-	hellfire.branches = [
+	#     This slot used to be a second Hellfire, i.e. the RMB tap replayed inside the LMB chain.
+	#     Ben cut that on 2026-07-26 — no kit ships the same move twice. Hell Breach came off the
+	#     dash to fill it. It reads swing → slam on the spot: he hops, lands where he stood, and the
+	#     Hell_Breach_Spell fissure races out toward the cursor (host-side, player._hellbreach_slam).
+	var breach := ChoreographyPhase.new()
+	breach.animation = "hell_breach"
+	## Frame 5 is the landing: white staff arc + the red impact ring (measured off Hell_Breach.png —
+	## f1 crouch, f2-4 airborne, f5 slam, f6-8 ring expands, f9-12 recovery). It was 9, which fired
+	## after the ring had already faded and made the hit feel disconnected from the animation.
+	breach.hit_frame = 5
+	breach.effects = [_aoe(dtype, dmg * 1.7, HELLBREACH_RADIUS), _burning()]
+	breach.exit_type = "wait"
+	breach.wait_duration = CANCEL_WIN
+	breach.default_next = -1
+	breach.is_finisher = true
+	breach.branches = [
 		_branch_buffered("heavy_attack", 2),               # RMB → Brimstone Circle
 		_branch_buffered("light_attack", 0),               # tap → loop to Strike
 	]
@@ -948,7 +960,7 @@ static func build_demon_light(weapon_data: Dictionary) -> AbilityDefinition:
 	var brimstone := _brimstone_phase(dtype, dmg)
 
 	var choreo := ChoreographyDefinition.new()
-	choreo.phases = [strike, hellfire, brimstone]
+	choreo.phases = [strike, breach, brimstone]
 	return _ability("demon_light", "Demon Combo", choreo)
 
 
@@ -1031,6 +1043,8 @@ static func _brimstone_zone(dtype: String, dmg: float) -> GroundZoneEffect:
 	z.duration = BRIMSTONE_ZONE_TIME
 	z.tick_interval = BRIMSTONE_ZONE_TICK
 	z.target_faction = "enemy"
+	## The pact circle keeps burning while the Demon walks out of it — so it has to LOOK like it is.
+	z.vfx_element = "fire"
 	var burn := DealDamageEffect.new()
 	burn.damage_type = dtype
 	burn.base_damage = dmg * 0.22
@@ -1560,6 +1574,10 @@ static func _root_zone(dtype: String, dmg: float) -> GroundZoneEffect:
 	z.duration = 4.0
 	z.tick_interval = 0.5
 	z.target_faction = "enemy"
+	## The Poison tileable is already the pack's green creeping growth — pushed a touch more
+	## verdant so the snare reads as bramble, not venom.
+	z.vfx_element = "poison"
+	z.vfx_tint = Color(0.72, 1.0, 0.58)
 	var hit := DealDamageEffect.new()
 	hit.damage_type = dtype
 	hit.base_damage = dmg * 0.25
@@ -1708,6 +1726,9 @@ static func _pain_zone(dmg: float) -> GroundZoneEffect:
 	z.duration = 4.0
 	z.tick_interval = 0.5
 	z.target_faction = "enemy"
+	## Consecrated ground: the Arcane tileable in gold, not fire — the damage is holy, not burning.
+	z.vfx_element = "arcane"
+	z.vfx_tint = Color(1.0, 0.92, 0.55)
 	var hit := DealDamageEffect.new()
 	hit.damage_type = "Fire"                                # holy fire, independent of the weapon
 	hit.base_damage = dmg * 0.3

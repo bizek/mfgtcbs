@@ -79,6 +79,7 @@ static func _create_fire_puddle_skill() -> SkillDefinition:
 	zone.target_faction = "enemy"  ## Damages player (enemy of the caster)
 	zone.tick_effects = [tick_dmg]
 	zone.debug_color = Color(0.9, 0.3, 0.0, 0.6)
+	zone.vfx_element = "fire"
 
 	var ability := AbilityDefinition.new()
 	ability.ability_id = "caster_fire_puddle"

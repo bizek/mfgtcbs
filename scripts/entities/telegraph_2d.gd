@@ -38,7 +38,61 @@ func configure(effect: SpawnTelegraphEffect, src: Node2D, tgt: Node2D) -> void:
 	target = tgt
 	telegraph_id = effect.telegraph_id
 	z_index = 1  ## draw above floor (0), below nothing — semi-transparency handles layering
+	_build_art()
 	_update_transform()
+
+
+## Pack art under the drawn shape. Poison_Magic_Trap is a 40×40 sigil that draws itself in over
+## 47 frames — stretch those frames across the telegraph's duration and the art's own build-up
+## IS the wind-up read, with the drawn fill/outline still on top carrying the exact timing.
+## Circles and rings only: the line/cone telegraphs have no equivalent sheet, so they stay drawn.
+const ART_SHEET: String = "res://assets/minifantasy/Minifantasy_Spell Effects_v1.0/Minifantasy_Spell_Effects_Assets/Poison/Tileable_Effect/Premade_Spell_Effects/Poison_Magic_Trap.png"
+const ART_CELL: int = 40
+const ART_FRAMES: int = 47
+static var _art_frames: SpriteFrames = null
+
+
+func _build_art() -> void:
+	if shape != "circle" and shape != "ring":
+		return
+	var frames: SpriteFrames = _get_art_frames()
+	if frames == null:
+		return
+	var art := AnimatedSprite2D.new()
+	art.sprite_frames = frames
+	art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	art.centered = true
+	art.z_index = -1                     ## under the drawn fill, over the floor
+	## Native sigil fills its 40px cell, so its radius is half that.
+	var s: float = radius / (float(ART_CELL) * 0.5)
+	art.scale = Vector2(s, s)
+	art.modulate = Color(base_color.r, base_color.g, base_color.b, 0.9)
+	art.speed_scale = (float(ART_FRAMES) / duration) / 10.0   ## sheet is authored at 10 fps
+	add_child(art)
+	art.play(&"build")
+
+
+static func _get_art_frames() -> SpriteFrames:
+	if _art_frames != null:
+		return _art_frames
+	if not ResourceLoader.exists(ART_SHEET):
+		return null
+	var sheet: Texture2D = load(ART_SHEET)
+	if sheet == null:
+		return null
+	var frames := SpriteFrames.new()
+	frames.clear_all()
+	frames.add_animation(&"build")
+	frames.set_animation_loop(&"build", false)
+	frames.set_animation_speed(&"build", 10.0)
+	for i in ART_FRAMES:
+		var atlas := AtlasTexture.new()
+		atlas.atlas = sheet
+		atlas.region = Rect2(i * ART_CELL, 0, ART_CELL, ART_CELL)
+		atlas.filter_clip = true
+		frames.add_frame(&"build", atlas)
+	_art_frames = frames
+	return frames
 
 
 func _process(delta: float) -> void:

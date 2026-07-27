@@ -112,6 +112,8 @@ static func build_demon_archdemon(weapon_data: Dictionary) -> AbilityDefinition:
 	maw.duration = ARCHDEMON_SPELL_TIME
 	maw.tick_interval = 0.35
 	maw.target_faction = "enemy"
+	## The floor stays open and burning for as long as the thing is chewing on it.
+	maw.vfx_element = "fire"
 	var bite := DealDamageEffect.new()
 	bite.damage_type = dtype
 	bite.base_damage = dmg * 0.55
@@ -379,6 +381,11 @@ static func build_blood_mage_blood_eruption(weapon_data: Dictionary) -> AbilityD
 	pool.duration = 5.0
 	pool.tick_interval = 0.5
 	pool.target_faction = "enemy"
+	## The pool is the identity of this skill and was previously invisible — you could only find
+	## it by watching your own HP tick up. Poison's creeping tileable, palette-shifted to arterial
+	## red (docs/asset_inventory.md recolour strategy).
+	pool.vfx_element = "poison"
+	pool.vfx_tint = Color(1.0, 0.28, 0.30)
 	var bleed := DealDamageEffect.new()
 	bleed.damage_type = dtype
 	bleed.base_damage = dmg * 0.15

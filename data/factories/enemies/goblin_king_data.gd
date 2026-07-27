@@ -188,6 +188,9 @@ static func _royal_wrath_stance_machine() -> AbilityDefinition:
 	court_zone.target_faction = "enemy"
 	court_zone.tick_effects = [court_tick]
 	court_zone.debug_color = Color(0.75, 0.60, 0.10, 0.45)
+	## 120px of throne-room ground the player must not stand on — in the King's own gold.
+	court_zone.vfx_element = "arcane"
+	court_zone.vfx_tint = Color(1.0, 0.85, 0.35)
 
 	var nova_hit := ChoreographyPhase.new()
 	nova_hit.effects = [nova_burst, court_zone]

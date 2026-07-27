@@ -154,8 +154,29 @@ func spawn_ground_zone(effect: GroundZoneEffect, source: Node2D,
 		position = zone_pos,
 		time_remaining = effect.duration,
 		tick_timer = effect.tick_interval,
+		vfx = _spawn_ground_zone_vfx(effect, zone_pos),
 	}
 	_ground_zones.append(zone)
+
+
+## The zone's visible footprint. Every ground zone in the game funnels through spawn_ground_zone(),
+## so setting `vfx_element` on the effect resource is the whole wiring — player kits, boss zones,
+## mod zones and weapon zones all light up from here. Zones that leave `vfx_element` empty (or
+## whose sheet is missing) get null and stay invisible, exactly as before.
+func _spawn_ground_zone_vfx(effect: GroundZoneEffect, zone_pos: Vector2) -> GroundZoneVfx:
+	if effect.vfx_element == "":
+		return null
+	var vfx := GroundZoneVfx.new()
+	if not vfx.setup(effect.vfx_element, effect.radius, effect.duration, effect.vfx_tint):
+		vfx.free()
+		return null
+	var host: Node = get_tree().current_scene
+	if host == null:
+		vfx.free()
+		return null
+	host.add_child(vfx)
+	vfx.global_position = zone_pos
+	return vfx
 
 
 func _tick_ground_zones(delta: float) -> void:
@@ -169,6 +190,10 @@ func _tick_ground_zones(delta: float) -> void:
 		if zone.time_remaining <= 0.0:
 			expired.append(zone)
 	for zone in expired:
+		## The footprint frees itself on its own clock, but a zone torn down early (scene change,
+		## arena reset) must not leave its decal painted on the floor.
+		if is_instance_valid(zone.get("vfx")):
+			zone.vfx.queue_free()
 		_ground_zones.erase(zone)
 
 

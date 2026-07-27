@@ -45,6 +45,8 @@ static func _create_guardian_slam(base_damage: float) -> AbilityDefinition:
 	zone.target_faction = "enemy"  ## Damages player
 	zone.tick_effects = [zone_tick]
 	zone.debug_color = Color(0.5, 0.0, 0.0, 0.5)
+	zone.vfx_element = "shadow"
+	zone.vfx_tint = Color(0.85, 0.55, 1.0)
 
 	var aa := AbilityDefinition.new()
 	aa.ability_id = "guardian_slam"

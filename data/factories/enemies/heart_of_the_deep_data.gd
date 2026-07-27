@@ -190,6 +190,9 @@ static func _abyssal_slam_stance_machine() -> AbilityDefinition:
 	void_zone.target_faction = "enemy"
 	void_zone.tick_effects = [void_tick]
 	void_zone.debug_color = Color(0.35, 0.05, 0.55, 0.5)
+	## 140px, 8s — the biggest zone in the game, and until now completely invisible.
+	void_zone.vfx_element = "shadow"
+	void_zone.vfx_tint = Color(0.78, 0.45, 1.0)
 
 	var nova_hit := ChoreographyPhase.new()
 	nova_hit.effects = [nova_burst, void_zone]

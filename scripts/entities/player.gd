@@ -331,12 +331,20 @@ const ARCHDEMON_SPELL_LIFE: float = 2.45
 const ARCHDEMON_SPELL_FRAMES: int = 27
 ## Hell_Breach_Spell: 64px, 17f, and its four rows are CARDINAL directions, not the pack's usual
 ## diagonal facings — measured off the sheet, each row's fissure grows a different way from the
-## cell centre (row 0 east, 1 west, 2 south, 3 north). Spawned at the dash's landing point.
+## cell centre (row 0 east, 1 west, 2 south, 3 north). Spawned at the leap's landing point.
+## Hell Breach is now the LIGHT CHAIN's second beat, not the dash (Ben 2026-07-26) — the chain
+## phase carries the damage, so this host hook only owns the lunge and the fissure art.
 const HELLBREACH_FISSURE_SHEET: String = DEMON_SPECIAL_DIR + "Hell_Breach/Hell_Breach_Spell.png"
 const HELLBREACH_FISSURE_ROWS: Array[int] = [0, 1, 2, 3]   ## indexed by HELLBREACH_DIR order below
 const HELLBREACH_FISSURE_FPS: float = 20.0
-const HELLBREACH_DAMAGE_MULT: float = 1.0   ## × weapon damage, landed once on the slam
-const HELLBREACH_RADIUS: float = 54.0       ## the fissure's bite around the landing point
+const HELLBREACH_RADIUS: float = 54.0       ## the fissure's bite; == ChainFactory.HELLBREACH_RADIUS
+## Ashen Step (the Demon's dash, replacing Hell Breach): he hops clear on the pack's unused Jump
+## sheet and the ground he left keeps burning, so disengaging also denies the ground. A ground
+## zone rather than a flat AoE — it is a zoning tool, not a damage tool.
+const ASHENSTEP_ZONE_RADIUS: float = 26.0
+const ASHENSTEP_ZONE_TIME: float = 3.0
+const ASHENSTEP_ZONE_TICK: float = 0.5
+const ASHENSTEP_TICK_MULT: float = 0.18     ## × weapon damage per burn beat — chip, not a nuke
 var _angry_demon: Node2D = null
 ## Control-scheme pass (2026-07-05): kit id + class dash + Wizard charge.
 var _kit_id: String = ""
@@ -1432,6 +1440,10 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 	## the name "brimstone", which must NOT reach this hook — hence the exact prefix.)
 	if cur_anim.begins_with("pact_ritual"):
 		_spawn_angry_demon()
+	## Hell Breach (light chain node 1): crack the floor on the landing slam. The phase's own AoE +
+	## Burning ride the normal effect routing below; this is just the fissure. No displacement.
+	if cur_anim.begins_with("hell_breach"):
+		_hellbreach_slam()
 	## Second Wind: the salute lands — green mend ring + flash so the heal reads on cast.
 	if cur_anim.begins_with("rally"):
 		_spawn_shockwave_ring(26.0, Color(0.35, 1.0, 0.45, 0.9))
@@ -2003,14 +2015,30 @@ func _spawn_archdemon_spell(at: Vector2, radius: float) -> void:
 	_scale_pack_fx(fx, radius)
 
 
-## Hell Breach (Demonologist dash): the landing fissure. Hell_Breach_Spell is 64px and its rows are
-## CARDINAL — the crack grows east/west/south/north out of the cell centre — so the row is picked
-## from the DASH vector, not the cursor facing. Fires on the slam, per the pack's AnimationInfo
-## ("start Hell_Breach_Spell aligned with the character after the jump landing").
+## Hell Breach (Demonologist light chain, node 1): the slam, and the fissure that opens under it.
+## The chain phase owns the damage (ChainFactory.build_demon_light) — this hook owns the art, so a
+## Reach mod scales the phase's AoE and the fissure together without the two drifting apart.
+##
+## **He does not travel.** Ben 2026-07-26: the beat should read as swing → slam on the spot, like
+## `Special_Animations/Hellfire/_GIFs/Hellfire.gif`. The pack art agrees — Hell_Breach's leap is a
+## *vertical* hop (f2-4 airborne over a drop shadow) that lands on the tile it left, so the forward
+## lunge this used to apply was fighting its own animation. Only the fissure is directional.
+func _hellbreach_slam() -> void:
+	var aim: Vector2 = _get_aim_world_position() - global_position
+	var dir: Vector2 = aim.normalized() if aim.length_squared() >= 1.0 else _aim_dir
+	if dir.length_squared() < 0.001:
+		dir = Vector2.RIGHT
+	_spawn_hellbreach_fissure(dir)
+
+
+## The landing fissure. Hell_Breach_Spell is 64px and its rows are CARDINAL — the crack grows
+## east/west/south/north out of the cell centre — so the row is picked from the AIM vector (the
+## crack races toward the cursor). Per the pack's AnimationInfo: "start Hell_Breach_Spell aligned
+## with the Demonologist after the jump landing".
 func _spawn_hellbreach_fissure(dir: Vector2) -> void:
 	if dir.length_squared() < 0.001:
 		dir = Vector2.RIGHT
-	## Cardinal quadrant of the dash: e / w / s / n → sheet rows 0 / 1 / 2 / 3.
+	## Cardinal quadrant of the leap: e / w / s / n → sheet rows 0 / 1 / 2 / 3.
 	var row: int = HELLBREACH_FISSURE_ROWS[0]
 	if absf(dir.x) >= absf(dir.y):
 		row = HELLBREACH_FISSURE_ROWS[0] if dir.x >= 0.0 else HELLBREACH_FISSURE_ROWS[1]
@@ -2018,12 +2046,27 @@ func _spawn_hellbreach_fissure(dir: Vector2) -> void:
 		row = HELLBREACH_FISSURE_ROWS[2] if dir.y >= 0.0 else HELLBREACH_FISSURE_ROWS[3]
 	_spawn_pack_fx(HELLBREACH_FISSURE_SHEET, global_position, 64, row,
 			HELLBREACH_FISSURE_FPS, false, 1)
-	## The ground splitting is not decoration — everything around the landing takes the breach.
-	var hit := AreaDamageEffect.new()
-	hit.damage_type = ChainFactory._damage_type(_weapon_data)
-	hit.base_damage = _weapon_data.get("damage", 42.0) * HELLBREACH_DAMAGE_MULT
-	hit.aoe_radius = HELLBREACH_RADIUS * _melee_range()
-	EffectDispatcher.execute_effects([hit], self, [self], null, combat_manager)
+
+
+## Ashen Step (Demonologist dash): he hops out on the pack's Jump frames and the ground he was
+## standing on keeps burning. Replaces the old Hell Breach dash, which became the light chain's
+## second beat — the dash slot needed its own identity rather than a copy of a combo node.
+## Dropped at the DEPARTURE point: the point of the tool is to make the space you just left
+## expensive to follow you into.
+func _spawn_ashenstep_trail(at: Vector2) -> void:
+	var z := GroundZoneEffect.new()
+	z.zone_id = "ashen_step"
+	z.radius = ASHENSTEP_ZONE_RADIUS * _melee_range()
+	z.duration = ASHENSTEP_ZONE_TIME
+	z.tick_interval = ASHENSTEP_ZONE_TICK
+	z.target_faction = "enemy"
+	z.vfx_element = "fire"
+	var burn := DealDamageEffect.new()
+	burn.damage_type = ChainFactory._damage_type(_weapon_data)
+	burn.base_damage = _weapon_data.get("damage", 42.0) * ASHENSTEP_TICK_MULT
+	z.tick_effects = [burn]
+	if combat_manager:
+		combat_manager.spawn_ground_zone(z, self, at)
 
 
 ## Scale a world-anchored pack VFX so its native art radius lands on `radius`. No-op for a null
@@ -2194,27 +2237,35 @@ func _show_storm_fx() -> void:
 ## fade out and free after `life` seconds; one-shots free on animation_finished. `z` places it above
 ## (1) or below (-1) bodies. `first`/`last` take a sub-range of the row's columns (`last` < 0 = to the
 ## end) for sheets that bake several beats into one strip. Returns the sprite so callers can nudge it.
+##
+## `cell_h` < 0 means square cells (`cell` × `cell`), which is every True Heroes / True Villains
+## sheet. The Spell Effects packs ship plenty of NON-square strips — Fire_Wave_E is 80×40,
+## Ice_Lance_N 24×64, the Electric shockwaves 8×80, Emperor_Effect 8×16 — and those were simply
+## unloadable before this parameter existed.
 func _spawn_pack_fx(sheet_path: String, at: Vector2, cell: int, row: int, fps: float, loops: bool,
 		z: int = 1, follow: bool = false, life: float = 0.0,
-		first: int = 0, last: int = -1, fade: float = 0.25) -> AnimatedSprite2D:
+		first: int = 0, last: int = -1, fade: float = 0.25,
+		cell_h: int = -1) -> AnimatedSprite2D:
 	if not ResourceLoader.exists(sheet_path):
 		return null
 	var tex: Texture2D = load(sheet_path)
 	if tex == null:
 		return null
+	var cw: int = cell
+	var ch: int = cell if cell_h < 0 else cell_h
 	var fx := AnimatedSprite2D.new()
 	var sf := SpriteFrames.new()
 	sf.clear_all()
 	sf.add_animation(&"play")
 	sf.set_animation_loop(&"play", loops)
 	sf.set_animation_speed(&"play", fps)
-	var cols: int = int(tex.get_width() / float(cell))
+	var cols: int = int(tex.get_width() / float(cw))
 	var from_col: int = clampi(first, 0, cols - 1)
 	var to_col: int = cols - 1 if last < 0 else clampi(last, from_col, cols - 1)
 	for i in range(from_col, to_col + 1):
 		var atl := AtlasTexture.new()
 		atl.atlas = tex
-		atl.region = Rect2(i * cell, row * cell, cell, cell)
+		atl.region = Rect2(i * cw, row * ch, cw, ch)
 		atl.filter_clip = true
 		sf.add_frame(&"play", atl)
 	fx.sprite_frames = sf
@@ -2615,10 +2666,29 @@ func _on_bomb_anim_finished() -> void:
 		_bomb_toss.scale = Vector2.ONE
 
 
+## Source art for the shockwave pop. Electric_Expansive_Shock is 56×56 over 26 frames — a ring
+## that genuinely expands, unlike a scaled circle — and it tints cleanly to gold/green/blue for
+## the non-electric callers (Reckoning, Second Wind, Aegis, Taunt).
+const SHOCKWAVE_SHEET: String = SPELLFX_DIR + "Electric/Tileable_Effect/Premade_Spell_Effects/Electric_Expansive_Shock.png"
+const SHOCKWAVE_CELL: int = 56
+const SHOCKWAVE_FRAMES: int = 26
+const SHOCKWAVE_TIME: float = 0.45   ## match the old tween's beat exactly — feel must not change
+
+
 func _spawn_shockwave_ring(radius: float, color: Color = Color(1.0, 0.55, 0.10, 0.9)) -> void:
 	## Expanding ring that rings out from the player to the hit-zone edge, then fades.
 	## Orange by default (Taunt/impact zones); green = heals, gold = Reckoning.
-	## top_level so it stays put in the world as it expands.
+	## Prefers the pack's real expanding-shock sheet; the Line2D below is the fallback when the
+	## sheet is missing, and still runs UNDER the sprite as a bright leading edge.
+	var fps: float = float(SHOCKWAVE_FRAMES) / SHOCKWAVE_TIME
+	var burst: AnimatedSprite2D = _spawn_pack_fx(SHOCKWAVE_SHEET, global_position,
+			SHOCKWAVE_CELL, 0, fps, false, 1)
+	if burst:
+		## The sheet's shock fills its 56px cell, so its native radius is half that.
+		var s: float = radius / (float(SHOCKWAVE_CELL) * 0.5)
+		burst.scale = Vector2(s, s)
+		burst.modulate = Color(color.r, color.g, color.b, 1.0)
+
 	var ring := Line2D.new()
 	ring.width = 3.0
 	ring.default_color = color
@@ -2924,15 +2994,10 @@ func _try_dash(input_dir: Vector2) -> void:
 			func() -> void:
 				if is_instance_valid(self) and is_alive:
 					_spawn_planeshift_burst(NECRO_PLANESHIFT_IN_SHEET, global_position))
-	## Hell Breach (the Demon): the "dodge" anim above is the pack's real leap+staff-slam, so the
-	## body plays automatically. When the leap lands, the ground splits along the dash line and
-	## everything near the impact eats it.
-	if _dash_style == "hellbreach":
-		var breach_dir: Vector2 = _dash_dir
-		get_tree().create_timer(DASH_DURATION).timeout.connect(
-			func() -> void:
-				if is_instance_valid(self) and is_alive:
-					_spawn_hellbreach_fissure(breach_dir))
+	## Ashen Step (the Demon): the "dodge" anim above is the pack's Jump, so the hop plays
+	## automatically. The ground he pushed off from catches fire behind him.
+	if _dash_style == "ashenstep":
+		_spawn_ashenstep_trail(global_position)
 	## Start the refill clock if it isn't already running (don't reset a charge mid-refill).
 	if _dash_cooldown_timer <= 0.0:
 		_dash_cooldown_timer = _dash_cooldown_seconds()
@@ -2958,8 +3023,8 @@ func _dash_sound_id() -> String:
 		return "sfx_dash_teleport"   ## soul phase-out reuses the blink stinger
 	if _dash_style == "deadly":
 		return "sfx_dash_deadly"
-	if _dash_style == "hellbreach":
-		return "sfx_dash_dodge_roll"   ## a physical leap, not a blink — reuses the roll stinger
+	if _dash_style == "ashenstep":
+		return "sfx_dash_dodge_roll"   ## a physical hop, not a blink — reuses the roll stinger
 	if sprite and sprite.sprite_frames and sprite.sprite_frames.has_animation("dodge"):
 		return "sfx_dash_dodge_roll"
 	return "sfx_dash_generic"

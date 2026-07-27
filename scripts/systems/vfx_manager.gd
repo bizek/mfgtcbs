@@ -33,7 +33,16 @@ func _on_ability_used(entity: Node2D, ability) -> void:
 			offset.x = -offset.x
 		var fx = VfxEffect.create(layer.sprite_frames, layer.animation, false,
 				layer.z_index, offset, layer.scale)
+		_apply_layer_tint(fx, layer)
 		entity.add_child(fx)
+
+
+## Layers may recolour their source sheet (see VfxLayerConfig.modulate). Applied uniformly at
+## every spawn site so a tinted layer looks the same whether it is looping, phased or one-shot.
+func _apply_layer_tint(fx: Node, layer: Resource) -> void:
+	var tint: Color = layer.get("modulate")
+	if fx is CanvasItem and tint != Color.WHITE:
+		fx.modulate = tint
 
 
 func _on_status_applied(_source: Node2D, target: Node2D, status_id: String, _stacks: int) -> void:
@@ -59,6 +68,7 @@ func _on_status_applied(_source: Node2D, target: Node2D, status_id: String, _sta
 			offset.x = -offset.x
 		var fx = VfxEffect.create(layer.sprite_frames, layer.animation, false,
 				layer.z_index, offset, layer.scale)
+		_apply_layer_tint(fx, layer)
 		target.add_child(fx)
 
 
@@ -84,6 +94,7 @@ func _add_status_vfx(entity: Node2D, status_id: String, layer: Resource,
 	else:
 		fx = VfxEffect.create(layer.sprite_frames, layer.animation, true,
 				layer.z_index, offset, layer.scale)
+	_apply_layer_tint(fx, layer)
 	entity.add_child(fx)
 	if not _status_vfx.has(entity):
 		_status_vfx[entity] = {}

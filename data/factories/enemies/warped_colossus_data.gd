@@ -81,6 +81,8 @@ static func _tremor_slam() -> AbilityDefinition:
 	debris_zone.target_faction = "enemy"
 	debris_zone.tick_effects = [debris_tick]
 	debris_zone.debug_color = Color(0.45, 0.12, 0.55, 0.45)
+	debris_zone.vfx_element = "shadow"
+	debris_zone.vfx_tint = Color(0.75, 0.45, 0.95)
 
 	var hit := ChoreographyPhase.new()
 	hit.effects = [slam_dmg, debris_zone]

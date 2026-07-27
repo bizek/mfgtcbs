@@ -312,7 +312,7 @@ const ALL: Dictionary = {
 		"passive_id":      "demon_hellborn",
 		"passive_name":    "Hellborn",
 		"passive_desc":    "+25% Fire Damage. +30 Fire Resist — hell does not burn its own.",
-		"dash_style":      "hellbreach",         ## Hell Breach: leap, land, and the ground splits
+		"dash_style":      "ashenstep",          ## Ashen Step: hop clear and leave the ground burning
 		"portrait":        "res://assets/characters/portraits/the_demon.png",
 		"unlock_cost":     2500,
 		"base_hp":         100.0,
@@ -349,6 +349,13 @@ const ALL: Dictionary = {
 				## which IS the ability.
 				"hellfire":    ["res://assets/minifantasy/Minifantasy_True_Villains_I_v1.0/_Minifantasy_True_Villains_Assets/Demonologist/Special_Animations/Hellfire/Hellfire.png", 15, 22.0, {"cancel_open": 11}],
 				"hellfire_2":  ["res://assets/minifantasy/Minifantasy_True_Villains_I_v1.0/_Minifantasy_True_Villains_Assets/Demonologist/Special_Animations/Hellfire/Hellfire.png", 15, 26.0, {"cancel_open": 11}],
+				## Hell Breach — the hop-and-slam. Moved off the dash and INTO the light chain
+				## (Ben 2026-07-26: the chain's 2nd beat was a second Hellfire, which is just the
+				## RMB tap again; no kit should ship a repeated move). It reads swing → slam on the
+				## spot — the leap is VERTICAL and lands on the tile it left, so nothing displaces
+				## him. 13 frames: f1 crouch, f2-4 airborne, f5 slam (hit frame), f6-8 the impact
+				## ring, f9-12 recovery — hence cancel_open 8, once the ring has done its work.
+				"hell_breach": ["res://assets/minifantasy/Minifantasy_True_Villains_I_v1.0/_Minifantasy_True_Villains_Assets/Demonologist/Special_Animations/Hell_Breach/Hell_Breach.png", 13, 24.0, {"cancel_open": 8}],
 				"hellfire_ch": ["res://assets/minifantasy/Minifantasy_True_Villains_I_v1.0/_Minifantasy_True_Villains_Assets/Demonologist/Special_Animations/Hellfire/Hellfire.png", 15, 20.0],
 				## One shared Summon_Ritual cast body under two anim NAMES so the host branches:
 				## "brimstone" → the gated pact-circle finisher, "pact_ritual" → the Q summon.
@@ -359,10 +366,10 @@ const ALL: Dictionary = {
 				## Archdemon's Call (E): the long cast; the 27-frame Archdemon_Call_Spell erupts at the
 				## cursor as a world-anchored VFX over the ground zone (host-side).
 				"archdemon_call": ["res://assets/minifantasy/Minifantasy_True_Villains_I_v1.0/_Minifantasy_True_Villains_Assets/Demonologist/Special_Animations/Archdemon_Call/Archdemon_Call_Cast.png", 19, 15.0],
-				## "dodge" is mapped to Hell_Breach so the hellbreach dash plays the real leap+slam via
-				## the shared dash-anim path in player.gd. The landing fissure (Hell_Breach_Spell, 64px,
-				## CARDINAL rows) is spawned world-anchored by _spawn_hellbreach_fissure.
-				"dodge":       ["res://assets/minifantasy/Minifantasy_True_Villains_I_v1.0/_Minifantasy_True_Villains_Assets/Demonologist/Special_Animations/Hell_Breach/Hell_Breach.png", 13, 30.0],
+				## "dodge" is the pack's own General_Animations/Jump — a 4-frame hop that was the
+				## last completely unused sheet in the Demonologist folder. It became the dash body
+				## when Hell Breach moved into the light chain; see dash_style "ashenstep".
+				"dodge":       ["res://assets/minifantasy/Minifantasy_True_Villains_I_v1.0/_Minifantasy_True_Villains_Assets/Demonologist/General_Animations/Jump.png", 4, 15.0],
 			},
 		},
 	},

@@ -167,6 +167,9 @@ static func _create_void_trail_skill() -> SkillDefinition:
 	zone.target_faction = "enemy"     ## "enemy" from the brute's POV = the player
 	zone.tick_effects = [tick_dmg]
 	zone.debug_color = Color(0.5, 0.0, 0.8, 0.5)
+	## A trail the brute leaves behind him — the player has to be able to see where not to walk.
+	zone.vfx_element = "shadow"
+	zone.vfx_tint = Color(0.80, 0.40, 1.0)
 
 	var ability := AbilityDefinition.new()
 	ability.ability_id = "warped_brute_void_trail"

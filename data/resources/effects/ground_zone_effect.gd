@@ -10,3 +10,11 @@ extends Resource
 @export var target_faction: String = "enemy"      ## "enemy" or "ally" — which faction is affected
 @export var tick_effects: Array[Resource] = []    ## Effects applied to entities in range each tick
 @export var debug_color: Color = Color(0.8, 0.4, 0.0, 1.0) ## Debug circle fill color
+
+## Persistent footprint drawn for the zone's whole life (GroundZoneVfx). One of the keys in
+## GroundZoneVfx.ELEMENTS — "fire" / "ice" / "electric" / "poison" / "arcane" / "shadow".
+## Empty = no footprint (the zone is invisible, which is what every zone used to be).
+@export var vfx_element: String = ""
+## Modulate applied to the footprint, so one sheet can serve several fantasies — the Poison
+## tileable goes crimson for the Blood Mage's pool, green for the Druid's roots.
+@export var vfx_tint: Color = Color.WHITE
