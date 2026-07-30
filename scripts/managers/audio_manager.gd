@@ -416,6 +416,9 @@ func _on_pickup(_entity: Variant, pickup_type: String) -> void:
 # ── Lifecycle handlers ────────────────────────────────────────────────────────
 
 func _on_run_started() -> void:
+	## Safety net: a loop that leaked from the previous run (e.g. an extraction
+	## channel that never resolved) must not follow the player into a new one.
+	stop_loop()
 	play_music(LevelData.get_music_id(GameManager.current_level))
 
 
