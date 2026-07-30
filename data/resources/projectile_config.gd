@@ -8,6 +8,21 @@ extends Resource
 @export var max_range: float = 0.0               ## Max travel distance (0 = screen bounds)
 @export var arc_height: float = 0.0              ## Parabolic arc peak height (0 = straight line)
 
+# --- Steering (seek + turn cap) ---
+## Cap on how fast the heading may rotate, in DEGREES PER SECOND. 0 = uncapped, which is the
+## legacy shape: a "homing" projectile re-points straight at its target every frame and is
+## effectively unmissable. A FINITE rate turns a tracker into a *curving* projectile — it can be
+## out-turned and outrun, so tracking becomes a feel nudge instead of an aimbot.
+@export var homing_turn_rate: float = 0.0
+## If > 0, a projectile carrying no target acquires one within this radius. Paired with a turn
+## rate this is the "slight homing" shape: it flies where it was aimed and bends into whatever is
+## roughly ahead. Deliberately works for "directional" motion too — such a projectile travels dead
+## straight until it acquires, so an unaimed shot is still an unaimed shot.
+@export var seek_radius: float = 0.0
+## Half-angle (DEGREES) of the forward cone a seeking projectile may acquire within, measured off
+## its current heading. Keeps a shot from whipping around onto something behind the shooter.
+@export var seek_cone: float = 40.0
+
 # --- Visual ---
 @export var sprite_frames: SpriteFrames
 @export var use_directional_anims: bool = true   ## true = pick anim from direction ("n","ne","e"...)

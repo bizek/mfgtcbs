@@ -94,6 +94,32 @@ Actions: `light_attack` (LMB / RT), `heavy_attack` (RMB / LT), `skill_q`, `skill
 
 Dash is host-side on `player.gd`, not a choreography: `DASH_DURATION` is a fixed feel constant; distance, cooldown and charge count are modifier-driven (`dash_speed`, `dash_cooldown`, `dash_charges`). `_dash_style` selects the per-class variant (e.g. the Spark's teleport blink).
 
+**`player.gd::_get_aim_world_position()` is the single aim seam.** Facing, swing arcs, beam corridors, projectile headings, ground-zone placement, the Guard block arc and every Q/E skill read it — nothing reads the mouse directly. Three modes resolve in order:
+
+| Mode | Aim point |
+|------|-----------|
+| **Auto-aim** (`Settings.auto_aim`) | The locked enemy's position (see below). |
+| **Controller stick** | `global_position + _controller_aim_dir * CONTROLLER_AIM_DISTANCE`; the stick holds its last direction when released. |
+| **Mouse** (default) | `get_global_mouse_position()`. |
+
+### Auto-aim
+
+Opt-in setting (Settings → Controls → "Auto Aim"), off by default, read live so the pause-menu toggle applies mid-run. With it on the player never steers a crosshair: attack + skills + movement is the whole control surface. Because it changes only what the aim seam returns, no combat code knows it exists.
+
+`_update_auto_target()` runs once per physics frame, before facing:
+
+- **Candidates** — `spatial_grid.get_nearby_in_range(..., faction 1, AUTO_AIM_ACQUIRE_RANGE=300)`, roughly on-screen. Alive, targetable enemies only.
+- **Score** (lower wins) — distance, discounted by alignment with `_last_move_dir` (`AUTO_AIM_STEER_BIAS=0.30`). Movement is the player's remaining steering input: run at the enemy you want.
+- **Hysteresis** — the held target is scored at `AUTO_AIM_SWAP_MARGIN=0.72` and kept out to `AUTO_AIM_RETAIN_RANGE=400`, so a rival must be clearly better to take the lock. Without this two equidistant enemies strobe the lock (and the swing direction) every frame.
+- **Min reach** — a chasing mob standing *on* the player would yield a zero-length aim vector, so the aim point is pushed out to `AUTO_AIM_MIN_REACH=16` px along the same bearing.
+- **No target** — face `_last_move_dir` (holding the last facing when still), deliberately *not* the stale cursor.
+
+`auto_aim_reticle.gd` draws amber corner brackets over the lock (top-level child, `z_index=90` so the arena's y-sort can't bury it). Built lazily; a player with auto-aim off never gets the node. Cleared in `_on_health_died` — `_physics_process` early-returns once dead, which would otherwise freeze the reticle on-screen.
+
+The bracket is sized off the target's **sprite**, not its hurtbox: enemy size lives in `EnemyDefinition.sprite_scale` (Brute 1.8×, Ancient Troll 2.4×, Heart of the Deep 3.2×), which `enemy.gd::_apply_def_visuals()` applies to the sprite while the authored collision shape stays small — a hurtbox-sized bracket sits inside a boss's feet. Size is `frame_size * sprite.global_scale * SPRITE_FILL(0.5) + BOX_PAD(3)`, clamped to 7–56 px; the fill factor approximates the drawn silhouette inside a padded sheet cell (a 32px fodder cell holds a ~16px zombie). Measured live each frame so the kill-pop scale tween and any runtime scaling are picked up. Measured results: swarmer/fodder 22px, Brute 35px, Ancient Troll 44px, Goblin King 54px.
+
+Aim points at the target's *current* position — there is no lead prediction. Enemies mostly close on the player, so lateral error is small, and seeking projectiles (`ProjectileConfig.seek_radius`) correct for the rest.
+
 ### Cadence feedback
 
 `EventBus` carries three combo-specific signals consumed by audio/HUD: `on_combo_step(entity, depth, is_finisher)`, `on_finisher_hit(entity)`, and `on_combo_dropped(entity, depth)` (a chain at depth ≥ 2 that lapsed rather than being interrupted or finished — the "exhale"). Spec: `docs/combo_feedback_spec.md`.
@@ -163,6 +189,27 @@ static func _create_bolt() -> AbilityDefinition:
 ```
 
 Set `def.behavior_type = "ranged"` and `def.preferred_range = 175.0` so the enemy stops advancing at range.
+
+### Projectile Steering (seek + turn cap)
+
+`motion_type = "homing"` re-points a projectile straight at its target every frame — unmissable, and
+the shape every Gravity mod combo was built against. Three `ProjectileConfig` fields express the
+softer "slight homing" instead, and they work on `"directional"` motion too:
+
+| Field | Meaning |
+|---|---|
+| `homing_turn_rate` | Degrees/sec cap on heading change. `0.0` = uncapped (the legacy snap). A finite rate makes the projectile *curve*, so it can be out-turned. |
+| `seek_radius` | `> 0` lets a projectile with no target acquire one. Until it acquires it flies dead straight, so an unaimed shot stays unaimed. |
+| `seek_cone` | Half-angle (deg) of the forward cone it may acquire within — stops a shot whipping around onto something behind the shooter. |
+
+Turn radius is `speed / radians_per_sec`, and player projectiles fly at
+`speed * PLAYER_PROJECTILE_SPEED_SCALE` (0.55) — so a nominal `speed = 300` travels at 165 px/s and
+`homing_turn_rate = 120` gives a ~79px turn radius. The Scavenger's arrows use
+`ChainFactory.ARROW_SEEK / ARROW_CONE / ARROW_TURN`; leave all three at their defaults and behaviour
+is exactly as before.
+
+Note `"aimed_single"` honours `count > 1` (the `projectile_count` stat) by fanning the extras
+`AIMED_EXTRA_FAN` degrees to alternating sides — shot #0 always stays on the aim line.
 
 ### New Weapon
 

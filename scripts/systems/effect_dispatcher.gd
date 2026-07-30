@@ -131,7 +131,15 @@ static func execute_effect(effect: Resource, source: Node2D, target: Node2D,
 		var grid: SpatialGrid = combat_manager.spatial_grid
 		var enemy_faction: int = _get_enemy_faction(source)
 		var radius_sq: float = effect.aoe_radius * effect.aoe_radius
-		var aoe_targets: Array = grid.get_nearby_in_range(target.global_position, enemy_faction, radius_sq)
+		## Directional melee: push the circle out along the source's aim so the hit lands in FRONT
+		## rather than all around (see AreaDamageEffect.aoe_forward_offset). Duck-typed — a source
+		## with no aim (every enemy) keeps the centred circle exactly as before.
+		var aoe_center: Vector2 = target.global_position
+		if effect.aoe_forward_offset != 0.0 and source.has_method("get_aim_direction"):
+			var aim: Vector2 = source.get_aim_direction()
+			if aim.length_squared() > 0.0:
+				aoe_center += aim.normalized() * effect.aoe_forward_offset
+		var aoe_targets: Array = grid.get_nearby_in_range(aoe_center, enemy_faction, radius_sq)
 		var dmg_effect := DealDamageEffect.new()
 		dmg_effect.damage_type = effect.damage_type
 		dmg_effect.scaling_attribute = effect.scaling_attribute

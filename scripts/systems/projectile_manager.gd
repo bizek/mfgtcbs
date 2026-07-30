@@ -17,6 +17,9 @@ const ENEMY_PROJECTILE_SPEED_SCALE: float = 0.5      ## deliberate-pacing rebala
 ## 8-direction names indexed by angle sector.
 const DIR_NAMES: Array[String] = ["e", "se", "s", "sw", "w", "nw", "n", "ne"]
 
+## Degrees between the extra shots projectile_count grants on an "aimed_single" pattern.
+const AIMED_EXTRA_FAN: float = 6.0
+
 ## World bounds for expiry. Defaults to arena ±800 x ±600 with margin.
 ## Call set_world_bounds() when entering descent mode.
 var BOUNDS_MIN_X := -850.0
@@ -300,9 +303,58 @@ func _process(delta: float) -> void:
 		queue_redraw()
 
 
+## Rotate `vel`'s heading toward `desired`, no faster than the config's turn-rate cap.
+## An uncapped rate (0.0) returns `desired` outright — the legacy instant-snap every existing
+## homing user (the Gravity mod combos) was built against, so they are untouched.
+func _steer_toward(vel: Vector2, desired: Vector2, config: ProjectileConfig, delta: float) -> Vector2:
+	if config == null or config.homing_turn_rate <= 0.0 or vel.length_squared() < 0.0001:
+		return desired
+	var cur: Vector2 = vel.normalized()
+	var max_turn: float = deg_to_rad(config.homing_turn_rate) * delta
+	return cur.rotated(clampf(cur.angle_to(desired), -max_turn, max_turn))
+
+
+## Lock a seeking projectile onto the nearest live enemy inside its forward cone. Keeps an existing
+## lock until that target dies, so a shot doesn't twitch between two enemies mid-flight.
+func _acquire_seek_target(i: int, config: ProjectileConfig) -> void:
+	var cur = _targets[i]
+	if is_instance_valid(cur) and cur.is_alive:
+		return
+	if spatial_grid == null:
+		return
+	var heading: Vector2 = _velocities[i]
+	if heading.length_squared() < 0.0001:
+		return
+	heading = heading.normalized()
+	var radius_sq: float = config.seek_radius * config.seek_radius
+	var cos_limit: float = cos(deg_to_rad(config.seek_cone))
+	var best: Node2D = null
+	var best_d: float = radius_sq
+	for candidate in spatial_grid.get_nearby_in_range(_positions[i], _target_factions[i], radius_sq):
+		if not is_instance_valid(candidate) or not candidate.is_alive:
+			continue
+		var to_c: Vector2 = candidate.global_position - _positions[i]
+		var d: float = to_c.length_squared()
+		if d < 1.0 or d >= best_d:
+			continue
+		if heading.dot(to_c / sqrt(d)) < cos_limit:
+			continue   ## behind the arrow or too far off-axis — never whip backwards
+		best_d = d
+		best = candidate
+	if best:
+		_targets[i] = best
+
+
 func _process_linear(i: int, delta: float) -> void:
-	if _motion_types[i] == MOTION_HOMING:
-		var config: ProjectileConfig = _configs[i]
+	var cfg: ProjectileConfig = _configs[i]
+	## Seeking (Scavenger arrows): a projectile with no live target looks for prey roughly AHEAD.
+	## Runs for "directional" motion too, which is the whole point — it flies straight until it
+	## finds something, so the shot still goes where it was pointed.
+	var seeks: bool = cfg != null and cfg.seek_radius > 0.0
+	if seeks:
+		_acquire_seek_target(i, cfg)
+	if _motion_types[i] == MOTION_HOMING or seeks:
+		var config: ProjectileConfig = cfg
 		## Bloodhound (Gravity + DOT): re-evaluate target each frame, prefer bleeding enemies
 		if config and config.homing_prefers_bleeding and spatial_grid:
 			var best: Node2D = null
@@ -320,7 +372,8 @@ func _process_linear(i: int, delta: float) -> void:
 				_targets[i] = best
 		var tgt = _targets[i]
 		if is_instance_valid(tgt) and tgt.is_alive:
-			var dir: Vector2 = (tgt.global_position - _positions[i]).normalized()
+			var desired: Vector2 = (tgt.global_position - _positions[i]).normalized()
+			var dir: Vector2 = _steer_toward(_velocities[i], desired, config, delta)
 			_velocities[i] = dir * _speeds[i]
 			if config and config.use_directional_anims:
 				_textures[i] = _resolve_texture(config, dir)
@@ -644,7 +697,17 @@ func _spawn_aimed_single(source: Node2D, ability, effect: Resource) -> void:
 	var dir = (aim_target.global_position - (source.global_position + effect.spawn_offset)).normalized()
 	var needs_target: bool = effect.projectile.motion_type == "homing" or effect.projectile.arc_height > 0.0
 	var proj_target: Node2D = aim_target if needs_target else null
-	spawn(source, ability, effect.projectile, dir, proj_target, effect.spawn_offset)
+	## `count` is normally 1 here, but the projectile_count stat (passive tree / upgrade nodes) is
+	## folded into it before dispatch and this pattern used to DROP it — an aimed shot fired one
+	## projectile no matter how many the build had earned. Shot #0 always flies dead on the aim
+	## line; extras alternate out to either side in tight steps, so the stat adds shots without
+	## ever vacating the line you pointed at (the mistake the old Double Shot fan made).
+	for i in maxi(1, effect.count):
+		@warning_ignore("integer_division")
+		var rank: int = (i + 1) / 2         ## 0,1,1,2,2,... — deliberate integer division
+		var side: int = rank * (1 if i % 2 == 1 else -1)
+		var d: Vector2 = dir if side == 0 else dir.rotated(deg_to_rad(AIMED_EXTRA_FAN * float(side)))
+		spawn(source, ability, effect.projectile, d, proj_target, effect.spawn_offset)
 
 
 func _spawn_at_targets(source: Node2D, ability, effect: Resource,

@@ -103,6 +103,25 @@ var _controller_aim_dir: Vector2 = Vector2.ZERO
 var _using_controller_aim: bool = false
 const CONTROLLER_AIM_DISTANCE: float = 350.0  ## world units; ~matches on-screen mouse reach
 
+## Auto-aim (Settings.auto_aim). Opt-in accessibility/controller mode: the aim point stops
+## following cursor or stick and locks onto an acquired enemy, so light/heavy/Q/E all fire at
+## something with movement as the only stick the player touches. Implemented entirely inside
+## _get_aim_world_position, which is the single seam every attack, skill, VFX and facing
+## calculation already reads — nothing downstream needs to know auto-aim exists.
+const AUTO_AIM_ACQUIRE_RANGE: float = 300.0  ## roughly the 640x360 viewport half-diagonal — on-screen only
+const AUTO_AIM_RETAIN_RANGE: float = 400.0   ## drop the lock only once the target is clearly gone
+## Hysteresis: a rival must be this much closer (score-wise) than the held target before the lock
+## swaps. Without it two enemies at matched distance flip the lock every frame and the swing
+## direction strobes.
+const AUTO_AIM_SWAP_MARGIN: float = 0.72
+## Steering: an enemy in the direction you're running scores as if it were this fraction closer,
+## so the movement stick still chooses WHICH enemy you hit without ever aiming.
+const AUTO_AIM_STEER_BIAS: float = 0.30
+## Floor on the aim point's distance from the player — see _get_aim_world_position.
+const AUTO_AIM_MIN_REACH: float = 16.0
+var _auto_target: Node2D = null
+var _auto_aim_reticle: Node2D = null  ## lazily built lock indicator (auto_aim_reticle.gd)
+
 ## Knockback
 var knockback_velocity: Vector2 = Vector2.ZERO
 
@@ -136,6 +155,7 @@ var _orbit_orbs: Array = []
 const OrbitOrbScript     := preload("res://scripts/entities/orbit_orb.gd")
 const WeaponPickupScript := preload("res://scripts/pickups/weapon_pickup.gd")
 const AimMarkerScript    := preload("res://scripts/entities/aim_marker.gd")
+const AutoAimReticleScript := preload("res://scripts/entities/auto_aim_reticle.gd")
 
 @onready var sprite: AnimatedSprite2D = $Sprite
 @onready var pickup_area: Area2D = $PickupCollector
@@ -177,6 +197,19 @@ const COMBO_FX_SCALE: float = 2.4   ## fallback upscale for nodes with no AreaDa
 const NATIVE_FX_ANIMS: Array[String] = [
 	"sunder", "bash", "dictum", "dome",
 ]
+## Fx overlays that read as a directional wave LEAVING the character, so they may be rotated to the
+## exact cursor angle instead of snapping to their sheet's nearest row (see choreo_on_phase_anim).
+## Only list an anim whose art travels outward — a projectile, shove, or slash. Rotating a full-body
+## halo, a ground dome, or a stationary cast tilts the pack's oblique perspective and reads broken.
+const AIM_ROTATED_FX_ANIMS: Array[String] = [
+	"bash",   ## Shield Bash ships 4 CARDINAL rows, so a diagonal aim snapped up to 45 deg off-cursor
+]
+## How far an AIM_ROTATED_FX_ANIMS overlay is pushed OUT along the aim, in px at 1x reach (scales
+## with melee_range). These waves leave the character, so drawing them centred on it under-sells the
+## node's reach — the wedge tip sat ~14px out while Shield Bash now bites to 44. Pushing beats
+## scaling here: stretching a frame-matched pack effect up to a big hit radius reads as pixel mush
+## (Ben 2026-07-19), and at 3x integer viewport scaling a fractional sprite scale shimmers.
+const AIM_FX_PUSH: float = 12.0
 ## Rogue Bomb visuals (Throw Bomb asset package): the spinning bomb projectile arcs a short hop in
 ## the facing direction during the wind-up, then "bomb_fx" (the package explosion) plays where it
 ## lands. The projectile sheets are 3×3 directional grids; we slice the right-facing cell + flip_h.
@@ -346,6 +379,7 @@ const ASHENSTEP_ZONE_TIME: float = 3.0
 const ASHENSTEP_ZONE_TICK: float = 0.5
 const ASHENSTEP_TICK_MULT: float = 0.18     ## × weapon damage per burn beat — chip, not a nuke
 var _angry_demon: Node2D = null
+var _mirror_archer: Node2D = null
 ## Control-scheme pass (2026-07-05): kit id + class dash + Wizard charge.
 var _kit_id: String = ""
 var _dash_style: String = ""             ## "" = standard dash; "teleport" = Spark blink
@@ -511,9 +545,106 @@ func _update_controller_aim() -> void:
 ## Downstream call sites only use direction (normalized/limit_length) or clamp to their own
 ## range, so the fixed distance here is a stand-in reach, not a hard game-rule range.
 func _get_aim_world_position() -> Vector2:
+	if Settings.auto_aim:
+		if is_instance_valid(_auto_target):
+			## A chasing melee mob ends up standing ON the player constantly, which under manual
+			## aim was a rare mis-click but here would be the normal case — and a zero-length aim
+			## vector degenerates every direction downstream (facing holds, projectiles get no
+			## heading). Push the aim point out to a minimum reach along the same bearing.
+			var to_t: Vector2 = _auto_target.global_position - global_position
+			if to_t.length_squared() >= AUTO_AIM_MIN_REACH * AUTO_AIM_MIN_REACH:
+				return _auto_target.global_position
+			var bearing: Vector2 = to_t.normalized() if to_t.length_squared() > 0.0 \
+					else _aim_dir.normalized()
+			if bearing.length_squared() <= 0.0:
+				bearing = Vector2.DOWN
+			return global_position + bearing * AUTO_AIM_MIN_REACH
+		## Nothing acquired: face where you're running (holding the last facing when standing
+		## still). Deliberately NOT the cursor/stick — in auto-aim the player has stopped
+		## steering aim at all, and a stale cursor would spin the character at random.
+		var hold: Vector2 = _last_move_dir if _last_move_dir.length_squared() > 0.0 \
+				else _aim_dir.normalized()
+		if hold.length_squared() <= 0.0:
+			hold = Vector2.DOWN
+		return global_position + hold * CONTROLLER_AIM_DISTANCE
 	if _using_controller_aim and _controller_aim_dir != Vector2.ZERO:
 		return global_position + _controller_aim_dir * CONTROLLER_AIM_DISTANCE
 	return get_global_mouse_position()
+
+
+## Pick (and hold) the auto-aim lock. Runs once per physics frame, before facing, so every
+## consumer of _get_aim_world_position sees one stable target for the whole frame.
+##
+## Scoring is distance, discounted by how well the enemy lines up with the movement direction
+## (AUTO_AIM_STEER_BIAS) — that's the player's only remaining steering input. The held target
+## gets AUTO_AIM_SWAP_MARGIN of slack and the wider RETAIN range, so the lock stays put through
+## a crowd instead of ping-ponging.
+func _update_auto_target() -> void:
+	if not Settings.auto_aim:
+		_auto_target = null
+		_sync_auto_aim_reticle()
+		return
+	if spatial_grid == null:
+		_sync_auto_aim_reticle()
+		return
+	## Drop a dead/despawned/untargetable (stealth-phase boss, burrowed enemy) lock immediately.
+	if _auto_target != null and (not is_instance_valid(_auto_target) or not _auto_target.is_alive \
+			or (_auto_target.get("is_untargetable") and _auto_target.is_untargetable) \
+			or global_position.distance_squared_to(_auto_target.global_position) \
+				> AUTO_AIM_RETAIN_RANGE * AUTO_AIM_RETAIN_RANGE):
+		_auto_target = null
+
+	var steer: Vector2 = _last_move_dir.normalized() if _last_move_dir.length_squared() > 0.0 \
+			else Vector2.ZERO
+	var best: Node2D = _auto_target
+	## The incumbent is scored at the wider retain range but must still beat newcomers on score;
+	## the margin below is what makes it hard to unseat.
+	var best_score: float = _auto_aim_score(_auto_target, steer) if is_instance_valid(_auto_target) \
+			else INF
+	if best_score < INF:
+		best_score *= AUTO_AIM_SWAP_MARGIN
+
+	for e in spatial_grid.get_nearby_in_range(global_position, 1, AUTO_AIM_ACQUIRE_RANGE * AUTO_AIM_ACQUIRE_RANGE):
+		if e == _auto_target or not is_instance_valid(e) or not e.is_alive:
+			continue
+		var score: float = _auto_aim_score(e, steer)
+		if score < best_score:
+			best_score = score
+			best = e
+	_auto_target = best
+	_sync_auto_aim_reticle()
+
+
+## Point the lock indicator at the current target, building it on first use. A mouse player
+## with auto-aim off never gets the node built at all; clearing the target hides it.
+func _sync_auto_aim_reticle() -> void:
+	if _auto_target == null:
+		if _auto_aim_reticle != null and is_instance_valid(_auto_aim_reticle):
+			_auto_aim_reticle.target = null
+		return
+	if _auto_aim_reticle == null or not is_instance_valid(_auto_aim_reticle):
+		_auto_aim_reticle = AutoAimReticleScript.new()
+		_auto_aim_reticle.name = "AutoAimReticle"
+		add_child(_auto_aim_reticle)
+	_auto_aim_reticle.target = _auto_target
+
+
+## Lower is better. Distance in pixels, scaled down for enemies ahead of the movement vector.
+func _auto_aim_score(enemy: Node2D, steer: Vector2) -> float:
+	var to_e: Vector2 = enemy.global_position - global_position
+	var dist: float = to_e.length()
+	if dist <= 0.0:
+		return 0.0
+	if steer == Vector2.ZERO:
+		return dist
+	## dot in [-1, 1] -> multiplier in [1 + bias, 1 - bias]
+	return dist * (1.0 - AUTO_AIM_STEER_BIAS * steer.dot(to_e / dist))
+
+
+## The enemy auto-aim is currently locked onto, or null (auto-aim off / nothing in range).
+## Read by the HUD reticle so the player can see what the next swing will point at.
+func get_auto_aim_target() -> Node2D:
+	return _auto_target if is_instance_valid(_auto_target) else null
 
 
 ## Facing follows the aim cursor, not movement — combat reads from where you're pointing.
@@ -556,6 +687,20 @@ func _facing_variant(frames: SpriteFrames, base: String) -> String:
 	if frames.has_animation(base):
 		return base
 	return ""
+
+
+## Where the player is aiming, as a unit vector. Public because EffectDispatcher looks it up
+## duck-typed to offset directional AoEs (AreaDamageEffect.aoe_forward_offset); enemies have no
+## equivalent, so they simply keep centred circles.
+func get_aim_direction() -> Vector2:
+	return _aim_dir.normalized() if _aim_dir.length_squared() > 0.0 else Vector2.DOWN
+
+
+## The canonical screen angle a facing name points at (0 = right, +90 = down), for measuring how far
+## a chosen sprite row falls from the true aim. Mirrors FACING_SECTORS' 45-degree spacing.
+func _facing_angle(facing: String) -> float:
+	var i: int = FACING_SECTORS.find(facing)
+	return deg_to_rad(float(i) * 45.0) if i >= 0 else 0.0
 
 
 ## Neighbouring facings to try for the current facing, ordered by the live aim so the side
@@ -1080,6 +1225,9 @@ func _physics_process(delta: float) -> void:
 		_ice_aura_timer -= delta
 		if _ice_aura_timer <= 0.0 and _ice_aura.animation == &"loop":
 			_ice_aura.play(&"end")
+	## Refresh the auto-aim lock BEFORE facing — every aim consumer this frame (facing, swings,
+	## skills, VFX) then reads the same target.
+	_update_auto_target()
 	if sprite:
 		_update_facing()
 		## Stealth legibility: ghost the body while invisible (Conceal / Smoke Bomb / Vanish)
@@ -1099,7 +1247,7 @@ func _physics_process(delta: float) -> void:
 
 	# Combo input bookkeeping + executor tick (cheap, runs every frame so held-tracking stays exact)
 	if _combat_input:
-		_combat_input.tick()
+		_combat_input.tick(delta)   ## scaled delta — the buffer shares the runner's clock
 	if skill_component:
 		skill_component.tick(delta)
 	if choreography_runner and choreography_runner.is_running():
@@ -1454,10 +1602,11 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 	## Shield Rush: the charge itself — dash motion, corridor drag, delayed slam.
 	if cur_anim.begins_with("rush"):
 		_start_shield_rush(reach)
-	## Skirmisher's Step: the back-off kick also refunds a dash charge (escape tool, not
-	## just a shove — Ben 2026-07-19).
-	if ability != null and ability.ability_id == "ranger_skirmish_step":
-		_dash_charges = mini(_dash_charges + 1, _max_dash_charges())
+	## Mirror Archer (Ranger Q): the duplicate steps out of the cloak. Keyed on the ABILITY ID and
+	## not the "conceal" animation — the E skill rides that same body, and a prefix hook here would
+	## have every vanish spawn an archer.
+	if ability != null and ability.ability_id == "ranger_mirror_archer":
+		_spawn_mirror_archer(ability)
 	## Warden Aegis Shield (Q): the cast raises a standing absorb pool + persistent DomeCycle bubble.
 	if ability != null and ability.ability_id == "paladin_aegis_vow":
 		_grant_absorb_shield()
@@ -1493,6 +1642,9 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 			else:
 				var scaled: AreaDamageEffect = e.duplicate()
 				scaled.aoe_radius = e.aoe_radius * reach
+				## Scale the forward push with Reach too, or a modded bash would grow its circle
+				## while its centre stayed put — the zone would creep back over the player.
+				scaled.aoe_forward_offset = e.aoe_forward_offset * reach
 				self_effects.append(scaled)
 			if aoe_radius <= 0.0:
 				aoe_radius = e.aoe_radius * reach
@@ -1642,6 +1794,10 @@ func _nearby_enemies(radius: float) -> Array:
 
 
 func choreo_on_phase_anim(phase: ChoreographyPhase, stage: String = "") -> void:
+	## A node's body anim just took the sprite — reclaim it from walk/idle. Matters after a
+	## recovery release (choreo_on_phase_recovery), which hands the body back mid-chain: the next
+	## node in the chain must take it again or _physics_process would clobber the swing.
+	_attack_anim_active = true
 	## Runner calls this when a combo node's body anim starts → play the matching swing effect, sized
 	## to THIS node's hit-zone radius so the white edge marks exactly where the hitbox reaches.
 	## `stage` is set for staged channel bodies ("intro"/"loop"/"outro") — a stage may declare
@@ -1733,6 +1889,19 @@ func choreo_on_phase_anim(phase: ChoreographyPhase, stage: String = "") -> void:
 		s = reach
 	_combo_fx.position = Vector2.ZERO
 	_combo_fx.scale = Vector2(s, s)
+	## Exact-aim fx. The BODY can only face a row its sheet actually ships — Shield Bash draws four
+	## CARDINAL rows, so a diagonal aim snapped the shove up to 45 degrees away from the cursor. Spin
+	## the overlay by whatever angle the row didn't cover: the row supplies the art, the rotation
+	## supplies the aim, and the wave lands exactly where the mouse is. The character itself is never
+	## rotated — that would shear the pack's oblique perspective.
+	_combo_fx.rotation = 0.0
+	if anim in AIM_ROTATED_FX_ANIMS and fx != fx_base:
+		var row_facing: String = fx.trim_prefix(fx_base + "_")
+		_combo_fx.rotation = wrapf(_aim_dir.angle() - _facing_angle(row_facing), -PI, PI)
+		## ...and lead with it, so the wave covers the ground the node actually hits. Player-local
+		## offset — independent of the sprite's own rotation above, which spins it about its centre.
+		if _aim_dir.length_squared() > 0.0:
+			_combo_fx.position = _aim_dir.normalized() * AIM_FX_PUSH * reach
 	_combo_fx.visible = true
 	_combo_fx.play(fx)
 
@@ -1777,6 +1946,7 @@ func _on_combo_fx_finished() -> void:
 	if _combo_fx:
 		_combo_fx.visible = false
 		_combo_fx.position = Vector2.ZERO   ## undo any bomb-landing offset
+		_combo_fx.rotation = 0.0            ## undo any exact-aim spin (AIM_ROTATED_FX_ANIMS)
 
 
 func _start_bomb_toss() -> void:
@@ -1995,6 +2165,21 @@ func _spawn_angry_demon() -> void:
 	var ang: float = _aim_dir.angle() if _aim_dir.length_squared() > 0.01 else 0.0
 	d.global_position = global_position + Vector2(cos(ang), sin(ang)) * 30.0
 	_angry_demon = d
+
+
+func _spawn_mirror_archer(ability: AbilityDefinition) -> void:
+	## Mirror Archer (Q): ONE reflection at a time — recasting disperses the old one rather than
+	## stacking a firing squad, the same single-elite rule the Angry Demon follows.
+	if is_instance_valid(_mirror_archer):
+		_mirror_archer.disperse()
+	var m := MirrorArcher.new()
+	m.player_ref = self
+	m.ability_ref = ability
+	get_tree().current_scene.add_child(m)
+	## It steps out BESIDE her, square to the aim line, so it never blocks the shot she is taking.
+	var ang: float = _aim_dir.angle() if _aim_dir.length_squared() > 0.01 else 0.0
+	m.global_position = global_position + Vector2(cos(ang + PI * 0.5), sin(ang + PI * 0.5)) * 30.0
+	_mirror_archer = m
 
 
 ## Brimstone Circle (Demonologist finisher): the pack's Standalone_Summon sigil — the circle draws
@@ -2638,6 +2823,9 @@ func _ensure_shield_bubble() -> void:
 		frames.add_frame(&"bubble", cell)
 	_shield_bubble = AnimatedSprite2D.new()
 	_shield_bubble.name = "ShieldBubble"
+	_shield_bubble.sprite_frames = frames   ## <- was dropped: the sheet was sliced, then thrown away,
+											## so play("bubble") hit null frames and NOTHING drew
+											## ("There is no animation with name 'bubble'").
 	_shield_bubble.centered = true
 	_shield_bubble.z_index = 2
 	_shield_bubble.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -2843,6 +3031,16 @@ func choreo_on_phase_hit(phase: ChoreographyPhase, phase_index: int, ability: Ab
 	## Cancel-window pulse (mechanism C) — only when a next press can actually chain.
 	if not phase.branches.is_empty():
 		_combo_window_pulse()
+
+
+func choreo_on_phase_recovery(_phase: ChoreographyPhase) -> void:
+	## The swing is fully drawn and its hit has landed, but the cancel window is still open. Release
+	## ONLY the animation: walk/idle resumes so the player moves out of the swing like a person
+	## instead of sliding around frozen in the end-of-swing pose for the rest of the window.
+	## Everything mechanical stays exactly as it was — is_attacking, the untargetable/invulnerable
+	## flags, the phase timer and every branch are untouched, so the chain still chains. The next
+	## node takes the body back in choreo_on_phase_anim().
+	_attack_anim_active = false
 
 
 func choreo_on_chain_timeout(_phase: ChoreographyPhase) -> void:
@@ -3295,6 +3493,7 @@ func _on_guard_block() -> void:
 		return
 	_combo_fx.position = Vector2.ZERO
 	_combo_fx.scale = Vector2.ONE
+	_combo_fx.rotation = 0.0
 	_combo_fx.flip_h = false
 	_combo_fx.visible = true
 	_combo_fx.play(anim)
@@ -3576,6 +3775,10 @@ func _on_health_died(_entity: Node2D) -> void:
 	if not is_alive:
 		return
 	is_alive = false
+	## _physics_process early-returns from here on, so the auto-aim lock would freeze on-screen
+	## pointing at whatever killed you — clear it explicitly.
+	_auto_target = null
+	_sync_auto_aim_reticle()
 	_is_dying = true
 	if choreography_runner and choreography_runner.is_running():
 		choreography_runner.interrupt()

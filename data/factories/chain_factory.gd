@@ -24,9 +24,28 @@ const CANCEL_WIN: float = 0.75      ## light-chain cancel/buffer window (forgivi
 									## ENTRY, so post-anim grace ≈ this minus the swing length —
 									## widened 0.55→0.75 after 2026-07-04 feel test)
 const HEAVY_WIN: float = 0.55       ## Uppercut → Cataclysm follow-up window
+## Holy Hammer's own window. The hammer body is 12f @ 18fps = 0.67s with cancel_open on frame 9
+## (0.50s), so on HEAVY_WIN the phase expired at 0.55s: the swing was cut two frames short AND the
+## authored "RMB again → another hammer" branch had a ~50ms slice to fire in. 0.9s draws the full
+## swing and leaves a ~0.4s re-tap window past cancel_open (found by ComboTimingAudit 2026-07-29).
+const HAMMER_WIN: float = 0.9
+## Shield Bash's hit zone, shared by the light-chain node and the heavy opener so they can't drift.
+## It is the game's first DIRECTIONAL melee hit: a circle pushed out along the aim rather than
+## centred on the caster, because the pack's wave visibly leaves the shield and a centred circle hit
+## just as hard behind the Warden (Ben 2026-07-29 — "should it be a cone? its more of a barrel").
+## Not a cone: the effect sheet's shaft is a constant 6px wide for its whole length, so it never
+## fans. Not a literal barrel either — a 16px-wide bar would cut the node's area ~85% and catch one
+## enemy per bash in a horde. The offset circle buys the directional read at no coverage cost.
+##   forward 22 + 36 = 58px (was 44 centred) · behind 36 - 22 = 14px · half-width at the Warden 28px
+## Both numbers scale with melee_range, so Reach grows the zone without dragging it back over him.
+const BASH_RADIUS: float = 36.0
+const BASH_FORWARD: float = 22.0
 const WHIRL_TICK: float = 0.22      ## one Swirl rotation ≈ Whirlwind tick
 const TAUNT_TICK: float = 0.56      ## Taunt anim length (9f @ 16fps) ≈ shockwave tick
-const BONE_TICK: float = 0.42       ## Necromancer Bone Barrage channel beat (one bone_cast loose per tick)
+## Channel beats must be >= their body anim's length, or the next beat restarts the cast before it
+## finishes drawing and the loop reads as a stutter rather than a rhythm (audited 2026-07-29 —
+## ComboTimingAudit checks this now).
+const BONE_TICK: float = 0.5        ## Necromancer Bone Barrage beat (bone_cast 13f @ 26fps = 0.5s)
 ## Necromancer Bone Swirl. SWIRL_ORBIT_TIME must stay equal to player.NECRO_SWIRL_ORBIT_LIFE so the
 ## burst fires on the exact frame the orbit VFX ends. SWIRL_BASE_BONES is the starting bone count —
 ## it's the projectile count, so "add_projectiles" mods raise both the burst AND the bones drawn.
@@ -56,7 +75,8 @@ const GUARD_TICK: float = 0.4       ## Barbarian Guard stance re-check beat (the
 const BLADES_TICK: float = 0.4      ## Ninja Thousand Blades storm beat (blades body 4f @ 10fps)
 const STORM_TICK: float = 0.7       ## Gunslinger Desert Storm volley beat (storm body 14f @ 20fps)
 const HOUND_TICK: float = 0.3        ## Druid Hound Frenzy melee beat (hound_attack 4f @ 14fps ≈ 0.29s)
-const PRAY_TICK: float = 0.9         ## Cleric Healing Words prayer beat (pray 22f @ 20fps = 1.1s cast)
+const PRAY_TICK: float = 1.1         ## Cleric Healing Words prayer beat (pray_heal 22f @ 20fps = 1.1s
+									 ## cast — was 0.9, which cut the prayer 4 frames short every beat)
 const WIZARD_CHARGE_MAX: float = 1.6   ## Fireball overcharge cap — auto-releases at full power
 const HOLD_ENTER: float = 0.18      ## hold LMB this long → enter Whirlwind
 const HOLD_KEEP: float = 0.01       ## still-held check for a channel self-loop
@@ -247,7 +267,12 @@ static func build_fighter_taunt(weapon_data: Dictionary) -> AbilityDefinition:
 
 	var taunt := ChoreographyPhase.new()
 	taunt.animation = "taunt"
-	taunt.hit_frame = 5                                     # the shield smack
+	## The shield smack. NOTE: the Lab trims the taunt BASE slice to frames 0-4 while all four
+	## diagonal rows override back to 0-8, so frame 5 only exists on the diagonals. That's safe
+	## today only because taunt ships no orthogonal sheet — the cardinals have no row of their own,
+	## so _facing_variant always resolves to a 9-frame diagonal and the base slice is never played.
+	## Give taunt an ortho sheet and this hit frame dies on the cardinals. ComboTimingAudit checks it.
+	taunt.hit_frame = 5
 	taunt.effects = [_aoe(dtype, dmg * 0.5, 46.0)]         # per-tick shockwave (lower; repeats)
 	taunt.exit_type = "wait"
 	taunt.wait_duration = TAUNT_TICK
@@ -459,7 +484,7 @@ static func build_paladin_light(weapon_data: Dictionary) -> AbilityDefinition:
 	var bash := ChoreographyPhase.new()
 	bash.animation = "bash"
 	bash.hit_frame = 3
-	bash.effects = [_aoe(dtype, dmg * 0.9, 34.0), _shove()]
+	bash.effects = [_aoe(dtype, dmg * 0.9, BASH_RADIUS, BASH_FORWARD), _shove()]
 	bash.exit_type = "wait"
 	bash.wait_duration = CANCEL_WIN
 	bash.default_next = -1
@@ -500,7 +525,7 @@ static func build_paladin_heavy(weapon_data: Dictionary) -> AbilityDefinition:
 	var bash := ChoreographyPhase.new()
 	bash.animation = "bash"
 	bash.hit_frame = 3
-	bash.effects = [_aoe(dtype, dmg * 0.6, 34.0), _shove()]
+	bash.effects = [_aoe(dtype, dmg * 0.6, BASH_RADIUS, BASH_FORWARD), _shove()]
 	bash.exit_type = "wait"
 	bash.wait_duration = HEAVY_WIN
 	bash.default_next = -1
@@ -809,11 +834,11 @@ static func build_ranger_light(weapon_data: Dictionary) -> AbilityDefinition:
 		_branch_buffered("light_attack", 1),               # tap → Double Shot
 	]
 
-	# 1 — Double Shot (two arrows, tight pair; gate now met → knife available).
+	# 1 — Double Shot (the pack's paired-arrow bolt, dead on the cursor; gate now met → knife).
 	var double_shot := ChoreographyPhase.new()
 	double_shot.animation = "double_shot"
 	double_shot.hit_frame = 6
-	double_shot.effects = [_arrow_volley(dtype, dmg * 0.55, 2, 10.0)]
+	double_shot.effects = [_double_arrow(dtype, dmg * 0.9)]
 	double_shot.exit_type = "wait"
 	double_shot.wait_duration = CANCEL_WIN
 	double_shot.default_next = -1
@@ -822,11 +847,13 @@ static func build_ranger_light(weapon_data: Dictionary) -> AbilityDefinition:
 		_branch_buffered("heavy_attack", 3),               # RMB → Throwing Knife
 	]
 
-	# 2 — Triple Shot (fan finisher; loops back to Shot on a fresh tap).
+	# 2 — Triple Shot (fan finisher; loops back to Shot on a fresh tap). The fan stays — it is the
+	#     node's whole silhouette — but at 16 degrees rather than 22, and the outer two arrows now
+	#     curve back onto the target instead of sailing 47px wide of it at range.
 	var triple_shot := ChoreographyPhase.new()
 	triple_shot.animation = "triple_shot"
 	triple_shot.hit_frame = 6
-	triple_shot.effects = [_arrow_volley(dtype, dmg * 0.5, 3, 22.0)]
+	triple_shot.effects = [_arrow_volley(dtype, dmg * 0.5, 3, 16.0)]
 	triple_shot.exit_type = "wait"
 	triple_shot.wait_duration = CANCEL_WIN
 	triple_shot.default_next = -1
@@ -893,7 +920,7 @@ static func build_ranger_volley(weapon_data: Dictionary) -> AbilityDefinition:
 	var volley := ChoreographyPhase.new()
 	volley.animation = "triple_shot"
 	volley.hit_frame = 6                                    # the loose
-	volley.effects = [_arrow_volley(dtype, dmg * 0.4, 3, 20.0)]  # 3 arrows, weaker than the chain
+	volley.effects = [_arrow_volley(dtype, dmg * 0.4, 3, 16.0)]  # 3 arrows, weaker than the chain
 	volley.exit_type = "wait"
 	volley.wait_duration = VOLLEY_TICK
 	volley.default_next = 0                                 # still held → another volley
@@ -1974,7 +2001,8 @@ static func _get_thunder_proj_frames() -> SpriteFrames:
 # --- Ranger builders ---
 
 const RANGER_ASSET_DIR: String = "res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Ranger/"
-static var _arrow_frames: SpriteFrames = null
+## (No _arrow_frames static here: the arrow/double-arrow sheets are cached by _grid8_cache under
+## their string keys, so a dedicated static was dead weight and warned on every compile.)
 static var _knife_frames: SpriteFrames = null
 static var _knife_impact_frames: SpriteFrames = null
 
@@ -1985,12 +2013,26 @@ const GRID8_CELLS: Dictionary = {
 }
 
 
+## Arrow steering (Ben 2026-07-29: "the arrows fire kinda wonky, and its hard to hit the extra
+## arrows that fly out"). Arrows stay "directional" — an arrow loosed at nothing flies dead
+## straight — but once one finds a live target inside a narrow forward cone it bends into it at a
+## capped rate. Player projectiles travel at 300 x PLAYER_PROJECTILE_SPEED_SCALE (0.55) = 165 px/s,
+## so ARROW_TURN gives a ~79px turn radius: enough to reclaim the tens of pixels a fan arrow throws
+## away, nowhere near enough to chase a target that is genuinely off to the side.
+const ARROW_SEEK: float = 110.0     ## acquire this far out — early enough to correct over the flight
+const ARROW_CONE: float = 35.0      ## half-angle it may acquire within; never turns backwards
+const ARROW_TURN: float = 120.0     ## deg/sec heading cap — a curve, not a snap
+
+
 static func _arrow_volley(dtype: String, per_arrow: float, count: int, spread: float) -> SpawnProjectilesEffect:
 	var cfg := ProjectileConfig.new()
 	cfg.motion_type = "directional"
 	cfg.speed = 300.0
 	cfg.max_range = 240.0
 	cfg.hit_radius = 6.0
+	cfg.seek_radius = ARROW_SEEK
+	cfg.seek_cone = ARROW_CONE
+	cfg.homing_turn_rate = ARROW_TURN
 	cfg.sprite_frames = _grid8_frames(RANGER_ASSET_DIR + "General_Animations/Single_Arrow_Projectile.png", "_arrow_frames")
 	cfg.use_directional_anims = true
 	var hit := DealDamageEffect.new()
@@ -2005,6 +2047,35 @@ static func _arrow_volley(dtype: String, per_arrow: float, count: int, spread: f
 	return e
 
 
+## Double Shot's projectile: the pack's OWN Double_Arrow_Projectile sheet (same 3x3 compass grid as
+## the single arrow), which shipped unused while the node faked a double shot as two single arrows
+## fanned +/-5 degrees apart. That fan put NOTHING on the cursor — both arrows straddled whatever
+## you pointed at and the aimed shot was the one guaranteed to miss. One sprite carrying both
+## arrows is what the art was drawn for, and it flies dead on the aim line.
+static func _double_arrow(dtype: String, damage: float) -> SpawnProjectilesEffect:
+	var cfg := ProjectileConfig.new()
+	cfg.motion_type = "directional"
+	cfg.speed = 300.0
+	cfg.max_range = 240.0
+	cfg.hit_radius = 7.0                ## a shade fatter than a single arrow — it is two of them
+	cfg.seek_radius = ARROW_SEEK
+	cfg.seek_cone = ARROW_CONE
+	cfg.homing_turn_rate = ARROW_TURN
+	cfg.sprite_frames = _grid8_frames(
+			RANGER_ASSET_DIR + "Special_Animations/Double_Shot/Double_Arrow_Projectile.png",
+			"_double_arrow_frames")
+	cfg.use_directional_anims = true
+	var hit := DealDamageEffect.new()
+	hit.damage_type = dtype
+	hit.base_damage = damage
+	cfg.on_hit_effects = [hit]
+	var e := SpawnProjectilesEffect.new()
+	e.projectile = cfg
+	e.spawn_pattern = "aimed_single"
+	e.count = 1
+	return e
+
+
 ## Heavy spinning knife: 8-way tumble (ortho+diagonal 4-row sheets), pierces one victim,
 ## lands with the Knife_On_The_Ground sheet as its impact.
 static func _throwing_knife(dtype: String, hit_damage: float) -> SpawnProjectilesEffect:
@@ -2014,6 +2085,11 @@ static func _throwing_knife(dtype: String, hit_damage: float) -> SpawnProjectile
 	cfg.max_range = 210.0
 	cfg.hit_radius = 8.0
 	cfg.pierce_count = 1
+	## Heavier than an arrow, so it corrects lazily — enough that a committed finisher isn't
+	## thrown away by a step, not enough to track a target that dodges it.
+	cfg.seek_radius = ARROW_SEEK
+	cfg.seek_cone = 25.0
+	cfg.homing_turn_rate = 70.0
 	cfg.sprite_frames = _get_knife_frames()
 	cfg.use_directional_anims = true
 	var hit := DealDamageEffect.new()
@@ -2401,7 +2477,7 @@ static func _hammer_phase(dtype: String, dmg: float, self_index: int) -> Choreog
 	h.hit_frame = 7                                          # the release
 	h.effects = [_aoe(dtype, dmg * 0.8, 30.0)]
 	h.exit_type = "wait"
-	h.wait_duration = HEAVY_WIN
+	h.wait_duration = HAMMER_WIN
 	h.default_next = -1
 	h.is_finisher = true
 	h.branches = [
@@ -2434,11 +2510,16 @@ static func _fling() -> DisplacementEffect:
 	return d
 
 
-static func _aoe(damage_type: String, base_damage: float, radius: float) -> AreaDamageEffect:
+## `forward` > 0 makes the hit DIRECTIONAL: the circle is pushed that far along the player's aim
+## instead of being centred on them (AreaDamageEffect.aoe_forward_offset). Use it for nodes whose art
+## visibly travels away from the body; leave it 0 for spins, novas and stomps.
+static func _aoe(damage_type: String, base_damage: float, radius: float,
+		forward: float = 0.0) -> AreaDamageEffect:
 	var e := AreaDamageEffect.new()
 	e.damage_type = damage_type
 	e.base_damage = base_damage
 	e.aoe_radius = radius
+	e.aoe_forward_offset = forward
 	return e
 
 

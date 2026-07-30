@@ -46,6 +46,11 @@ func get_skill(slot: String) -> AbilityDefinition:
 	return _skills.get(slot)
 
 
+## Every bound slot, for callers that need to walk the whole set (ComboTimingAudit, debug UI).
+func get_slots() -> Array:
+	return _skills.keys()
+
+
 func tick(delta: float) -> void:
 	for slot in _cooldowns:
 		if _cooldowns[slot] > 0.0:

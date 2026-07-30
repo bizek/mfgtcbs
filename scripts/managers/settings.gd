@@ -42,6 +42,7 @@ const DEFAULTS := {
 	"screen_flash_intensity": 1.0,
 	"text_size": TextSize.NORMAL,
 	"colorblind_mode": false,
+	"auto_aim": false,
 }
 
 var master_volume: float = DEFAULTS["master_volume"]
@@ -51,6 +52,12 @@ var muted: bool = DEFAULTS["muted"]
 var fullscreen: bool = DEFAULTS["fullscreen"]
 var vsync: bool = DEFAULTS["vsync"]
 var screen_shake: float = DEFAULTS["screen_shake"]  ## 0.0-1.0 multiplier read by camera shake / juice pass
+
+## ── Gameplay ───────────────────────────────────────────────────────────────
+## Auto-aim: the player stops steering the crosshair entirely — attacks, skills and
+## facing all point at the auto-acquired target (player.gd `_update_auto_target`).
+## Primarily a controller QoL option; read live, so toggling it mid-run applies at once.
+var auto_aim: bool = DEFAULTS["auto_aim"]
 
 ## ── Accessibility ──────────────────────────────────────────────────────────
 var damage_numbers_enabled: bool = DEFAULTS["damage_numbers_enabled"]
@@ -99,6 +106,7 @@ func load_settings() -> void:
 	screen_flash_intensity = cfg.get_value(SECTION, "screen_flash_intensity", DEFAULTS["screen_flash_intensity"])
 	text_size               = cfg.get_value(SECTION, "text_size", DEFAULTS["text_size"])
 	colorblind_mode          = cfg.get_value(SECTION, "colorblind_mode", DEFAULTS["colorblind_mode"])
+	auto_aim                 = cfg.get_value(SECTION, "auto_aim", DEFAULTS["auto_aim"])
 
 	master_volume = clampf(master_volume, 0.0, 1.0)
 	music_volume  = clampf(music_volume, 0.0, 1.0)
@@ -134,6 +142,7 @@ func save_settings() -> void:
 	cfg.set_value(SECTION, "screen_flash_intensity", screen_flash_intensity)
 	cfg.set_value(SECTION, "text_size", text_size)
 	cfg.set_value(SECTION, "colorblind_mode", colorblind_mode)
+	cfg.set_value(SECTION, "auto_aim", auto_aim)
 
 	for action in _action_overrides:
 		var events: Array = _action_overrides[action]
@@ -154,6 +163,7 @@ func _reset_to_defaults() -> void:
 	screen_flash_intensity = DEFAULTS["screen_flash_intensity"]
 	text_size               = DEFAULTS["text_size"]
 	colorblind_mode          = DEFAULTS["colorblind_mode"]
+	auto_aim                 = DEFAULTS["auto_aim"]
 	_action_overrides.clear()
 
 
@@ -266,6 +276,14 @@ func set_text_size(value: int) -> void:
 ## Multiplier to apply to any HUD/UI font_size before add_theme_font_size_override.
 func get_text_scale() -> float:
 	return TEXT_SIZE_SCALE[text_size]
+
+
+## ── Gameplay setters ──────────────────────────────────────────────────────────
+
+func set_auto_aim(value: bool) -> void:
+	auto_aim = value
+	save_settings()
+	setting_changed.emit("auto_aim", auto_aim)
 
 
 func set_colorblind_mode(value: bool) -> void:

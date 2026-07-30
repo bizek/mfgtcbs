@@ -205,6 +205,14 @@ func _build_controls_tab() -> Control:
 	var vbox := _build_scroll_vbox("CONTROLS")
 	_bind_buttons.clear()
 
+	## Aim assist sits above the rebind list — it's the first thing a controller player
+	## reaches for, and it changes what half these bindings even require.
+	_checkbox_row(vbox, "Auto Aim", Settings.auto_aim,
+		func(v: bool): Settings.set_auto_aim(v))
+	var aim_hint := _lbl(vbox, "* Attacks and skills lock onto the nearest enemy — no aiming needed. Movement picks the target.", FS_XS, C_T2)
+	aim_hint.custom_minimum_size = Vector2(380, 0)
+	aim_hint.autowrap_mode = TextServer.AUTOWRAP_WORD
+
 	for action in Settings.REBINDABLE_ACTIONS:
 		_bind_row(vbox, action)
 

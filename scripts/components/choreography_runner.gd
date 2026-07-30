@@ -33,6 +33,10 @@ extends Node
 ##   choreo_displacement_active() -> bool
 ##       (optional; only consulted by "displacement_complete" phases — true while the host is still
 ##        being carried by the displacement. Hosts that omit it fall back to the watchdog timer.)
+##   choreo_on_phase_recovery(phase) -> void
+##       (optional; called ONCE per phase entry when a combo node's body anim has finished drawing
+##        but its cancel window is still open — see tick(). The host should hand the sprite back to
+##        its own locomotion anims; the window, flags and branches all stay live.)
 
 var _host = null                      ## untyped for duck-typed host dispatch
 var _sprite: AnimatedSprite2D = null
@@ -51,6 +55,8 @@ var _stage: String = ""
 ## Effective hit frame for the phase currently playing. Normally phase.hit_frame, but the host
 ## may override it per FACING (Animation Lab per-direction edits), so it's resolved on entry.
 var _hit_frame: int = -1
+## True once choreo_on_phase_recovery() has fired for the current phase entry (once per entry).
+var _recovered: bool = false
 
 
 func setup(host) -> void:
@@ -113,6 +119,7 @@ func _enter_phase(index: int) -> void:
 	var prev_index: int = _phase_index
 	_phase_index = index
 	_phase_time = 0.0
+	_recovered = false
 	var phase: ChoreographyPhase = _choreo.phases[index]
 
 	_host.choreo_set_flags(phase.set_untargetable, phase.set_invulnerable)
@@ -259,6 +266,20 @@ func tick(delta: float) -> void:
 	## wind-up — input must stay live or the release branch could never fire.)
 	var anim_playing: bool = _sprite != null and _sprite.is_playing() \
 			and String(_sprite.animation) == _current_anim
+
+	## Recovery release. A combo node's cancel window runs 2-4x its swing length ON PURPOSE
+	## (CANCEL_WIN 0.75s over a 0.2s True Heroes body — a forgiving buffer, widened after a feel
+	## test). But a one-shot body FREEZES on its last frame when it finishes, so without this the
+	## player holds an end-of-swing pose for the rest of the window — and keeps walking around in
+	## it, since combos are mobile. Hand the ANIMATION back to the host the frame the body finishes;
+	## the window, the phase flags and every branch stay live, so chaining is unchanged.
+	## (Audited 2026-07-29: 25 nodes across all 12 kits were freezing 0.15-0.60s each.)
+	if not _recovered and not anim_playing and phase.animation != "" and _stage == "" \
+			and (_hit_fired or _hit_frame < 0) and not _is_channel_beat(phase):
+		_recovered = true
+		if _host.has_method("choreo_on_phase_recovery"):
+			_host.choreo_on_phase_recovery(phase)
+
 	if _stage != "" or _hit_fired or _hit_frame < 0 or not anim_playing:
 		## Spam cap: tap-advance (buffered) branches also wait out the host's minimum
 		## cadence — presses stay buffered, so queued input still advances the instant the
@@ -283,6 +304,23 @@ func tick(delta: float) -> void:
 		if phase.default_next < 0 and _host.has_method("choreo_on_chain_timeout"):
 			_host.choreo_on_chain_timeout(phase)
 		_on_phase_exit()
+
+
+## True when this phase is one BEAT of a HELD channel rather than a node the player taps: it holds
+## its pose across re-entries, falls through to itself, or re-enters itself while an input is HELD.
+## Such a phase's recovery IS its next beat — releasing the body to idle between beats would break
+## the Whirlwind spin and the Guard's raised shield.
+##
+## A self-pointing *buffered* branch does NOT count: that's a re-tappable node (Holy Hammer's
+## "RMB again → another hammer"), where the player is tapping, not holding, and returning to a
+## neutral stance between presses is exactly right.
+func _is_channel_beat(phase: ChoreographyPhase) -> bool:
+	if phase.hold_anim_on_reentry or phase.default_next == _phase_index:
+		return true
+	for branch in phase.branches:
+		if branch.next_phase == _phase_index and branch.condition is ConditionInputHeld:
+			return true
+	return false
 
 
 ## Host forwards AnimatedSprite2D.frame_changed here.
@@ -357,6 +395,7 @@ func _end() -> void:
 	_hit_fired = false
 	_stage = ""
 	_hit_frame = -1
+	_recovered = false
 	if _sprite:
 		_sprite.speed_scale = 1.0
 	if _host:

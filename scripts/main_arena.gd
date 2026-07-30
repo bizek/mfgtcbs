@@ -41,7 +41,22 @@ const HITSTOP_CRIT_FRAMES: int = 2          ## player crit
 const HITSTOP_ELITE_KILL_FRAMES: int = 3    ## elite kill
 const HITSTOP_BOSS_KILL_FRAMES: int = 4     ## miniboss/final-boss kill
 const HITSTOP_FINISHER_FRAMES: int = 6      ## combo finisher landing — strongest in the game (design-audit D6)
+## Rationing (2026-07-29). A stop that fires constantly stops reading as impact and starts reading
+## as stutter — and hitstop here is a TRUE world freeze, so it is the most expensive feedback the
+## game spends. Every kit's light chain marks node 2 is_finisher and loops back to node 0, so
+## sustained mashing asked for a 6-frame (100 ms) freeze roughly every 0.66 s at the 0.22 s tap
+## cadence: ~15% of combat time stopped dead, on top of a 2-frame stop on most crits.
+## The fix is frequency, not magnitude — a finisher that lands after a lull still gets its full
+## weight; it's the machine-gun repeats that get trimmed. A request bigger than the one that just
+## fired is always let through at full (a boss kill right after a crit is a bigger moment, not a
+## repeat). Timed in REAL seconds on purpose: this rations what the player's eye sees, and hitstop
+## duration is itself real-time (its timer ignores time_scale).
+const HITSTOP_MIN_INTERVAL_SEC: float = 0.25   ## below this, a non-bigger repeat is dropped entirely
+const HITSTOP_REFRACTORY_SEC: float = 1.2      ## below this, a non-bigger repeat is capped
+const HITSTOP_REPEAT_FRAMES: int = 2           ## what a capped repeat is worth
 var _hitstop_locks: int = 0
+var _last_hitstop_sec: float = -999.0
+var _last_hitstop_frames: int = 0
 ## Ambient time scale hit-stop returns to (1.0 normally; the training room's slow-mo sets it).
 var base_time_scale: float = 1.0
 
@@ -956,17 +971,30 @@ func _shake_camera(intensity: float = 3.0, duration: float = 0.12) -> void:
 ## ── Hit-stop: brief Engine.time_scale freeze. Lock-counted so overlapping requests (e.g. a
 ## crit landing during a finisher) don't restore early; _exit_tree is a safety net against a
 ## scene change interrupting the countdown and leaving time_scale stuck at 0.
-func _request_hitstop(frames: int) -> void:
+## Returns the frame count actually applied (0 = the request was rationed away), so the policy is
+## assertable from a test/probe instead of only observable as a feel.
+func _request_hitstop(frames: int) -> int:
 	if not HITSTOP_ENABLED or frames <= 0:
-		return
+		return 0
 	if get_tree().paused:
-		return
+		return 0
+	## Ration repeats (see the HITSTOP_* constants). "Bigger than the last one" always passes.
+	var now: float = Time.get_ticks_msec() / 1000.0
+	var since: float = now - _last_hitstop_sec
+	if frames <= _last_hitstop_frames and since < HITSTOP_REFRACTORY_SEC:
+		if since < HITSTOP_MIN_INTERVAL_SEC:
+			return 0                                  ## too soon after the last — skip entirely
+		frames = mini(frames, HITSTOP_REPEAT_FRAMES)  ## still inside the refractory — trim it
+	else:
+		_last_hitstop_sec = now
+		_last_hitstop_frames = frames
 	Engine.time_scale = HITSTOP_TIME_SCALE
 	_hitstop_locks += 1
 	var duration: float = float(frames) / 60.0
 	## ignore_time_scale=true — must tick in real time while time_scale is dipped to 0.
 	var timer := get_tree().create_timer(duration, true, false, true)
 	timer.timeout.connect(_on_hitstop_expired)
+	return frames
 
 
 func _on_hitstop_expired() -> void:

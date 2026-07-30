@@ -41,10 +41,16 @@ const DIR_ROWS: Dictionary = {"down_right": 0, "down_left": 1, "up_right": 2, "u
 ## An anim opts in via a {"ortho": <sheet>} 4th spec element; its four cardinal rows are sliced as
 ## "<anim>_down/_up/_left/_right". Anims without an ortho sheet never emit cardinal variants, so
 ## the player falls back to the nearest diagonal (unchanged from the old 4-quadrant behavior).
-## NOTE (row order): this is a best-guess mapping — Minifantasy orthogonal sheets aren't documented.
-## Verify per sheet in-engine; a cardinal facing can remap its row via the Lab's per-direction
-## "row" override (dirs.<cardinal>.row in anim_overrides.json), exactly like the diagonals.
-const CARDINAL_ROWS: Dictionary = {"down": 0, "up": 1, "right": 2, "left": 3}
+## ROW ORDER — VERIFIED 2026-07-29, was wrong before. The old guess was
+## {"down": 0, "up": 1, "right": 2, "left": 3}, which put EVERY cardinal 90 degrees off its art:
+## aiming right played the down row, aiming down played the right row (Ben: "the shield bash almost
+## fires in the wrong direction for every direction I put the mouse in").
+## Measured from the only cardinal sheets in the game (Paladin Shield_Bash) by taking each row's
+## alpha-weighted centroid over its impact frames — the shove wedge points unambiguously:
+##   row 0 -> right (357deg) · row 1 -> left (183deg) · row 2 -> down (84deg) · row 3 -> up (264deg)
+## A sheet that ships a different order still remaps per facing via the Lab's "row" override
+## (dirs.<cardinal>.row in anim_overrides.json), exactly like the diagonals.
+const CARDINAL_ROWS: Dictionary = {"right": 0, "left": 1, "down": 2, "up": 3}
 
 ## ── Ben's Animation Lab overrides ────────────────────────────────────────────
 ## Per-character, per-anim tweaks authored in-game with the Animation Lab (F6, debug mode):

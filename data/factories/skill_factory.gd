@@ -19,7 +19,7 @@ static func build_kit_skills(kit_id: String, weapon_data: Dictionary) -> Diction
 			}
 		"ranger":
 			return {
-				"skill_q": build_ranger_skirmish_step(weapon_data),
+				"skill_q": build_ranger_mirror_archer(weapon_data),
 				"skill_e": build_ranger_conceal(weapon_data),
 			}
 		"paladin":
@@ -165,22 +165,39 @@ static func build_fighter_shield_rush(weapon_data: Dictionary) -> AbilityDefinit
 	return _ability("fighter_shield_rush", "Shield Rush", phase, 8.0)
 
 
-## Skirmisher's Step (Ranger, Q): the back-off kick, upgraded to a real escape (Ben
-## 2026-07-19: shove alone felt weak for a cooldown) — shove the pack away, dart clear at
-## +25% move speed for 4s, untouchable for the first second ("slippery": 100% dodge), and the
-## kick refunds a dash charge (host hook on the ability id). Rides the Double Melee sheet.
-static func build_ranger_skirmish_step(_weapon_data: Dictionary) -> AbilityDefinition:
+## Mirror Archer (Ranger, Q — replaced Skirmisher's Step, Ben 2026-07-29): the Scavenger splits off
+## a spectral duplicate of herself that plants its feet and looses her own arrows at anything in
+## range for 10s. The "conceal" body triggers the host spawn (player._spawn_mirror_archer) — the
+## vanishing-into-the-cloak flourish is the pack's most natural "a second one of me steps out"
+## gesture, and it is the same sheet the E skill uses, playing the kit's own art twice over rather
+## than borrowing another class's.
+##
+## The kick this replaced was the kit's escape; Conceal (E) still is one, so the swap costs no
+## survivability. What it costs is the dash-charge refund — deliberate, since the Scavenger already
+## carries the roster's most generous disengage in a 5s vanish.
+static func build_ranger_mirror_archer(_weapon_data: Dictionary) -> AbilityDefinition:
+	## "mirrored" is a pure HUD marker, the same job the Warden's Aegis status does: it carries no
+	## modifiers, it just runs a buff-bar timer for exactly as long as the reflection stands. It is
+	## also load-bearing — ChoreographyRunner._fire() skips choreo_fire_effects entirely on a phase
+	## with no effects, so a truly empty node would never reach the spawn hook at all.
+	var mirrored := StatusEffectDefinition.new()
+	mirrored.status_id = "mirrored"
+	mirrored.is_positive = true
+	mirrored.max_stacks = 1
+	mirrored.base_duration = 10.0                  ## == MirrorArcher.lifetime
+	mirrored.duration_refresh_mode = "overwrite"
+	var apply := ApplyStatusEffectData.new()
+	apply.status = mirrored
+	apply.stacks = 1
+	apply.apply_to_self = true
+
 	var phase := ChoreographyPhase.new()
-	phase.animation = "melee_2"
-	phase.hit_frame = 2
-	phase.effects = [
-		_speed_buff("fleetfoot", 0.25, 4.0),
-		_dodge_buff("slippery", 1.0, 1.0),
-		ChainFactory._shove(),
-	]
+	phase.animation = "conceal"
+	phase.hit_frame = 6
+	phase.effects = [apply]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
-	return _ability("ranger_skirmish_step", "Skirmisher's Step", phase, 10.0)
+	return _ability("ranger_mirror_archer", "Mirror Archer", phase, 14.0)
 
 
 ## Conceal (Ranger, E — swapped off RMB-hold, Ben 2026-07-20): duck under the cloak and vanish

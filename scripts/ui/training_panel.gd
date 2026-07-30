@@ -37,6 +37,7 @@ var _dps_label: Label = null
 var _total_label: Label = null
 var _hit_back_btn: Button = null
 var _slow_btn: Button = null
+var _audit_label: Label = null
 
 var _dummies: Array[Node2D] = []
 var _hit_back: bool = false
@@ -182,6 +183,10 @@ func _build_panel() -> void:
 	r3.add_child(_slow_btn)
 	r3.add_child(_button("HEAL", _heal_player))
 
+	v.add_child(_button("AUDIT TIMING", _audit_timing))
+	_audit_label = _label("", FS, Color(0.75, 0.8, 0.85))
+	v.add_child(_audit_label)
+
 	v.add_child(_label("F10 anim lab · F1 debug", FS, Color(0.55, 0.6, 0.65)))
 
 
@@ -287,6 +292,18 @@ func _toggle_slow() -> void:
 	if arena_ref and is_instance_valid(arena_ref):
 		arena_ref.base_time_scale = scale
 	_slow_btn.text = "SLOW-MO: ON" if _slow else "SLOW-MO: OFF"
+
+
+## Audit the live class's combo graphs against the sheets they actually play (full report goes to
+## the Logger / output; the panel shows the headline so you know whether to go read it).
+func _audit_timing() -> void:
+	if not (player_ref and is_instance_valid(player_ref)):
+		return
+	var report: Array[String] = ComboTimingAudit.run(player_ref)
+	for line in report:
+		print(line)
+	if _audit_label:
+		_audit_label.text = report[0].replace("ComboTimingAudit ", "")
 
 
 func _heal_player() -> void:
