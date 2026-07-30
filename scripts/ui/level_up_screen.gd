@@ -29,8 +29,11 @@ func _on_player_leveled_up(new_level: int) -> void:
 	title_label.text = "LEVEL %d!" % new_level
 	_rerolls_remaining = ProgressionManager.get_max_rerolls()
 	_choices = UpgradeManager.generate_choices(3)
-	_show_choices()
+	## Visible BEFORE building: _show_choices ends with UINav.focus_first,
+	## which only considers visible controls — grabbing while the layer is
+	## still hidden finds nothing and leaves controller focus dead.
 	visible = true
+	_show_choices()
 	GameManager.enter_level_up()
 
 func _show_choices() -> void:
