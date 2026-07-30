@@ -60,6 +60,7 @@ func _show_choices() -> void:
 			btn.add_theme_font_override("font", pixel_font)
 		btn.add_theme_font_size_override("font_size", 16)
 		btn.pressed.connect(_on_choice_pressed.bind(i))
+		UINav.apply_focus_ring(btn)
 		choices_container.add_child(btn)
 
 	## Reroll button
@@ -71,6 +72,7 @@ func _show_choices() -> void:
 	reroll_btn.disabled = _rerolls_remaining <= 0
 	reroll_btn.text = "Reroll  [%d left]" % _rerolls_remaining
 	reroll_btn.pressed.connect(_on_reroll_pressed)
+	UINav.apply_focus_ring(reroll_btn)
 	choices_container.add_child(reroll_btn)
 
 	_build_weapon_cache(pixel_font)

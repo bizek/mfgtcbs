@@ -22,6 +22,11 @@ static func focus_first(root: Control) -> void:
 
 
 static func _find_focusable(node: Node, skip_close: bool) -> Control:
+	## Skip queue_free'd zombies: a populate() rebuild leaves the old rows in
+	## the tree until end of frame, and focusing one silently drops focus to
+	## nothing when it's deleted a frame later.
+	if node.is_queued_for_deletion():
+		return null
 	if node is Control:
 		var c: Control = node
 		if c.focus_mode == Control.FOCUS_ALL and c.is_visible_in_tree() \
@@ -34,6 +39,31 @@ static func _find_focusable(node: Node, skip_close: bool) -> Control:
 	return null
 
 
+## Call after a free-and-rebuild pass (populate/refresh): if keyboard/controller
+## focus died with the freed nodes, land it back on the panel's first focusable
+## so D-pad navigation doesn't dead-end. Deferred so it runs after the rebuild
+## (and any queue_free deletions) settle.
+static func refocus_if_lost(root: Control) -> void:
+	if root == null or not is_instance_valid(root):
+		return
+	var tree := root.get_tree()
+	if tree == null:
+		return
+	## Check on the NEXT frame, once queue_free deletions and any follow-up
+	## rebuild passes have settled — a same-frame deferred check can win the
+	## race against a later free and still end up focusing a dying node.
+	tree.process_frame.connect(func(): _refocus_check(root), CONNECT_ONE_SHOT)
+
+
+static func _refocus_check(root: Control) -> void:
+	if root == null or not is_instance_valid(root) or not root.is_visible_in_tree():
+		return
+	var focus_owner := root.get_viewport().gui_get_focus_owner()
+	if focus_owner == null or not is_instance_valid(focus_owner) \
+			or focus_owner.is_queued_for_deletion() or not focus_owner.is_visible_in_tree():
+		focus_first(root)
+
+
 ## Returns a copy of `base` with a bright, obviously-visible border — use for
 ## a button's "focus" theme override so D-pad/stick selection is legible
 ## without requiring a hover.
@@ -42,6 +72,17 @@ static func focus_ring(base: StyleBoxFlat, accent: Color) -> StyleBoxFlat:
 	sb.border_color = accent
 	sb.set_border_width_all(maxi(2, maxi(sb.border_width_left, sb.border_width_top)))
 	return sb
+
+
+## Bright border-only focus overlay for buttons that use the default theme
+## (no custom styleboxes) — the stock focus stylebox is too subtle to follow
+## with a D-pad. Draws just the ring, so the button's normal look is untouched.
+static func apply_focus_ring(btn: Control, accent: Color = Color(1.0, 0.85, 0.3)) -> void:
+	var sb := StyleBoxFlat.new()
+	sb.draw_center = false
+	sb.border_color = accent
+	sb.set_border_width_all(2)
+	btn.add_theme_stylebox_override("focus", sb)
 
 
 ## Connects every focusable descendant of `scroll`'s content to

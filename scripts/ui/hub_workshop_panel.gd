@@ -41,6 +41,7 @@ func populate(pm: Node) -> void:
 	for child in content.get_children():
 		child.queue_free()
 	_build(content)
+	UINav.refocus_if_lost(self)
 
 
 func _build(root: Control) -> void:

@@ -1,7 +1,8 @@
 extends CanvasLayer
 
 ## InsurancePanel — in-run UI to designate one item as insured.
-## Toggle with [I] during a run. Requires the insurance_license Workshop upgrade.
+## Toggle with the "insurance" action ([I] / D-pad Up) during a run.
+## Requires the insurance_license Workshop upgrade.
 ## Lists all at-risk items (collected weapons, collected mods, mid-run equipped mods).
 ## Pressing "Insure" on an item replaces any previous insured item.
 
@@ -28,15 +29,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 
-	if not (event is InputEventKey) or not event.pressed or event.echo:
+	## Action-based toggle so a controller can open the panel too (D-pad Up by
+	## default — see the "insurance" action in project.godot).
+	if not event.is_action_pressed("insurance"):
 		return
 
 	var state := GameManager.current_state
 	var in_run: bool = state == GameManager.GameState.RUN_ACTIVE \
 			or state == GameManager.GameState.EXTRACTING
-
-	if event.keycode != KEY_I:
-		return
 	if not in_run:
 		return
 	if not ProgressionManager.has_upgrade("insurance_license"):

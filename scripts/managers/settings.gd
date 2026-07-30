@@ -324,24 +324,66 @@ func _events_match(a: InputEvent, b: InputEvent) -> bool:
 		return a.button_index == b.button_index
 	if a is InputEventJoypadButton and b is InputEventJoypadButton:
 		return a.button_index == b.button_index
+	if a is InputEventJoypadMotion and b is InputEventJoypadMotion:
+		return a.axis == b.axis and signf(a.axis_value) == signf(b.axis_value)
 	return false
 
 
-## Rebinds `action` to `event`, replacing any prior override for that action.
-## Does NOT check for conflicts — caller (UI) resolves those via
-## find_conflicting_action() first and calls clear_binding() on the loser if
-## the user chooses to swap.
+## Which binding slot an event occupies: "pad" for joypad buttons/motions,
+## "kb" for keyboard/mouse. Each action holds one binding per device class,
+## and rebinding one class never touches the other.
+static func device_class(event: InputEvent) -> String:
+	if event is InputEventJoypadButton or event is InputEventJoypadMotion:
+		return "pad"
+	return "kb"
+
+
+## Events of `action` belonging to one device class ("kb" or "pad").
+func get_action_events_for_class(action: String, cls: String) -> Array[InputEvent]:
+	var out: Array[InputEvent] = []
+	for e in get_action_events(action):
+		if device_class(e) == cls:
+			out.append(e)
+	return out
+
+
+## Rebinds `action`'s slot for the event's device class, preserving the other
+## class's bindings (a controller rebind must never wipe the keyboard key, and
+## vice versa). Does NOT check for conflicts — caller (UI) resolves those via
+## find_conflicting_action() first and calls remove_matching_events() on the
+## loser if the user chooses to swap.
 func rebind_action(action: String, event: InputEvent) -> void:
 	if not action in REBINDABLE_ACTIONS:
 		return
-	_action_overrides[action] = [event]
+	var cls := device_class(event)
+	var kept: Array[InputEvent] = []
+	for e in get_action_events(action):
+		if device_class(e) != cls:
+			kept.append(e)
+	kept.append(event)
+	_action_overrides[action] = kept
 	_apply_binding_overrides()
 	save_settings()
 	bindings_changed.emit()
 
 
-## Removes all events from `action` (used when swapping a conflicting binding
-## away rather than rejecting the new one).
+## Removes just the events equivalent to `event` from `action` (used when
+## swapping a conflicting binding away — the loser keeps its other-device
+## bindings rather than being cleared outright).
+func remove_matching_events(action: String, event: InputEvent) -> void:
+	if not action in REBINDABLE_ACTIONS:
+		return
+	var kept: Array[InputEvent] = []
+	for e in get_action_events(action):
+		if not _events_match(e, event):
+			kept.append(e)
+	_action_overrides[action] = kept
+	_apply_binding_overrides()
+	save_settings()
+	bindings_changed.emit()
+
+
+## Removes all events from `action`.
 func clear_binding(action: String) -> void:
 	if not action in REBINDABLE_ACTIONS:
 		return

@@ -29,6 +29,7 @@ const FS_XS := 14
 
 const LABEL_W := 160.0
 const VALUE_W := 56.0
+const BIND_W  := 120.0  ## width of each binding column (keyboard / controller)
 
 ## Friendly display names for rebindable actions (falls back to the raw
 ## action name if not listed here).
@@ -50,7 +51,8 @@ const C_WARN := Color(0.85, 0.25, 0.2)
 
 var _base: HubPanelBase = null
 var _listening_action: String = ""  ## non-empty while capturing a rebind
-var _bind_buttons: Dictionary = {}  ## action -> Button (updates label on rebind)
+var _listening_class: String = "kb"  ## which binding slot is being captured ("kb"/"pad")
+var _bind_buttons: Dictionary = {}  ## "action|cls" -> Button (updates label on rebind)
 var _conflict_row: HBoxContainer = null
 var _pending_conflict: Dictionary = {}  ## {action, event, conflict_action}
 var _tabs: TabContainer = null
@@ -213,6 +215,15 @@ func _build_controls_tab() -> Control:
 	aim_hint.custom_minimum_size = Vector2(380, 0)
 	aim_hint.autowrap_mode = TextServer.AUTOWRAP_WORD
 
+	## Column headers — one binding slot per device class, so a controller
+	## rebind never clobbers the keyboard key (and vice versa).
+	var hdr := HBoxContainer.new()
+	hdr.add_theme_constant_override("separation", 8)
+	vbox.add_child(hdr)
+	_lbl(hdr, "", FS_XS, C_T2, LABEL_W)
+	_lbl(hdr, "KEYBOARD", FS_XS, C_T2, BIND_W)
+	_lbl(hdr, "CONTROLLER", FS_XS, C_T2, BIND_W)
+
 	for action in Settings.REBINDABLE_ACTIONS:
 		_bind_row(vbox, action)
 
@@ -248,28 +259,32 @@ func _bind_row(parent: Control, action: String) -> void:
 
 	_lbl(row, ACTION_LABELS.get(action, action), FS_SM, C_T0, LABEL_W)
 
-	var btn := Button.new()
-	btn.custom_minimum_size = Vector2(160, 0)
-	btn.text = _binding_text(action)
-	btn.add_theme_font_override("font", FONT)
-	btn.add_theme_font_size_override("font_size", FS_SM)
-	_base.style_btn(btn, C_CARD, C_AMBER_LO)
-	row.add_child(btn)
-	_bind_buttons[action] = btn
+	for cls in ["kb", "pad"]:
+		var btn := Button.new()
+		btn.custom_minimum_size = Vector2(BIND_W, 0)
+		btn.text = _binding_text(action, cls)
+		btn.add_theme_font_override("font", FONT)
+		btn.add_theme_font_size_override("font_size", FS_SM)
+		_base.style_btn(btn, C_CARD, C_AMBER_LO)
+		row.add_child(btn)
+		_bind_buttons["%s|%s" % [action, cls]] = btn
+		var cap_cls: String = cls
+		btn.pressed.connect(func(): _start_listening(action, cap_cls))
 
-	btn.pressed.connect(func(): _start_listening(action))
 
-
-func _start_listening(action: String) -> void:
+func _start_listening(action: String, cls: String) -> void:
 	if _listening_action != "":
 		return
 	_listening_action = action
-	_bind_buttons[action].text = "Press any key... (Esc cancels)"
+	_listening_class = cls
+	_bind_buttons["%s|%s" % [action, cls]].text = \
+			"Press a key... (Esc cancels)" if cls == "kb" else "Press a button... (Back cancels)"
 
 
 func _cancel_listening() -> void:
 	if _listening_action != "":
-		_bind_buttons[_listening_action].text = _binding_text(_listening_action)
+		var key := "%s|%s" % [_listening_action, _listening_class]
+		_bind_buttons[key].text = _binding_text(_listening_action, _listening_class)
 	_listening_action = ""
 	_hide_conflict_row()
 
@@ -279,18 +294,50 @@ func _cancel_listening() -> void:
 func _input(event: InputEvent) -> void:
 	if _listening_action == "":
 		return
+	## Esc always cancels. On a controller, Back cancels — it isn't offered as
+	## a bindable button (pause/Start aren't rebindable either), so capture mode
+	## can always be escaped without a mouse.
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		_cancel_listening()
+		get_viewport().set_input_as_handled()
+		return
+	if event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_BACK:
 		_cancel_listening()
 		get_viewport().set_input_as_handled()
 		return
 
 	var captured: InputEvent = null
-	if event is InputEventKey and event.pressed and not event.echo:
-		captured = event
-	elif event is InputEventMouseButton and event.pressed:
-		captured = event
-	elif event is InputEventJoypadButton and event.pressed:
-		captured = event
+	if _listening_class == "kb":
+		if event is InputEventKey and event.pressed and not event.echo:
+			captured = event
+		elif event is InputEventMouseButton and event.pressed:
+			captured = event
+		elif event is InputEventJoypadButton or event is InputEventJoypadMotion:
+			return  ## pad noise while binding the keyboard slot — ignore
+	else:
+		if event is InputEventJoypadButton and event.pressed:
+			## Start/Guide stay reserved (pause lives on Start and isn't rebindable).
+			if event.button_index == JOY_BUTTON_START or event.button_index == JOY_BUTTON_GUIDE:
+				return
+			## Normalize device so the binding works whichever pad is plugged in.
+			var b := InputEventJoypadButton.new()
+			b.button_index = event.button_index
+			b.device = -1
+			captured = b
+		elif event is InputEventJoypadMotion:
+			## Triggers are valid pad bindings (fire/heavy default to RT/LT);
+			## sticks are movement/aim and can't be captured here.
+			if (event.axis == JOY_AXIS_TRIGGER_LEFT or event.axis == JOY_AXIS_TRIGGER_RIGHT) \
+					and event.axis_value > 0.6:
+				var m := InputEventJoypadMotion.new()
+				m.axis = event.axis
+				m.axis_value = 1.0
+				m.device = -1
+				captured = m
+			else:
+				return
+		elif event is InputEventKey or event is InputEventMouseButton:
+			return  ## keyboard noise while binding the pad slot — ignore
 
 	if captured == null:
 		return
@@ -314,13 +361,14 @@ func _commit_bind(action: String, event: InputEvent) -> void:
 func _show_conflict(action: String, event: InputEvent, conflict_action: String) -> void:
 	_listening_action = ""  ## stop capturing so the Swap/Cancel click reaches the buttons
 	_pending_conflict = {"action": action, "event": event, "conflict_action": conflict_action}
-	_bind_buttons[action].text = _binding_text(action)
+	_bind_buttons["%s|%s" % [action, _listening_class]].text = \
+			_binding_text(action, _listening_class)
 
 	for child in _conflict_row.get_children():
 		child.queue_free()
 
 	var msg := "%s already used by %s" % [
-		event.as_text(), ACTION_LABELS.get(conflict_action, conflict_action)
+		_event_text(event), ACTION_LABELS.get(conflict_action, conflict_action)
 	]
 	var lbl := _lbl(_conflict_row, msg, FS_XS, C_WARN)
 	lbl.custom_minimum_size = Vector2(280, 0)
@@ -333,7 +381,9 @@ func _show_conflict(action: String, event: InputEvent, conflict_action: String) 
 	_base.style_btn(swap_btn, C_CARD, C_AMBER_LO)
 	_conflict_row.add_child(swap_btn)
 	swap_btn.pressed.connect(func():
-		Settings.clear_binding(conflict_action)
+		## Only steal the conflicting event — the loser keeps its bindings on
+		## the other device class.
+		Settings.remove_matching_events(conflict_action, event)
 		_commit_bind(action, event)
 	)
 
@@ -361,15 +411,26 @@ func _hide_conflict_row() -> void:
 
 
 func _refresh_bind_buttons() -> void:
-	for action in _bind_buttons:
-		_bind_buttons[action].text = _binding_text(action)
+	for key: String in _bind_buttons:
+		var parts := key.split("|")
+		_bind_buttons[key].text = _binding_text(parts[0], parts[1])
 
 
-func _binding_text(action: String) -> String:
-	var events := Settings.get_action_events(action)
+func _binding_text(action: String, cls: String) -> String:
+	var events := Settings.get_action_events_for_class(action, cls)
 	if events.is_empty():
-		return "(unbound)"
-	return events[0].as_text().trim_suffix(" (Physical)")
+		return "—"
+	var parts: Array[String] = []
+	for e in events:
+		parts.append(_event_text(e))
+	return " / ".join(parts)
+
+
+func _event_text(event: InputEvent) -> String:
+	var glyph: String = InputGlyphs.event_glyph(event, Settings.device_class(event) == "pad")
+	if glyph != "" and glyph != "●":
+		return glyph
+	return event.as_text().trim_suffix(" (Physical)")
 
 
 func _build_accessibility_tab() -> Control:

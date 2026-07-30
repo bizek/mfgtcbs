@@ -52,7 +52,7 @@ func _build_visuals() -> void:
 	add_child(name_lbl)
 
 	var prompt := Label.new()
-	prompt.text = "[E] Summon  (Risky)"
+	prompt.text = "[%s] Summon  (Risky)" % InputGlyphs.action_glyph("interact")
 	prompt.position = Vector2(-36.0, 14.0)
 	prompt.add_theme_font_size_override("font_size", 11)
 	prompt.add_theme_color_override("font_color", Color(0.80, 0.60, 1.0))
@@ -72,6 +72,12 @@ func _build_visuals() -> void:
 		status.add_theme_font_override("font", _pixel_font)
 	add_child(status)
 	_status_label = status
+	InputGlyphs.device_changed.connect(_on_input_device_changed)
+
+
+func _on_input_device_changed(_is_joypad: bool) -> void:
+	if _prompt_label:
+		_prompt_label.text = "[%s] Summon  (Risky)" % InputGlyphs.action_glyph("interact")
 
 
 func _process(_delta: float) -> void:

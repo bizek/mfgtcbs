@@ -128,6 +128,7 @@ func _refresh_cards() -> void:
 		_build_weapon_card(weapon_id, wdata)
 
 	UINav.wire_scroll_follow(_scroll)
+	UINav.refocus_if_lost(self)
 
 
 func _build_weapon_card(weapon_id: String, wdata: Dictionary) -> void:
