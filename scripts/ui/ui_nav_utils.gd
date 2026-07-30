@@ -85,9 +85,14 @@ static func apply_focus_ring(btn: Control, accent: Color = Color(1.0, 0.85, 0.3)
 	btn.add_theme_stylebox_override("focus", sb)
 
 
-## Connects every focusable descendant of `scroll`'s content to
-## ensure_control_visible so D-pad navigation scrolls the list along with
-## focus instead of leaving the selection off-screen.
+## Connects every focusable descendant of `scroll`'s content so D-pad
+## navigation scrolls the list along with focus. The focused item is CENTERED
+## in the viewport, not just nudged into view (ensure_control_visible):
+## Godot's directional focus search skips controls clipped by a
+## ScrollContainer, so if the next item sits even one row below the visible
+## band, a D-pad press leaps to whatever unclipped focusable is nearest —
+## usually a button outside the list. Keeping the focused item centered keeps
+## its neighbors unclipped and reachable.
 static func wire_scroll_follow(scroll: ScrollContainer) -> void:
 	_wire_scroll_recursive(scroll, scroll)
 
@@ -96,6 +101,28 @@ static func _wire_scroll_recursive(node: Node, scroll: ScrollContainer) -> void:
 	if node is Control and node != scroll:
 		var c: Control = node
 		if c.focus_mode == Control.FOCUS_ALL:
-			c.focus_entered.connect(scroll.ensure_control_visible.bind(c))
+			c.focus_entered.connect(Callable(UINav, "_center_in_scroll").bind(scroll, c))
 	for child in node.get_children():
 		_wire_scroll_recursive(child, scroll)
+
+
+static func _center_in_scroll(scroll: ScrollContainer, c: Control) -> void:
+	## Next-frame, not just deferred: focus can land mid-rebuild, before the
+	## container has laid out final positions — centering on stale geometry
+	## clamps the scroll to a garbage offset (seen as "opens scrolled to the
+	## bottom with focus at the top").
+	var tree := scroll.get_tree()
+	if tree == null:
+		return
+	tree.process_frame.connect(func(): _center_in_scroll_now(scroll, c), CONNECT_ONE_SHOT)
+
+
+static func _center_in_scroll_now(scroll: ScrollContainer, c: Control) -> void:
+	if not is_instance_valid(scroll) or not is_instance_valid(c) or not c.has_focus():
+		return
+	var content := scroll.get_child(0) as Control
+	if content == null:
+		return
+	var rel := c.global_position - content.global_position
+	scroll.scroll_vertical = int(rel.y + c.size.y * 0.5 - scroll.size.y * 0.5)
+	scroll.scroll_horizontal = int(rel.x + c.size.x * 0.5 - scroll.size.x * 0.5)
