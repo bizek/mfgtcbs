@@ -71,6 +71,9 @@ const BRIMSTONE_RADIUS: float = 52.0      ## the circle's reach (slam AoE and zo
 ## He does NOT move: the pack's leap is a vertical hop that lands where it took off, so there is
 ## no lunge constant here by design (Ben 2026-07-26).
 const HELLBREACH_RADIUS: float = 54.0
+## The slam bites where the STAFF comes down, not around his boots — must stay equal to
+## player.HELLBREACH_FISSURE_PUSH so the damage and the fissure art land on the same ground.
+const HELLBREACH_FORWARD: float = 20.0
 const GUARD_TICK: float = 0.4       ## Barbarian Guard stance re-check beat (the block is host-side)
 const BLADES_TICK: float = 0.4      ## Ninja Thousand Blades storm beat (blades body 4f @ 10fps)
 const STORM_TICK: float = 0.7       ## Gunslinger Desert Storm volley beat (storm body 14f @ 20fps)
@@ -973,7 +976,7 @@ static func build_demon_light(weapon_data: Dictionary) -> AbilityDefinition:
 	## f1 crouch, f2-4 airborne, f5 slam, f6-8 ring expands, f9-12 recovery). It was 9, which fired
 	## after the ring had already faded and made the hit feel disconnected from the animation.
 	breach.hit_frame = 5
-	breach.effects = [_aoe(dtype, dmg * 1.7, HELLBREACH_RADIUS), _burning()]
+	breach.effects = [_aoe(dtype, dmg * 1.7, HELLBREACH_RADIUS, HELLBREACH_FORWARD), _burning()]
 	breach.exit_type = "wait"
 	breach.wait_duration = CANCEL_WIN
 	breach.default_next = -1

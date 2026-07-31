@@ -361,7 +361,13 @@ const ALL: Dictionary = {
 				## "brimstone" → the gated pact-circle finisher, "pact_ritual" → the Q summon.
 				## NB: neither may start with "summon" — player.choreo_fire_effects routes any
 				## anim beginning "summon" to the Wizard's Fire Familiar.
-				"brimstone":   ["res://assets/minifantasy/Minifantasy_True_Villains_I_v1.0/_Minifantasy_True_Villains_Assets/Demonologist/Special_Animations/Summon_Demon/Summon_Ritual.png", 19, 26.0],
+				## 36fps, not 26 (Ben 2026-07-30: "RMB 2nd chain animation FPS is too slow, looks bad").
+				## At 26 the 19-frame ritual ran 0.73s with its hit at 0.54s — half a second of dead
+				## wind-up, and the slowest beat in the kit by a mile when every other node lands in
+				## 0.12-0.21s. 36fps puts it at 0.53s / hit 0.39s, in line with attack (0.50s) and
+				## hell_breach (0.54s). "pact_ritual" below shares this sheet and deliberately stays
+				## slow — the Q summon IS meant to read as a ceremony.
+				"brimstone":   ["res://assets/minifantasy/Minifantasy_True_Villains_I_v1.0/_Minifantasy_True_Villains_Assets/Demonologist/Special_Animations/Summon_Demon/Summon_Ritual.png", 19, 36.0],
 				"pact_ritual": ["res://assets/minifantasy/Minifantasy_True_Villains_I_v1.0/_Minifantasy_True_Villains_Assets/Demonologist/Special_Animations/Summon_Demon/Summon_Ritual.png", 19, 16.0],
 				## Archdemon's Call (E): the long cast; the 27-frame Archdemon_Call_Spell erupts at the
 				## cursor as a world-anchored VFX over the ground zone (host-side).

@@ -368,8 +368,17 @@ const ARCHDEMON_SPELL_FRAMES: int = 27
 ## Hell Breach is now the LIGHT CHAIN's second beat, not the dash (Ben 2026-07-26) — the chain
 ## phase carries the damage, so this host hook only owns the lunge and the fissure art.
 const HELLBREACH_FISSURE_SHEET: String = DEMON_SPECIAL_DIR + "Hell_Breach/Hell_Breach_Spell.png"
-const HELLBREACH_FISSURE_ROWS: Array[int] = [0, 1, 2, 3]   ## indexed by HELLBREACH_DIR order below
+const HELLBREACH_FISSURE_ROWS: Array[int] = [0, 1, 2, 3]   ## e / w / s / n
+## Those four rows' AUTHORED angles (screen space, +y down). The sheet ships cardinals only, so the
+## row alone snapped the crack to 90 degree steps; carrying the residual off the nearest row gives
+## true 360 degree aim with the art never more than 45 degrees from how it was drawn. Same treatment
+## as the Warden's Shield Bash (Ben 2026-07-30).
+const HELLBREACH_FISSURE_ANGLES: Array[float] = [0.0, PI, PI * 0.5, -PI * 0.5]
 const HELLBREACH_FISSURE_FPS: float = 20.0
+## The crack opens where the STAFF lands, not under his boots (Ben 2026-07-30). Pushed along the aim
+## by this much; ChainFactory.HELLBREACH_FORWARD moves the phase's damage by the same amount so the
+## bite and the art stay on top of each other.
+const HELLBREACH_FISSURE_PUSH: float = 20.0
 const HELLBREACH_RADIUS: float = 54.0       ## the fissure's bite; == ChainFactory.HELLBREACH_RADIUS
 ## Ashen Step (the Demon's dash, replacing Hell Breach): he hops clear on the pack's unused Jump
 ## sheet and the ground he left keeps burning, so disengaging also denies the ground. A ground
@@ -2216,21 +2225,31 @@ func _hellbreach_slam() -> void:
 	_spawn_hellbreach_fissure(dir)
 
 
-## The landing fissure. Hell_Breach_Spell is 64px and its rows are CARDINAL — the crack grows
-## east/west/south/north out of the cell centre — so the row is picked from the AIM vector (the
-## crack races toward the cursor). Per the pack's AnimationInfo: "start Hell_Breach_Spell aligned
-## with the Demonologist after the jump landing".
+## The landing fissure. Hell_Breach_Spell is 64px and its four rows are CARDINAL — the crack grows
+## east/west/south/north out of the cell centre.
+##
+## It used to pick the nearest of those four rows and drop the sheet on global_position, which gave
+## two problems Ben called out on 2026-07-30: the crack snapped to 90 degree steps (so it rarely
+## pointed at the cursor), and it opened under the Demon's feet rather than under the staff he just
+## slammed down. Both are fixed the way the Warden's Shield Bash was — pick the nearest authored row,
+## rotate the sprite by whatever angle is left over, and push the whole thing out along the aim.
 func _spawn_hellbreach_fissure(dir: Vector2) -> void:
 	if dir.length_squared() < 0.001:
 		dir = Vector2.RIGHT
-	## Cardinal quadrant of the leap: e / w / s / n → sheet rows 0 / 1 / 2 / 3.
-	var row: int = HELLBREACH_FISSURE_ROWS[0]
-	if absf(dir.x) >= absf(dir.y):
-		row = HELLBREACH_FISSURE_ROWS[0] if dir.x >= 0.0 else HELLBREACH_FISSURE_ROWS[1]
-	else:
-		row = HELLBREACH_FISSURE_ROWS[2] if dir.y >= 0.0 else HELLBREACH_FISSURE_ROWS[3]
-	_spawn_pack_fx(HELLBREACH_FISSURE_SHEET, global_position, 64, row,
-			HELLBREACH_FISSURE_FPS, false, 1)
+	dir = dir.normalized()
+	var aim_ang: float = dir.angle()
+	var best: int = 0
+	var best_diff: float = TAU
+	for i in HELLBREACH_FISSURE_ANGLES.size():
+		var d: float = absf(wrapf(aim_ang - HELLBREACH_FISSURE_ANGLES[i], -PI, PI))
+		if d < best_diff:
+			best_diff = d
+			best = i
+	var at: Vector2 = global_position + dir * HELLBREACH_FISSURE_PUSH * _melee_range()
+	var fx: AnimatedSprite2D = _spawn_pack_fx(HELLBREACH_FISSURE_SHEET, at, 64,
+			HELLBREACH_FISSURE_ROWS[best], HELLBREACH_FISSURE_FPS, false, 1)
+	if fx:
+		fx.rotation = wrapf(aim_ang - HELLBREACH_FISSURE_ANGLES[best], -PI, PI)
 
 
 ## Ashen Step (Demonologist dash): he hops out on the pack's Jump frames and the ground he was
