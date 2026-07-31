@@ -13,6 +13,12 @@ var is_channeling: bool = false
 var channel_timer: float = 0.0
 var channel_duration: float = 4.0 ## 4 seconds to extract
 var extraction_speed_multiplier: float = 1.0
+## Latched on completion until the next run. The player is still standing in
+## the zone during GameManager's post-extraction fanfare delay, and every zone
+## type would happily restart the channel in that window — a channel that can
+## never finish once the state leaves RUN_ACTIVE, leaving the channel-hum loop
+## playing across the success screen and the whole next run.
+var _completed_this_run: bool = false
 
 func _ready() -> void:
 	GameManager.run_started.connect(reset)
@@ -32,7 +38,7 @@ func _process(delta: float) -> void:
 		_complete_extraction()
 
 func start_channel(speed_multiplier: float = 1.0) -> void:
-	if is_channeling:
+	if is_channeling or _completed_this_run:
 		return
 	if not GameManager.is_extraction_allowed():
 		return
@@ -51,6 +57,7 @@ func interrupt_channel() -> void:
 func _complete_extraction() -> void:
 	is_channeling = false
 	channel_timer = 0.0
+	_completed_this_run = true
 	extraction_complete.emit()
 
 func reset() -> void:
@@ -58,3 +65,4 @@ func reset() -> void:
 	channel_timer = 0.0
 	channel_duration = 4.0
 	extraction_point = null
+	_completed_this_run = false

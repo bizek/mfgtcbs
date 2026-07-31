@@ -98,6 +98,9 @@ func populate(pm: Node) -> void:
 		_armory_view.visible = true
 		_picker_view.visible = false
 		_build_armory()
+	## Every populate() frees and rebuilds the visible view — controller focus
+	## dies with the freed nodes, so re-land it.
+	UINav.refocus_if_lost(self)
 
 
 # ── Armory main view ──────────────────────────────────────────────────────────

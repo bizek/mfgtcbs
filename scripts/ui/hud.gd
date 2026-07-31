@@ -107,6 +107,8 @@ func _ready() -> void:
 	_build_combo_discovery_popup()
 	_build_first_run_overlay()
 	GameManager.phase_started.connect(_on_phase_started)
+	InputGlyphs.device_changed.connect(func(_v: bool): _refresh_skill_slot_keys())
+	Settings.bindings_changed.connect(_refresh_skill_slot_keys)
 
 func setup(player: Node2D) -> void:
 	player_ref = player
@@ -755,22 +757,15 @@ func _update_buff_chips() -> void:
 
 
 func _refresh_skill_slot_keys() -> void:
-	## Resolve the bound key names once per run (respects rebinds from the settings panel).
+	## Device-aware slot glyphs (Ⓧ/Ⓑ on pad, Q/E on keyboard) — re-run on
+	## device switches and rebinds so the labels never go stale.
 	for slot in _skill_slots:
 		var entry: Dictionary = _skill_slots[slot]
-		entry.key_text = _skill_key_text(slot, "Q" if slot == "skill_q" else "E")
+		var glyph: String = InputGlyphs.action_glyph(slot)
+		if glyph == "?":
+			glyph = "Q" if slot == "skill_q" else "E"
+		entry.key_text = glyph
 		entry.key.text = entry.key_text
-
-func _skill_key_text(action: String, fallback: String) -> String:
-	if not InputMap.has_action(action):
-		return fallback
-	for ev in InputMap.action_get_events(action):
-		if ev is InputEventKey:
-			var code: int = ev.physical_keycode if ev.physical_keycode != KEY_NONE else ev.keycode
-			var txt: String = OS.get_keycode_string(code)
-			if txt != "":
-				return txt
-	return fallback
 
 func _update_skill_slots() -> void:
 	if player_ref == null or not is_instance_valid(player_ref):

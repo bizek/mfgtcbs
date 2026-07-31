@@ -12,6 +12,17 @@ const SACRIFICE_PROXIMITY: float = 44.0
 var _ui_open: bool = false
 var _sacrifice_layer: CanvasLayer = null
 
+
+## The modal's backdrop. Lives on the always-processing CanvasLayer (the zone
+## itself is paused while the menu is up), so it — not the zone — must own the
+## controller/keyboard cancel path.
+class _SacrificeOverlay extends ColorRect:
+	var owner_zone
+	func _unhandled_input(event: InputEvent) -> void:
+		if event.is_action_pressed("ui_cancel") and owner_zone != null:
+			get_viewport().set_input_as_handled()
+			owner_zone.close_ui()
+
 func _init() -> void:
 	extraction_type = "sacrifice"
 	name = "SacrificeExtraction"
@@ -99,6 +110,7 @@ func _open_ui() -> void:
 
 	var panel := _build_panel()
 	_sacrifice_layer.add_child(panel)
+	UINav.focus_first(panel)
 	sacrifice_ui_requested.emit()
 
 func close_ui() -> void:
@@ -138,8 +150,9 @@ func _build_panel() -> Control:
 
 	var pixel_font: Font = load(PIXEL_FONT_PATH) if ResourceLoader.exists(PIXEL_FONT_PATH) else null
 
-	## Dark overlay
-	var overlay := ColorRect.new()
+	## Dark overlay (owns the Esc/Ⓑ cancel path — see _SacrificeOverlay)
+	var overlay := _SacrificeOverlay.new()
+	overlay.owner_zone = self
 	overlay.color = Color(0.0, 0.0, 0.0, 0.72)
 	overlay.size = Vector2(VW, VH)
 	overlay.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -209,6 +222,8 @@ func _build_panel() -> Control:
 	if GameManager.collected_weapons.is_empty() and GameManager.collected_mods.is_empty() and GameManager.loot_carried > 0.0:
 		var row := _build_row("All resources  (%d)" % int(GameManager.loot_carried), "all_loot", pixel_font)
 		vbox.add_child(row)
+
+	UINav.wire_scroll_follow(scroll)
 
 	if vbox.get_child_count() == 0:
 		var empty := Label.new()

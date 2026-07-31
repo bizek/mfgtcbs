@@ -91,6 +91,7 @@ func _build() -> void:
 
 	_build_char_list(hbox)
 	_build_detail_pane(hbox)
+	UINav.refocus_if_lost(self)
 
 
 # ── Character list (left ~40%) ─────────────────────────────────────────────────

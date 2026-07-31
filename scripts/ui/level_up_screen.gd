@@ -29,8 +29,11 @@ func _on_player_leveled_up(new_level: int) -> void:
 	title_label.text = "LEVEL %d!" % new_level
 	_rerolls_remaining = ProgressionManager.get_max_rerolls()
 	_choices = UpgradeManager.generate_choices(3)
-	_show_choices()
+	## Visible BEFORE building: _show_choices ends with UINav.focus_first,
+	## which only considers visible controls — grabbing while the layer is
+	## still hidden finds nothing and leaves controller focus dead.
 	visible = true
+	_show_choices()
 	GameManager.enter_level_up()
 
 func _show_choices() -> void:
@@ -60,6 +63,7 @@ func _show_choices() -> void:
 			btn.add_theme_font_override("font", pixel_font)
 		btn.add_theme_font_size_override("font_size", 16)
 		btn.pressed.connect(_on_choice_pressed.bind(i))
+		UINav.apply_focus_ring(btn)
 		choices_container.add_child(btn)
 
 	## Reroll button
@@ -71,6 +75,7 @@ func _show_choices() -> void:
 	reroll_btn.disabled = _rerolls_remaining <= 0
 	reroll_btn.text = "Reroll  [%d left]" % _rerolls_remaining
 	reroll_btn.pressed.connect(_on_reroll_pressed)
+	UINav.apply_focus_ring(reroll_btn)
 	choices_container.add_child(reroll_btn)
 
 	_build_weapon_cache(pixel_font)

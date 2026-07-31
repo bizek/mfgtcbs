@@ -11,11 +11,22 @@ const FONT_PATH: String = "res://assets/fonts/m5x7.ttf"
 
 var _loot_scroll: ScrollContainer = null  ## replaced each run; queue_freed on reuse
 
+const LOOT_SCROLL_SPEED: float = 220.0  ## px/s for stick/D-pad manifest scrolling
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
 	play_again_button.pressed.connect(_on_return_to_hub)
 	GameManager.extraction_successful.connect(_on_extraction_successful)
+
+func _process(delta: float) -> void:
+	## The manifest is all Labels (nothing focusable), so let D-pad / stick /
+	## arrow keys scroll it directly while focus stays on the return button.
+	if not visible or _loot_scroll == null or not is_instance_valid(_loot_scroll):
+		return
+	var dir: float = Input.get_axis("ui_up", "ui_down")
+	if dir != 0.0:
+		_loot_scroll.scroll_vertical += int(dir * LOOT_SCROLL_SPEED * delta)
 
 func _on_extraction_successful() -> void:
 	if GameManager.last_run_was_win:

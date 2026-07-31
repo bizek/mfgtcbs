@@ -51,15 +51,14 @@ func _ready() -> void:
 	EventBus.on_pickup.connect(_on_pickup)
 	EventBus.on_hit_dealt.connect(_on_combat_signal)
 	EventBus.on_hit_received.connect(_on_combat_signal)
+	InputGlyphs.device_changed.connect(_on_device_changed)
 
 func setup(player: Node2D) -> void:
 	player_ref = player
 	if not _active:
 		return
 	player_ref.leveled_up.connect(_on_leveled_up)
-	_queue_cue("spawn",
-		"WASD to move, aim with your mouse.\nLMB chains your combo — tap to chain, hold to channel.",
-		"center")
+	_queue_cue("spawn", "", "center")
 	_queue_cue("depth_meter",
 		"The depth meter (left edge) tracks your descent — find the portal below.",
 		"corner")
@@ -84,9 +83,9 @@ func _process(delta: float) -> void:
 
 	if _combat_engaged_at >= 0.0 and _run_time - _combat_engaged_at >= COMBAT_NUDGE_DELAY:
 		if not _used_actions.get("heavy_attack", false):
-			_queue_cue("rmb_special", "Try your RMB special attack.", "corner")
+			_queue_cue("rmb_special", "", "corner")
 		if not (_used_actions.get("skill_q", false) or _used_actions.get("skill_e", false)):
-			_queue_cue("skills_qe", "Your Q/E class skills hit hard — try them out.", "corner")
+			_queue_cue("skills_qe", "", "corner")
 		_combat_engaged_at = -1.0  ## nudges resolved, stop re-checking
 
 func _on_combat_signal(source, target, _hit_data = null) -> void:
@@ -95,7 +94,7 @@ func _on_combat_signal(source, target, _hit_data = null) -> void:
 	if _combat_engaged_at < 0.0 and (source == player_ref or target == player_ref):
 		_combat_engaged_at = _run_time
 	if target == player_ref and not _used_actions.get("dash", false):
-		_queue_cue("dash", "Getting hit? Space dashes you clear (brief i-frames).", "corner")
+		_queue_cue("dash", "", "corner")
 
 func _on_kill(killer, _victim) -> void:
 	if killer == player_ref:
@@ -144,7 +143,44 @@ func _show_next() -> void:
 	var cue: Dictionary = _queue.pop_front()
 	_current_id = cue.id
 	_shown[cue.id] = true
-	_display(cue.text, cue.anchor)
+	var text: String = _cue_text(cue.id)
+	if text == "":
+		text = cue.text
+	_display(text, cue.anchor)
+
+
+## Device-aware wording for the cues that name physical inputs. Resolved at
+## display time (not queue time) so the text matches whatever the player is
+## actually holding; cues without an entry here use their static queue text.
+func _cue_text(id: String) -> String:
+	var pad: bool = InputGlyphs.using_joypad
+	match id:
+		"spawn":
+			if pad:
+				return "Left stick moves, right stick aims.\n%s chains your combo — tap to chain, hold to channel." \
+						% InputGlyphs.action_glyph("light_attack")
+			return "WASD to move, aim with your mouse.\nLMB chains your combo — tap to chain, hold to channel."
+		"rmb_special":
+			return "Try your %s special attack." \
+					% (InputGlyphs.action_glyph("heavy_attack") if pad else "RMB")
+		"skills_qe":
+			if pad:
+				return "Your %s/%s class skills hit hard — try them out." \
+						% [InputGlyphs.action_glyph("skill_q"), InputGlyphs.action_glyph("skill_e")]
+			return "Your Q/E class skills hit hard — try them out."
+		"dash":
+			return "Getting hit? %s dashes you clear (brief i-frames)." \
+					% (InputGlyphs.action_glyph("dash") if pad else "Space")
+	return ""
+
+
+func _on_device_changed(_is_joypad: bool) -> void:
+	## Live-swap the wording if the player changes device mid-cue.
+	if not _active or _current_id == "" or _panel == null or not _panel.visible:
+		return
+	var text: String = _cue_text(_current_id)
+	if text != "":
+		_label.text = text
 
 func _display(text: String, anchor: String) -> void:
 	_label.text = text

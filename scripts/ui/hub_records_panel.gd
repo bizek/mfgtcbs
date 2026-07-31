@@ -26,11 +26,24 @@ var _stats_page: VBoxContainer
 var _achv_page:  ScrollContainer
 var _active_tab: String = "stats"
 
+const ACHV_SCROLL_SPEED: float = 220.0  ## px/s — rows are Labels (nothing
+## focusable), so D-pad/stick scrolls the list directly instead of via focus.
+
 func _ready() -> void:
 	_base.close_requested.connect(func(): close_requested.emit())
 	if Engine.is_editor_hint():
 		return
 	populate(ProgressionManager)
+
+
+func _process(delta: float) -> void:
+	if Engine.is_editor_hint() or not is_visible_in_tree():
+		return
+	if _achv_page == null or not is_instance_valid(_achv_page) or not _achv_page.visible:
+		return
+	var dir: float = Input.get_axis("ui_up", "ui_down")
+	if dir != 0.0:
+		_achv_page.scroll_vertical += int(dir * ACHV_SCROLL_SPEED * delta)
 
 
 func populate(pm: Node) -> void:

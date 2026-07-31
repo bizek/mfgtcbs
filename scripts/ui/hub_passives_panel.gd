@@ -34,6 +34,12 @@ const FS_SM   := 16
 const FS_XS   := 14
 const FS_TINY := 13
 
+## Marquee for node text that overflows its card: waits, scrolls slowly to the
+## end, pauses there, snaps back, repeats — only while the node is focused.
+const MARQUEE_DELAY_S     := 0.8
+const MARQUEE_SPEED_PX_S  := 20.0
+const MARQUEE_END_PAUSE_S := 1.0
+
 ## char_class → affinity branch (flavor-only highlight, spec §1). Adding Druid/Cleric
 ## later is a one-line change here — no other code touches this table.
 const CLASS_BRANCH := {
@@ -112,6 +118,9 @@ func _build_scaffold() -> void:
 	spacer.mouse_filter          = Control.MOUSE_FILTER_IGNORE
 	hdr.add_child(spacer)
 
+	## Single-rank refund hint (Ⓧ on pad, right-click on mouse)
+	_lbl(hdr, "Ⓧ / R-CLICK  refund 1", FS_TINY, C_DIM)
+
 	var respec := Button.new()
 	respec.text             = "RESPEC"
 	respec.focus_mode       = Control.FOCUS_ALL
@@ -168,8 +177,33 @@ func _rebuild() -> void:
 	## navigation isn't dumped after an allocate rebuild.
 	if _focus_node_id != "" and _node_buttons.has(_focus_node_id):
 		var b: Button = _node_buttons[_focus_node_id]
-		if is_instance_valid(b) and not b.disabled:
+		if is_instance_valid(b):
+			## Maxed nodes stay focusable (just unpressable), so focus can
+			## remain on the node you just finished instead of hopping away.
 			b.call_deferred("grab_focus")
+		else:
+			## The node just maxed out and was rebuilt disabled/FOCUS_NONE.
+			## Hand focus to the nearest still-selectable node instead of
+			## dropping it — a dead cursor stranded controller users until
+			## they switched tabs.
+			var ids: Array = _node_buttons.keys()
+			var idx: int = ids.find(_focus_node_id)
+			var fallback: Button = null
+			for offset in range(1, ids.size()):
+				for dir in [-1, 1]:
+					var j: int = idx + dir * offset
+					if j >= 0 and j < ids.size():
+						var cand: Button = _node_buttons[ids[j]]
+						if is_instance_valid(cand) and not cand.disabled \
+								and cand.focus_mode == Control.FOCUS_ALL:
+							fallback = cand
+							break
+				if fallback != null:
+					break
+			if fallback != null:
+				fallback.call_deferred("grab_focus")
+			else:
+				UINav.refocus_if_lost(self)
 
 
 # ── Core section (11 nodes, tier 0, 3-wide grid) ───────────────────────────────
@@ -280,7 +314,10 @@ func _build_node(parent: Control, node_id: String, accent: Color, width: int) ->
 	var btn := Button.new()
 	btn.custom_minimum_size = Vector2(width, min_h)
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn.focus_mode  = Control.FOCUS_ALL if is_avail else Control.FOCUS_NONE
+	## Every node is focusable — maxed/locked/broke nodes just can't be pressed
+	## (disabled and focus are independent). Skipping them made the selector
+	## bounce over gaps and stranded it once a branch's bottom node maxed out.
+	btn.focus_mode  = Control.FOCUS_ALL
 	btn.disabled    = not is_avail
 	btn.tooltip_text = "%s\n%s\nCost %d/rank" % [node.get("name", node_id), node.get("desc", ""), cost]
 	_style_node_btn(btn, bg_col, border_col, accent, border_w)
@@ -313,18 +350,28 @@ func _build_node(parent: Control, node_id: String, accent: Color, width: int) ->
 		display_name = "★ " + display_name
 	elif is_notable:
 		display_name = "◆ " + display_name
-	var name_lbl := _lbl(top, display_name, FS_TINY, name_col)
-	name_lbl.clip_text = true
-	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var name_clip := _marquee_lbl(top, display_name, FS_TINY, name_col)
 
 	var rank_col: Color = C_GOLD if is_maxed else (accent if ranks > 0 else C_DIM)
 	_lbl(top, "%d/%d" % [ranks, max_r], FS_TINY, rank_col)
 
-	## Line 2: effect text (clipped; full text in the tooltip)
-	var eff_lbl := _lbl(vb, node.get("desc", ""), FS_TINY,
+	## Line 2: effect text (marquee-scrolls on focus when it overflows;
+	## full text also in the tooltip for mouse users)
+	var eff_clip := _marquee_lbl(vb, node.get("desc", ""), FS_TINY,
 		C_DIM if (is_locked) else Color(name_col.r, name_col.g, name_col.b, 0.85))
-	eff_lbl.clip_text = true
-	eff_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	if btn.focus_mode == Control.FOCUS_ALL:
+		btn.set_meta("marquee_wrappers", [name_clip, eff_clip])
+		btn.focus_entered.connect(_on_node_focus_entered.bind(btn))
+		btn.focus_exited.connect(_stop_marquee.bind(btn))
+
+	## Right-click refunds one rank (gui_input fires even on disabled buttons,
+	## so maxed nodes can be refunded too).
+	var refund_id: String = node_id
+	btn.gui_input.connect(func(event: InputEvent):
+		if event is InputEventMouseButton and event.pressed \
+				and event.button_index == MOUSE_BUTTON_RIGHT:
+			_on_node_refund(refund_id))
 
 	## Line 3: state
 	var state_text: String
@@ -351,6 +398,30 @@ func _on_node_pressed(node_id: String) -> void:
 	if _pm.allocate(node_id):
 		_focus_node_id = node_id
 		AudioManager.play_ui("sfx_ui_purchase")
+		_rebuild()
+
+
+## Ⓧ refunds one rank from the focused node (controller path; mouse uses
+## right-click via each button's gui_input).
+func _unhandled_input(event: InputEvent) -> void:
+	if not is_visible_in_tree():
+		return
+	if event is InputEventJoypadButton and event.pressed \
+			and event.button_index == JOY_BUTTON_X:
+		var focus_owner := get_viewport().gui_get_focus_owner()
+		for id: String in _node_buttons:
+			if _node_buttons[id] == focus_owner:
+				get_viewport().set_input_as_handled()
+				_on_node_refund(id)
+				return
+
+
+func _on_node_refund(node_id: String) -> void:
+	## refund_one validates gates: it refuses when removing this rank would
+	## strand points spent further down the tree.
+	if _pm.refund_one(node_id):
+		_focus_node_id = node_id
+		AudioManager.play_ui("sfx_ui_cancel")
 		_rebuild()
 
 
@@ -410,6 +481,77 @@ func _tier_connector(parent: Control, accent: Color) -> void:
 	line.custom_minimum_size = Vector2(2, 6)
 	line.color               = Color(accent.r, accent.g, accent.b, 0.40)
 	wrap.add_child(line)
+
+
+## A clipped single-line label that can marquee-scroll horizontally. Returns
+## the clipping wrapper; the inner Label rides in its "marquee_label" meta.
+func _marquee_lbl(parent: Control, text: String, sz: int, col: Color) -> Control:
+	var clip := Control.new()
+	clip.clip_contents = true
+	clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	clip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.add_theme_font_override("font", FONT)
+	lbl.add_theme_font_size_override("font_size", sz)
+	lbl.add_theme_color_override("font_color", col)
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	clip.add_child(lbl)
+	## Pre-tree measurement uses the fallback theme font (~2x wider than the
+	## pixel font) — good enough as a placeholder, but re-measure on ready or
+	## every fitting line looks like overflow.
+	lbl.size = lbl.get_minimum_size()
+	clip.custom_minimum_size = Vector2(0, lbl.size.y)
+	lbl.ready.connect(func():
+		lbl.size = lbl.get_minimum_size()
+		clip.custom_minimum_size.y = lbl.size.y
+	, CONNECT_ONE_SHOT)
+	clip.set_meta("marquee_label", lbl)
+	parent.add_child(clip)
+	return clip
+
+
+func _on_node_focus_entered(btn: Button) -> void:
+	## Measure a frame later — focus often lands via deferred grab right after
+	## a rebuild, before the card has its final width.
+	get_tree().process_frame.connect(func():
+		if is_instance_valid(btn) and btn.has_focus():
+			_start_marquee(btn)
+	, CONNECT_ONE_SHOT)
+
+
+func _start_marquee(btn: Button) -> void:
+	_stop_marquee(btn)
+	var tweens: Array = []
+	for clip: Control in btn.get_meta("marquee_wrappers", []):
+		if not is_instance_valid(clip):
+			continue
+		var lbl: Label = clip.get_meta("marquee_label")
+		lbl.size = lbl.get_minimum_size()  ## authoritative in-tree width
+		var overflow: float = lbl.size.x - clip.size.x
+		## Only scroll when text genuinely exits the frame; the scroll stops
+		## exactly when the line's end reaches the right edge (mirroring the
+		## start's left alignment).
+		if overflow <= 2.0:
+			continue
+		var t := btn.create_tween().set_loops()
+		t.tween_interval(MARQUEE_DELAY_S)
+		t.tween_property(lbl, "position:x", -overflow, overflow / MARQUEE_SPEED_PX_S)
+		t.tween_interval(MARQUEE_END_PAUSE_S)
+		t.tween_callback(func(): lbl.position.x = 0.0)
+		tweens.append(t)
+	btn.set_meta("marquee_tweens", tweens)
+
+
+func _stop_marquee(btn: Button) -> void:
+	for t: Tween in btn.get_meta("marquee_tweens", []):
+		if t != null and t.is_valid():
+			t.kill()
+	btn.set_meta("marquee_tweens", [])
+	for clip: Control in btn.get_meta("marquee_wrappers", []):
+		if is_instance_valid(clip):
+			var lbl: Label = clip.get_meta("marquee_label")
+			lbl.position.x = 0.0
 
 
 func _lbl(parent: Control, text: String, sz: int, col: Color) -> Label:

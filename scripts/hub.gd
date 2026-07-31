@@ -315,7 +315,7 @@ func _build_ui() -> void:
 
 	## Interact prompt (floats above player)
 	_interact_prompt = Label.new()
-	_interact_prompt.text = "[ E ]  interact"
+	_interact_prompt.text = "[ %s ]  interact" % InputGlyphs.action_glyph("interact")
 	_interact_prompt.add_theme_font_override("font", PIXEL_FONT)
 	_interact_prompt.add_theme_font_size_override("font_size", 16)
 	_interact_prompt.add_theme_color_override("font_color", Color(0.95, 0.92, 0.50))
@@ -392,7 +392,7 @@ func _update_proximity() -> void:
 		## Show station name in prompt
 		for s in STATIONS:
 			if s["id"] == nearest_id:
-				_interact_prompt.text = "[ E ]  %s" % s["name"]
+				_interact_prompt.text = "[ %s ]  %s" % [InputGlyphs.action_glyph("interact"), s["name"]]
 				break
 
 	## Station proximity glow

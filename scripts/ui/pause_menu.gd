@@ -103,6 +103,7 @@ func _build_menu() -> void:
 	resume_btn.text = "Resume"
 	resume_btn.add_theme_font_size_override("font_size", 14)
 	resume_btn.pressed.connect(_close)
+	UINav.apply_focus_ring(resume_btn)
 	vbox.add_child(resume_btn)
 
 	## Settings button
@@ -112,6 +113,7 @@ func _build_menu() -> void:
 	settings_btn.pressed.connect(func():
 		AudioManager.play_ui("sfx_ui_click")
 		_open_settings())
+	UINav.apply_focus_ring(settings_btn)
 	vbox.add_child(settings_btn)
 
 	## Debug panel button (only if debug mode)
@@ -120,6 +122,7 @@ func _build_menu() -> void:
 		debug_btn.text = "Debug Panel"
 		debug_btn.add_theme_font_size_override("font_size", 14)
 		debug_btn.pressed.connect(_toggle_debug_panel)
+		UINav.apply_focus_ring(debug_btn)
 		vbox.add_child(debug_btn)
 
 	## Glyph hint bar — replaces the static "[ESC] to close" label so it
