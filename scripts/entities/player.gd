@@ -1474,6 +1474,14 @@ func _tick_combo() -> void:
 		## Opener grace (Ben, playtest 2026-07-19): RMB pressed in the light graph before the
 		## heavy-finisher gate opens shouldn't dead-end — cancel into the heavy opener instead
 		## (Uppercut/Bash/...). Phases that DO listen for heavy_attack keep their branch.
+		##
+		## Re-confirmed as intended (Ben 2026-07-30) after "it feels harder to hit light-light-heavy".
+		## Worth knowing the investigation landed somewhere else: what he was feeling was the chain
+		## WINDOW LAPSING, after which RMB arrives from neutral and starts _combo_heavy — whose opener
+		## is the same Uppercut. So the knockback shows up via the neutral path below, not via this
+		## grace. Both are working as designed; mashing the string consecutively lands the finisher
+		## every time. Don't "fix" either one on a report of the wrong move coming out — check first
+		## whether the runner was still running.
 		if choreography_runner != null and choreography_runner.is_running() \
 				and _combo_heavy != null \
 				and choreography_runner.get_ability() == _combo_ability \
