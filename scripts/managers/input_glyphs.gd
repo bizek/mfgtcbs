@@ -126,9 +126,33 @@ func event_glyph(event: InputEvent, joypad: bool) -> String:
 			return _glyphs()["motions"].get(key, "●")
 		return ""
 	if event is InputEventKey:
-		return event.as_text_physical_keycode().trim_suffix(" (Physical)")
+		return _key_label(event)
 	if event is InputEventMouseButton:
 		return event.as_text().trim_suffix(" (Physical)")
+	return ""
+
+
+## A key's printable label, whichever way the binding was authored.
+##
+## project.godot MIXES the two styles — skill_q/skill_e carry a physical_keycode, while
+## interact/dash carry a logical keycode with physical_keycode left at KEY_NONE — and a user rebind
+## can produce either. Asking only for the physical text (as_text_physical_keycode) therefore
+## rendered Godot's literal "(unset)" on every logically-bound action: Ben hit it on world interact
+## prompts, and the Controls tab showed it too since settings_panel._event_text calls through here
+## (Ben 2026-07-30, first play after the controller pass).
+##
+## Physical bindings are resolved through the OS layout so the label matches the key the player
+## actually presses (a physical Q reads "A" on AZERTY) — the same thing as_text_physical_keycode
+## does internally, minus the " - Physical" suffix. Returns "" when nothing is bound, which lets
+## action_glyph move on to the next event instead of printing a placeholder.
+func _key_label(event: InputEventKey) -> String:
+	if event.physical_keycode != KEY_NONE:
+		return OS.get_keycode_string(
+				DisplayServer.keyboard_get_keycode_from_physical(event.physical_keycode))
+	if event.keycode != KEY_NONE:
+		return OS.get_keycode_string(event.keycode)
+	if event.key_label != KEY_NONE:
+		return OS.get_keycode_string(event.key_label)
 	return ""
 
 
