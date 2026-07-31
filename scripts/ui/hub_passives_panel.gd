@@ -457,8 +457,15 @@ func _marquee_lbl(parent: Control, text: String, sz: int, col: Color) -> Control
 	lbl.add_theme_color_override("font_color", col)
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	clip.add_child(lbl)
+	## Pre-tree measurement uses the fallback theme font (~2x wider than the
+	## pixel font) — good enough as a placeholder, but re-measure on ready or
+	## every fitting line looks like overflow.
 	lbl.size = lbl.get_minimum_size()
 	clip.custom_minimum_size = Vector2(0, lbl.size.y)
+	lbl.ready.connect(func():
+		lbl.size = lbl.get_minimum_size()
+		clip.custom_minimum_size.y = lbl.size.y
+	, CONNECT_ONE_SHOT)
 	clip.set_meta("marquee_label", lbl)
 	parent.add_child(clip)
 	return clip
@@ -480,8 +487,12 @@ func _start_marquee(btn: Button) -> void:
 		if not is_instance_valid(clip):
 			continue
 		var lbl: Label = clip.get_meta("marquee_label")
+		lbl.size = lbl.get_minimum_size()  ## authoritative in-tree width
 		var overflow: float = lbl.size.x - clip.size.x
-		if overflow <= 1.0:
+		## Only scroll when text genuinely exits the frame; the scroll stops
+		## exactly when the line's end reaches the right edge (mirroring the
+		## start's left alignment).
+		if overflow <= 2.0:
 			continue
 		var t := btn.create_tween().set_loops()
 		t.tween_interval(MARQUEE_DELAY_S)
