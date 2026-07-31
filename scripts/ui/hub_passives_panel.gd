@@ -170,6 +170,29 @@ func _rebuild() -> void:
 		var b: Button = _node_buttons[_focus_node_id]
 		if is_instance_valid(b) and not b.disabled:
 			b.call_deferred("grab_focus")
+		else:
+			## The node just maxed out and was rebuilt disabled/FOCUS_NONE.
+			## Hand focus to the nearest still-selectable node instead of
+			## dropping it — a dead cursor stranded controller users until
+			## they switched tabs.
+			var ids: Array = _node_buttons.keys()
+			var idx: int = ids.find(_focus_node_id)
+			var fallback: Button = null
+			for offset in range(1, ids.size()):
+				for dir in [-1, 1]:
+					var j: int = idx + dir * offset
+					if j >= 0 and j < ids.size():
+						var cand: Button = _node_buttons[ids[j]]
+						if is_instance_valid(cand) and not cand.disabled \
+								and cand.focus_mode == Control.FOCUS_ALL:
+							fallback = cand
+							break
+				if fallback != null:
+					break
+			if fallback != null:
+				fallback.call_deferred("grab_focus")
+			else:
+				UINav.refocus_if_lost(self)
 
 
 # ── Core section (11 nodes, tier 0, 3-wide grid) ───────────────────────────────
