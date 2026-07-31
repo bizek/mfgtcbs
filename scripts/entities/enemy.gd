@@ -1043,6 +1043,12 @@ func _on_health_died(_entity: Node2D) -> void:
 		return
 	is_alive = false
 	set_physics_process(false)
+	## is_alive only gates contact-damage logic — the body itself stays on the
+	## enemy collision layer until queue_free, so the corpse blocks movement
+	## for the whole death animation. Pull it out of physics now (deferred:
+	## death can arrive mid-physics-callback).
+	set_deferred("collision_layer", 0)
+	set_deferred("collision_mask", 0)
 	if trigger_component:
 		trigger_component.cleanup()
 
