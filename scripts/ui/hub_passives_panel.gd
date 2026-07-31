@@ -67,6 +67,7 @@ var _built:         bool            = false
 var _affinity:      String          = ""
 var _node_buttons:  Dictionary      = {}     ## node_id -> Button (for refocus after rebuild)
 var _focus_node_id: String          = ""
+var _card_parts:    Dictionary      = {}     ## node_id -> {btn, accent, border_w, name/rank/desc/state labels}
 var _refund_hint:   Label           = null   ## header hint; also carries the refusal reason
 var _hint_timer:    float           = -1.0   ## >0 while the refusal message is up
 
@@ -172,6 +173,7 @@ func _rebuild() -> void:
 	if not _built or _pm == null:
 		return
 	_node_buttons.clear()
+	_card_parts.clear()
 	for child in _body.get_children():
 		child.queue_free()
 
@@ -287,40 +289,21 @@ func _build_node(parent: Control, node_id: String, accent: Color, width: int) ->
 	if node.is_empty():
 		return
 
-	var ranks:    int    = _pm.get_node_ranks(node_id)
-	var max_r:    int    = int(node.get("max_ranks", 1))
+	var st: Dictionary = _card_state(node_id, accent)
+	var ranks:    int    = int(st["ranks"])
+	var max_r:    int    = int(st["max_ranks"])
 	var cost:     int    = int(node.get("cost", 1))
 	var kind:     String = node.get("kind", "")
-	var can_buy:  bool   = _pm.can_allocate(node_id)
-	var gate_met: bool   = _pm.node_gate_met(node_id)
-	var is_maxed: bool   = ranks >= max_r
-	## Locked = tier/bridge gate not satisfied. Distinct from "gate met but broke".
-	var is_locked: bool  = not is_maxed and not gate_met
-	var is_avail:  bool   = can_buy   ## points + gate + not maxed
+	var is_avail:  bool   = bool(st["is_avail"])
 
 	var is_keystone: bool = kind == "keystone"
 	var is_notable:  bool = kind == "notable"
 	var border_w:    int  = 2 if is_keystone else 1
 	var min_h:       int  = 58 if is_keystone else (52 if is_notable else 48)
 
-	## Card colors by state.
-	var bg_col:     Color = C_CARD
-	var border_col: Color = C_BORDER
-	var name_col:   Color = C_TEXT
-	if is_maxed:
-		bg_col     = Color(accent.r * 0.28, accent.g * 0.28, accent.b * 0.28, 1.0)
-		border_col = C_GOLD
-		name_col   = C_GOLD
-	elif is_avail:
-		border_col = accent
-		name_col   = Color(accent.r * 0.55 + 0.45, accent.g * 0.55 + 0.45, accent.b * 0.55 + 0.45)
-	elif is_locked:
-		bg_col     = C_CARD_LOCK
-		border_col = C_BORDER
-		name_col   = C_DIM
-	else:   ## gate met, not enough points
-		border_col = Color(accent.r, accent.g, accent.b, 0.35)
-		name_col   = Color(C_TEXT.r, C_TEXT.g, C_TEXT.b, 0.65)
+	var bg_col:     Color = st["bg"]
+	var border_col: Color = st["border"]
+	var name_col:   Color = st["name_col"]
 
 	var btn := Button.new()
 	btn.custom_minimum_size = Vector2(width, min_h)
@@ -335,9 +318,12 @@ func _build_node(parent: Control, node_id: String, accent: Color, width: int) ->
 	parent.add_child(btn)
 	_node_buttons[node_id] = btn
 
-	if is_avail:
-		var cap_id: String = node_id
-		btn.pressed.connect(func(): _on_node_pressed(cap_id))
+	## Connected unconditionally. It used to be gated on is_avail, which was only safe because the
+	## whole grid was rebuilt whenever anything changed — an in-place refresh flips `disabled`
+	## without recreating the button, so a node that becomes affordable later needs its handler
+	## already attached. `disabled` blocks the press, and allocate() re-validates regardless.
+	var cap_id: String = node_id
+	btn.pressed.connect(func(): _on_node_pressed(cap_id))
 
 	## Content overlay — mouse-transparent so the Button receives the click.
 	var vb := VBoxContainer.new()
@@ -363,13 +349,11 @@ func _build_node(parent: Control, node_id: String, accent: Color, width: int) ->
 		display_name = "◆ " + display_name
 	var name_clip := _marquee_lbl(top, display_name, FS_TINY, name_col)
 
-	var rank_col: Color = C_GOLD if is_maxed else (accent if ranks > 0 else C_DIM)
-	_lbl(top, "%d/%d" % [ranks, max_r], FS_TINY, rank_col)
+	var rank_lbl := _lbl(top, "%d/%d" % [ranks, max_r], FS_TINY, st["rank_col"])
 
 	## Line 2: effect text (marquee-scrolls on focus when it overflows;
 	## full text also in the tooltip for mouse users)
-	var eff_clip := _marquee_lbl(vb, node.get("desc", ""), FS_TINY,
-		C_DIM if (is_locked) else Color(name_col.r, name_col.g, name_col.b, 0.85))
+	var eff_clip := _marquee_lbl(vb, node.get("desc", ""), FS_TINY, st["desc_col"])
 
 	if btn.focus_mode == Control.FOCUS_ALL:
 		btn.set_meta("marquee_wrappers", [name_clip, eff_clip])
@@ -385,6 +369,50 @@ func _build_node(parent: Control, node_id: String, accent: Color, width: int) ->
 			_on_node_refund(refund_id))
 
 	## Line 3: state
+	var state_lbl := _lbl(vb, st["state_text"], FS_TINY, st["state_col"])
+	state_lbl.clip_text = true
+
+	## Everything _refresh_cards() needs to restyle this card in place, without rebuilding it.
+	_card_parts[node_id] = {
+		"btn": btn, "accent": accent, "border_w": border_w,
+		"name": name_clip.get_meta("marquee_label"),
+		"rank": rank_lbl,
+		"desc": eff_clip.get_meta("marquee_label"),
+		"state": state_lbl,
+	}
+
+
+## Every part of a card that depends on live progression, in one place, so the initial build and
+## the in-place refresh cannot drift apart. Colours count as state here — they are how a card says
+## maxed / available / locked / unaffordable.
+func _card_state(node_id: String, accent: Color) -> Dictionary:
+	var node: Dictionary = PassiveTreeData.NODES.get(node_id, {})
+	var ranks: int = _pm.get_node_ranks(node_id)
+	var max_r: int = int(node.get("max_ranks", 1))
+	var cost:  int = int(node.get("cost", 1))
+	var is_maxed:  bool = ranks >= max_r
+	## Locked = tier/bridge gate not satisfied. Distinct from "gate met but broke".
+	var is_locked: bool = not is_maxed and not _pm.node_gate_met(node_id)
+	var is_avail:  bool = _pm.can_allocate(node_id)   ## points + gate + not maxed
+
+	var bg_col:     Color = C_CARD
+	var border_col: Color = C_BORDER
+	var name_col:   Color = C_TEXT
+	if is_maxed:
+		bg_col     = Color(accent.r * 0.28, accent.g * 0.28, accent.b * 0.28, 1.0)
+		border_col = C_GOLD
+		name_col   = C_GOLD
+	elif is_avail:
+		border_col = accent
+		name_col   = Color(accent.r * 0.55 + 0.45, accent.g * 0.55 + 0.45, accent.b * 0.55 + 0.45)
+	elif is_locked:
+		bg_col     = C_CARD_LOCK
+		border_col = C_BORDER
+		name_col   = C_DIM
+	else:   ## gate met, not enough points
+		border_col = Color(accent.r, accent.g, accent.b, 0.35)
+		name_col   = Color(C_TEXT.r, C_TEXT.g, C_TEXT.b, 0.65)
+
 	var state_text: String
 	var state_col:  Color
 	if is_maxed:
@@ -399,8 +427,59 @@ func _build_node(parent: Control, node_id: String, accent: Color, width: int) ->
 	else:
 		state_text = "%d PT" % cost
 		state_col  = Color(C_DIM.r, C_DIM.g, C_DIM.b, 1.0)
-	var st := _lbl(vb, state_text, FS_TINY, state_col)
-	st.clip_text = true
+
+	return {
+		"ranks": ranks, "max_ranks": max_r,
+		"is_maxed": is_maxed, "is_locked": is_locked, "is_avail": is_avail,
+		"bg": bg_col, "border": border_col, "name_col": name_col,
+		"rank_col": C_GOLD if is_maxed else (accent if ranks > 0 else C_DIM),
+		"desc_col": C_DIM if is_locked else Color(name_col.r, name_col.g, name_col.b, 0.85),
+		"state_text": state_text, "state_col": state_col,
+	}
+
+
+## Restyle every existing card from current progression WITHOUT rebuilding the grid.
+##
+## Buying or refunding one node can change the look of many others — spending points makes cards
+## unaffordable, and crossing a tier threshold unlocks a whole tier — so this walks all of them.
+## That is still vastly cheaper than _rebuild(), because it only writes text and colours onto
+## controls that already exist instead of freeing and re-creating ~600 of them.
+##
+## It also means focus is never lost on a purchase (nothing is freed), so the card you just bought
+## stays under the cursor and Clerveu's refocus_if_lost has nothing to repair on this path.
+func _refresh_cards() -> void:
+	if _pm == null:
+		return
+	_points_label.text   = "PTS %d" % _pm.get_passive_points()
+	_lifetime_label.text = "lifetime %d" % _pm.lifetime_passive_points
+	for node_id: String in _card_parts:
+		var parts: Dictionary = _card_parts[node_id]
+		var btn: Button = parts["btn"]
+		if not is_instance_valid(btn):
+			continue
+		var accent: Color = parts["accent"]
+		var st: Dictionary = _card_state(node_id, accent)
+		## Skip cards whose appearance can't have changed. Every colour and string on a card is a
+		## function of these four (accent and cost are fixed per node), so an identical signature
+		## means an identical card — and buying one rank typically leaves 55+ of the 59 untouched.
+		## Worth the check because restyling allocates five StyleBoxFlats per card.
+		var sig: Array = [int(st["ranks"]), bool(st["is_maxed"]),
+				bool(st["is_avail"]), bool(st["is_locked"])]
+		if parts.get("sig") == sig:
+			continue
+		parts["sig"] = sig
+		btn.disabled = not bool(st["is_avail"])
+		_style_node_btn(btn, st["bg"], st["border"], accent, int(parts["border_w"]))
+		var name_lbl: Label = parts["name"]
+		name_lbl.add_theme_color_override("font_color", st["name_col"])
+		var rank_lbl: Label = parts["rank"]
+		rank_lbl.text = "%d/%d" % [int(st["ranks"]), int(st["max_ranks"])]
+		rank_lbl.add_theme_color_override("font_color", st["rank_col"])
+		var desc_lbl: Label = parts["desc"]
+		desc_lbl.add_theme_color_override("font_color", st["desc_col"])
+		var state_lbl: Label = parts["state"]
+		state_lbl.text = st["state_text"]
+		state_lbl.add_theme_color_override("font_color", st["state_col"])
 
 
 # ── Interaction ────────────────────────────────────────────────────────────────
@@ -409,7 +488,9 @@ func _on_node_pressed(node_id: String) -> void:
 	if _pm.allocate(node_id):
 		_focus_node_id = node_id
 		AudioManager.play_ui("sfx_ui_purchase")
-		_rebuild()
+		## In-place restyle, not _rebuild(): buying a rank changes what cards LOOK like, never how
+		## many there are, so there is nothing to re-create. Keeps the click off the ~56ms path.
+		_refresh_cards()
 
 
 ## Ⓧ refunds one rank from the focused node (controller path; mouse uses
@@ -433,7 +514,7 @@ func _on_node_refund(node_id: String) -> void:
 	if _pm.refund_one(node_id):
 		_focus_node_id = node_id
 		AudioManager.play_ui("sfx_ui_cancel")
-		_rebuild()
+		_refresh_cards()
 		return
 
 	## Refused. This used to fall off the end of the function and do NOTHING — no sound, no text,
