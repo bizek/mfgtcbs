@@ -118,6 +118,9 @@ func _build_scaffold() -> void:
 	spacer.mouse_filter          = Control.MOUSE_FILTER_IGNORE
 	hdr.add_child(spacer)
 
+	## Single-rank refund hint (Ⓧ on pad, right-click on mouse)
+	_lbl(hdr, "Ⓧ / R-CLICK  refund 1", FS_TINY, C_DIM)
+
 	var respec := Button.new()
 	respec.text             = "RESPEC"
 	respec.focus_mode       = Control.FOCUS_ALL
@@ -362,6 +365,14 @@ func _build_node(parent: Control, node_id: String, accent: Color, width: int) ->
 		btn.focus_entered.connect(_on_node_focus_entered.bind(btn))
 		btn.focus_exited.connect(_stop_marquee.bind(btn))
 
+	## Right-click refunds one rank (gui_input fires even on disabled buttons,
+	## so maxed nodes can be refunded too).
+	var refund_id: String = node_id
+	btn.gui_input.connect(func(event: InputEvent):
+		if event is InputEventMouseButton and event.pressed \
+				and event.button_index == MOUSE_BUTTON_RIGHT:
+			_on_node_refund(refund_id))
+
 	## Line 3: state
 	var state_text: String
 	var state_col:  Color
@@ -387,6 +398,30 @@ func _on_node_pressed(node_id: String) -> void:
 	if _pm.allocate(node_id):
 		_focus_node_id = node_id
 		AudioManager.play_ui("sfx_ui_purchase")
+		_rebuild()
+
+
+## Ⓧ refunds one rank from the focused node (controller path; mouse uses
+## right-click via each button's gui_input).
+func _unhandled_input(event: InputEvent) -> void:
+	if not is_visible_in_tree():
+		return
+	if event is InputEventJoypadButton and event.pressed \
+			and event.button_index == JOY_BUTTON_X:
+		var focus_owner := get_viewport().gui_get_focus_owner()
+		for id: String in _node_buttons:
+			if _node_buttons[id] == focus_owner:
+				get_viewport().set_input_as_handled()
+				_on_node_refund(id)
+				return
+
+
+func _on_node_refund(node_id: String) -> void:
+	## refund_one validates gates: it refuses when removing this rank would
+	## strand points spent further down the tree.
+	if _pm.refund_one(node_id):
+		_focus_node_id = node_id
+		AudioManager.play_ui("sfx_ui_cancel")
 		_rebuild()
 
 

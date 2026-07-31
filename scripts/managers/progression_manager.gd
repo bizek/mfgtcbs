@@ -709,6 +709,82 @@ func allocate(node_id: String) -> bool:
 	save_data()
 	return true
 
+## True if one rank of `node_id` can be refunded without stranding any other
+## allocation behind a gate it could no longer have passed.
+func can_refund(node_id: String) -> bool:
+	if get_node_ranks(node_id) <= 0:
+		return false
+	return _valid_after_removing_rank(node_id)
+
+## Refund a single rank of `node_id` (points come back; allocation shrinks).
+## Returns false if the node has no ranks or removal would invalidate the tree.
+func refund_one(node_id: String) -> bool:
+	if not can_refund(node_id):
+		return false
+	var node: Dictionary = PassiveTreeData.NODES.get(node_id, {})
+	passive_points += int(node.get("cost", 1))
+	var remaining: int = get_node_ranks(node_id) - 1
+	if remaining <= 0:
+		passive_allocations.erase(node_id)
+	else:
+		passive_allocations[node_id] = remaining
+	save_data()
+	return true
+
+## Whether the allocation minus one rank of `node_id` is still purchasable in
+## SOME order — i.e. no surviving allocation is stranded behind its gate.
+## Gates only apply to a node's FIRST rank, and buying tiers bottom-up is
+## always the most permissive order, so the exact condition per branch is:
+## for every tier T holding ranks, ranks in tiers < T must cover the 3×T gate.
+## Bridges can always be bought last, so they just need one adjacent branch
+## at ≥4 ranks in the final state.
+func _valid_after_removing_rank(node_id: String) -> bool:
+	var sim: Dictionary = passive_allocations.duplicate()
+	sim[node_id] = int(sim.get(node_id, 0)) - 1
+	if int(sim[node_id]) <= 0:
+		sim.erase(node_id)
+
+	## Per-branch tier histogram (core is ungated; bridges handled separately).
+	var tier_ranks: Dictionary = {}  ## branch -> {tier: ranks}
+	for id: String in sim:
+		var n: Dictionary = PassiveTreeData.NODES.get(id, {})
+		var b: String = n.get("branch", "core")
+		if b == "core" or b == "bridge":
+			continue
+		if not tier_ranks.has(b):
+			tier_ranks[b] = {}
+		var t: int = int(n.get("tier", 0))
+		tier_ranks[b][t] = int(tier_ranks[b].get(t, 0)) + int(sim[id])
+
+	for b: String in tier_ranks:
+		var tiers: Array = tier_ranks[b].keys()
+		tiers.sort()
+		for t in tiers:
+			var lower_ranks: int = 0
+			for t2 in tiers:
+				if int(t2) < int(t):
+					lower_ranks += int(tier_ranks[b][t2])
+			if lower_ranks < int(t) * 3:
+				return false
+
+	for id: String in sim:
+		var n: Dictionary = PassiveTreeData.NODES.get(id, {})
+		if n.get("branch", "") != "bridge":
+			continue
+		var bridge_ok: bool = false
+		for adj: String in n.get("bridges", []):
+			var total: int = 0
+			for id2: String in sim:
+				if PassiveTreeData.NODES.get(id2, {}).get("branch") == adj:
+					total += int(sim[id2])
+			if total >= 4:
+				bridge_ok = true
+				break
+		if not bridge_ok:
+			return false
+
+	return true
+
 ## Return all spent points and clear every allocation.
 func refund_all() -> void:
 	var refund: int = 0
