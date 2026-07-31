@@ -739,6 +739,22 @@ func refund_one(node_id: String) -> bool:
 ## Bridges can always be bought last, so they just need one adjacent branch
 ## at ≥4 ranks in the final state.
 func _valid_after_removing_rank(node_id: String) -> bool:
+	return _removal_block_reason(node_id) == ""
+
+
+## Player-facing reason a single-rank refund is refused; "" when it is allowed.
+## Refusal is not a rare corner — it fires on roughly 1 in 13 attempts on ordinary builds, because
+## it triggers exactly when you pull a foundational rank out from under something gated. The UI
+## used to swallow those silently, which read as a dead button (Ben 2026-07-30).
+func refund_block_reason(node_id: String) -> String:
+	if get_node_ranks(node_id) <= 0:
+		return "NO RANKS TO REFUND"
+	return _removal_block_reason(node_id)
+
+
+## The gate that would break, named. Same rule as the bool above — this is the single source of
+## truth and _valid_after_removing_rank just asks whether it came back empty.
+func _removal_block_reason(node_id: String) -> String:
 	var sim: Dictionary = passive_allocations.duplicate()
 	sim[node_id] = int(sim.get(node_id, 0)) - 1
 	if int(sim[node_id]) <= 0:
@@ -765,7 +781,7 @@ func _valid_after_removing_rank(node_id: String) -> bool:
 				if int(t2) < int(t):
 					lower_ranks += int(tier_ranks[b][t2])
 			if lower_ranks < int(t) * 3:
-				return false
+				return "%s TIER %d NEEDS %d" % [b.to_upper(), int(t), int(t) * 3]
 
 	for id: String in sim:
 		var n: Dictionary = PassiveTreeData.NODES.get(id, {})
@@ -781,9 +797,12 @@ func _valid_after_removing_rank(node_id: String) -> bool:
 				bridge_ok = true
 				break
 		if not bridge_ok:
-			return false
+			var adjs: Array = []
+			for adj: String in n.get("bridges", []):
+				adjs.append(str(adj).to_upper())
+			return "%s NEEDS 4 %s" % [str(n.get("name", id)).to_upper(), " / ".join(adjs)]
 
-	return true
+	return ""
 
 ## Return all spent points and clear every allocation.
 func refund_all() -> void:

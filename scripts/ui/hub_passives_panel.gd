@@ -20,6 +20,11 @@ const C_BORDER    := Color(0.180, 0.170, 0.200)
 const C_DIM       := Color(0.360, 0.345, 0.400)
 const C_TEXT      := Color(0.820, 0.815, 0.870)
 const C_GOLD      := Color(0.945, 0.780, 0.320)
+const C_WARN      := Color(0.925, 0.365, 0.345)   ## refusal text (own name — not the Might red)
+
+## Header hint, and how long a refused-refund message replaces it before reverting.
+const REFUND_HINT   := "Ⓧ / R-CLICK  refund 1"
+const HINT_HOLD_SEC := 2.4
 
 ## Per-branch accent colors (headers, borders, connector lines).
 const C_CORE    := Color(0.945, 0.780, 0.320)   ## amber/gold
@@ -62,6 +67,8 @@ var _built:         bool            = false
 var _affinity:      String          = ""
 var _node_buttons:  Dictionary      = {}     ## node_id -> Button (for refocus after rebuild)
 var _focus_node_id: String          = ""
+var _refund_hint:   Label           = null   ## header hint; also carries the refusal reason
+var _hint_timer:    float           = -1.0   ## >0 while the refusal message is up
 
 
 func _ready() -> void:
@@ -118,8 +125,9 @@ func _build_scaffold() -> void:
 	spacer.mouse_filter          = Control.MOUSE_FILTER_IGNORE
 	hdr.add_child(spacer)
 
-	## Single-rank refund hint (Ⓧ on pad, right-click on mouse)
-	_lbl(hdr, "Ⓧ / R-CLICK  refund 1", FS_TINY, C_DIM)
+	## Single-rank refund hint (Ⓧ on pad, right-click on mouse). Doubles as the refusal line —
+	## a refused refund turns this red with the gate that would break, then it reverts.
+	_refund_hint = _lbl(hdr, REFUND_HINT, FS_TINY, C_DIM)
 
 	var respec := Button.new()
 	respec.text             = "RESPEC"
@@ -423,6 +431,34 @@ func _on_node_refund(node_id: String) -> void:
 		_focus_node_id = node_id
 		AudioManager.play_ui("sfx_ui_cancel")
 		_rebuild()
+		return
+
+	## Refused. This used to fall off the end of the function and do NOTHING — no sound, no text,
+	## no flash — so a correctly-refused refund was indistinguishable from a dead button. It is not
+	## a rare path either (~1 in 13 attempts): it fires precisely when you try to pull a
+	## foundational rank out from under a gated node. Say what broke. (Ben 2026-07-30.)
+	AudioManager.play_ui("sfx_ui_error")
+	var reason: String = _pm.refund_block_reason(node_id)
+	if _refund_hint:
+		_refund_hint.text = "CAN'T REFUND — %s" % reason if reason != "" else "CAN'T REFUND"
+		_refund_hint.add_theme_color_override("font_color", C_WARN)
+		_hint_timer = HINT_HOLD_SEC
+	## Flash the node itself so the refusal is attached to what you clicked (merchant_shop pattern).
+	var btn: Button = _node_buttons.get(node_id)
+	if btn and is_instance_valid(btn):
+		var t := btn.create_tween()
+		t.tween_property(btn, "modulate", Color(1.0, 0.35, 0.35), 0.05)
+		t.tween_property(btn, "modulate", Color.WHITE, 0.22)
+
+
+func _process(delta: float) -> void:
+	## Revert the header hint once the refusal message has had its moment.
+	if _hint_timer <= 0.0:
+		return
+	_hint_timer -= delta
+	if _hint_timer <= 0.0 and _refund_hint and is_instance_valid(_refund_hint):
+		_refund_hint.text = REFUND_HINT
+		_refund_hint.add_theme_color_override("font_color", C_DIM)
 
 
 func _on_respec() -> void:
