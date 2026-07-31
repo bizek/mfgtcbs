@@ -80,7 +80,10 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
 	_build_scaffold()
-	populate(ProgressionManager)
+	## No populate() here — hub._open_panel() calls it the moment it adds us to the tree, so a
+	## self-populate built the whole panel TWICE on every open. Measured on the passive tree
+	## (the worst case at 59 nodes / ~1175 controls): 112ms per open, of which half was the
+	## duplicate pass. Every hub panel had the same shape. (Ben 2026-07-30.)
 
 
 func populate(pm: Node) -> void:

@@ -85,7 +85,8 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
 	_build_codex_overlay()
-	populate(ProgressionManager)
+	## No populate() here — hub._open_panel() calls it the moment it adds us to the tree,
+	## so a self-populate built the whole panel TWICE on every open. (Ben 2026-07-30.)
 
 
 func populate(pm: Node) -> void:

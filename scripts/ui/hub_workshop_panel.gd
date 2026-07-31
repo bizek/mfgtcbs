@@ -32,7 +32,8 @@ func _ready() -> void:
 	_base.close_requested.connect(func(): close_requested.emit())
 	if Engine.is_editor_hint():
 		return
-	populate(ProgressionManager)
+	## No populate() here — hub._open_panel() calls it the moment it adds us to the tree,
+	## so a self-populate built the whole panel TWICE on every open. (Ben 2026-07-30.)
 
 
 func populate(pm: Node) -> void:
