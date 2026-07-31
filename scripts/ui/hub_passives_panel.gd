@@ -174,7 +174,9 @@ func _rebuild() -> void:
 	## navigation isn't dumped after an allocate rebuild.
 	if _focus_node_id != "" and _node_buttons.has(_focus_node_id):
 		var b: Button = _node_buttons[_focus_node_id]
-		if is_instance_valid(b) and not b.disabled:
+		if is_instance_valid(b):
+			## Maxed nodes stay focusable (just unpressable), so focus can
+			## remain on the node you just finished instead of hopping away.
 			b.call_deferred("grab_focus")
 		else:
 			## The node just maxed out and was rebuilt disabled/FOCUS_NONE.
@@ -309,7 +311,10 @@ func _build_node(parent: Control, node_id: String, accent: Color, width: int) ->
 	var btn := Button.new()
 	btn.custom_minimum_size = Vector2(width, min_h)
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn.focus_mode  = Control.FOCUS_ALL if is_avail else Control.FOCUS_NONE
+	## Every node is focusable — maxed/locked/broke nodes just can't be pressed
+	## (disabled and focus are independent). Skipping them made the selector
+	## bounce over gaps and stranded it once a branch's bottom node maxed out.
+	btn.focus_mode  = Control.FOCUS_ALL
 	btn.disabled    = not is_avail
 	btn.tooltip_text = "%s\n%s\nCost %d/rank" % [node.get("name", node_id), node.get("desc", ""), cost]
 	_style_node_btn(btn, bg_col, border_col, accent, border_w)
