@@ -23,7 +23,13 @@ const C_GOLD      := Color(0.945, 0.780, 0.320)
 const C_WARN      := Color(0.925, 0.365, 0.345)   ## refusal text (own name — not the Might red)
 
 ## Header hint, and how long a refused-refund message replaces it before reverting.
-const REFUND_HINT   := "Ⓧ / R-CLICK  refund 1"
+## The pad button that refunds a rank. Godot's JOY_BUTTON_* are SDL POSITIONS, not letters — this
+## is the left face button on every family (Xbox X, PlayStation Square, Nintendo Y), so the binding
+## itself is already correct everywhere and needs no input action. Only the printed glyph was wrong:
+## the hint was the literal string "Ⓧ / R-CLICK refund 1", which showed an Xbox letter to PlayStation
+## players and a pad glyph to people on keyboard. Built from InputGlyphs instead now, and shared with
+## _unhandled_input so the label and the button can't drift apart. (Ben 2026-07-30.)
+const REFUND_PAD_BUTTON := JOY_BUTTON_X
 const HINT_HOLD_SEC := 2.4
 
 ## Per-branch accent colors (headers, borders, connector lines).
@@ -131,7 +137,12 @@ func _build_scaffold() -> void:
 
 	## Single-rank refund hint (Ⓧ on pad, right-click on mouse). Doubles as the refusal line —
 	## a refused refund turns this red with the gate that would break, then it reverts.
-	_refund_hint = _lbl(hdr, REFUND_HINT, FS_TINY, C_DIM)
+	_refund_hint = _lbl(hdr, _refund_hint_text(), FS_TINY, C_DIM)
+	## Follow the active device the way every other prompt in the hub does — picking up a pad
+	## mid-session should swap this to the pad glyph without reopening the panel.
+	InputGlyphs.device_changed.connect(func(_is_pad: bool):
+		if _hint_timer <= 0.0 and is_instance_valid(_refund_hint):
+			_refund_hint.text = _refund_hint_text())
 
 	var respec := Button.new()
 	respec.text             = "RESPEC"
@@ -499,7 +510,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not is_visible_in_tree():
 		return
 	if event is InputEventJoypadButton and event.pressed \
-			and event.button_index == JOY_BUTTON_X:
+			and event.button_index == REFUND_PAD_BUTTON:
 		var focus_owner := get_viewport().gui_get_focus_owner()
 		for id: String in _node_buttons:
 			if _node_buttons[id] == focus_owner:
@@ -541,8 +552,19 @@ func _process(delta: float) -> void:
 		return
 	_hint_timer -= delta
 	if _hint_timer <= 0.0 and _refund_hint and is_instance_valid(_refund_hint):
-		_refund_hint.text = REFUND_HINT
+		_refund_hint.text = _refund_hint_text()
 		_refund_hint.add_theme_color_override("font_color", C_DIM)
+
+
+## "Ⓧ  refund 1" on a pad (whatever that family's left face button looks like), "R-CLICK  refund 1"
+## on mouse — never both, since only one of them is the device you're holding.
+func _refund_hint_text() -> String:
+	if InputGlyphs.using_joypad:
+		var ev := InputEventJoypadButton.new()
+		ev.button_index = REFUND_PAD_BUTTON
+		var glyph: String = InputGlyphs.event_glyph(ev, true)
+		return "%s  refund 1" % glyph
+	return "R-CLICK  refund 1"
 
 
 func _on_respec() -> void:
