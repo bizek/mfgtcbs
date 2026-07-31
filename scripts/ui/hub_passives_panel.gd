@@ -34,6 +34,12 @@ const FS_SM   := 16
 const FS_XS   := 14
 const FS_TINY := 13
 
+## Marquee for node text that overflows its card: waits, scrolls slowly to the
+## end, pauses there, snaps back, repeats — only while the node is focused.
+const MARQUEE_DELAY_S     := 0.8
+const MARQUEE_SPEED_PX_S  := 20.0
+const MARQUEE_END_PAUSE_S := 1.0
+
 ## char_class → affinity branch (flavor-only highlight, spec §1). Adding Druid/Cleric
 ## later is a one-line change here — no other code touches this table.
 const CLASS_BRANCH := {
@@ -336,18 +342,20 @@ func _build_node(parent: Control, node_id: String, accent: Color, width: int) ->
 		display_name = "★ " + display_name
 	elif is_notable:
 		display_name = "◆ " + display_name
-	var name_lbl := _lbl(top, display_name, FS_TINY, name_col)
-	name_lbl.clip_text = true
-	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var name_clip := _marquee_lbl(top, display_name, FS_TINY, name_col)
 
 	var rank_col: Color = C_GOLD if is_maxed else (accent if ranks > 0 else C_DIM)
 	_lbl(top, "%d/%d" % [ranks, max_r], FS_TINY, rank_col)
 
-	## Line 2: effect text (clipped; full text in the tooltip)
-	var eff_lbl := _lbl(vb, node.get("desc", ""), FS_TINY,
+	## Line 2: effect text (marquee-scrolls on focus when it overflows;
+	## full text also in the tooltip for mouse users)
+	var eff_clip := _marquee_lbl(vb, node.get("desc", ""), FS_TINY,
 		C_DIM if (is_locked) else Color(name_col.r, name_col.g, name_col.b, 0.85))
-	eff_lbl.clip_text = true
-	eff_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	if btn.focus_mode == Control.FOCUS_ALL:
+		btn.set_meta("marquee_wrappers", [name_clip, eff_clip])
+		btn.focus_entered.connect(_on_node_focus_entered.bind(btn))
+		btn.focus_exited.connect(_stop_marquee.bind(btn))
 
 	## Line 3: state
 	var state_text: String
@@ -433,6 +441,66 @@ func _tier_connector(parent: Control, accent: Color) -> void:
 	line.custom_minimum_size = Vector2(2, 6)
 	line.color               = Color(accent.r, accent.g, accent.b, 0.40)
 	wrap.add_child(line)
+
+
+## A clipped single-line label that can marquee-scroll horizontally. Returns
+## the clipping wrapper; the inner Label rides in its "marquee_label" meta.
+func _marquee_lbl(parent: Control, text: String, sz: int, col: Color) -> Control:
+	var clip := Control.new()
+	clip.clip_contents = true
+	clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	clip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.add_theme_font_override("font", FONT)
+	lbl.add_theme_font_size_override("font_size", sz)
+	lbl.add_theme_color_override("font_color", col)
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	clip.add_child(lbl)
+	lbl.size = lbl.get_minimum_size()
+	clip.custom_minimum_size = Vector2(0, lbl.size.y)
+	clip.set_meta("marquee_label", lbl)
+	parent.add_child(clip)
+	return clip
+
+
+func _on_node_focus_entered(btn: Button) -> void:
+	## Measure a frame later — focus often lands via deferred grab right after
+	## a rebuild, before the card has its final width.
+	get_tree().process_frame.connect(func():
+		if is_instance_valid(btn) and btn.has_focus():
+			_start_marquee(btn)
+	, CONNECT_ONE_SHOT)
+
+
+func _start_marquee(btn: Button) -> void:
+	_stop_marquee(btn)
+	var tweens: Array = []
+	for clip: Control in btn.get_meta("marquee_wrappers", []):
+		if not is_instance_valid(clip):
+			continue
+		var lbl: Label = clip.get_meta("marquee_label")
+		var overflow: float = lbl.size.x - clip.size.x
+		if overflow <= 1.0:
+			continue
+		var t := btn.create_tween().set_loops()
+		t.tween_interval(MARQUEE_DELAY_S)
+		t.tween_property(lbl, "position:x", -overflow, overflow / MARQUEE_SPEED_PX_S)
+		t.tween_interval(MARQUEE_END_PAUSE_S)
+		t.tween_callback(func(): lbl.position.x = 0.0)
+		tweens.append(t)
+	btn.set_meta("marquee_tweens", tweens)
+
+
+func _stop_marquee(btn: Button) -> void:
+	for t: Tween in btn.get_meta("marquee_tweens", []):
+		if t != null and t.is_valid():
+			t.kill()
+	btn.set_meta("marquee_tweens", [])
+	for clip: Control in btn.get_meta("marquee_wrappers", []):
+		if is_instance_valid(clip):
+			var lbl: Label = clip.get_meta("marquee_label")
+			lbl.position.x = 0.0
 
 
 func _lbl(parent: Control, text: String, sz: int, col: Color) -> Label:
