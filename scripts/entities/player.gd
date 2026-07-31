@@ -352,9 +352,17 @@ const DEMON_SPECIAL_DIR: String = "res://assets/minifantasy/Minifantasy_True_Vil
 ## itself, catches fire, and gutters out. Dropped under the Brimstone Circle finisher as a ground
 ## decal (z -1) scaled to the zone radius.
 const BRIMSTONE_SIGIL_SHEET: String = DEMON_SPECIAL_DIR + "Summon_Demon/Standalone_Summon.png"
-## Must equal ChainFactory.BRIMSTONE_ZONE_TIME — the sigil has to gutter out on the frame its ground
-## zone stops burning. 18 frames spread across that life gives the playback fps.
-const BRIMSTONE_SIGIL_LIFE: float = 4.0
+## The pack's authored rate (Summon_Demon/AnimationInfo.txt: 100ms per frame for every animation in
+## the folder), so 18 frames run in 1.8s.
+##
+## This used to be computed as FRAMES / BRIMSTONE_ZONE_TIME so the sigil guttered out on the exact
+## frame the ground zone stopped burning — which meant playing an 18-frame animation across 4
+## seconds, i.e. 4.5fps. Ben called it out on 2026-07-30: the circle visibly stepped rather than
+## burned. The stretch was never needed, because the zone already draws its own footprint —
+## CombatOrchestrator._spawn_ground_zone_vfx builds a GroundZoneVfx from vfx_element ("fire" here)
+## that plays intro → LOOP → outro for the whole duration. The sigil is the one-shot flourish on
+## top of that, not the thing carrying the burn.
+const BRIMSTONE_SIGIL_FPS: float = 10.0
 const BRIMSTONE_SIGIL_FRAMES: int = 18
 ## Archdemon_Call_Spell: 32px, 1 row, 27f — the pentagram opens, the archdemon puts its head
 ## through, bites, and sinks back. World-anchored at the cursor over the Archdemon's Call zone.
@@ -2200,11 +2208,11 @@ func _spawn_mirror_archer(ability: AbilityDefinition) -> void:
 
 
 ## Brimstone Circle (Demonologist finisher): the pack's Standalone_Summon sigil — the circle draws
-## itself, ignites and gutters out — laid flat UNDER the bodies (z -1) at the ground zone's radius,
-## its fps stretched so the fire dies exactly when the zone stops burning.
+## itself, ignites and gutters out — laid flat UNDER the bodies (z -1) at the ground zone's radius.
+## Plays at the pack's own rate; the zone's GroundZoneVfx covers the rest of the burn.
 func _spawn_brimstone_sigil(at: Vector2, radius: float) -> void:
-	var fps: float = float(BRIMSTONE_SIGIL_FRAMES) / maxf(BRIMSTONE_SIGIL_LIFE, 0.01)
-	var fx: AnimatedSprite2D = _spawn_pack_fx(BRIMSTONE_SIGIL_SHEET, at, 32, 0, fps, false, -1)
+	var fx: AnimatedSprite2D = _spawn_pack_fx(BRIMSTONE_SIGIL_SHEET, at, 32, 0,
+			BRIMSTONE_SIGIL_FPS, false, -1)
 	_scale_pack_fx(fx, radius)
 
 
