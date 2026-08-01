@@ -153,7 +153,11 @@ const ALL: Dictionary = {
 		"desc": "The whetstone carries a keener edge — +12% crit chance while equipped.",
 		"color": Color(0.7, 0.9, 0.7),
 		"op": "modifier",
-		"params": { "stat": "crit_chance", "op": "bonus", "value": 0.12 },
+		## "add", not "bonus": DamageCalculator rolls crit off sum_modifiers("crit_chance", "add")
+		## and nothing calls get_stat("crit_chance"), so a "bonus" entry was never read. The value is
+		## unchanged because "add" is already the percentage-point convention the level-up
+		## Critical Strike upgrade and every passive-tree crit node use (fixed 2026-08-01).
+		"params": { "stat": "crit_chance", "op": "add", "value": 0.12 },
 	},
 	"ninja_choking_smoke": {
 		"id": "ninja_choking_smoke",
@@ -162,7 +166,10 @@ const ALL: Dictionary = {
 		"desc": "The Whisper's smoky aura weakens enemies — take 12% less damage while equipped.",
 		"color": Color(0.5, 0.5, 0.55),
 		"op": "modifier",
-		"params": { "stat": "damage_taken", "op": "bonus", "value": -0.12 },
+		## ("All", "damage_taken"), not ("damage_taken", "bonus") — see SkillFactory._ward_buff.
+		## DamageCalculator only ever reads reduction as (damage_type|"All", "damage_taken"), so the
+		## old pair was never looked up and this mod reduced nothing (fixed 2026-08-01).
+		"params": { "stat": "All", "op": "damage_taken", "value": -0.12 },
 	},
 
 	## ── Cleric (The Devout) ───────────────────────────────────────────────────────────────────
@@ -204,7 +211,8 @@ const ALL: Dictionary = {
 		"desc": "Sanctuary's blessing runs deeper — take 15% less damage while equipped.",
 		"color": Color(0.75, 0.95, 1.0),
 		"op": "modifier",
-		"params": { "stat": "damage_taken", "op": "bonus", "value": -0.15 },
+		## ("All", "damage_taken") — the ("damage_taken", "bonus") pair is never read. See above.
+		"params": { "stat": "All", "op": "damage_taken", "value": -0.15 },
 	},
 
 	## ── Druid (The Verdant) ───────────────────────────────────────────────────────────────────
@@ -506,7 +514,8 @@ const ALL: Dictionary = {
 		"desc": "The Ravager's guard is iron — take 18% less damage while equipped.",
 		"color": Color(0.65, 0.65, 0.75),
 		"op": "modifier",
-		"params": { "stat": "damage_taken", "op": "bonus", "value": -0.18 },
+		## ("All", "damage_taken") — the ("damage_taken", "bonus") pair is never read. See above.
+		"params": { "stat": "All", "op": "damage_taken", "value": -0.18 },
 	},
 	"barbarian_deafening_cry": {
 		"id": "barbarian_deafening_cry",
@@ -557,7 +566,8 @@ const ALL: Dictionary = {
 		"desc": "Loaded chambers keep the edge sharp — +10% crit chance while equipped.",
 		"color": Color(0.9, 0.8, 0.55),
 		"op": "modifier",
-		"params": { "stat": "crit_chance", "op": "bonus", "value": 0.10 },
+		## "add", not "bonus" — see ninja_honed_edge above.
+		"params": { "stat": "crit_chance", "op": "add", "value": 0.10 },
 	},
 }
 

@@ -37,7 +37,7 @@ func setup(player: Node2D, depth_tracker: DepthTracker) -> void:
 	_character_id = ProgressionManager.selected_character
 	_last_loot_value = GameManager.loot_carried
 
-	GameManager.player_died.connect(_on_player_died)
+	GameManager.run_failed.connect(_on_run_failed)
 	GameManager.extraction_successful.connect(_on_extraction_successful)
 	GameManager.loot_changed.connect(_on_loot_changed)
 	EventBus.on_kill.connect(_on_kill)
@@ -111,8 +111,8 @@ func _on_loot_changed(new_value: float) -> void:
 	_last_loot_value = new_value
 
 
-func _on_player_died() -> void:
-	_finalize("death")
+func _on_run_failed(abandoned: bool) -> void:
+	_finalize("abandon" if abandoned else "death")
 
 
 func _on_extraction_successful() -> void:
@@ -135,7 +135,9 @@ func _finalize(outcome: String) -> void:
 		"final_level": _player.level if is_instance_valid(_player) else 0,
 		"gold_earned": _gold_earned,
 		"gold_spent": _gold_spent,
-		"gold_carried_at_end": GameManager.loot_carried if outcome == "death" else GameManager.last_run_loot,
+		## Only extraction banks the run's loot into last_run_loot; every losing outcome (death,
+		## abandon) still has it sitting on the player, so read it from there.
+		"gold_carried_at_end": GameManager.last_run_loot if outcome == "extraction" else GameManager.loot_carried,
 		"peak_instability": GameManager.peak_instability,
 		"weapons_collected": GameManager.collected_weapons.duplicate(),
 		"mods_collected": GameManager.collected_mods.duplicate(),

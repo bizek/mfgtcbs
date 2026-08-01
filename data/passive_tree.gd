@@ -102,7 +102,11 @@ const NODES: Dictionary = {
 	"m_crusher": {
 		"name": "Crusher", "branch": "might", "tier": 2, "cost": 1, "max_ranks": 2,
 		"desc": "+12% Crit Multiplier per rank",
-		"effects": [{"stat": "crit_multiplier", "op": "bonus", "value": 0.12}],
+		## "add", not "bonus": crit damage is read as sum_modifiers("crit_multiplier", "add") and
+		## nothing calls get_stat("crit_multiplier"), so "bonus" nodes granted nothing. Note the
+		## crit_chance nodes in this same file already use "add" — these four were the odd ones out
+		## (fixed 2026-08-01). Values unchanged; "add" is already the +% convention here.
+		"effects": [{"stat": "crit_multiplier", "op": "add", "value": 0.12}],
 	},
 	"m_juggernaut": {
 		"name": "Juggernaut", "branch": "might", "tier": 2, "cost": 1, "max_ranks": 2,
@@ -144,7 +148,7 @@ const NODES: Dictionary = {
 		"desc": "+8% Damage AND +8% Crit Multiplier per rank",
 		"effects": [
 			{"stat": "All", "op": "bonus", "value": 0.08},
-			{"stat": "crit_multiplier", "op": "bonus", "value": 0.08},
+			{"stat": "crit_multiplier", "op": "add", "value": 0.08},
 		],
 	},
 	"m_titan_grip": {
@@ -179,7 +183,7 @@ const NODES: Dictionary = {
 	"f_sharpened": {
 		"name": "Sharpened Edges", "branch": "finesse", "tier": 1, "cost": 1, "max_ranks": 2,
 		"desc": "+10% Crit Multiplier per rank",
-		"effects": [{"stat": "crit_multiplier", "op": "bonus", "value": 0.10}],
+		"effects": [{"stat": "crit_multiplier", "op": "add", "value": 0.10}],
 	},
 	"f_quickdraw": {
 		"name": "Quickdraw", "branch": "finesse", "tier": 1, "cost": 1, "max_ranks": 2,
@@ -221,7 +225,7 @@ const NODES: Dictionary = {
 		"desc": "+3% Crit Chance AND +15% Crit Multiplier",
 		"effects": [
 			{"stat": "crit_chance", "op": "add", "value": 0.03},
-			{"stat": "crit_multiplier", "op": "bonus", "value": 0.15},
+			{"stat": "crit_multiplier", "op": "add", "value": 0.15},
 		],
 	},
 	"f_opportunist": {

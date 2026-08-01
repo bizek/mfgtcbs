@@ -11,12 +11,61 @@ var _conversions: Array[ConversionDefinition] = []
 var _cache: Dictionary = {}
 var _cache_dirty: bool = true
 
+## ── Silent-miss guard (added 2026-08-01 after six live modifiers turned out to do nothing) ──
+## Queries are an exact "tag:operation" dictionary lookup, so a modifier filed under a pair no
+## reader ever asks for is simply never seen: no error, no warning, the buff applies and displays
+## normally and changes nothing. That is how Second Wind / Lay on Hands / Sanctuary's wards, three
+## class mods, and four passive-tree crit nodes all shipped dead.
+##
+## These two tables encode the pairings the readers actually use. They are deliberately narrow —
+## they only catch the mistake that has actually happened (a right-sounding tag with the wrong
+## operation), so anything not listed passes untouched.
+##
+## Tags that are only ever summed with ONE operation. DamageCalculator reads crit/block/dodge as
+## ("<tag>", "add") and nothing calls get_stat() on them, so "bonus" on these is dead.
+const STRICT_OP: Dictionary = {
+	"crit_chance": "add", "crit_multiplier": "add",
+	"block_chance": "add", "block_mitigation": "add", "dodge_chance": "add",
+}
+## Names that are OPERATIONS in the damage pipeline and are NOT also stat tags, so they must never
+## appear as a target_tag. The tag for these is a damage type or "All" — e.g. ("All",
+## "damage_taken"), not ("damage_taken", <anything>). Verified by grepping get_stat("<name>"):
+## zero callers for all three.
+##
+## "pierce" is deliberately ABSENT even though it is an operation too — it is genuinely dual-use.
+## ("<DamageType>", "pierce") is resistance penetration in DamageCalculator, while ("pierce", "add")
+## is the projectile pierce COUNT read by player.get_stat("pierce"). Listing it here made this guard
+## flag the correct passive-tree node f_fletcher on its first run. A guard that cries wolf on working
+## content is worse than no guard, so keep this list to names with no legitimate tag use.
+const NEVER_A_TAG: Array[String] = ["damage_taken", "vulnerability", "resist"]
+
 
 # --- Modifier management ---
 
 func add_modifier(mod: ModifierDefinition) -> void:
+	if OS.is_debug_build():
+		_warn_if_unreadable(mod)
 	_modifiers.append(mod)
 	_cache_dirty = true
+
+
+## Debug-only. Flags a modifier whose tag/operation pair no reader will ever query, naming the
+## source so the offending factory entry is findable. Never raises — a false positive must not be
+## able to break a run.
+func _warn_if_unreadable(mod: ModifierDefinition) -> void:
+	if mod == null:
+		return
+	var tag: String = mod.target_tag
+	var op: String = mod.operation
+	if STRICT_OP.has(tag) and op != STRICT_OP[tag]:
+		push_warning(("ModifierComponent: (\"%s\", \"%s\") from source \"%s\" is never read — " +
+			"\"%s\" is only summed with \"%s\". This modifier will silently do nothing.") % [
+			tag, op, mod.source_name, tag, STRICT_OP[tag]])
+	elif tag in NEVER_A_TAG:
+		push_warning(("ModifierComponent: (\"%s\", \"%s\") from source \"%s\" is never read — " +
+			"\"%s\" is an OPERATION, not a tag. Use target_tag \"All\" (or a damage type) with " +
+			"operation \"%s\". This modifier will silently do nothing.") % [
+			tag, op, mod.source_name, tag, tag])
 
 
 func remove_modifier(mod: ModifierDefinition) -> void:

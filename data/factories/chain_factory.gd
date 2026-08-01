@@ -528,28 +528,20 @@ static func build_paladin_light(weapon_data: Dictionary) -> AbilityDefinition:
 
 
 # --- Paladin: heavy combo (RMB tap) ---
-## Shield Bash → Holy Hammer. Shove them back, then bring the hammer down. 0 Bash · 1 Hammer.
+## Holy Hammer, and nothing else (Ben 2026-08-01: "could be the sole ability for right click instead
+## of having the shield bash again"). The RMB tap used to open on Shield Bash, but the Warden already
+## reaches Shield Bash from the light chain (node 2) — spending the neutral RMB on a repeat of it
+## meant the hammer, his signature, was always one input away. Now RMB throws immediately and every
+## further RMB throws another, so the hammerdin spiral is something you build up by mashing rather
+## than a finisher you have to earn twice. Single phase, loops on itself.
 static func build_paladin_heavy(weapon_data: Dictionary) -> AbilityDefinition:
 	var dmg: float = weapon_data.get("damage", 42.0)
 	var dtype: String = _damage_type(weapon_data)
 
-	# 0 — Shield Bash: opener; RMB again → Holy Hammer.
-	var bash := ChoreographyPhase.new()
-	bash.animation = "bash"
-	bash.hit_frame = 3
-	bash.effects = [_aoe(dtype, dmg * 0.6, BASH_RADIUS, BASH_FORWARD)]
-	bash.exit_type = "wait"
-	bash.wait_duration = HEAVY_WIN
-	bash.default_next = -1
-	bash.branches = [
-		_branch_buffered("heavy_attack", 1),               # RMB → Holy Hammer
-	]
-
-	# 1 — Holy Hammer (shared finisher; loops on RMB for more hammers).
-	var hammer := _hammer_phase(dtype, dmg, 1)
+	var hammer := _hammer_phase(dtype, dmg, 0)
 
 	var choreo := ChoreographyDefinition.new()
-	choreo.phases = [bash, hammer]
+	choreo.phases = [hammer]
 	return _ability("paladin_heavy", "Warden Heavy", choreo)
 
 
@@ -676,9 +668,18 @@ static func build_wizard_fireball(weapon_data: Dictionary) -> AbilityDefinition:
 
 	# 1 — Release: the cast snaps to full speed and the Fireball flies. The base effect here
 	# is the floor; player.gd swaps in a charge-scaled copy at the hit frame.
+	#
+	# The release RESUMES the sheet instead of restarting it (Ben 2026-08-01: "right click charge
+	# animation is playing twice"). Both phases slice the same 11-column Wizard_Fireball_Diagonal
+	# sheet: the charge holds on columns 0-6, so a release that also began at column 0 replayed the
+	# whole wind-up — at the Lab's 11fps that was ~0.6s of watching the charge again before the
+	# throw. anim_overrides.json now trims fireball_2 to columns 7-10 (the throw and its
+	# follow-through), which is where the charge left off. Measured from the art: the fireball only
+	# leaves the hand on sheet column 9 = index 2 of the trimmed anim, so that is the hit frame.
+	# 16fps replaces the 11fps that was chosen to make the doubled anim readable — retune in the Lab.
 	var release := ChoreographyPhase.new()
 	release.animation = "fireball_2"
-	release.hit_frame = 6
+	release.hit_frame = 2
 	release.effects = [_wizard_fireball(dtype, dmg)]
 	release.exit_type = "anim_finished"
 	release.default_next = -1
@@ -690,9 +691,14 @@ static func build_wizard_fireball(weapon_data: Dictionary) -> AbilityDefinition:
 
 # --- Blood Mage: light combo (LMB) ---
 ## The Cursed — blood pays for power. Cursor-aimed shard projectiles into a 3-shard volley;
-## held LMB mid-chain sacrifices HP for Extract Power (+damage buff); gated mid-combo RMB
-## summons the Blood Elemental. Phase indices:
-## 0 Shard · 1 Shard II · 2 Blood Shards volley · 3 Extract Power · 4 Summon Blood Elemental.
+## held LMB mid-chain sacrifices HP for Extract Power (+damage buff). Phase indices:
+## 0 Shard · 1 Shard II · 2 Blood Shards volley · 3 Extract Power.
+##
+## The Blood Elemental used to live here as a gated node 4 reachable by RMB from nodes 1 and 2. It
+## moved to the Q slot on 2026-08-01 (SkillFactory.build_blood_mage_blood_elemental) — burying the
+## kit's only companion behind a two-hit combo gate meant it barely came out. With the node gone,
+## mid-chain RMB now does what it does in every other kit: the opener grace in player._tick_combo
+## cancels into the heavy opener (Blood Slam), so nothing dead-ends.
 static func build_blood_mage_light(weapon_data: Dictionary) -> AbilityDefinition:
 	var dmg: float = weapon_data.get("damage", 42.0)
 	var dtype: String = _damage_type(weapon_data)
@@ -721,7 +727,6 @@ static func build_blood_mage_light(weapon_data: Dictionary) -> AbilityDefinition
 	shard2.branches = [
 		_branch_held("light_attack", HOLD_ENTER, 3),       # hold → Extract Power
 		_branch_buffered("light_attack", 2),               # tap  → Blood Shards volley
-		_branch_buffered("heavy_attack", 4),               # RMB  → Summon Blood Elemental
 	]
 
 	# 2 — Blood Shards volley (finisher: 3-shard spread; loops back to Shard on a fresh tap).
@@ -734,7 +739,6 @@ static func build_blood_mage_light(weapon_data: Dictionary) -> AbilityDefinition
 	volley.default_next = -1
 	volley.is_finisher = true
 	volley.branches = [
-		_branch_buffered("heavy_attack", 4),               # RMB → Summon Blood Elemental
 		_branch_buffered("light_attack", 0),               # tap → loop to Shard
 	]
 
@@ -747,18 +751,8 @@ static func build_blood_mage_light(weapon_data: Dictionary) -> AbilityDefinition
 	extract.exit_type = "anim_finished"
 	extract.default_next = -1
 
-	# 4 — Summon Blood Elemental (gated finisher; terminal). Ignition burst fires here;
-	# player.gd spawns/refreshes the BloodElemental on the same hit_frame.
-	var summon := ChoreographyPhase.new()
-	summon.animation = "summon_blood"
-	summon.hit_frame = 10
-	summon.effects = [_aoe(dtype, dmg * 0.4, 24.0)]
-	summon.exit_type = "anim_finished"
-	summon.default_next = -1
-	summon.is_finisher = true
-
 	var choreo := ChoreographyDefinition.new()
-	choreo.phases = [shard, shard2, volley, extract, summon]
+	choreo.phases = [shard, shard2, volley, extract]
 	return _ability("blood_mage_light", "Cursed Combo", choreo)
 
 
@@ -1283,6 +1277,7 @@ static func _thunder_bolt(hit_damage: float) -> SpawnProjectilesEffect:
 	cfg.speed = 300.0
 	cfg.max_range = 230.0
 	cfg.hit_radius = 8.0
+	_steer(cfg, BOLT_SEEK, BOLT_CONE, BOLT_TURN_R)
 	cfg.sprite_frames = _get_thunder_proj_frames()
 	cfg.use_directional_anims = true
 	var hit := DealDamageEffect.new()
@@ -1851,6 +1846,7 @@ static func _divine_fire_bolt(hit_damage: float) -> SpawnProjectilesEffect:
 	cfg.speed = 250.0
 	cfg.max_range = 220.0
 	cfg.hit_radius = 8.0
+	_steer(cfg, BOLT_SEEK, BOLT_CONE, BOLT_TURN_R)
 	cfg.sprite_frames = _grid8_frames(CLERIC_DF_DIR + "DivineFireProjectile.png", "_divine_fire_frames")
 	cfg.use_directional_anims = true
 	var hit := DealDamageEffect.new()
@@ -1901,6 +1897,7 @@ static func _bone_projectile(dtype: String, hit_damage: float, speed: float = 24
 	cfg.speed = speed
 	cfg.max_range = range_px
 	cfg.hit_radius = 8.0
+	_steer(cfg, BONE_SEEK, BONE_CONE, BONE_TURN_R)
 	cfg.sprite_frames = _get_bone_missile_frames()
 	cfg.use_directional_anims = false
 	cfg.animation = "default"                              # animate the 8-frame spin in flight
@@ -1990,6 +1987,7 @@ static func _bullet_config(dtype: String, hit_damage: float, impact: SpriteFrame
 	cfg.speed = 460.0
 	cfg.max_range = 250.0
 	cfg.hit_radius = 6.0
+	_steer(cfg, BULLET_SEEK, BULLET_CONE, BULLET_TURN_R)
 	cfg.sprite_frames = _get_bullet_frames()
 	var hit := DealDamageEffect.new()
 	hit.damage_type = dtype
@@ -2080,15 +2078,68 @@ const GRID8_CELLS: Dictionary = {
 }
 
 
-## Arrow steering (Ben 2026-07-29: "the arrows fire kinda wonky, and its hard to hit the extra
-## arrows that fly out"). Arrows stay "directional" — an arrow loosed at nothing flies dead
-## straight — but once one finds a live target inside a narrow forward cone it bends into it at a
-## capped rate. Player projectiles travel at 300 x PLAYER_PROJECTILE_SPEED_SCALE (0.55) = 165 px/s,
-## so ARROW_TURN gives a ~79px turn radius: enough to reclaim the tens of pixels a fan arrow throws
-## away, nowhere near enough to chase a target that is genuinely off to the side.
+## ── Projectile steering, kit-wide (Ben 2026-08-01: "make most character projectiles into homing
+## projectiles"). Started as the Scavenger's arrows (2026-07-29: "the arrows fire kinda wonky, and
+## its hard to hit the extra arrows that fly out") and is now the shared language for every player
+## projectile that isn't deliberately dumb.
+##
+## Nothing here uses motion_type = "homing" — that is the legacy uncapped shape, which re-points at
+## its target every frame and is unmissable. These stay "directional": a shot loosed at nothing flies
+## dead straight, and only bends once it finds a live body inside a narrow forward cone. So aim still
+## matters; the steering only reclaims the tens of pixels a spread arm or a sidestep throws away.
+##
+## Tuning is expressed as a TURN RADIUS IN PIXELS, not deg/sec, because the same deg/sec reads
+## completely differently on a 170px/s fireball and a 460px/s bullet. _steer() converts, using the
+## same PLAYER_PROJECTILE_SPEED_SCALE (0.55) the manager applies at spawn. Smaller radius = tighter
+## curve. Rule of thumb: ~80px is "corrects a near miss", ~150px is "leans", ~300px is barely there.
 const ARROW_SEEK: float = 110.0     ## acquire this far out — early enough to correct over the flight
 const ARROW_CONE: float = 35.0      ## half-angle it may acquire within; never turns backwards
-const ARROW_TURN: float = 120.0     ## deg/sec heading cap — a curve, not a snap
+const ARROW_TURN_R: float = 79.0    ## ≈120 deg/sec at arrow speed — the original, unchanged
+
+## Caster ammo (bone bolt, firebolt, blood shard, divine fire, thunder bolt). A shade lazier than an
+## arrow: these classes get their accuracy from volume, so the correction is a nudge, not a leash.
+const BOLT_SEEK: float = 110.0
+const BOLT_CONE: float = 35.0
+const BOLT_TURN_R: float = 88.0
+
+## Summoned bone. The Shade's whole identity is guided ammo, and the Bone Swirl burst fires RADIALLY
+## with nothing aimed — a wider cone lets each bone claim whatever is out in its own direction
+## instead of sailing past it (Ben 2026-08-01: "they need to be homing").
+const BONE_SEEK: float = 130.0
+const BONE_CONE: float = 48.0
+const BONE_TURN_R: float = 78.0
+
+## Heavy committed ordnance (the Spark's charged Fireball). It is slow, it explodes, and the splash
+## already forgives a near miss — so it leans toward a target rather than tracking one.
+const HEAVY_SEEK: float = 130.0
+const HEAVY_CONE: float = 22.0
+const HEAVY_TURN_R: float = 150.0
+
+## Near-hitscan bullets. The Gunslinger stays a precision class: a narrow cone and a wide radius mean
+## a bullet only ever corrects onto something it was already very nearly pointed at.
+const BULLET_SEEK: float = 100.0
+const BULLET_CONE: float = 20.0
+const BULLET_TURN_R: float = 165.0
+
+## Thrown steel — heavier than an arrow, corrects lazily. Enough that a committed finisher isn't
+## thrown away by a step, not enough to track a target that genuinely dodges it.
+const KNIFE_SEEK: float = 110.0
+const KNIFE_CONE: float = 25.0
+const KNIFE_TURN_R: float = 117.0
+
+
+## Give a projectile the seek + capped-turn treatment. `turn_radius_px` is the tightest circle it can
+## fly at its own speed; converted to the deg/sec cap ProjectileConfig actually stores.
+## Call AFTER cfg.speed is set — the conversion reads it.
+static func _steer(cfg: ProjectileConfig, seek_radius: float, cone_deg: float,
+		turn_radius_px: float) -> void:
+	cfg.seek_radius = seek_radius
+	cfg.seek_cone = cone_deg
+	if turn_radius_px <= 0.0:
+		cfg.homing_turn_rate = 0.0   ## uncapped = the unmissable legacy shape; never what we want here
+		return
+	var travel_speed: float = cfg.speed * ProjectileManager.PLAYER_PROJECTILE_SPEED_SCALE
+	cfg.homing_turn_rate = rad_to_deg(travel_speed / turn_radius_px)
 
 
 ## ── Quiver heads (the Scavenger's E stance, Ben 2026-07-31) ──────────────────────────────────
@@ -2182,9 +2233,7 @@ static func _elemental_bolt(dtype: String, damage: float) -> SpawnProjectilesEff
 	cfg.speed = 280.0
 	cfg.max_range = 240.0
 	cfg.hit_radius = 8.0
-	cfg.seek_radius = ARROW_SEEK
-	cfg.seek_cone = ARROW_CONE
-	cfg.homing_turn_rate = ARROW_TURN
+	_steer(cfg, ARROW_SEEK, ARROW_CONE, ARROW_TURN_R)
 	cfg.sprite_frames = _grid8_frames(
 			RANGER_ASSET_DIR + "Special_Animations/Double_Shot/Double_Arrow_Projectile.png",
 			"_double_arrow_frames")
@@ -2214,9 +2263,7 @@ static func _arrow_volley(dtype: String, per_arrow: float, count: int, spread: f
 	cfg.speed = 300.0
 	cfg.max_range = 240.0
 	cfg.hit_radius = 6.0
-	cfg.seek_radius = ARROW_SEEK
-	cfg.seek_cone = ARROW_CONE
-	cfg.homing_turn_rate = ARROW_TURN
+	_steer(cfg, ARROW_SEEK, ARROW_CONE, ARROW_TURN_R)
 	cfg.sprite_frames = _grid8_frames(RANGER_ASSET_DIR + "General_Animations/Single_Arrow_Projectile.png", "_arrow_frames")
 	cfg.use_directional_anims = true
 	var hit := DealDamageEffect.new()
@@ -2242,9 +2289,7 @@ static func _double_arrow(dtype: String, damage: float) -> SpawnProjectilesEffec
 	cfg.speed = 300.0
 	cfg.max_range = 240.0
 	cfg.hit_radius = 7.0                ## a shade fatter than a single arrow — it is two of them
-	cfg.seek_radius = ARROW_SEEK
-	cfg.seek_cone = ARROW_CONE
-	cfg.homing_turn_rate = ARROW_TURN
+	_steer(cfg, ARROW_SEEK, ARROW_CONE, ARROW_TURN_R)
 	cfg.sprite_frames = _grid8_frames(
 			RANGER_ASSET_DIR + "Special_Animations/Double_Shot/Double_Arrow_Projectile.png",
 			"_double_arrow_frames")
@@ -2269,11 +2314,7 @@ static func _throwing_knife(dtype: String, hit_damage: float) -> SpawnProjectile
 	cfg.max_range = 210.0
 	cfg.hit_radius = 8.0
 	cfg.pierce_count = 1
-	## Heavier than an arrow, so it corrects lazily — enough that a committed finisher isn't
-	## thrown away by a step, not enough to track a target that dodges it.
-	cfg.seek_radius = ARROW_SEEK
-	cfg.seek_cone = 25.0
-	cfg.homing_turn_rate = 70.0
+	_steer(cfg, KNIFE_SEEK, KNIFE_CONE, KNIFE_TURN_R)
 	cfg.sprite_frames = _get_knife_frames()
 	cfg.use_directional_anims = true
 	var hit := DealDamageEffect.new()
@@ -2289,7 +2330,7 @@ static func _throwing_knife(dtype: String, hit_damage: float) -> SpawnProjectile
 	return e
 
 
-## Shared shape for self-applied +damage statuses (blood_surge / battle_fury / honed_edge / …).
+## Shared shape for self-applied +damage statuses (blood_power / battle_fury / honed_edge / …).
 static func _timed_damage_buff(id: String, amount: float, duration: float) -> ApplyStatusEffectData:
 	var buff := StatusEffectDefinition.new()
 	buff.status_id = id
@@ -2421,6 +2462,7 @@ static func _shard_config(dtype: String, hit_damage: float) -> ProjectileConfig:
 	cfg.speed = 230.0
 	cfg.max_range = 200.0
 	cfg.hit_radius = 7.0
+	_steer(cfg, BOLT_SEEK, BOLT_CONE, BOLT_TURN_R)
 	cfg.sprite_frames = _get_shard_proj_frames()
 	cfg.use_directional_anims = true
 	var hit := DealDamageEffect.new()
@@ -2514,6 +2556,7 @@ static func _wizard_bolt(dtype: String, hit_damage: float) -> SpawnProjectilesEf
 	cfg.speed = 240.0
 	cfg.max_range = 190.0
 	cfg.hit_radius = 7.0
+	_steer(cfg, BOLT_SEEK, BOLT_CONE, BOLT_TURN_R)
 	cfg.sprite_frames = _get_fireball_proj_frames()
 	cfg.use_directional_anims = true
 	cfg.visual_scale = Vector2(0.7, 0.7)
@@ -2554,6 +2597,7 @@ static func _wizard_fireball(dtype: String, dmg: float) -> SpawnProjectilesEffec
 	cfg.speed = 170.0
 	cfg.max_range = 240.0
 	cfg.hit_radius = 10.0
+	_steer(cfg, HEAVY_SEEK, HEAVY_CONE, HEAVY_TURN_R)
 	cfg.sprite_frames = _get_fireball_proj_frames()
 	cfg.use_directional_anims = true
 	var hit := DealDamageEffect.new()

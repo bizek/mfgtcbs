@@ -39,7 +39,7 @@ static func build_kit_skills(kit_id: String, weapon_data: Dictionary) -> Diction
 			}
 		"blood_mage":
 			return {
-				"skill_q": build_blood_mage_blood_surge(weapon_data),
+				"skill_q": build_blood_mage_blood_elemental(weapon_data),
 				"skill_e": build_blood_mage_blood_eruption(weapon_data),
 			}
 		"demonologist":
@@ -65,7 +65,7 @@ static func build_kit_skills(kit_id: String, weapon_data: Dictionary) -> Diction
 		"druid":
 			return {
 				"skill_q": build_druid_regrowth(weapon_data),
-				"skill_e": build_druid_thornburst(weapon_data),
+				"skill_e": build_druid_wild_shape(weapon_data),
 			}
 		"cleric":
 			return {
@@ -369,9 +369,15 @@ static func build_necro_rise_corpse(weapon_data: Dictionary) -> AbilityDefinitio
 	return _ability("necro_rise_corpse", "Rise Corpse", phase, 14.0)
 
 
-## Bone Legion (Necromancer, E): raise a short-lived pack of lesser skeletons at once. Reuses the
-## Rise_Corpse cast body under a distinct anim NAME ("bone_legion") so the host branches to the swarm
-## spawn (player._spawn_bone_legion) instead of the single champion. Faster cooldown, weaker minions.
+## Bone Legion (Necromancer, E): raise a ring of VOLATILE skeletons that sprint at whatever is
+## nearest and detonate — thrown ordnance, spent in one go. Reuses the Rise_Corpse cast body under a
+## distinct anim NAME ("bone_legion") so the host branches to the swarm spawn
+## (player._spawn_bone_legion) instead of the persistent champions.
+##
+## Reworked 2026-08-01 (Ben: "what makes the E skeletons better than the Q skeletons other than
+## theres more on Q than on E") — it was 2 champions that were strictly worse than Q's 4 in every
+## stat. See skeletal_champion.gd's `volatile` mode. The cooldown stays shorter than Rise Corpse's
+## 14s: this is the button you press INTO a pack, and it leaves nothing behind.
 static func build_necro_bone_legion(weapon_data: Dictionary) -> AbilityDefinition:
 	var dmg: float = weapon_data.get("damage", 42.0)
 	var dtype: String = _damage_type(weapon_data)
@@ -390,17 +396,34 @@ static func build_necro_bone_legion(weapon_data: Dictionary) -> AbilityDefinitio
 	return _ability("necro_bone_legion", "Bone Legion", phase, 10.0)
 
 
-## Blood Surge (Blood Mage, Q): the pact, on demand — +30% damage for 6s. Reuses the
-## Extract_Power cast, so the host's blood-price hook fires (player._pay_blood_cost, 5% max
-## HP): power is never free for the Cursed.
-static func build_blood_mage_blood_surge(_weapon_data: Dictionary) -> AbilityDefinition:
+## Summon Blood Elemental (Blood Mage, Q — Ben 2026-08-01: "blood golem move to Q"). The golem used
+## to be a gated RMB finisher buried mid-way through the light chain, which meant the Cursed's one
+## companion was the hardest thing in his kit to actually get out. On Q it is a button.
+##
+## It replaces Blood Surge, which was the weakest slot in the kit for a reason that only shows up
+## once they sit side by side: Blood Surge was +30% damage for 6s, and the light chain's held-LMB
+## Extract Power is already +25% damage — the same button-press for the same effect, one of them
+## costing a skill slot. The Cursed keeps his damage pact on hold-LMB and spends Q on the golem.
+##
+## "summon_blood" is the anim NAME the host keys the spawn off (player._spawn_blood_elemental fires
+## in choreo_fire_effects), so moving the cast here needs no host change. The ignition burst both
+## reads on cast and guarantees choreo_fire_effects runs. Mirrors Rise Corpse / Summon Angry Demon.
+static func build_blood_mage_blood_elemental(weapon_data: Dictionary) -> AbilityDefinition:
+	var dmg: float = weapon_data.get("damage", 42.0)
+	var dtype: String = _damage_type(weapon_data)
+
+	var pulse := AreaDamageEffect.new()
+	pulse.damage_type = dtype
+	pulse.base_damage = dmg * 0.4
+	pulse.aoe_radius = 24.0
+
 	var phase := ChoreographyPhase.new()
-	phase.animation = "extract"
-	phase.hit_frame = 4
-	phase.effects = [ChainFactory._timed_damage_buff("blood_surge", 0.30, 6.0)]
+	phase.animation = "summon_blood"
+	phase.hit_frame = 10                                   # the blood gathers and stands up
+	phase.effects = [pulse]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
-	return _ability("blood_mage_blood_surge", "Blood Surge", phase, 10.0)
+	return _ability("blood_mage_blood_elemental", "Summon Blood Elemental", phase, 16.0)
 
 
 ## Blood Eruption (Blood Mage, E — reworked, Ben 2026-07-19: was a re-skin of Blood Spikes):
@@ -539,23 +562,26 @@ static func build_druid_regrowth(_weapon_data: Dictionary) -> AbilityDefinition:
 	return _ability("druid_regrowth", "Regrowth", phase, 12.0)
 
 
-## Thornburst (Druid, E): a bramble nova — AoE Nature damage + shove around the Verdant.
-static func build_druid_thornburst(weapon_data: Dictionary) -> AbilityDefinition:
-	var dmg: float = weapon_data.get("damage", 42.0)
-	var dtype: String = _damage_type(weapon_data)
-
-	var nova := AreaDamageEffect.new()
-	nova.damage_type = dtype
-	nova.base_damage = dmg * 1.3
-	nova.aoe_radius = 58.0
-
+## Wild Shape (Druid, E — Ben 2026-08-01: "Druid very incomplete, needs more work"). Cycles the
+## Verdant through Forest Beast → Owl → Hound → human, and he STAYS in the form: he idles, walks and
+## flinches as the creature, and wears its stance (player.SHAPE_STATS) until he shifts again.
+##
+## It replaces Thornburst, which was a nova on the plain "attack" body — no art of its own, no
+## identity, and nothing to do with shapeshifting. The pack ships three complete forms (idle, walk,
+## damage, attack, and a morph in BOTH directions); before this, thirteen of those sheets were
+## unused and the Verdant only ever flickered into a beast for a single swing mid-combo. Wearing the
+## shape is the class.
+##
+## "wild_shape" is a SENTINEL, not a sheet: player.choreo_anim_name swaps it for the right
+## morph_/unmorph_ animation based on the form currently worn, so one definition covers all four
+## steps of the cycle. The cooldown is short because shifting is a stance change, not a nuke.
+static func build_druid_wild_shape(_weapon_data: Dictionary) -> AbilityDefinition:
 	var phase := ChoreographyPhase.new()
-	phase.animation = "attack"
-	phase.hit_frame = 1
-	phase.effects = [nova]
+	phase.animation = "wild_shape"
+	phase.hit_frame = -1                                   ## a transformation deals nothing
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
-	return _ability("druid_thornburst", "Thornburst", phase, 6.0)
+	return _ability("druid_wild_shape", "Wild Shape", phase, 4.0)
 
 
 ## Sanctuary (Cleric, Q): pray — a self-heal plus "blessed" (−20% damage taken for 5s). The
@@ -592,7 +618,19 @@ static func build_cleric_guardians(weapon_data: Dictionary) -> AbilityDefinition
 
 # --- helpers ---
 
-## Self-applied damage-taken reduction ("blessed"/"steeled"/"aegis" wards).
+## Self-applied damage-taken reduction ("blessed"/"steeled"/"hallowed" wards).
+##
+## The pair is ("All", "damage_taken") and NOT ("damage_taken", "bonus") — that is the whole bug this
+## helper shipped with until 2026-08-01. ModifierComponent.sum_modifiers is a plain `tag + ":" + op`
+## dictionary lookup with no aliasing, and the only readers of damage reduction are
+## DamageCalculator's `sum_modifiers(damage_type, "damage_taken")` and `sum_modifiers("All",
+## "damage_taken")`. Nothing anywhere calls `get_stat("damage_taken")`, so a modifier filed under
+## ("damage_taken", "bonus") was never read by anything and every ward in the game — Second Wind's
+## "steeled", Lay on Hands' "hallowed", Sanctuary's "blessed" — granted exactly zero mitigation.
+##
+## The failure was silent: no error, no warning, the status applied and displayed normally. The
+## magnitude convention is unchanged (DamageCalculator does `raw *= 1.0 + damage_taken`), so -0.20
+## still means "take 20% less damage" — it just actually happens now.
 static func _ward_buff(id: String, amount: float, duration: float) -> ApplyStatusEffectData:
 	var status := StatusEffectDefinition.new()
 	status.status_id = id
@@ -601,8 +639,8 @@ static func _ward_buff(id: String, amount: float, duration: float) -> ApplyStatu
 	status.base_duration = duration
 	status.duration_refresh_mode = "overwrite"
 	var ward := ModifierDefinition.new()
-	ward.target_tag = "damage_taken"
-	ward.operation = "bonus"
+	ward.target_tag = "All"
+	ward.operation = "damage_taken"
 	ward.value = -amount
 	ward.source_name = id
 	status.modifiers = [ward]

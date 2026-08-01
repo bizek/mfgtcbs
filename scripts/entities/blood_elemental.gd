@@ -29,6 +29,19 @@ const ATTACK_COOLDOWN: float = 1.8
 const STRIKE_DELAY: float = 12.0 / 18.0  ## attack anim frame 12 @ 18fps = the pound
 const DAMAGE_MULT: float = 0.6           ## × the player's live damage stat
 
+## ── Feeding (Ben 2026-08-01: "kills from blood golem makes it stronger? last longer? makes
+## another one?") — it gets STRONGER and LASTS LONGER, and visibly swells while it does.
+## Not "makes another one": one-at-a-time is the pet standard the whole roster shares (CLAUDE.md),
+## and a self-replicating summon would fight the resummon-replaces rule in player._spawn_blood_elemental.
+##
+## Growth is capped at FEED_MAX kills so a good pull can't snowball it into the real damage dealer.
+## Fully fed it is +50% damage (0.6 -> 0.9 of the player's stat), +20s of life, and 1.3x its size —
+## a clear payoff for keeping it alive in a pack, still a companion rather than a second character.
+const FEED_MAX: int = 8                  ## kills past this stop feeding it
+const FEED_LIFE: float = 2.5             ## seconds of extra life per kill
+const FEED_DAMAGE: float = 0.0375        ## damage-mult gained per kill (8 x 0.0375 = +0.30)
+const FEED_SCALE: float = 0.0375         ## sprite growth per kill (8 x 0.0375 = 1.30x)
+
 var player_ref: Node2D = null
 var damage_type: String = "Physical"
 
@@ -44,6 +57,7 @@ var _hunt_target: Node2D = null
 var _rescan: float = 0.0
 var _trudging: bool = false              ## currently walking home (hysteresis state)
 var _home_side: float = 1.0              ## fixed at spawn — no side-flipping teleport anchors
+var _kills: int = 0                      ## fed kills, clamped to FEED_MAX
 
 static var _frames_cache: SpriteFrames = null
 
@@ -159,11 +173,35 @@ func _resolve_strike() -> void:
 	var dmg: float = 30.0
 	var attacker: Node2D = self
 	if is_instance_valid(player_ref):
-		dmg = player_ref.get_stat("damage") * DAMAGE_MULT
+		dmg = player_ref.get_stat("damage") * _damage_mult()
 		attacker = player_ref
 	var hit := DamageCalculator.calculate_raw_hit(attacker, target, dmg, damage_type)
 	if not hit.is_dodged:
 		target.take_damage(hit)
+		## take_damage resolves synchronously, so the corpse is already cold here — anything that
+		## stopped being alive across that call was killed by this pound, and feeds the golem.
+		if not target.get("is_alive"):
+			_feed()
+
+
+## Its live damage multiplier — base plus whatever it has eaten.
+func _damage_mult() -> float:
+	return DAMAGE_MULT + FEED_DAMAGE * _kills
+
+
+## One kill drunk: more time on the clock, a harder pound, and a visibly bigger golem.
+func _feed() -> void:
+	if _kills >= FEED_MAX:
+		return
+	_kills += 1
+	_life += FEED_LIFE
+	var s: float = 1.0 + FEED_SCALE * _kills
+	## AnimatedSprite2D is centred, so scaling alone would sink the feet into the ground by half the
+	## growth. Lift by that much to keep it standing on the same line it spawned on.
+	_sprite.scale = Vector2(s, s)
+	_sprite.offset.y = -16.0 * (s - 1.0)
+	_fx.scale = _sprite.scale
+	_fx.offset = _sprite.offset
 
 
 ## Early dismissal (resummon or lifetime end): Banish-Die outro, then free.

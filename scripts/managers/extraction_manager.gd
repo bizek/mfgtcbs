@@ -22,7 +22,8 @@ var _completed_this_run: bool = false
 
 func _ready() -> void:
 	GameManager.run_started.connect(reset)
-	GameManager.player_died.connect(func(): interrupt_channel())
+	## Any lost run, not just a death — abandoning mid-channel must not carry a live channel forward.
+	GameManager.run_failed.connect(func(_abandoned: bool): interrupt_channel())
 
 func _process(delta: float) -> void:
 	if not is_channeling:

@@ -25,6 +25,12 @@ signal phase_timer_updated(time_remaining: float)
 signal extraction_window_opened
 signal extraction_window_closed
 signal player_died
+## "the run ended without extracting" — death OR abandon. Anything that just needs to tear a run
+## down (stop the music, interrupt an extraction channel, finalize the run report, close the
+## first-run overlay, show the results screen) listens HERE, not to player_died, so abandoning
+## doesn't leave those systems believing the run is still going. `player_died` remains for anything
+## that genuinely means "the player was killed".
+signal run_failed(abandoned: bool)
 signal extraction_successful
 signal game_paused
 signal game_unpaused
@@ -230,6 +236,24 @@ func set_insured_item(item_id: String) -> void:
 	insured_item_changed.emit(item_id)
 
 func on_player_died() -> void:
+	_settle_lost_run()
+	player_died.emit()
+	run_failed.emit(false)
+
+
+## Walking out on a run mid-descent (pause menu → Abandon Run, Ben 2026-08-01). Mechanically it
+## settles EXACTLY like dying — same 25% salvage, same rollback of everything picked up this run,
+## same insurance rule — because the only honest difference between bleeding out and leaving is
+## which one the player chose. What it does NOT do is record a death: it is its own stat
+## (ProgressionManager.record_abandon), so the death count stays a count of deaths.
+func abandon_run() -> void:
+	_settle_lost_run()
+	run_failed.emit(true)
+
+
+## Shared teardown for a run that ends without extracting. Loot is settled by whichever end screen
+## responds to the signal; this owns the state flip and the mid-run inventory rollback.
+func _settle_lost_run() -> void:
 	if phase_number > ProgressionManager.run_stats.get("deepest_phase", 0):
 		ProgressionManager.run_stats["deepest_phase"] = phase_number
 	current_state = GameState.GAME_OVER
@@ -265,7 +289,6 @@ func on_player_died() -> void:
 
 	run_equipped_mods.clear()
 	ProgressionManager.save_data()
-	player_died.emit()
 
 const EXTRACTION_FANFARE_DELAY: float = 0.45  ## room for MainArena's flash/zoom beat before pause+success screen
 

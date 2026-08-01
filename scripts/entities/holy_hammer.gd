@@ -30,8 +30,14 @@ var damage_mult: float = 0.9       ## × the player's live damage stat, per enem
 var start_angle: float = 0.0       ## radians; spawner staggers multiple hammers evenly
 var spin_speed: float = 0.7        ## revolutions per second (1.1 read too fast — Ben 2026-07-20)
 var radius_start: float = 10.0
-var radius_growth: float = 62.0    ## px/sec spiral-out rate
-var max_radius: float = 120.0      ## despawn past this (spawner scales it with melee_range)
+## Lifetime is (max_radius - radius_start) / radius_growth — the spiral IS the clock, there is no
+## separate timer. At 62px/s out to 120px a hammer lived 1.8s and managed barely one revolution,
+## which is why they read as a flicker rather than a hammerdin (Ben 2026-08-01: "holy hammers
+## should last longer"). Slowing the spiral-out is the lever that matters: 34px/s out to 150px is
+## ~4.1s and ~2.9 revolutions, so a hammer lingers in the useful ring around the Warden and sweeps
+## real ground instead of leaving immediately. Widening max_radius alone would just fling them away.
+var radius_growth: float = 34.0    ## px/sec spiral-out rate
+var max_radius: float = 150.0      ## despawn past this (spawner scales it with melee_range)
 ## Spiral anchor: the CAST point, captured at spawn — each hammer corkscrews out from where it
 ## was thrown (Ben 2026-07-20). A future class mod flips follow_player so spirals track the
 ## moving Warden instead.

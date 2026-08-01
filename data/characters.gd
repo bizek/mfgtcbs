@@ -629,6 +629,23 @@ const ALL: Dictionary = {
 				"owl_attack":   ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Druid/Special_Animations/Shape_Shifting/Forest_Owl/Minifantasy_TrueHeroesForestOwlAttack.png", 4, 18.0],
 				## Hound Frenzy channel body (fast melee ticks while held).
 				"hound_attack": ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Druid/Special_Animations/Shape_Shifting/Forest_Hound/Minifantasy_TrueHeroesForestHoundAttack.png", 4, 14.0],
+				## ── Wild Shape stance bodies ────────────────────────────────────────────────────
+				## NOT LISTED HERE. Ben already imported the three forms' idle/walk/dmg sheets and all
+				## three revert sheets through the Animation Lab, so they live in anim_overrides.json's
+				## "_custom_anims" registry under HIS names: beast_idle/beast_walk/beast_dmg/
+				## beast_revert, owl_idle/owl_dmg/owl_revert, hound_idle/hound_walk/hound_dmg/
+				## hound_morph/hound_revert. CharacterSpriteFactory.all_anim_specs merges that registry
+				## into this table at build time, and a custom entry OVERWRITES a table entry of the
+				## same name — so duplicating them here would create a second, silently-losing source
+				## of truth. player.SHAPE_BODY maps onto those names instead (Ben 2026-08-01).
+				##
+				## Note the naming is "<form>_dmg" (not _damage) and "<form>_revert" (not unmorph_*),
+				## and that the beast/owl morph-INs are table entries above while the hound's is a
+				## custom ("hound_morph"). If you rename any of them in the Lab, update SHAPE_BODY /
+				## SHAPE_MORPH / SHAPE_REVERT to match.
+
+				## The Verdant's own leap — his dash body, and the last unwired General_Animations sheet.
+				"dodge":        ["Minifantasy_TrueHeroesDruidJump.png", 4, 18.0],
 			},
 		},
 	},

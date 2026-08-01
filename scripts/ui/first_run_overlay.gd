@@ -43,7 +43,7 @@ func _ready() -> void:
 	if not _active:
 		return
 	_build_ui()
-	GameManager.player_died.connect(_on_run_ended)
+	GameManager.run_failed.connect(func(_abandoned: bool): _on_run_ended())
 	GameManager.extraction_successful.connect(_on_run_ended)
 	GameManager.instability_changed.connect(_on_instability_changed)
 	GameManager.extraction_window_opened.connect(_on_extraction_window_opened)

@@ -6,9 +6,17 @@ extends Node2D
 ## to the player's movement.
 ##
 ## Two spawn modes (both use these same sheets):
-##   • Q "Rise Corpse"  — one persistent champion; resummon replaces (old one is banished).
-##   • E "Bone Legion"  — a short-lived pack of weaker skeletons (caller sets a shorter `lifetime`
-##     and lower `damage_mult`); they self-free when their timer runs out.
+##   • Q "Rise Corpse"  — a squad of persistent champions; resummon replaces (old ones are banished).
+##     They hold ground near the Shade and cleave what comes close. His standing bodyguard.
+##   • E "Bone Legion"  — VOLATILE skeletons (`volatile = true`): they ignore the Shade, sprint at
+##     the nearest enemy and detonate on arrival, or blow up where they stand when the fuse runs out.
+##     Thrown ordnance, not a bodyguard.
+##
+## The two modes exist because E used to be a strictly worse Q — same entity, same art, fewer of
+## them (2 vs 4), weaker (0.35 vs 0.6), shorter-lived (8s vs 25s), for 4 seconds off the cooldown.
+## There was no reason to press it (Ben 2026-08-01: "what makes the E skeletons better than the Q
+## skeletons other than theres more on Q than on E"). Volatility gives E its own job: Q is sustained
+## presence you keep alive, E is a burst you spend into a pack and never see again.
 ##
 ## Mirrors the SpiritGuardian / FireFamiliar / BloodElemental pet standard (CLAUDE.md): no pooling,
 ## damage reads the player's live damage stat through DamageCalculator at strike time.
@@ -39,11 +47,22 @@ const HOME_NEAR_SQ: float = 24.0 * 24.0  ## settles once back within this (hyste
 const ATTACK_COOLDOWN: float = 1.5
 const STRIKE_DELAY: float = 4.0 / 14.0   ## attack anim frame 4 @ 14fps = the cleave
 
+## ── Volatile mode (Bone Legion) ──────────────────────────────────────────────
+## A volatile skeleton never cleaves and never goes home: it runs down the nearest enemy and blows
+## up. Its fuse is `lifetime`, so it always detonates eventually — a legion raised into empty air
+## still goes off, it just goes off where it stands.
+const VOLATILE_SPEED_MULT: float = 1.7   ## they sprint; a fuse that ambles is a wasted fuse
+const VOLATILE_ENGAGE_SQ: float = 300.0 * 300.0   ## hunts far wider than a champion's 120px patch
+const VOLATILE_TINT: Color = Color(0.72, 1.0, 0.68)   ## sickly corpse-light — reads as "unstable"
+
 ## Set by the host before adding to the tree (defaults suit the persistent Q champion).
 var player_ref: Node2D = null
 var damage_type: String = "Void"
 var lifetime: float = 25.0               ## persistent; Bone Legion overrides to a few seconds
 var damage_mult: float = 0.6             ## × the player's live damage stat
+var volatile: bool = false               ## Bone Legion mode: charge + detonate instead of cleave
+var detonate_radius: float = 34.0        ## blast radius when volatile
+var detonate_mult: float = 0.8           ## blast damage × the player's live damage stat
 
 var _sprite: AnimatedSprite2D = null
 var _facing: String = "down_left"
@@ -66,6 +85,8 @@ func _ready() -> void:
 	_sprite = AnimatedSprite2D.new()
 	_sprite.sprite_frames = _get_frames()
 	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	if volatile:
+		_sprite.modulate = VOLATILE_TINT
 	add_child(_sprite)
 	_sprite.animation_finished.connect(_on_anim_finished)
 	if is_instance_valid(player_ref):
@@ -85,7 +106,11 @@ func _process(delta: float) -> void:
 
 	_life -= delta
 	if _life <= 0.0:
-		banish()
+		## A volatile skeleton's lifetime IS its fuse — it always goes off, even with nothing near.
+		if volatile:
+			_detonate()
+		else:
+			banish()
 		return
 
 	## Resolve a pending strike (damage lands on the attack anim's cleave frame).
@@ -103,21 +128,31 @@ func _process(delta: float) -> void:
 		_rescan = 0.3
 		_hunt_target = _nearest_prey()
 	var target: Node2D = _hunt_target
+	## The player-centric leash keeps a champion fighting over the Shade's patch of ground. A
+	## volatile skeleton has no patch to hold — it is already spent — so it chases wherever it must.
 	if target != null and (not is_instance_valid(target) or not target.get("is_alive") \
-			or player_ref.global_position.distance_squared_to(target.global_position) > LEASH_RANGE_SQ):
+			or (not volatile and player_ref.global_position.distance_squared_to(target.global_position) > LEASH_RANGE_SQ)):
 		target = null
 		_hunt_target = null
 
 	if target:
 		var to_t: Vector2 = target.global_position - global_position
 		if to_t.length_squared() <= STRIKE_RANGE_SQ:
-			if _cooldown <= 0.0:
+			if volatile:
+				_detonate()
+			elif _cooldown <= 0.0:
 				_start_strike(target)
 			else:
 				_face_toward(to_t)
 				_play_dir(&"idle")   ## looming over its prey between cleaves
 		else:
 			_walk_toward(target.global_position, delta)
+		return
+
+	## No prey in reach. A volatile skeleton keeps running forward rather than reporting back —
+	## it burns its fuse looking for something to hit.
+	if volatile:
+		_play_dir(&"move")
 		return
 
 	## No prey — hold ground near the player; only trudge after them once left behind.
@@ -138,8 +173,10 @@ func _process(delta: float) -> void:
 func _walk_toward(dest: Vector2, delta: float) -> void:
 	var to_dest: Vector2 = dest - global_position
 	var speed: float = WALK_SPEED
-	if player_ref and global_position.distance_squared_to(player_ref.global_position) > 120.0 * 120.0:
-		speed *= CATCHUP_MULT
+	if volatile:
+		speed *= VOLATILE_SPEED_MULT
+	elif player_ref and global_position.distance_squared_to(player_ref.global_position) > 120.0 * 120.0:
+		speed *= CATCHUP_MULT   ## catch-up is a bodyguard behaviour; a fuse never goes home
 	var step: Vector2 = to_dest.limit_length(speed * delta)
 	if step.length_squared() > 0.04:
 		global_position += step
@@ -173,6 +210,53 @@ func _resolve_strike() -> void:
 		target.take_damage(hit)
 
 
+## Bone Legion payload: the skeleton comes apart, throwing its own bones through everything around
+## it. Damage reads the player's LIVE damage stat at detonation time, like every other pet strike in
+## the game, so it scales with the run instead of with whatever the Shade had when he raised it.
+## One-shot and terminal — it frees itself immediately, no Die outro (there is nothing left to fall
+## over), and the Bone_Impact burst is the whole visual.
+func _detonate() -> void:
+	if _state == "die":
+		return
+	_state = "die"
+	var dmg: float = 24.0
+	var attacker: Node2D = self
+	if is_instance_valid(player_ref):
+		dmg = player_ref.get_stat("damage") * detonate_mult
+		attacker = player_ref
+	var r_sq: float = detonate_radius * detonate_radius
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if not is_instance_valid(e) or not e.get("is_alive"):
+			continue
+		if global_position.distance_squared_to(e.global_position) > r_sq:
+			continue
+		var hit := DamageCalculator.calculate_raw_hit(attacker, e, dmg, damage_type)
+		if not hit.is_dodged:
+			e.take_damage(hit)
+	_spawn_blast_vfx()
+	queue_free()
+
+
+## The pack's own Bone_Impact one-shot, scaled to the blast radius. Parented to the scene rather than
+## to self, because self is about to be freed.
+func _spawn_blast_vfx() -> void:
+	var frames: SpriteFrames = ChainFactory._get_bone_impact_frames()
+	if frames == null or not frames.has_animation(&"impact"):
+		return
+	var burst := AnimatedSprite2D.new()
+	burst.sprite_frames = frames
+	burst.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	burst.z_index = 2
+	burst.modulate = VOLATILE_TINT
+	## The sheet's burst is drawn for a 32px cell; scale it to cover the radius it actually deals in.
+	var s: float = detonate_radius / 16.0
+	burst.scale = Vector2(s, s)
+	get_tree().current_scene.add_child(burst)
+	burst.global_position = global_position
+	burst.play(&"impact")
+	burst.animation_finished.connect(burst.queue_free)
+
+
 ## Early dismissal (resummon or lifetime end): Die outro, then free.
 func banish() -> void:
 	if _state == "die":
@@ -199,7 +283,7 @@ func _on_anim_finished() -> void:
 func _nearest_prey() -> Node2D:
 	## Nearest live enemy within engage range of the CHAMPION. Gated by the 0.3s rescan.
 	var best: Node2D = null
-	var best_d: float = ENGAGE_RANGE_SQ
+	var best_d: float = VOLATILE_ENGAGE_SQ if volatile else ENGAGE_RANGE_SQ
 	for e in get_tree().get_nodes_in_group("enemies"):
 		if not is_instance_valid(e) or not e.get("is_alive"):
 			continue

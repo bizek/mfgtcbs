@@ -1,6 +1,7 @@
 extends CanvasLayer
 
-## PauseMenu — ESC / controller Start opens/closes. Shows Resume + Debug Panel toggle.
+## PauseMenu — ESC / controller Start opens/closes. Shows Resume, Settings, Abandon Run,
+## and (in debug mode) the Debug Panel toggle.
 ## process_mode = ALWAYS so it runs while tree is paused.
 
 const SettingsPanelScript := preload("res://scripts/ui/settings_panel.gd")
@@ -9,6 +10,10 @@ var _panel: ColorRect
 var _debug_panel_ref: Node = null  ## Set by main_arena if debug mode is on
 var _settings_panel: Control = null
 var _resume_btn: Button = null
+var _abandon_btn: Button = null
+## Abandon is two presses, not one: the button re-labels itself into a confirmation and only the
+## SECOND press ends the run. A single mis-click on the pause menu must never cost a descent.
+var _abandon_armed: bool = false
 
 func _ready() -> void:
 	layer = 126  ## Below debug panel (127), above game
@@ -57,6 +62,7 @@ func _open() -> void:
 func _close() -> void:
 	AudioManager.play_ui("sfx_ui_panel_close")
 	_panel.visible = false
+	_disarm_abandon()   ## never leave a primed Abandon waiting behind a closed menu
 	GameManager.set_paused(false)
 
 
@@ -116,6 +122,17 @@ func _build_menu() -> void:
 	UINav.apply_focus_ring(settings_btn)
 	vbox.add_child(settings_btn)
 
+	## Abandon Run — leave a descent early and settle it like a death (Ben 2026-08-01). Red so it
+	## never reads as a neutral option, and armed by a second press (see _on_abandon_pressed).
+	var abandon_btn := Button.new()
+	abandon_btn.text = "Abandon Run"
+	abandon_btn.add_theme_font_size_override("font_size", 14)
+	abandon_btn.add_theme_color_override("font_color", Color(1.0, 0.42, 0.36))
+	abandon_btn.pressed.connect(_on_abandon_pressed)
+	UINav.apply_focus_ring(abandon_btn)
+	vbox.add_child(abandon_btn)
+	_abandon_btn = abandon_btn
+
 	## Debug panel button (only if debug mode)
 	if GameManager.debug_mode:
 		var debug_btn := Button.new()
@@ -133,6 +150,27 @@ func _build_menu() -> void:
 	_panel = backdrop
 	_panel.visible = false
 	_resume_btn = resume_btn
+
+
+## First press arms and re-labels; second press ends the run. GameManager.abandon_run() settles it
+## exactly like a death (25% salvage, mid-run gear rolled back) and the game-over screen — which is
+## already listening for run_abandoned — takes over from there, so the tree stays paused until the
+## player picks "Return to Hub" and the run's stats are recorded the same way they always are.
+func _on_abandon_pressed() -> void:
+	if not _abandon_armed:
+		_abandon_armed = true
+		AudioManager.play_ui("sfx_ui_click")
+		_abandon_btn.text = "Confirm — lose loot?"
+		return
+	_disarm_abandon()
+	_panel.visible = false
+	GameManager.abandon_run()
+
+
+func _disarm_abandon() -> void:
+	_abandon_armed = false
+	if _abandon_btn:
+		_abandon_btn.text = "Abandon Run"
 
 
 func _toggle_debug_panel() -> void:

@@ -1,7 +1,12 @@
 extends CanvasLayer
 
-## Game Over Screen — Shows run stats, records death penalty, returns to hub.
+## Game Over Screen — Shows run stats, records the run's penalty, returns to hub.
+##
+## Serves both ways a run can end badly: dying, and walking out from the pause menu (Abandon Run,
+## Ben 2026-08-01). They settle identically — same 25% salvage, same rollback — so they share this
+## screen; only the title and the recorded stat differ.
 
+@onready var title_label: Label = $VBox/Title
 @onready var kills_label: Label = $VBox/KillsLabel
 @onready var time_label: Label = $VBox/TimeLabel
 @onready var level_label: Label = $VBox/LevelLabel
@@ -11,15 +16,16 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
 	restart_button.pressed.connect(_on_return_to_hub)
-	GameManager.player_died.connect(_on_player_died)
+	GameManager.run_failed.connect(_show_lost_run)
 
-func _on_player_died() -> void:
+func _show_lost_run(abandoned: bool) -> void:
 	var loot_value: int = int(GameManager.loot_carried)
 	var salvaged: int = int(loot_value * 0.25)
 	var total_seconds: int = int(GameManager.run_time)
 	var minutes: int = total_seconds / 60
 	var seconds: int = total_seconds % 60
 
+	title_label.text = "RUN ABANDONED" if abandoned else "YOU DIED"
 	kills_label.text = "Kills: %d" % GameManager.kills
 	time_label.text = "Time: %d:%02d" % [minutes, seconds]
 	level_label.text = "Level: %d   Salvaged: +%d" % [_get_player_level(), salvaged]
@@ -38,8 +44,13 @@ func _on_player_died() -> void:
 	visible = true
 	restart_button.grab_focus.call_deferred()
 
-	ProgressionManager.record_death(loot_value, GameManager.kills, GameManager.phase_number, _get_player_level() - 1)
-	AchievementManager.check_run_end("death")
+	var levels_gained: int = _get_player_level() - 1
+	if abandoned:
+		ProgressionManager.record_abandon(loot_value, GameManager.kills, GameManager.phase_number, levels_gained)
+		AchievementManager.check_run_end("abandon")
+	else:
+		ProgressionManager.record_death(loot_value, GameManager.kills, GameManager.phase_number, levels_gained)
+		AchievementManager.check_run_end("death")
 
 func _get_player_level() -> int:
 	var player := get_tree().get_first_node_in_group("player")

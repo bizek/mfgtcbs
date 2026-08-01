@@ -433,6 +433,55 @@ const FIREBALL_MULT_MAX: float = 2.0     ## full overcharge doubles the Fireball
 ## Reach cap: base hit zones (ChainFactory) are ~half the "loved" size; full Reach mods scale them
 ## up to ~2× = the end-of-the-road size. Capped so it tops out there instead of growing forever.
 const MELEE_RANGE_MAX: float = 2.0
+## ── Wild Shape (Druid) ───────────────────────────────────────────────────────
+## The form the Verdant is currently wearing: "" (human), "beast", "owl", or "hound". While a form
+## is worn, _play_anim rewrites the BODY anims — idle/walk/damage/dodge — to that form's own sheets,
+## which is the entire mechanism: one variable, no parallel state machine, and every other system
+## (combat, dash, statuses) is untouched because a shaped Verdant is still just the player.
+##
+## Combo/skill anims are NOT rewritten. They are already form-specific by name where the pack has
+## art for it (beast_attack / owl_attack / hound_attack), and rewriting them would send the runner
+## looking for sheets that don't exist.
+var _shape: String = ""
+var _wild_shape_anim: String = ""   ## morph anim the pending "wild_shape" cast resolved to
+
+## Which of the form's own anims to play for each canonical body anim. Names come from the sheets
+## Ben imported through the Animation Lab (anim_overrides.json "_custom_anims"), which is why they
+## read "<form>_dmg" rather than "<form>_damage" — see the Verdant's note in characters.gd.
+## A form simply omits an anim the pack has no art for; _shaped_anim then keeps the human one.
+## The owl deliberately maps walk → owl_idle: it has no ground walk because it FLIES, and FlyIdle is
+## the body the pack draws for a moving owl.
+const SHAPE_BODY: Dictionary = {
+	"beast": {"idle": "beast_idle", "walk": "beast_walk", "damage": "beast_dmg"},
+	"owl":   {"idle": "owl_idle",   "walk": "owl_idle",   "damage": "owl_dmg"},
+	"hound": {"idle": "hound_idle", "walk": "hound_walk", "damage": "hound_dmg"},
+}
+## Transformation bodies. The beast/owl morph-ins are CharacterData table entries; the hound's is a
+## Lab import, hence the inconsistent name. All three reverts are Lab imports.
+const SHAPE_MORPH: Dictionary = {"beast": "morph_beast", "owl": "morph_owl", "hound": "hound_morph"}
+const SHAPE_REVERT: Dictionary = {"beast": "beast_revert", "owl": "owl_revert", "hound": "hound_revert"}
+## Cycle order for the Wild Shape skill. Ends on "" so a fourth press returns him to human.
+const SHAPE_CYCLE: Array[String] = ["beast", "owl", "hound", ""]
+## Each form is a stance, not just a costume:
+##   beast — the bruiser: hits hard and shrugs off hits, moves heavily.
+##   owl   — the skirmisher: fast and slippery, hits softly.
+##   hound — the harrier: quick attacks and quick feet, no defensive help.
+##
+## Entries are [target_tag, operation, value] because the operation is NOT uniform across stats and
+## getting it wrong fails silently — ModifierComponent.sum_modifiers is a plain "tag:operation"
+## lookup, so a modifier filed under the wrong pair is simply never read by anyone. Verified against
+## the readers: damage/move_speed/attack_speed are "bonus" (player._add_modifier's usual pair),
+## dodge_chance is summed as ("dodge_chance", "add") and damage reduction as ("All", "damage_taken")
+## — both in DamageCalculator.
+##
+## Applied under the "wild_shape" source prefix so one remove_by_source_prefix drops the whole
+## previous stance and forms can never stack.
+const SHAPE_STATS: Dictionary = {
+	"beast": [["damage", "bonus", 0.25], ["move_speed", "bonus", -0.12], ["All", "damage_taken", -0.10]],
+	"owl":   [["damage", "bonus", -0.15], ["move_speed", "bonus", 0.28], ["dodge_chance", "add", 0.12]],
+	"hound": [["attack_speed", "bonus", 0.25], ["move_speed", "bonus", 0.14]],
+}
+
 var skill_component: SkillComponent = null   ## Q/E skill slots (SkillFactory per kit)
 var _rmb_pending: bool = false      ## a neutral RMB press is waiting to resolve as tap vs hold
 const TAUNT_HOLD_THRESHOLD: float = 0.20   ## hold RMB this long (from neutral) → Taunt channel, else heavy
@@ -764,11 +813,26 @@ func _facing_fallback_order() -> Array:
 	return []
 
 
+## The body anim to actually play for `base`, accounting for Wild Shape. Only the SHAPE_ANIMS body
+## set is rewritten, and only when the form's sheet genuinely exists — so a form missing an anim
+## (or any non-Druid character, which has no forms at all) silently keeps the human one.
+func _shaped_anim(base: String) -> String:
+	if _shape == "":
+		return base
+	var shaped: String = str(SHAPE_BODY.get(_shape, {}).get(base, ""))
+	if shaped == "":
+		return base
+	if sprite and sprite.sprite_frames and _facing_variant(sprite.sprite_frames, shaped) != "":
+		return shaped
+	return base
+
+
 ## Play `base` in the row matching the current facing when the frames carry it; fall back to the
 ## base slice (single-row sheets like death, or baked scene frames).
 func _play_anim(base: String) -> void:
 	if sprite == null or sprite.sprite_frames == null:
 		return
+	base = _shaped_anim(base)
 	var variant: String = _facing_variant(sprite.sprite_frames, base)
 	if variant != "" and variant != base:
 		sprite.flip_h = false   ## real directional row — never mirror on top of it
@@ -780,6 +844,13 @@ func _play_anim(base: String) -> void:
 ## Resolve a canonical anim name to its facing variant (ChoreographyRunner host hook — combo
 ## phases play the row matching the cursor; hit_frame indices are identical across rows).
 func choreo_anim_name(base: String) -> String:
+	## "wild_shape" is a sentinel, not a sheet: ONE skill definition covers all four steps of the
+	## Druid's cycle, and which morph it actually plays depends on the form he is wearing when he
+	## presses it. Resolved here and cached, because the runner always calls this before
+	## choreo_on_phase_anim — which needs the same answer to know which form to enter.
+	if base == "wild_shape":
+		base = wild_shape_next_anim()
+		_wild_shape_anim = base
 	var variant: String = _facing_variant(sprite.sprite_frames if sprite else null, base)
 	return variant if variant != "" else base
 
@@ -1980,6 +2051,10 @@ func choreo_on_phase_anim(phase: ChoreographyPhase, stage: String = "") -> void:
 	## `stage` is set for staged channel bodies ("intro"/"loop"/"outro") — a stage may declare
 	## its OWN overlay, published by the factory as "<anim>_<stage>_fx".
 	var anim: String = phase.animation
+	if anim == "wild_shape":
+		## Resolved by choreo_anim_name a moment ago (the runner always calls it first); recomputed
+		## defensively so a host without that ordering still enters the right form.
+		anim = _wild_shape_anim if _wild_shape_anim != "" else wild_shape_next_anim()
 	if stage != "" and _combo_fx != null and _combo_fx.sprite_frames != null \
 			and _combo_fx.sprite_frames.has_animation("%s_%s_fx" % [phase.animation, stage]):
 		anim = "%s_%s" % [phase.animation, stage]
@@ -1997,6 +2072,18 @@ func choreo_on_phase_anim(phase: ChoreographyPhase, stage: String = "") -> void:
 		_add_modifier("move_speed", "bonus", WIZARD_CHARGE_SLOW, "combo_charge")
 	elif anim == "fireball_2":
 		modifier_component.remove_by_source_prefix("combo_charge")
+
+	## Wild Shape (Druid): the form changes as the transformation STARTS, so the moment the morph
+	## animation hands the body back, walk/idle are already the new creature's. Driven off the anim
+	## name — the light chain's morph nodes and the E skill both flow through here, so neither has to
+	## know about the other. "unmorph_*" is the way back out.
+	if anim.ends_with("_revert"):
+		_set_wild_shape("")
+	else:
+		for form in SHAPE_MORPH:
+			if anim.begins_with(str(SHAPE_MORPH[form])):
+				_set_wild_shape(str(form))
+				break
 
 	## Bone Swirl (Necromancer heavy): bones erupt and orbit the caster, starting with the cast.
 	if anim.begins_with("bone_swirl"):
@@ -2312,17 +2399,26 @@ func _spawn_skeletal_champion() -> void:
 
 
 func _spawn_bone_legion() -> void:
-	## Bone Legion (E): raise a short-lived pack of weaker skeletons at once (they self-free on their
-	## lifetime timer; not tracked as the persistent champion). Soul Harvest adds one more to the pack.
-	var count: int = 3 if _consume_summon_empower() else 2
+	## Bone Legion (E): raise a pack of VOLATILE skeletons — they sprint at the nearest enemy and
+	## detonate, or blow up where they stand when the 6s fuse runs out. Not tracked as the persistent
+	## champions; each frees itself when it goes off. Soul Harvest adds one more to the pack.
+	##
+	## This is E's whole reason to exist. It used to raise 2 champions that were simply worse than
+	## Q's 4 (Ben 2026-08-01), so the pack is now bigger AND spent in one go: Q is the bodyguard you
+	## keep alive, E is the grenade you throw into a crowd. `damage_mult` is left at its floor
+	## because a volatile skeleton never swings — the blast is the whole payload.
+	var count: int = 6 if _consume_summon_empower() else 5
 	var dtype: String = ChainFactory._damage_type(_weapon_data)
 	for i in range(count):
 		var sk := SkeletalChampion.new()
 		sk.player_ref = self
 		sk.damage_type = dtype
-		sk.lifetime = 8.0
-		sk.damage_mult = 0.35
+		sk.volatile = true
+		sk.lifetime = 6.0
+		sk.damage_mult = 0.0
 		get_tree().current_scene.add_child(sk)
+		## Raised in a ring around the Shade so they scatter outward toward different targets
+		## instead of stacking into one blast.
 		var ang: float = TAU * float(i) / float(count)
 		sk.global_position = global_position + Vector2(cos(ang), sin(ang)) * 26.0
 		_spawn_corpse_ground(sk.global_position)
@@ -2901,7 +2997,11 @@ func _spawn_holy_hammers(reach: float) -> void:
 	hammer.player_ref = self
 	hammer.damage_type = dtype
 	hammer.start_angle = _hammer_angle_cycle
-	hammer.max_radius = 120.0 * reach
+	## Reach still widens the spiral, but only up to 1.5x. Because the spiral IS the hammer's clock
+	## (see holy_hammer.gd), letting a fully Reach-modded Warden multiply this by the 2.0 cap gave an
+	## 8.5s hammer orbiting 300px out — most of a 640x360 screen away from the fight he is in.
+	## 1.5x tops out at 225px / ~6.3s, which still reads as a reward for stacking Reach.
+	hammer.max_radius = 150.0 * minf(reach, 1.5)
 	get_tree().current_scene.add_child(hammer)
 	_hammer_angle_cycle = fmod(_hammer_angle_cycle + TAU * 0.382, TAU)
 
@@ -3339,6 +3439,9 @@ func _reset_dash_state() -> void:
 	_dash_charges = _max_dash_charges()
 	is_invulnerable = false
 	_set_dash_phasing(false)  # ensure enemy body collision is restored after any reset
+	## A Verdant who ended the last run as a bear starts the next one as a man.
+	_wild_shape_anim = ""
+	_set_wild_shape("")
 
 
 func _tick_dash_cooldown(delta: float) -> void:
@@ -4042,6 +4145,33 @@ func reset_stats() -> void:
 
 
 # --- Internal helpers ---
+
+## ── Wild Shape ───────────────────────────────────────────────────────────────
+## Wear a form (or "" for human). Swaps the stance modifiers and lets _play_anim pick up the new
+## body on its next frame. Idempotent, so a chain node re-entering its own morph doesn't restack.
+func _set_wild_shape(form: String) -> void:
+	if _shape == form:
+		return
+	_shape = form
+	## One source prefix for the whole stance — dropping the old form is a single call, so forms can
+	## never stack their bonuses no matter what order they're entered in.
+	modifier_component.remove_by_source_prefix("wild_shape")
+	var stats: Array = SHAPE_STATS.get(form, [])
+	for entry in stats:
+		var e: Array = entry
+		_add_modifier(str(e[0]), str(e[1]), float(e[2]), "wild_shape_" + form)
+
+
+## Which anim the Wild Shape skill should play right now: the morph INTO the next form in the cycle,
+## or the unmorph out of the current one when the cycle comes back around to human. Read by
+## choreo_anim_for_skill so one skill definition covers all four steps.
+func wild_shape_next_anim() -> String:
+	var idx: int = SHAPE_CYCLE.find(_shape)
+	var next: String = SHAPE_CYCLE[(idx + 1) % SHAPE_CYCLE.size()] if idx >= 0 else SHAPE_CYCLE[0]
+	if next != "":
+		return str(SHAPE_MORPH.get(next, ""))
+	return str(SHAPE_REVERT.get(_shape, ""))
+
 
 func _add_modifier(tag: String, op: String, value: float, source: String) -> void:
 	var mod := ModifierDefinition.new()

@@ -76,6 +76,7 @@ var character_trinkets: Dictionary = {}
 var total_runs: int = 0
 var successful_extractions: int = 0
 var deaths: int = 0
+var abandons: int = 0   ## runs walked out of from the pause menu — counted separately from deaths
 var deepest_phase: int = 0
 var total_kills: int = 0
 var most_loot_extracted: float = 0.0
@@ -119,6 +120,7 @@ func save_data() -> void:
 		"total_runs":             total_runs,
 		"successful_extractions": successful_extractions,
 		"deaths":                 deaths,
+		"abandons":               abandons,
 		"deepest_phase":          deepest_phase,
 		"total_kills":            total_kills,
 		"most_loot_extracted":    most_loot_extracted,
@@ -190,6 +192,7 @@ func load_data() -> void:
 	total_runs            = int(result.get("total_runs", 0))
 	successful_extractions = int(result.get("successful_extractions", 0))
 	deaths                = int(result.get("deaths", 0))
+	abandons              = int(result.get("abandons", 0))
 	deepest_phase         = int(result.get("deepest_phase", 0))
 	total_kills           = int(result.get("total_kills", 0))
 	most_loot_extracted   = float(result.get("most_loot_extracted", 0.0))
@@ -280,6 +283,7 @@ func reset_save() -> void:
 	total_runs             = 0
 	successful_extractions = 0
 	deaths                 = 0
+	abandons               = 0
 	deepest_phase          = 0
 	total_kills            = 0
 	most_loot_extracted    = 0.0
@@ -380,11 +384,23 @@ func record_win(char_id: String) -> void:
 ## Call on death. Awards 25% of carried loot as penalized meta resources.
 ## levels_gained = player.level - 1 at run end; banked as passive points.
 func record_death(loot_value: int, kills_this_run: int, phase: int, levels_gained: int = 0) -> void:
+	deaths += 1
+	_record_lost_run(loot_value, kills_this_run, phase, levels_gained)
+
+
+## Call when the player abandons a run from the pause menu. Identical settlement to a death — the
+## same 25% salvage, the same banked levels — but it increments `abandons`, not `deaths`, so the
+## death count keeps meaning what it says (and the achievements reading it stay honest).
+func record_abandon(loot_value: int, kills_this_run: int, phase: int, levels_gained: int = 0) -> void:
+	abandons += 1
+	_record_lost_run(loot_value, kills_this_run, phase, levels_gained)
+
+
+func _record_lost_run(loot_value: int, kills_this_run: int, phase: int, levels_gained: int) -> void:
 	bank_passive_points(levels_gained)
 	var penalty: int = int(loot_value * 0.25)
 	resources += penalty
 	total_gold_earned += penalty
-	deaths += 1
 	total_runs += 1
 	total_kills += kills_this_run
 	if phase > deepest_phase:

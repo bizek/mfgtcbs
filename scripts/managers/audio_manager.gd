@@ -135,7 +135,8 @@ func _connect_signals() -> void:
 	GameManager.run_started.connect(_on_run_started)
 	GameManager.final_boss_spawned.connect(_on_final_boss_spawned)
 	GameManager.final_boss_defeated.connect(_on_final_boss_defeated)
-	GameManager.player_died.connect(_on_player_died)
+	## Both endings stop the music — abandoning shouldn't leave combat music running into the hub.
+	GameManager.run_failed.connect(func(_abandoned: bool): _on_player_died())
 	GameManager.extraction_successful.connect(_on_extraction_successful)
 	GameManager.extraction_window_opened.connect(_on_extraction_window_opened)
 
