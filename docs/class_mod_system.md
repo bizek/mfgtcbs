@@ -91,7 +91,8 @@ card.
   desc, color,
   target: { graph?, anim }, # graph = "light"/"heavy"/"channel"/"skill_q"/… (optional);
                             # anim  = ChoreographyPhase.animation to hit (wherever it appears)
-  op,                       # scale_aoe | add_pull | add_status | modifier
+  op,                       # scale_aoe | add_pull | add_status | add_projectile_status |
+                            # add_projectiles | modifier | kit_flag
   params,                   # op-specific numbers
 }
 ```
@@ -115,6 +116,17 @@ modifiers carry the `classmod_` source prefix and are stripped on every rebuild 
 - **`add_status`** — append an `ApplyStatusEffectData` from a `StatusFactory` id (`params.status`,
   `stacks`, `apply_to_self`). Dispatched to nearby enemies by the existing combo effect router.
 - **`modifier`** — kit-agnostic player `ModifierDefinition` while equipped (`stat`, `op`, `value`).
+- **`add_projectile_status`** — inject an `ApplyStatusEffectData` into the matched phase's
+  `SpawnProjectilesEffect.projectile.on_hit_effects`, so the status lands per enemy hit rather than
+  in the phase's AoE pool. Use for ranged nodes.
+- **`add_projectiles`** — increment `SpawnProjectilesEffect.count` (`count`). Fan the Hammer +2.
+
+### Beyond phases — `kit_flag` (added 2026-07-31)
+`ClassModFactory` mutates *phases*, which cannot express a mod whose effect is **which graph runs**
+or **how the entity routes**. `kit_flag` mods are skipped by both apply loops; the entity reads the
+equipped id directly in `player._load_combo`. First user: **SPLIT QUIVER** (Ranger) — it lifts the
+quiver stance onto the light chain and makes every armed arrow carry the off-hand element as well
+as its own. Prefer a phase op whenever one will do; `kit_flag` moves behaviour out of data.
 
 New ops are added here (one `match` case) as task 32 needs them — never per-mod scripts.
 
@@ -237,13 +249,14 @@ merchant/boss-tier.
 | Twin Fan ✅ | Fan of Blades (channel, anim:"fan") | scale_aoe | ×1.45 radius |
 | Deep Cuts ✅ | — (modifier) | modifier | +12% crit_chance while equipped |
 
-### The Scavenger — Ranger  *(4 shipped)*
+### The Scavenger — Ranger  *(5 shipped)*
 | Mod | Node | Op | Shipped |
 |-----|------|----|---------|
 | Barbed Arrows ✅ | All light-chain projectiles | add_projectile_status | Bleed on every arrow |
 | Impaling Knife ✅ | Throwing Knife (anim:"knife") | scale_aoe | ×1.5 projectile dmg |
 | Explosive Tips ✅ | Triple Shot (anim:"triple_shot") | add_projectile_status | Ignites each arrow hit |
 | Ghost Step ✅ | — (modifier) | modifier | +15% move_speed while equipped |
+| **Split Quiver** ✅ | — (routing) | kit_flag | Quiver stance rides the light chain too, and each armed arrow carries the off-hand element under its own — a Fire arrow lands Chilled then Burning and trips Frostfire on its own hit |
 
 ### The Spark — Wizard  *(4 shipped)*
 | Mod | Node | Op | Shipped |

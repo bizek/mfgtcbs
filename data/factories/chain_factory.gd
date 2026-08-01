@@ -12,8 +12,8 @@ extends RefCounted
 ## Cataclysm appears as a node in BOTH light and heavy graphs so it's reachable either way.
 ##
 ## Player combo hits are AreaDamageEffects centered on the player (host fires them on [self], so
-## EffectDispatcher resolves the AoE around the player and excludes the player). DisplacementEffect
-## (Uppercut fling) is dispatched per-enemy by player.choreo_fire_effects.
+## EffectDispatcher resolves the AoE around the player and excludes the player). Player combo nodes
+## do NOT displace enemies — knockback was cut from every kit (Ben, 2026-07-31).
 ##
 ## Radii below are BASE (unmodded) hit zones. They scale with the player's melee_range stat, which
 ## the player caps at MELEE_RANGE_MAX (2.0) — so a fully Reach-modded Fighter reaches ~2× these,
@@ -58,8 +58,16 @@ const SWIRL_BASE_BONES: int = 3         ## pack row 0 = 3 bones; rows 1/2 add 2/
 const DICTUM_TICK: float = 0.75     ## Paladin channel tick (dictum/dome: 15f @ 20fps = 0.75s)
 const TORRENT_TICK: float = 0.67    ## Wizard Fire Torrent tick (torrent: 20f @ 30fps ≈ 0.67s)
 const VAMP_TICK: float = 0.5        ## Blood Mage Vampirize half-cycle (7f @ 14fps = 0.5s)
-const CONCEAL_TICK: float = 0.9     ## Ranger Conceal loop (14f @ 16fps ≈ 0.875s crouch cycle)
 const VOLLEY_TICK: float = 0.85     ## Ranger Volley channel beat — slower than the light chain (sustained, not burst)
+## Ranger Elemental Burst splash (the armed RMB finisher). Sized to catch a small cluster, not a
+## screen — the head's spread is the reward for committing the second RMB, so it has to beat a
+## single arrow without turning the stance into an AoE class.
+const QUIVER_BURST_RADIUS: float = 34.0
+## Elemental Shot → Elemental Burst follow-up window. NOT HEAVY_WIN: the knife string's opener is
+## a 0.31s swing, but the bow body is 0.42s with cancel_open on frame 7 (0.29s), so HEAVY_WIN left
+## only 0.13s of post-draw grace — the tightest re-tap in the kit (ComboTimingAudit 2026-07-31).
+## 0.7s restores ~0.28s, matching what the light chain's own nodes get.
+const QUIVER_WIN: float = 0.7
 const HELL_TICK: float = 0.75       ## Demonologist Immolate channel beat (hellfire_ch 15f @ 20fps = 0.75s)
 ## Demonologist Brimstone Circle. BRIMSTONE_ZONE_TIME must stay equal to player.BRIMSTONE_SIGIL_LIFE
 ## so the burning sigil fades on the same frame its ground zone stops ticking.
@@ -122,6 +130,7 @@ static func build_kit(kit_id: String, weapon_data: Dictionary) -> Dictionary:
 			return {
 				"light": build_ranger_light(weapon_data),
 				"heavy": build_ranger_heavy(weapon_data),
+				"heavy_elemental": build_ranger_elemental_heavy(weapon_data),
 				"channel": build_ranger_volley(weapon_data),
 			}
 		"demonologist":
@@ -241,11 +250,11 @@ static func build_fighter_heavy(weapon_data: Dictionary) -> AbilityDefinition:
 	var dmg: float = weapon_data.get("damage", 42.0)
 	var dtype: String = _damage_type(weapon_data)
 
-	# 0 — Uppercut: AoE + arc knockback that flings nearby enemies. RMB again → Cataclysm.
+	# 0 — Uppercut: AoE opener. RMB again → Cataclysm.
 	var up := ChoreographyPhase.new()
 	up.animation = "uppercut"
 	up.hit_frame = 1
-	up.effects = [_aoe(dtype, dmg * 0.6, 35.0), _fling()]
+	up.effects = [_aoe(dtype, dmg * 0.6, 35.0)]
 	up.exit_type = "wait"
 	up.wait_duration = HEAVY_WIN
 	up.default_next = -1
@@ -483,11 +492,11 @@ static func build_paladin_light(weapon_data: Dictionary) -> AbilityDefinition:
 		_branch_buffered("heavy_attack", 4),               # RMB  → Holy Hammer
 	]
 
-	# 2 — Shield Bash (control finisher: damage + flat shove; loops back to Strike on a fresh tap).
+	# 2 — Shield Bash (finisher; loops back to Strike on a fresh tap).
 	var bash := ChoreographyPhase.new()
 	bash.animation = "bash"
 	bash.hit_frame = 3
-	bash.effects = [_aoe(dtype, dmg * 0.9, BASH_RADIUS, BASH_FORWARD), _shove()]
+	bash.effects = [_aoe(dtype, dmg * 0.9, BASH_RADIUS, BASH_FORWARD)]
 	bash.exit_type = "wait"
 	bash.wait_duration = CANCEL_WIN
 	bash.default_next = -1
@@ -524,11 +533,11 @@ static func build_paladin_heavy(weapon_data: Dictionary) -> AbilityDefinition:
 	var dmg: float = weapon_data.get("damage", 42.0)
 	var dtype: String = _damage_type(weapon_data)
 
-	# 0 — Shield Bash: shove opener; RMB again → Holy Hammer.
+	# 0 — Shield Bash: opener; RMB again → Holy Hammer.
 	var bash := ChoreographyPhase.new()
 	bash.animation = "bash"
 	bash.hit_frame = 3
-	bash.effects = [_aoe(dtype, dmg * 0.6, BASH_RADIUS, BASH_FORWARD), _shove()]
+	bash.effects = [_aoe(dtype, dmg * 0.6, BASH_RADIUS, BASH_FORWARD)]
 	bash.exit_type = "wait"
 	bash.wait_duration = HEAVY_WIN
 	bash.default_next = -1
@@ -881,9 +890,14 @@ static func build_ranger_light(weapon_data: Dictionary) -> AbilityDefinition:
 	return _ability("ranger_light", "Scavenger Combo", choreo)
 
 
-# --- Ranger: melee string (RMB tap) ---
+# --- Ranger: melee string (RMB tap, UNARMED quiver) ---
 ## The "back off" knives: Single Melee → Double Melee, both with frame-matched effect
 ## overlays. 0 Melee · 1 Double Melee.
+##
+## This is what RMB does with an EMPTY quiver. Load a head with E and RMB becomes
+## build_ranger_elemental_heavy instead — that trade (give up your point-blank panic swing to
+## gain the element) is the whole point of the stance, so the knives are not dead weight, they
+## are the cost. player._tick_combo picks between the two on `_ranger_quiver`.
 static func build_ranger_heavy(weapon_data: Dictionary) -> AbilityDefinition:
 	var dmg: float = weapon_data.get("damage", 42.0)
 	var dtype: String = _damage_type(weapon_data)
@@ -911,11 +925,61 @@ static func build_ranger_heavy(weapon_data: Dictionary) -> AbilityDefinition:
 	return _ability("ranger_heavy", "Scavenger Melee", choreo)
 
 
+# --- Ranger: elemental shot string (RMB tap, quiver LOADED) ---
+## What RMB becomes once E loads a head (Ben 2026-07-31, replacing Conceal): a two-node payload
+## delivery. 0 Elemental Shot (a single heavy arrow that plants the status) · 1 Elemental Burst
+## (a fatter arrow that bursts on impact, splashing the same status onto everything around it).
+##
+## The graph is ELEMENT-AGNOSTIC on purpose. It ships Physical arrows with no status, and
+## `player._apply_quiver` swaps the damage type, appends the head's status, tints the shaft and
+## hangs the pack's Burst_Fire / Burst_Ice sheet on the impact at fire time. One graph therefore
+## serves both heads — and the same host hook makes the Volley channel and the Mirror Archer
+## inherit the loaded head for free, which a pair of baked graphs could never do.
+##
+## The payoff is not the DoT, it's the cross-element combo StatusFactory already ships: chill a
+## pack with Frost, swap to Fire, and every arrow trips Frostfire (chilled consumed + Fire AoE) or
+## Shatter off a Frozen target. The Scavenger is the only kit that can set up and cash in alone.
+static func build_ranger_elemental_heavy(weapon_data: Dictionary) -> AbilityDefinition:
+	var dmg: float = weapon_data.get("damage", 42.0)
+
+	# 0 — Elemental Shot: the single-shot body, one heavy arrow. Plants the head's status.
+	var shot := ChoreographyPhase.new()
+	shot.animation = "attack"
+	shot.hit_frame = 6
+	shot.effects = [_arrow_volley("Physical", dmg * 1.0, 1, 0.0)]
+	shot.exit_type = "wait"
+	shot.wait_duration = QUIVER_WIN
+	shot.default_next = -1
+	shot.branches = [
+		_branch_buffered("heavy_attack", 1),              # RMB again → Elemental Burst
+	]
+
+	# 1 — Elemental Burst (terminal finisher): the paired-arrow body looses one fat bolt that
+	#     splashes on impact, so the head lands on a cluster rather than a single target. The
+	#     splash radius is where the "detonate what you chilled" fantasy actually pays out.
+	var burst := ChoreographyPhase.new()
+	burst.animation = "double_shot"
+	burst.hit_frame = 6
+	burst.effects = [_elemental_bolt("Physical", dmg * 1.3)]
+	burst.exit_type = "anim_finished"
+	burst.default_next = -1
+	burst.is_finisher = true
+
+	var choreo := ChoreographyDefinition.new()
+	choreo.phases = [shot, burst]
+	return _ability("ranger_heavy_elemental", "Elemental Shot", choreo)
+
+
 # --- Ranger: Volley channel (RMB hold) — the Scavenger's sustained fire (Ben 2026-07-20) ---
 ## Hold RMB to loose repeating arrow volleys: each beat fans three arrows at the cursor, but on
 ## a slower cadence than the light chain (VOLLEY_TICK) and for LESS per-arrow damage — sustained
-## pressure that trades the light chain's burst for uptime. Conceal moved to the E skill. The
+## pressure that trades the light chain's burst for uptime. The
 ## body holds the triple-shot draw pose across beats (hold_anim_on_reentry). Single looping node.
+##
+## The channel INHERITS the loaded quiver (player._apply_quiver): unarmed it is the neutral volley
+## it has always been, armed it becomes the kit's status-stacker — the cheapest way to put Chilled
+## on a whole pack before swapping to Fire. Held RMB is the stance's application tool; tapped RMB
+## (build_ranger_elemental_heavy) is its burst.
 static func build_ranger_volley(weapon_data: Dictionary) -> AbilityDefinition:
 	var dmg: float = weapon_data.get("damage", 42.0)
 	var dtype: String = _damage_type(weapon_data)
@@ -1127,11 +1191,11 @@ static func build_barbarian_light(weapon_data: Dictionary) -> AbilityDefinition:
 		_branch_buffered("heavy_attack", 3),               # RMB → Thunder Blade
 	]
 
-	# 2 — Sunder (ground-breaker finisher: AoE + shove; loops back to Cleave on a fresh tap).
+	# 2 — Sunder (ground-breaker finisher; loops back to Cleave on a fresh tap).
 	var sunder := ChoreographyPhase.new()
 	sunder.animation = "sunder"
 	sunder.hit_frame = 3
-	sunder.effects = [_aoe(dtype, dmg * 1.4, 48.0), _shove()]
+	sunder.effects = [_aoe(dtype, dmg * 1.4, 48.0)]
 	sunder.exit_type = "wait"
 	sunder.wait_duration = CANCEL_WIN
 	sunder.default_next = -1
@@ -1158,7 +1222,7 @@ static func build_barbarian_heavy(weapon_data: Dictionary) -> AbilityDefinition:
 	var sunder := ChoreographyPhase.new()
 	sunder.animation = "sunder"
 	sunder.hit_frame = 3
-	sunder.effects = [_aoe(dtype, dmg * 0.7, 44.0), _shove()]
+	sunder.effects = [_aoe(dtype, dmg * 0.7, 44.0)]
 	sunder.exit_type = "wait"
 	sunder.wait_duration = HEAVY_WIN
 	sunder.default_next = -1
@@ -1501,11 +1565,11 @@ static func build_druid_light(weapon_data: Dictionary) -> AbilityDefinition:
 	morph_beast.exit_type = "anim_finished"
 	morph_beast.default_next = 3
 
-	# 3 — Beast Maul (finisher: heavy claw AoE + shove; loops back to Claw on a fresh tap).
+	# 3 — Beast Maul (finisher: heavy claw AoE; loops back to Claw on a fresh tap).
 	var maul := ChoreographyPhase.new()
 	maul.animation = "beast_attack"
 	maul.hit_frame = 2
-	maul.effects = [_aoe(dtype, dmg * 1.3, 46.0), _shove()]
+	maul.effects = [_aoe(dtype, dmg * 1.3, 46.0)]
 	maul.exit_type = "wait"
 	maul.wait_duration = CANCEL_WIN
 	maul.default_next = -1
@@ -2027,6 +2091,123 @@ const ARROW_CONE: float = 35.0      ## half-angle it may acquire within; never t
 const ARROW_TURN: float = 120.0     ## deg/sec heading cap — a curve, not a snap
 
 
+## ── Quiver heads (the Scavenger's E stance, Ben 2026-07-31) ──────────────────────────────────
+## E cycles Unarmed → Fire → Frost → Unarmed. The head is NOT baked into a graph: the player
+## injects it into any quiver-eligible SpawnProjectilesEffect at fire time (player._apply_quiver),
+## which is why the elemental heavy, the Volley channel and the Mirror Archer all inherit it from
+## one place. Everything the injection needs lives in these four functions so the stance's whole
+## vocabulary is in the factory, not smeared across the entity script.
+const QUIVER_NONE: String = ""
+const QUIVER_FIRE: String = "fire"
+const QUIVER_FROST: String = "frost"
+## Cycle order for the E skill. Unarmed is IN the cycle by design — it is how you get the melee
+## knives back (build_ranger_heavy), so all three states stay reachable from one key.
+const QUIVER_CYCLE: Array[String] = [QUIVER_NONE, QUIVER_FIRE, QUIVER_FROST]
+
+static var _quiver_impact_cache: Dictionary = {}
+
+
+## The damage type an armed arrow converts to. Physical when unarmed (the shipped behaviour).
+static func quiver_damage_type(element: String) -> String:
+	match element:
+		QUIVER_FIRE: return "Fire"
+		QUIVER_FROST: return "Ice"
+	return "Physical"
+
+
+## The status an armed arrow plants on hit, or null when unarmed. Fire → Burning, Frost → Chilled;
+## both are StatusFactory singletons, so the Frostfire / Shatter listeners they already carry are
+## what makes swapping heads worth doing.
+static func quiver_status(element: String) -> ApplyStatusEffectData:
+	var id: String = ""
+	match element:
+		QUIVER_FIRE: id = "burning"
+		QUIVER_FROST: id = "chilled"
+	if id == "":
+		return null
+	StatusFactory.build_all()
+	var def: StatusEffectDefinition = StatusFactory.get_by_id(id)
+	if def == null:
+		return null
+	var apply := ApplyStatusEffectData.new()
+	apply.status = def
+	apply.stacks = 1
+	apply.apply_to_self = false
+	return apply
+
+
+## The OTHER head's status — what SPLIT QUIVER (class mod) rides along on every arrow. Applied
+## BEFORE the primary so a Fire arrow lands Chilled first and then trips its own Frostfire.
+static func quiver_offhand_status(element: String) -> ApplyStatusEffectData:
+	match element:
+		QUIVER_FIRE: return quiver_status(QUIVER_FROST)
+		QUIVER_FROST: return quiver_status(QUIVER_FIRE)
+	return null
+
+
+## Shaft tint. The arrow keeps the pack's own sprite (it is the Ranger's arrow art and there is no
+## elemental arrow sheet in the pack) and reads its head off colour — legible at 640x360 without
+## inventing a substitute projectile.
+static func quiver_tint(element: String) -> Color:
+	match element:
+		QUIVER_FIRE: return Color(1.35, 0.62, 0.28, 1.0)
+		QUIVER_FROST: return Color(0.55, 0.9, 1.4, 1.0)
+	return Color.WHITE
+
+
+## Impact burst — the Spell Effects pack's own Burst_Fire / Burst_Ice (32px, 15f single row),
+## the same sheets the Spark's Fire/Frost Burst already use. Unarmed arrows keep no impact.
+static func quiver_impact_frames(element: String) -> SpriteFrames:
+	if element == QUIVER_NONE:
+		return null
+	if _quiver_impact_cache.has(element):
+		return _quiver_impact_cache[element]
+	const SPELLFX: String = "res://assets/minifantasy/Minifantasy_Spell Effects_v1.0/Minifantasy_Spell_Effects_Assets/"
+	var path: String = SPELLFX + ("Fire/Burst/Burst_Fire.png" if element == QUIVER_FIRE \
+			else "Ice/Burst/Burst_Ice.png")
+	if not ResourceLoader.exists(path):
+		_quiver_impact_cache[element] = null
+		return null
+	var frames: SpriteFrames = _oneshot_row_frames(path, 15.0)
+	_quiver_impact_cache[element] = frames
+	return frames
+
+
+## The Elemental Burst finisher's bolt: one fat arrow that splashes on impact so the head lands on
+## a cluster instead of a single body. Damage type / status / tint / impact art are injected by
+## player._apply_quiver — this only owns the shape.
+static func _elemental_bolt(dtype: String, damage: float) -> SpawnProjectilesEffect:
+	var cfg := ProjectileConfig.new()
+	cfg.motion_type = "directional"
+	cfg.speed = 280.0
+	cfg.max_range = 240.0
+	cfg.hit_radius = 8.0
+	cfg.seek_radius = ARROW_SEEK
+	cfg.seek_cone = ARROW_CONE
+	cfg.homing_turn_rate = ARROW_TURN
+	cfg.sprite_frames = _grid8_frames(
+			RANGER_ASSET_DIR + "Special_Animations/Double_Shot/Double_Arrow_Projectile.png",
+			"_double_arrow_frames")
+	cfg.use_directional_anims = true
+	cfg.visual_scale = Vector2(1.15, 1.15)
+	var hit := DealDamageEffect.new()
+	hit.damage_type = dtype
+	hit.base_damage = damage
+	cfg.on_hit_effects = [hit]
+	## The splash: half the direct hit, but it is what carries the head onto the pack. The quiver
+	## injection appends its status here too, so a Frost burst chills everything in the radius.
+	cfg.impact_aoe_radius = QUIVER_BURST_RADIUS
+	var splash := DealDamageEffect.new()
+	splash.damage_type = dtype
+	splash.base_damage = damage * 0.5
+	cfg.impact_aoe_effects = [splash]
+	var e := SpawnProjectilesEffect.new()
+	e.projectile = cfg
+	e.spawn_pattern = "aimed_single"
+	e.count = 1
+	return e
+
+
 static func _arrow_volley(dtype: String, per_arrow: float, count: int, spread: float) -> SpawnProjectilesEffect:
 	var cfg := ProjectileConfig.new()
 	cfg.motion_type = "directional"
@@ -2106,22 +2287,6 @@ static func _throwing_knife(dtype: String, hit_damage: float) -> SpawnProjectile
 	e.spawn_pattern = "aimed_single"
 	e.count = 1
 	return e
-
-
-## "Concealed": while refreshed, player.is_invisible() — enemies stop chasing. Duration
-## outlasts the conceal loop tick so the stealth never blinks between refreshes.
-static func _concealed_status() -> ApplyStatusEffectData:
-	var status := StatusEffectDefinition.new()
-	status.status_id = "concealed"
-	status.is_positive = true
-	status.max_stacks = 1
-	status.base_duration = 1.2
-	status.duration_refresh_mode = "overwrite"
-	var apply := ApplyStatusEffectData.new()
-	apply.status = status
-	apply.stacks = 1
-	apply.apply_to_self = true
-	return apply
 
 
 ## Shared shape for self-applied +damage statuses (blood_surge / battle_fury / honed_edge / …).
@@ -2487,30 +2652,6 @@ static func _hammer_phase(dtype: String, dmg: float, self_index: int) -> Choreog
 		_branch_buffered("heavy_attack", self_index),      # RMB again → another hammer
 	]
 	return h
-
-
-## Shield Bash shove: flat, short push — crowd control, not a launch. Same i-frame-gated
-## DisplacementEffect system as the Fighter fling (CLAUDE.md).
-static func _shove() -> DisplacementEffect:
-	var d := DisplacementEffect.new()
-	d.displaced = "target"
-	d.destination = "away_from_source"
-	d.motion = "arc"
-	d.duration = 0.22
-	d.arc_height = 8.0
-	d.distance = 48.0
-	return d
-
-
-static func _fling() -> DisplacementEffect:
-	var d := DisplacementEffect.new()
-	d.displaced = "target"
-	d.destination = "away_from_source"   ## knockback away from the player
-	d.motion = "arc"                     ## parabolic launch reads as an uppercut
-	d.duration = 0.32
-	d.arc_height = 34.0
-	d.distance = 88.0
-	return d
 
 
 ## `forward` > 0 makes the hit DIRECTIONAL: the circle is pushed that far along the player's aim

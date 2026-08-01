@@ -3,7 +3,10 @@ extends Node
 ## Manages entity displacement: throws, knockbacks, pulls, charges, teleports.
 ## Child of combat_manager (needs Node for tween creation).
 
-## Arena bounds for clamping displacement destinations (±800×±600 arena)
+## Fallback bounds — the flat arena (±800×±600). Only used when the live level rect can't be
+## resolved. Descent mode uses ALL-POSITIVE coords whose height grows with the block stack, so
+## clamping to these constants there yanked entities to y=600 — i.e. hundreds of pixels straight
+## UP, worse the deeper you were. Always prefer _level_bounds(). (Fixed 2026-07-31.)
 const BOUNDS_MIN_X := -800.0
 const BOUNDS_MAX_X := 800.0
 const BOUNDS_MIN_Y := -600.0
@@ -15,6 +18,18 @@ var rng: RandomNumberGenerator
 func _ready() -> void:
 	var cm = get_parent()
 	rng = cm.rng if cm and cm.get("rng") else RandomNumberGenerator.new()
+
+
+## Live playable rect for the current mode (descent block stack / LDtk level / flat arena).
+## Resolved per call rather than cached: in descent the stack's total_height grows as blocks build.
+func _level_bounds() -> Rect2:
+	var arena: Node = get_parent().get_parent() if get_parent() else null
+	if arena and arena.has_method("_get_level_bounds"):
+		var r: Rect2 = arena._get_level_bounds()
+		if r.size.x > 0.0 and r.size.y > 0.0:
+			return r
+	return Rect2(BOUNDS_MIN_X, BOUNDS_MIN_Y,
+			BOUNDS_MAX_X - BOUNDS_MIN_X, BOUNDS_MAX_Y - BOUNDS_MIN_Y)
 
 
 func execute(source: Node2D, ability,
@@ -121,8 +136,9 @@ func _compute_end_position(displaced: Node2D, source: Node2D,
 
 
 func _clamp_to_bounds(pos: Vector2) -> Vector2:
-	pos.x = clampf(pos.x, BOUNDS_MIN_X, BOUNDS_MAX_X)
-	pos.y = clampf(pos.y, BOUNDS_MIN_Y, BOUNDS_MAX_Y)
+	var b: Rect2 = _level_bounds()
+	pos.x = clampf(pos.x, b.position.x, b.end.x)
+	pos.y = clampf(pos.y, b.position.y, b.end.y)
 	return pos
 
 

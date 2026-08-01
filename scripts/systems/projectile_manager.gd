@@ -634,11 +634,17 @@ func _draw() -> void:
 		var scl := _visual_scales[i]
 		var size := tex.get_size()
 		var half := size * 0.5
+		## Per-projectile tint. Default WHITE = the sprite as authored, so every existing
+		## projectile is untouched; the Ranger's quiver stance uses it to colour her own arrow
+		## art per loaded head rather than substituting a different sheet (CLAUDE.md: wire the
+		## pack's own pieces). Values above 1.0 are intentional — it's a heat, not a filter.
+		var cfg_t: ProjectileConfig = _configs[i]
+		var tint: Color = cfg_t.tint if cfg_t else Color.WHITE
 		if rot == 0.0 and scl == Vector2.ONE:
-			draw_texture(tex, pos - half)
+			draw_texture(tex, pos - half, tint)
 		else:
 			draw_set_transform(pos, rot, scl)
-			draw_texture(tex, -half)
+			draw_texture(tex, -half, tint)
 			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 

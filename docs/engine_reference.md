@@ -130,6 +130,16 @@ All 12 classes ship `light` / `heavy` / `channel` graphs from `ChainFactory.buil
 
 Animations for these phases are sliced/retimed through the Animation Lab (F10) and persist to `data/anim_overrides.json`, which **exported builds read**. See `docs/dev_tools.md`.
 
+#### Stance-swapped graphs (Ranger, 2026-07-31)
+
+A kit may ship **more than three graphs** and pick between them at runtime. `ChainFactory.build_kit("ranger", …)` returns an extra `heavy_elemental` key; `player._active_heavy()` resolves RMB tap to the melee knives or the elemental shot string depending on `_ranger_quiver` (the E stance — `""` / `"fire"` / `"frost"`, cycled by `ranger_quiver_swap` in `player.choreo_on_start`).
+
+The **element is not baked into a graph.** `player.apply_quiver()` stamps the loaded head onto each per-fire `SpawnProjectilesEffect` duplicate in `choreo_fire_effects` — converting damage type, appending the head's status, setting `ProjectileConfig.tint` and hanging the Spell Effects pack's `Burst_Fire`/`Burst_Ice` on the impact. One seam means the elemental heavy, the Volley channel and the Mirror Archer all inherit the stance. `player._quiver_applies_to(ability)` is the eligibility gate; it deliberately excludes the light chain unless the SPLIT QUIVER class mod is equipped.
+
+Two things any similar work must copy: the injection targets a **duplicate** (a factory resource stamped in place would compound every shot and survive unloading), and `apply_quiver` rebuilds the damage pools via `_quiver_retype` rather than trusting the depth of `duplicate(true)`.
+
+`ProjectileConfig.tint` (added here) multiplies over `sprite_frames` at draw time in `ProjectileManager._draw()`; `Color.WHITE` is the default and leaves every existing projectile untouched. Use it to re-colour one authored sheet per variant instead of shipping a sheet per variant.
+
 ---
 
 ## Content Creation Patterns
@@ -439,7 +449,22 @@ Stun/freeze interrupts choreography — genuinely, as of that migration. Before 
 
 ### Displacement System
 
-`DisplacementSystem` handles throws, knockbacks, pulls, charges, teleports with on-arrival effects. Currently only basic knockback (via `apply_knockback()`) is used.
+`DisplacementSystem` handles throws, knockbacks, pulls, charges, teleports with on-arrival effects.
+
+**Player kits do NOT displace enemies.** Knockback was cut from every kit on 2026-07-31 (Ben) — the
+Fighter Uppercut fling and the Paladin/Barbarian/Druid/Blood Mage/Gunslinger shoves are gone, and
+`ChainFactory._fling()` / `._shove()` were deleted. Don't reintroduce displacement when authoring a
+new kit, chain node, or Q/E skill. Live users of this system are now enemy charges
+(`stalker`, `ancient_troll`, `warped_colossus`) and the `add_pull` class mod.
+
+The separate velocity-based `knockback_velocity` on `player.gd`/`enemy.gd` is a different system and
+is still live — that's enemy contact-hit shove, unaffected by the above.
+
+Destinations are clamped to the **live** level rect, resolved per call from
+`main_arena._get_level_bounds()` (descent block stack / LDtk level / flat arena). It used to clamp to
+hardcoded ±800×±600 flat-arena constants, which in descent mode — all-positive coords whose height
+grows with the stack — yanked displaced entities to y=600, i.e. launched them hundreds of pixels
+straight up, worse the deeper you were. Those constants survive only as a fallback.
 
 ```gdscript
 var disp := DisplacementEffect.new()

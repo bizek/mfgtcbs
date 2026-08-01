@@ -60,6 +60,14 @@ static var elite_regenerating: StatusEffectDefinition
 static var elite_armored: StatusEffectDefinition
 static var elite_vampiric: StatusEffectDefinition
 
+## Ranger quiver stance markers (the Scavenger's E, 2026-07-31). Permanent — base_duration 0 means
+## time_remaining stays 0, which StatusEffectComponent already treats as indefinite, so the chip
+## sits in the buff bar for exactly as long as the head is loaded and never drains. They carry NO
+## modifiers: the stance's whole effect is the head injected into arrows (player._apply_quiver);
+## these exist so the state is legible — a buff chip plus the pack's own fire/ice aura on the body.
+static var quiver_fire: StatusEffectDefinition
+static var quiver_frost: StatusEffectDefinition
+
 static var _built: bool = false
 
 
@@ -91,6 +99,9 @@ static func build_all() -> void:
 	galvanized_shocked = _build_galvanized_shocked()
 	burning_extended = _build_burning_extended()
 
+	quiver_fire = _build_quiver_stance("quiver_fire", "fire", Color(1.0, 0.75, 0.5, 0.85))
+	quiver_frost = _build_quiver_stance("quiver_frost", "ice", Color(0.75, 0.95, 1.0, 0.85))
+
 	## Wire new elemental combos onto existing statuses (must run after all statuses built)
 	_wire_hellfire_combo()
 	_wire_superconductor_combo()
@@ -105,9 +116,30 @@ static func build_all() -> void:
 	elite_vampiric = _build_elite_vampiric()
 
 
+## A Ranger quiver stance marker. Zero modifiers, zero duration — a legibility layer over a
+## player-side stance var. `aura_element` is a StatusVfxFactory key ("fire" / "ice"); the aura is
+## scaled down because this rides the PLAYER permanently and a full-size elemental cloud would
+## bury a 32px sprite for the whole run.
+static func _build_quiver_stance(id: String, aura_element: String,
+		tint: Color) -> StatusEffectDefinition:
+	var def := StatusEffectDefinition.new()
+	def.status_id = id
+	def.tags = ["Stance"]
+	def.is_positive = true
+	def.max_stacks = 1
+	def.base_duration = 0.0            ## indefinite — cleared by the next E press, not by a timer
+	def.duration_refresh_mode = "overwrite"
+	_attach_aura(def, aura_element, Vector2(0.6, 0.6), tint)
+	return def
+
+
 static func get_by_id(status_id: String) -> StatusEffectDefinition:
 	build_all()
 	match status_id:
+		"quiver_fire":
+			return quiver_fire
+		"quiver_frost":
+			return quiver_frost
 		"burning", "fire":
 			return burning
 		"bleed":

@@ -63,8 +63,8 @@ static func _apply_dicts_to_abilities(kit_id: String, abilities: Dictionary, dic
 		if mod.get("kit", "") != kit_id:
 			continue
 		var op: String = mod.get("op", "")
-		if op == "modifier" or op == "":
-			continue   ## modifier ops are applied directly to ModifierComponent, not to phases
+		if op == "modifier" or op == "kit_flag" or op == "":
+			continue   ## modifier → ModifierComponent; kit_flag → read by the entity. Not phases.
 		var target: Dictionary = mod.get("target", {})
 		var want_graph: String = target.get("graph", "")
 		var want_anim: String  = target.get("anim", "")
@@ -92,6 +92,8 @@ static func _apply_to_abilities(kit_id: String, abilities: Dictionary, active_id
 		var op: String = mod.get("op", "")
 		if op == "modifier":
 			continue   ## handled by build_modifiers, not a phase mutation
+		if op == "kit_flag":
+			continue   ## routing-level; the entity reads the equipped id itself (player._load_combo)
 		var target: Dictionary = mod.get("target", {})
 		var want_graph: String = target.get("graph", "")
 		var want_anim: String  = target.get("anim", "")

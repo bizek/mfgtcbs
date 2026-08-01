@@ -178,6 +178,17 @@ var _combat_input: CombatInputBuffer = null
 var _combo_ability: AbilityDefinition = null
 var _combo_heavy: AbilityDefinition = null
 var _combo_channel: AbilityDefinition = null
+## Ranger quiver stance (the Scavenger's E, Ben 2026-07-31). "" | "fire" | "frost" — see
+## ChainFactory.QUIVER_*. Unarmed, RMB tap is the melee-knife string (_combo_heavy); armed, it is
+## the elemental shot string (_combo_heavy_elemental) and every arrow the kit looses converts to
+## the head's damage type and plants its status. Null/"" on every other kit, which is what keeps
+## all of this inert for the other eleven.
+var _combo_heavy_elemental: AbilityDefinition = null
+var _ranger_quiver: String = ""
+## SPLIT QUIVER (class mod): the loaded head also rides the LIGHT chain, and every armed arrow
+## carries the OFF-hand status underneath its own — a Fire arrow lands Chilled then Burning, which
+## trips the Frostfire listener chilled already ships. Set from the equipped class mods at kit build.
+var _quiver_all_chains: bool = false
 ## Combo cadence feedback (docs/combo_feedback_spec.md): pitch-ladder depth, channel-tick
 ## suppression, and the cancel-window pulse tween.
 var _combo_step_depth: int = 0        ## light-chain hits fired this run (1-based ladder depth)
@@ -367,9 +378,15 @@ const BRIMSTONE_SIGIL_FRAMES: int = 18
 ## Archdemon_Call_Spell: 32px, 1 row, 27f — the pentagram opens, the archdemon puts its head
 ## through, bites, and sinks back. World-anchored at the cursor over the Archdemon's Call zone.
 const ARCHDEMON_SPELL_SHEET: String = DEMON_SPECIAL_DIR + "Archdemon_Call/Archdemon_Call_Spell.png"
-## Must equal SkillFactory.ARCHDEMON_SPELL_TIME (27 frames @ ~11 fps ≈ 2.45s).
-const ARCHDEMON_SPELL_LIFE: float = 2.45
 const ARCHDEMON_SPELL_FRAMES: int = 27
+## The rate leads and the lifetime follows. This used to be a hand-set LIFE of 2.45s with the fps
+## computed as FRAMES / LIFE — which happened to land on 11fps, near the sheet's authored 10, purely
+## by coincidence. That coincidence was one balance tweak away from breaking: retuning the E skill's
+## zone duration would have silently retimed the art, which is precisely how the Brimstone sigil
+## ended up at 4.5fps. 11.0 keeps today's timing to the frame (27 / 11 = 2.4545s ≈ the old 2.45).
+## Must stay equal to SkillFactory.ARCHDEMON_SPELL_TIME.
+const ARCHDEMON_SPELL_FPS: float = 11.0
+const ARCHDEMON_SPELL_LIFE: float = float(ARCHDEMON_SPELL_FRAMES) / ARCHDEMON_SPELL_FPS
 ## Hell_Breach_Spell: 64px, 17f, and its four rows are CARDINAL directions, not the pack's usual
 ## diagonal facings — measured off the sheet, each row's fissure grows a different way from the
 ## cell centre (row 0 east, 1 west, 2 south, 3 north). Spawned at the leap's landing point.
@@ -382,7 +399,17 @@ const HELLBREACH_FISSURE_ROWS: Array[int] = [0, 1, 2, 3]   ## e / w / s / n
 ## true 360 degree aim with the art never more than 45 degrees from how it was drawn. Same treatment
 ## as the Warden's Shield Bash (Ben 2026-07-30).
 const HELLBREACH_FISSURE_ANGLES: Array[float] = [0.0, PI, PI * 0.5, -PI * 0.5]
-const HELLBREACH_FISSURE_FPS: float = 20.0
+## Locked to the BODY's rate, not picked independently. Hell_Breach/AnimationInfo.txt authors both
+## sheets at 100ms/frame and then tells you to composite them:
+##   "start Hell_Breach_Spell aligned with the Demonologist Character after the jump landing in
+##    the Hell_Breach animation"
+## — so this is one animation in two files, and the two halves have to share a rate. At the old flat
+## 20.0 the fissure ran 17% slow against a body playing at 24 (characters.gd "hell_breach"), which
+## matched nothing: not the pack (10), not the body it sits on, and not its two sibling world-FX
+## rates in this same kit (BRIMSTONE_SIGIL_FPS 10, archdemon ~11). 24 restores the authored 1:1
+## relationship at the kit's own cadence — 17f = 0.71s, ending 0.92s after the beat starts, so the
+## crack still outlives the slam exactly as authored. Keep this equal to the "hell_breach" fps.
+const HELLBREACH_FISSURE_FPS: float = 24.0
 ## The crack opens where the STAFF lands, not under his boots (Ben 2026-07-30). Pushed along the aim
 ## by this much; ChainFactory.HELLBREACH_FORWARD moves the phase's damage by the same amount so the
 ## bite and the art stay on top of each other.
@@ -1441,13 +1468,20 @@ func _load_combo() -> void:
 		_apply_hit_frame_overrides(char_id, kit.values())
 		set_combo_ability(kit.get("light"))
 		_combo_heavy = kit.get("heavy")
+		_combo_heavy_elemental = kit.get("heavy_elemental")
 		_combo_channel = kit.get("channel")
 		for m in ClassModFactory.build_modifiers(kit_id, class_mods):
 			modifier_component.add_modifier(m)
 	else:
 		set_combo_ability(null)
 		_combo_heavy = null
+		_combo_heavy_elemental = null
 		_combo_channel = null
+	## Quiver stance: a rebuild (weapon switch, class mod change, run start) unloads the head. The
+	## stance is run state, not save state — it never persists across a rebuild, so a swap can't
+	## leave a marker status stranded on a kit that no longer has a quiver.
+	_quiver_all_chains = class_mods.has("ranger_split_quiver")
+	_set_quiver("")
 	## RMB specials are combo abilities; Q/E skills load from SkillFactory per kit.
 	if skill_component:
 		skill_component.clear()
@@ -1498,7 +1532,7 @@ func _tick_combo() -> void:
 			if _combat_input:
 				_combat_input.consume("heavy_attack")
 			choreography_runner.interrupt()
-			choreography_runner.start(_combo_heavy, [self])
+			choreography_runner.start(_active_heavy(), [self])
 		_rmb_pending = false   ## a combo started under us — drop any pending neutral RMB
 		return
 
@@ -1529,14 +1563,124 @@ func _tick_combo() -> void:
 		elif Input.is_action_just_released("heavy_attack"):
 			## Consume so Uppercut's follow-up window doesn't read this same tap as the Cataclysm advance.
 			_combat_input.consume("heavy_attack")
-			if _combo_heavy != null:
-				choreography_runner.start(_combo_heavy, [self])
+			var heavy: AbilityDefinition = _active_heavy()
+			if heavy != null:
+				choreography_runner.start(heavy, [self])
 			_rmb_pending = false
 
 
 ## HUD hook: the active melee kit id.
 func get_kit_id() -> String:
 	return _kit_id
+
+
+# ── Ranger quiver stance (E) ─────────────────────────────────────────────────────────────────
+## Which graph RMB tap runs right now. Unarmed → the melee knives; a head loaded → the elemental
+## shot string. Every other kit has no _combo_heavy_elemental, so this is _combo_heavy for them.
+func _active_heavy() -> AbilityDefinition:
+	if _ranger_quiver != "" and _combo_heavy_elemental != null:
+		return _combo_heavy_elemental
+	return _combo_heavy
+
+
+## HUD/debug hook: "" | "fire" | "frost".
+func get_quiver() -> String:
+	return _ranger_quiver
+
+
+## Advance the stance one step around ChainFactory.QUIVER_CYCLE (Unarmed → Fire → Frost → Unarmed).
+func _cycle_quiver() -> void:
+	var cycle: Array[String] = ChainFactory.QUIVER_CYCLE
+	var idx: int = cycle.find(_ranger_quiver)
+	_set_quiver(cycle[(idx + 1) % cycle.size()] if idx >= 0 else ChainFactory.QUIVER_FIRE)
+
+
+## Set the stance and re-sync its marker status. Both markers are stripped first so the buff bar
+## can never show two heads at once, and so unloading actually clears the aura.
+func _set_quiver(element: String) -> void:
+	_ranger_quiver = element
+	if status_effect_component == null:
+		return
+	for id in ["quiver_fire", "quiver_frost"]:
+		if status_effect_component.has_status(id):
+			status_effect_component.force_remove_status(id, self)
+	if element == "":
+		return
+	StatusFactory.build_all()
+	var marker: StatusEffectDefinition = StatusFactory.get_by_id(
+			"quiver_fire" if element == ChainFactory.QUIVER_FIRE else "quiver_frost")
+	if marker != null:
+		status_effect_component.apply_status(marker, self, 1)
+
+
+## True when `ability`'s arrows should carry the loaded head. The elemental shot string and the
+## held Volley always do; the LIGHT chain only does with SPLIT QUIVER equipped, which is the whole
+## point of that mod — neutral LMB is what keeps the stance a decision instead of a flat upgrade.
+func _quiver_applies_to(ability: AbilityDefinition) -> bool:
+	if _ranger_quiver == "" or ability == null:
+		return false
+	match ability.ability_id:
+		"ranger_heavy_elemental", "ranger_volley":
+			return true
+		"ranger_light":
+			return _quiver_all_chains
+	return false
+
+
+## Stamp the loaded head onto one already-duplicated SpawnProjectilesEffect: convert the damage
+## type of everything it deals (direct hit AND impact splash), append the head's status to both
+## pools, tint the shaft, and hang the pack's Burst_Fire/Burst_Ice sheet on the impact.
+##
+## Called ONLY on a per-fire duplicate (choreo_fire_effects) or on a freshly-rebuilt template
+## (mirror_archer) — never on a factory resource, or the head would compound onto the base every
+## shot and survive unloading the quiver. Public because the Mirror Archer fires outside the
+## choreography path and has to stamp its own arrows.
+func apply_quiver(e: SpawnProjectilesEffect) -> void:
+	if e.projectile == null:
+		return
+	var cfg: ProjectileConfig = e.projectile
+	var dtype: String = ChainFactory.quiver_damage_type(_ranger_quiver)
+	## Rebuild both pools into FRESH arrays holding FRESH damage resources rather than editing
+	## whatever `duplicate(true)` handed back. This does not trust the depth of that copy: if the
+	## arrays or the DealDamageEffects inside them were ever shared with the factory template, the
+	## appends below would compound a status onto the base every shot and the damage-type swap
+	## would leak into an unarmed arrow. Two small allocations per shot buys that away entirely.
+	cfg.on_hit_effects = _quiver_retype(cfg.on_hit_effects, dtype)
+	cfg.impact_aoe_effects = _quiver_retype(cfg.impact_aoe_effects, dtype)
+	## SPLIT QUIVER goes on FIRST so a Fire arrow lands Chilled before Burning and trips the
+	## Frostfire listener chilled carries (StatusFactory._build_chilled) on its own hit. Reversed,
+	## the burn would arrive before there was anything to consume and the combo would never fire.
+	if _quiver_all_chains:
+		var off: ApplyStatusEffectData = ChainFactory.quiver_offhand_status(_ranger_quiver)
+		if off != null:
+			cfg.on_hit_effects.append(off)
+			if cfg.impact_aoe_radius > 0.0:
+				cfg.impact_aoe_effects.append(off)
+	var head: ApplyStatusEffectData = ChainFactory.quiver_status(_ranger_quiver)
+	if head != null:
+		cfg.on_hit_effects.append(head)
+		if cfg.impact_aoe_radius > 0.0:
+			cfg.impact_aoe_effects.append(head)
+	cfg.tint = ChainFactory.quiver_tint(_ranger_quiver)
+	var impact: SpriteFrames = ChainFactory.quiver_impact_frames(_ranger_quiver)
+	if impact != null:
+		cfg.impact_sprite_frames = impact
+		cfg.impact_animation = "impact"
+
+
+## Copy an effect pool into a new array, duplicating the damage entries so their type can be
+## converted to the loaded head without touching whatever the originals belong to. Non-damage
+## entries (statuses, displacements) pass through by reference — nothing here mutates them.
+func _quiver_retype(pool: Array, dtype: String) -> Array:
+	var out: Array = []
+	for eff in pool:
+		if eff is DealDamageEffect or eff is AreaDamageEffect:
+			var d = eff.duplicate()
+			d.damage_type = dtype
+			out.append(d)
+		else:
+			out.append(eff)
+	return out
 
 
 func _on_skill_q() -> void:
@@ -1729,6 +1873,7 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 		var proj_count: int = int(get_stat("projectile_count"))
 		var pierce_bonus: int = int(get_stat("pierce"))
 		var size_mult: float = get_stat("projectile_size")
+		var quiver_on: bool = _quiver_applies_to(ability)
 		var live_proj: Array = []
 		for eff in proj_effects:
 			if eff is SpawnProjectilesEffect:
@@ -1740,6 +1885,13 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 					e.projectile.pierce_count = e.projectile.pierce_count + pierce_bonus
 				e.projectile.visual_scale = e.projectile.visual_scale * size_mult
 				e.projectile.hit_radius   = e.projectile.hit_radius * size_mult
+				## Ranger quiver: stamp the loaded head onto this duplicate. Deliberately here and
+				## not in the factories — one seam means the elemental shot string, the held Volley
+				## and (with SPLIT QUIVER) the light chain all inherit the stance from one place,
+				## and unloading the quiver genuinely reverts them because the base resource was
+				## never touched.
+				if quiver_on:
+					apply_quiver(e)
 				live_proj.append(e)
 			else:
 				live_proj.append(eff)
@@ -2220,8 +2372,8 @@ func _spawn_brimstone_sigil(at: Vector2, radius: float) -> void:
 ## at the cursor — pentagram, eruption, bite, and back into the floor. Above bodies (z 1): the thing
 ## coming through is bigger than anything standing on the field.
 func _spawn_archdemon_spell(at: Vector2, radius: float) -> void:
-	var fps: float = float(ARCHDEMON_SPELL_FRAMES) / maxf(ARCHDEMON_SPELL_LIFE, 0.01)
-	var fx: AnimatedSprite2D = _spawn_pack_fx(ARCHDEMON_SPELL_SHEET, at, 32, 0, fps, false, 1)
+	var fx: AnimatedSprite2D = _spawn_pack_fx(ARCHDEMON_SPELL_SHEET, at, 32, 0,
+			ARCHDEMON_SPELL_FPS, false, 1)
 	_scale_pack_fx(fx, radius)
 
 
@@ -2596,7 +2748,9 @@ func _spawn_corpse_ground(at: Vector2) -> void:
 	## The floor scar under a rising skeleton — a decoupled ground decal (z=-1). It's MEANT to stay
 	## put after the skeleton walks off. The rising skeleton itself is now the SkeletalChampion's own
 	## "spawn" state (welded to the entity), so there's no body VFX to leave behind. 32px, row 0.
-	_spawn_pack_fx(NECRO_RISE_GROUND_SHEET, at + Vector2(0, 2), 32, 0, 16.0, false, -1)
+	## 18fps matches the "rise_corpse" cast body (characters.gd) — the scar and the summon that opens
+	## it are the same 18-frame count from the same pack folder, so they must run at the same rate.
+	_spawn_pack_fx(NECRO_RISE_GROUND_SHEET, at + Vector2(0, 2), 32, 0, 18.0, false, -1)
 
 
 ## Plane Shift (Necromancer dash): the directional dematerialize/rematerialize burst. 4 facing rows
@@ -2895,7 +3049,20 @@ func _on_bomb_anim_finished() -> void:
 const SHOCKWAVE_SHEET: String = SPELLFX_DIR + "Electric/Tileable_Effect/Premade_Spell_Effects/Electric_Expansive_Shock.png"
 const SHOCKWAVE_CELL: int = 56
 const SHOCKWAVE_FRAMES: int = 26
-const SHOCKWAVE_TIME: float = 0.45   ## match the old tween's beat exactly — feel must not change
+## The rate is the INPUT and the duration falls out of it — not the other way round.
+##
+## This used to be `SHOCKWAVE_TIME = 0.45` with the fps computed as FRAMES / TIME, i.e. 57.8fps
+## against a sheet authored at 100ms/frame. That 0.45s was inherited from the Line2D tween below,
+## which predates the art: when the pack's expanding-shock sheet was dropped in, it was squeezed
+## into the number the tween already had. 26 frames of a genuine expansion in 0.45s is ~1 sheet
+## frame per rendered frame at 60Hz — it never read as an expansion, and any dropped frame skipped
+## sheet frames outright. Same failure as the Brimstone sigil (see BRIMSTONE_SIGIL_FPS).
+##
+## 26fps is 2.6× the authored rate, the top of the house band the rest of the game sits in
+## (1.5-2.6×), so the ring now genuinely expands. It is a swell rather than a pop — Ben's call,
+## 2026-07-31. Shared by Reckoning, Second Wind, Aegis and Taunt.
+const SHOCKWAVE_FPS: float = 26.0
+const SHOCKWAVE_TIME: float = float(SHOCKWAVE_FRAMES) / SHOCKWAVE_FPS   ## 1.00s
 
 
 func _spawn_shockwave_ring(radius: float, color: Color = Color(1.0, 0.55, 0.10, 0.9)) -> void:
@@ -2903,9 +3070,8 @@ func _spawn_shockwave_ring(radius: float, color: Color = Color(1.0, 0.55, 0.10, 
 	## Orange by default (Taunt/impact zones); green = heals, gold = Reckoning.
 	## Prefers the pack's real expanding-shock sheet; the Line2D below is the fallback when the
 	## sheet is missing, and still runs UNDER the sprite as a bright leading edge.
-	var fps: float = float(SHOCKWAVE_FRAMES) / SHOCKWAVE_TIME
 	var burst: AnimatedSprite2D = _spawn_pack_fx(SHOCKWAVE_SHEET, global_position,
-			SHOCKWAVE_CELL, 0, fps, false, 1)
+			SHOCKWAVE_CELL, 0, SHOCKWAVE_FPS, false, 1)
 	if burst:
 		## The sheet's shock fills its 56px cell, so its native radius is half that.
 		var s: float = radius / (float(SHOCKWAVE_CELL) * 0.5)
@@ -2926,10 +3092,13 @@ func _spawn_shockwave_ring(radius: float, color: Color = Color(1.0, 0.55, 0.10, 
 	get_tree().current_scene.add_child(ring)
 	ring.global_position = global_position
 	ring.scale = Vector2(0.15, 0.15)
+	## Bound to SHOCKWAVE_TIME, not a literal: this edge is drawn UNDER the sprite ring and has to
+	## expand with it. Left at its old 0.45s it would finish half a second early and the sheet's
+	## ring would carry on expanding past a "leading" edge that had already gone.
 	var t := ring.create_tween()
 	t.set_parallel(true)
-	t.tween_property(ring, "scale", Vector2.ONE, 0.45)
-	t.tween_property(ring, "modulate:a", 0.0, 0.45)
+	t.tween_property(ring, "scale", Vector2.ONE, SHOCKWAVE_TIME)
+	t.tween_property(ring, "modulate:a", 0.0, SHOCKWAVE_TIME)
 	t.chain().tween_callback(ring.queue_free)
 
 
@@ -3031,6 +3200,11 @@ func choreo_on_start(ability: AbilityDefinition) -> void:
 	_active_choreo_id = ability.ability_id if ability else ""
 	if _active_choreo_id == "paladin_dome":
 		_dome_absorbed = 0.0   ## fresh Reckoning pool each channel
+	## Quiver Swap (Ranger E): the stance flips the instant the ability starts, NOT on a hit frame.
+	## A stance that could be eaten by an interrupted body would desync the HUD from what the
+	## arrows actually do — the cloak flourish is cosmetic and the swap must not depend on it.
+	if _active_choreo_id == "ranger_quiver_swap":
+		_cycle_quiver()
 
 
 func choreo_on_finisher_hit() -> void:
@@ -3421,7 +3595,8 @@ func is_dead() -> bool:
 
 
 func is_invisible() -> bool:
-	## The Ninja's Smoke Bomb / Ranger's Conceal "concealed" stealth (refreshed while held).
+	## The Ninja's Smoke Bomb "concealed" stealth. Sole owner since 2026-07-31 — the Ranger's
+	## Conceal was cut (it was renting this exact status) and her E is Quiver Swap now.
 	if status_effect_component == null:
 		return false
 	return status_effect_component.has_status("concealed")

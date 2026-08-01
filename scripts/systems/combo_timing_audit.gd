@@ -45,6 +45,10 @@ static func run(player) -> Array[String]:
 		["heavy", player._combo_heavy],
 		["channel", player._combo_channel],
 	]
+	## Stance-swapped graphs (the Scavenger's armed RMB) are still graphs the player can run —
+	## audit them, or their nodes would be the only unchecked timings in the kit.
+	if player._combo_heavy_elemental != null:
+		graphs.append(["heavy_elemental", player._combo_heavy_elemental])
 	if player.skill_component:
 		for slot in player.skill_component.get_slots():
 			graphs.append([slot, player.skill_component.get_skill(slot)])

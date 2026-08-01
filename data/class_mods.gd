@@ -23,6 +23,11 @@ class_name ClassModData
 ##             "add_projectile_status" — inject ApplyStatusEffectData into projectile on_hit_effects
 ##             "add_projectiles"     — increment SpawnProjectilesEffect.count
 ##             "modifier"            — kit-agnostic player ModifierDefinition while equipped
+##             "kit_flag"            — NOT a phase mutation. The entity reads the equipped id
+##                                     directly and changes its own routing (player._load_combo).
+##                                     For mods whose effect is "which graph runs", which no
+##                                     per-phase op can express. Use sparingly — a phase op is
+##                                     always preferable when one will do.
 ##   params  — op-specific numbers
 ##
 ## NOTE (v1): class mods deliberately do NOT participate in the generic elemental combo matrix
@@ -321,10 +326,31 @@ const ALL: Dictionary = {
 		"id": "ranger_ghost_step",
 		"name": "GHOST STEP",
 		"kit": "ranger",
-		"desc": "Conceal comes naturally — +15% move speed while equipped.",
+		## Re-flavoured 2026-07-31: Conceal is gone (the E slot is Quiver Swap now), so the mod
+		## stands on the Scavenger's own footwork instead of naming a skill that no longer exists.
+		## The number is unchanged.
+		"desc": "She leaves no trail — +15% move speed while equipped.",
 		"color": Color(0.55, 0.7, 0.85),
 		"op": "modifier",
 		"params": { "stat": "move_speed", "op": "bonus", "value": 0.15 },
+	},
+	## The Scavenger's rare (Ben 2026-07-31: "a rare mod can change all of her arrows or something
+	## and combine the elements too"). Two effects, both routing-level, hence "kit_flag":
+	##   1. the loaded head rides the LIGHT chain too — unmodded, neutral LMB is what keeps the
+	##      stance a decision rather than a flat upgrade, so lifting that is the mod's whole prize;
+	##   2. every armed arrow carries the OFF-hand status underneath its own, applied first. A Fire
+	##      arrow therefore lands Chilled then Burning and trips the Frostfire listener chilled
+	##      already ships (StatusFactory._build_chilled) on its own hit — a small Fire AoE on every
+	##      arrow, self-limiting because Frostfire consumes the chill it just applied.
+	## Both are read by player._load_combo / player.apply_quiver; no phase is mutated.
+	"ranger_split_quiver": {
+		"id": "ranger_split_quiver",
+		"name": "SPLIT QUIVER",
+		"kit": "ranger",
+		"desc": "Both heads on every shaft. The loaded element rides your whole chain, and each arrow carries the other element under it — fire detonates its own frost.",
+		"color": Color(0.85, 0.55, 0.95),
+		"op": "kit_flag",
+		"params": {},
 	},
 
 	## ── Wizard (The Spark) ───────────────────────────────────────────────────────────────────

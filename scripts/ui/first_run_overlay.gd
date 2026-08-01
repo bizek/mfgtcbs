@@ -32,7 +32,7 @@ var _used_actions: Dictionary = {}
 var _run_time: float = 0.0
 
 var _panel: PanelContainer = null
-var _label: Label = null
+var _label: RichTextLabel = null
 
 func _ts(base_size: int) -> int:
 	return int(roundf(base_size * Settings.get_text_scale()))
@@ -152,25 +152,27 @@ func _show_next() -> void:
 ## Device-aware wording for the cues that name physical inputs. Resolved at
 ## display time (not queue time) so the text matches whatever the player is
 ## actually holding; cues without an entry here use their static queue text.
+##
+## Every input these cues name is a real bound action, so they all resolve
+## through action_glyph_bb() — art on both devices, and honest after a rebind,
+## which the old hardcoded "LMB"/"Q/E"/"Space" keyboard strings were not. Only
+## the stick wording still branches, since a stick has no keyboard counterpart.
 func _cue_text(id: String) -> String:
 	var pad: bool = InputGlyphs.using_joypad
 	match id:
 		"spawn":
-			if pad:
-				return "Left stick moves, right stick aims.\n%s chains your combo — tap to chain, hold to channel." \
-						% InputGlyphs.action_glyph("light_attack")
-			return "WASD to move, aim with your mouse.\nLMB chains your combo — tap to chain, hold to channel."
+			var move: String = "Left stick moves, right stick aims." if pad \
+					else "WASD to move, aim with your mouse."
+			return "%s\n%s chains your combo — tap to chain, hold to channel." \
+					% [move, InputGlyphs.action_glyph_bb("light_attack")]
 		"rmb_special":
-			return "Try your %s special attack." \
-					% (InputGlyphs.action_glyph("heavy_attack") if pad else "RMB")
+			return "Try your %s special attack." % InputGlyphs.action_glyph_bb("heavy_attack")
 		"skills_qe":
-			if pad:
-				return "Your %s/%s class skills hit hard — try them out." \
-						% [InputGlyphs.action_glyph("skill_q"), InputGlyphs.action_glyph("skill_e")]
-			return "Your Q/E class skills hit hard — try them out."
+			return "Your %s/%s class skills hit hard — try them out." \
+					% [InputGlyphs.action_glyph_bb("skill_q"), InputGlyphs.action_glyph_bb("skill_e")]
 		"dash":
 			return "Getting hit? %s dashes you clear (brief i-frames)." \
-					% (InputGlyphs.action_glyph("dash") if pad else "Space")
+					% InputGlyphs.action_glyph_bb("dash")
 	return ""
 
 
@@ -180,10 +182,10 @@ func _on_device_changed(_is_joypad: bool) -> void:
 		return
 	var text: String = _cue_text(_current_id)
 	if text != "":
-		_label.text = text
+		_label.text = "[center]%s[/center]" % text
 
 func _display(text: String, anchor: String) -> void:
-	_label.text = text
+	_label.text = "[center]%s[/center]" % text
 	_label.custom_minimum_size = Vector2(300.0 if anchor == "center" else 200.0, 0.0)
 	_panel.visible = true
 	_panel.modulate.a = 0.0
@@ -218,16 +220,21 @@ func _build_ui() -> void:
 	_panel.add_theme_stylebox_override("panel", sb)
 	add_child(_panel)
 
-	_label = Label.new()
+	## RichTextLabel so cues can show the player's actual bound inputs as the
+	## pack's keycap/button art instead of naming them in prose.
+	_label = RichTextLabel.new()
+	_label.bbcode_enabled = true
+	_label.fit_content = true
+	_label.scroll_active = false
 	_label.custom_minimum_size = Vector2(200.0, 0.0)
 	_label.autowrap_mode = TextServer.AUTOWRAP_WORD
-	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_label.add_theme_font_size_override("font_size", _ts(14))
-	_label.add_theme_color_override("font_color", Color(0.94, 0.87, 0.75))
+	_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_label.add_theme_font_size_override("normal_font_size", _ts(14))
+	_label.add_theme_color_override("default_color", Color(0.94, 0.87, 0.75))
 	_label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.8))
 	_label.add_theme_constant_override("outline_size", 2)
 	if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
-		_label.add_theme_font_override("font", load("res://assets/fonts/m5x7.ttf"))
+		_label.add_theme_font_override("normal_font", load("res://assets/fonts/m5x7.ttf"))
 	_panel.add_child(_label)
 
 	_dismiss_timer = Timer.new()

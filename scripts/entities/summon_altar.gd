@@ -12,7 +12,7 @@ const ELITE_ENEMY_ID: String = "brute"
 
 var _player: Node2D = null
 var _used: bool = false
-var _prompt_label: Label = null
+var _prompt_label: RichTextLabel = null
 var _status_label: Label = null
 var _elite_enemy: Node2D = null
 var _pixel_font: Font = null
@@ -51,14 +51,12 @@ func _build_visuals() -> void:
 		name_lbl.add_theme_font_override("font", _pixel_font)
 	add_child(name_lbl)
 
-	var prompt := Label.new()
-	prompt.text = "[%s] Summon  (Risky)" % InputGlyphs.action_glyph("interact")
+	## RichTextLabel so the bound input renders as the pack's keycap/button art.
+	## The old "[E] Summon" brackets are gone — the keycap sprite is the bracket.
+	var prompt := GlyphBar.rich_prompt(11, Color(0.80, 0.60, 1.0))
+	prompt.text = "%s Summon  (Risky)" % InputGlyphs.action_glyph_bb("interact")
 	prompt.position = Vector2(-36.0, 14.0)
-	prompt.add_theme_font_size_override("font_size", 11)
-	prompt.add_theme_color_override("font_color", Color(0.80, 0.60, 1.0))
 	prompt.visible = false
-	if _pixel_font:
-		prompt.add_theme_font_override("font", _pixel_font)
 	add_child(prompt)
 	_prompt_label = prompt
 
@@ -77,7 +75,7 @@ func _build_visuals() -> void:
 
 func _on_input_device_changed(_is_joypad: bool) -> void:
 	if _prompt_label:
-		_prompt_label.text = "[%s] Summon  (Risky)" % InputGlyphs.action_glyph("interact")
+		_prompt_label.text = "%s Summon  (Risky)" % InputGlyphs.action_glyph_bb("interact")
 
 
 func _process(_delta: float) -> void:

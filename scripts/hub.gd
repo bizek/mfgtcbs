@@ -2,7 +2,6 @@ extends Node2D
 
 ## Hub — Safe room between runs. Player walks to interactive stations and presses E.
 
-const PIXEL_FONT := preload("res://assets/fonts/m5x7.ttf")
 const PLAYER_SPEED := 113.0
 const INTERACT_RADIUS := 53.0
 const ROOM_W := 640
@@ -78,7 +77,7 @@ var _displayed_char_id: String = ""        ## character currently shown in the h
 var _station_nodes: Array[Node2D] = []
 var _station_bg_rects: Array[ColorRect] = []  ## parallel to _station_nodes, for proximity glow
 var _map_offset: Vector2 = Vector2.ZERO
-var _interact_prompt: Label
+var _interact_prompt: RichTextLabel
 var _resource_label: Label
 var _active_station_id: String = ""
 var _panel_layer: CanvasLayer
@@ -314,12 +313,11 @@ func _build_ui() -> void:
 	add_child(_panel_layer)
 
 	## Interact prompt (floats above player)
-	_interact_prompt = Label.new()
-	_interact_prompt.text = "[ %s ]  interact" % InputGlyphs.action_glyph("interact")
-	_interact_prompt.add_theme_font_override("font", PIXEL_FONT)
-	_interact_prompt.add_theme_font_size_override("font_size", 16)
-	_interact_prompt.add_theme_color_override("font_color", Color(0.95, 0.92, 0.50))
-	_interact_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	## RichTextLabel so the bound input renders as the pack's keycap/button art;
+	## the sprite replaces the old "[ E ]" brackets, and [center] replaces
+	## horizontal_alignment (which RichTextLabel does not have).
+	_interact_prompt = GlyphBar.rich_prompt(16, Color(0.95, 0.92, 0.50))
+	_interact_prompt.text = "[center]%s  interact[/center]" % InputGlyphs.action_glyph_bb("interact")
 	_interact_prompt.size = Vector2(173, 21)
 	_interact_prompt.visible = false
 	_panel_layer.add_child(_interact_prompt)
@@ -392,7 +390,7 @@ func _update_proximity() -> void:
 		## Show station name in prompt
 		for s in STATIONS:
 			if s["id"] == nearest_id:
-				_interact_prompt.text = "[ %s ]  %s" % [InputGlyphs.action_glyph("interact"), s["name"]]
+				_interact_prompt.text = "[center]%s  %s[/center]" % [InputGlyphs.action_glyph_bb("interact"), s["name"]]
 				break
 
 	## Station proximity glow

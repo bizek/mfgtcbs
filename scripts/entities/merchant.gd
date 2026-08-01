@@ -9,7 +9,7 @@ const INTERACT_RADIUS: float = 48.0
 const PIXEL_FONT_PATH: String = "res://assets/fonts/m5x7.ttf"
 
 var _player: Node2D = null
-var _prompt_label: Label = null
+var _prompt_label: RichTextLabel = null
 var _shop_open: bool = false
 var _shop_layer: CanvasLayer = null
 var _pixel_font: Font = null
@@ -48,14 +48,12 @@ func _build_visuals() -> void:
 		name_lbl.add_theme_font_override("font", _pixel_font)
 	add_child(name_lbl)
 
-	var prompt := Label.new()
-	prompt.text = "[%s] Trade" % InputGlyphs.action_glyph("interact")
+	## RichTextLabel so the bound input renders as the pack's keycap/button art.
+	## The old "[Q] Trade" brackets are gone — the keycap sprite is the bracket.
+	var prompt := GlyphBar.rich_prompt(11, Color(0.85, 0.85, 0.70))
+	prompt.text = "%s Trade" % InputGlyphs.action_glyph_bb("interact")
 	prompt.position = Vector2(-22.0, 14.0)
-	prompt.add_theme_font_size_override("font_size", 11)
-	prompt.add_theme_color_override("font_color", Color(0.85, 0.85, 0.70))
 	prompt.visible = false
-	if _pixel_font:
-		prompt.add_theme_font_override("font", _pixel_font)
 	add_child(prompt)
 	_prompt_label = prompt
 	InputGlyphs.device_changed.connect(_on_input_device_changed)
@@ -63,7 +61,7 @@ func _build_visuals() -> void:
 
 func _on_input_device_changed(_is_joypad: bool) -> void:
 	if _prompt_label:
-		_prompt_label.text = "[%s] Trade" % InputGlyphs.action_glyph("interact")
+		_prompt_label.text = "%s Trade" % InputGlyphs.action_glyph_bb("interact")
 
 
 func _process(_delta: float) -> void:

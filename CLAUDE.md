@@ -1,20 +1,20 @@
 # CLAUDE.md — Extraction Survivors
 
-## Godot Project Conventions
-
-- This is a Godot 4 game project (GDScript) - NOT a web project. Do not look for dev servers, package.json, or web tooling.
-- Always type array element access (avoid `:=` on untyped array access - it causes type inference crashes).
-- When modifying weapon/mod/status code, check for cooldown_base=0.0 cases that could fire effects on the player immediately.
-- Prefer the Godot MCP editor tools for .tscn scene edits; do not hand-rewrite .tscn files (instanced sub-scene ownership and font UIDs get silently stripped).
-- Search the uncommitted working copy, not just git history, when locating code.
-
 ## Project Context
 
-This is a Godot 4 game project (extraction survivors). There are NO web servers, dev servers, or Node/npm tooling. Do not attempt to detect or start dev servers.
+This is a Godot 4 (GDScript) game project. There are NO web servers, dev servers, package.json, or
+Node/npm tooling — do not look for them or attempt to start one.
 
-Top-down 2D arena survivor / extraction hybrid. WASD movement, auto-firing weapons, horde combat, 5-phase extraction loop. Built on a ported component-based combat engine with data-driven content creation.
+Top-down 2D survivor / extraction hybrid. WASD movement, **manual cursor-aim combo combat**
+(auto-fire survives only as a debug toggle), horde encounters, 5-phase run clock, extraction loop.
+The default run path is **descent mode** (block-based vertical levels), not the flat arena. Built on
+a ported component-based combat engine with data-driven content creation.
 
 **Developer:** Solo dev (Ben) + Claude. Ben provides creative direction. Claude handles all code.
+
+- Always type array element access (avoid `:=` on untyped array access — it causes type inference crashes).
+- When modifying weapon/mod/status code, check for cooldown_base=0.0 cases that could fire effects on the player immediately.
+- Search the uncommitted working copy, not just git history, when locating code.
 
 ## Architecture
 
@@ -29,7 +29,10 @@ Source of truth is `project.godot [autoload]`. `MCPScreenshot` / `MCPInputServic
 Every entity owns: `HealthComponent`, `ModifierComponent`, `AbilityComponent`, `BehaviorComponent`, `StatusEffectComponent`, `TriggerComponent`. The player additionally owns `SkillComponent` (Q/E skill slots, built per kit by `SkillFactory`). Contract in `scripts/entities/entity_interface.gd`.
 
 ### Tick Order
-SpatialGrid rebuild → StatusEffect.tick → AbilityComponent.tick_cooldowns → BehaviorComponent.tick → ground-zone ticks
+`CombatOrchestrator.tick()`: SpatialGrid rebuild → FlowField re-flood check → per-entity
+(StatusEffect.tick → AbilityComponent.tick_cooldowns → BehaviorComponent.tick) → ground-zone ticks
+→ dead-reference cleanup. The player is skipped in the BehaviorComponent step — it ticks its own
+behavior from `_physics_process` because it is input-driven.
 
 ### Key Pipelines
 - **Damage**: 8-step in DamageCalculator (base → conversion → offensive mods → dodge → block → resist → damage_taken → vulnerability → crit)
@@ -40,8 +43,6 @@ SpatialGrid rebuild → StatusEffect.tick → AbilityComponent.tick_cooldowns �
 
 ## Documentation
 
-| Doc | Contents |
-|-----|----------|
 **Tier 1 — engine + grammar (read for any implementation work):**
 
 | Doc | Contents |
@@ -62,7 +63,8 @@ SpatialGrid rebuild → StatusEffect.tick → AbilityComponent.tick_cooldowns �
 | `docs/passive_tree.md` + `docs/passive_tree_spec.md` | Passive tree data contract (59 nodes), gate rules, rendering recipe; spec holds the design intent |
 | `docs/hub_reference.md` | Hub stations: what each panel does, what's implemented vs planned |
 | `docs/boss_authoring_reference.md` | Boss/miniboss authoring: choreography patterns, telegraphs, phase structure |
-| `docs/weapon-scaling-reference.md` | Per-weapon base stats and mod-synergy matrix (v1 universal weapons only — class gear is not covered) |
+| `docs/spell_effects_inventory.md` | Spell Effects packs I+II coverage record: every sheet's layout, fps, and engine home |
+| `docs/ui_pack_inventory.md` | Minifantasy UI Overhaul coverage record: every sheet's layout + atlas bands, what the game actually uses (one file), and the ranked gap list. Read before any UI/theme/glyph/cursor work |
 | `docs/dev_tools.md` | Training Room (flat sandbox: dummies, live class swap, DPS meter, slow-mo) and Animation Lab (F10: trim/retime anims, re-pin hit frames, author intro/loop/outro staging for held abilities) |
 | `docs/audio_pipeline.md` + `docs/audio_asset_manifest.md` | AudioManager/SoundTable wiring, REAPER forge tooling, per-sound manifest |
 | `docs/release_pipeline.md` | Export presets, `build.ps1`, itch.io/Steam packaging |
@@ -76,7 +78,7 @@ SpatialGrid rebuild → StatusEffect.tick → AbilityComponent.tick_cooldowns �
 | `docs/ldtk_workflow.md` | LDtk authoring workflow: where files live, biome asset map, how to add a level/biome, arena design principles |
 | `docs/block_sketch_workflow.md` | **Preferred path for new descent blocks**: text sketch → `tools/block_compiler.py` → .ldtkl + PNG preview. Sketch format, grid legend, validators, prop decorator. Use the `/blockgen` skill for the full operating procedure |
 
-**Live worklist:** `docs/Session Prompts - Road to Release/00_EXECUTION_PLAN.md` is the release plan and is **current** — it carries a per-task status table verified against source. As of 2026-07-21 the only unstarted task is **11 (save versioning)**; 15 (audio wiring) is partial; 24/25 are blocked on Ben. The numbered prompt files beside it are self-contained session prompts.
+**Live worklist:** `docs/Session Prompts - Road to Release/00_EXECUTION_PLAN.md` is the release plan and is **current** — it carries a per-task status table verified against source. As of 2026-07-21 there are **no unstarted tasks left**: 15 (audio wiring) is partial — channel loops and dash/skill/pet stingers outstanding — and 24 (Steam) / 25 (store copy) are blocked on Ben. Read the plan's own status table rather than this line for detail. The numbered prompt files beside it are self-contained session prompts.
 
 **Historical / point-in-time** (design records and playtest logs — do NOT treat as current state): `character_overhaul_design.md`, `pacing_rebalance.md`, `fighter_kit_spec.md`, `combo_feedback_spec.md`, `dash.md`, `manual_fire.md`, `design_audit_2026-07-06.md`, `verification_findings.md`, `cave_audit.md`, `clerveu_triage_prompts.md`, `ability_playtest_checklist.md`, `block_architecture.md`, `block_system_implementation_notes.md`, `biome_authoring_template.md`, `hub_ui_redesign_prompts.md`, `sprite_catalogue.md`, `item_icon_catalogue.md`, `weapon-scaling-reference.md` (frozen — see below), and everything under `docs/design_archive/`, `docs/obsidian/`, `docs/Archived Session Prompts - Completed/`.
 
@@ -112,7 +114,7 @@ anything and the tokens are wasted. Use the F11 Training Panel's own controls: l
 dummy spawn, **DUMMIES HIT BACK** toggle, DPS meter, slow-mo, PACK / CLEAR.
 
 **The footgun — read this before writing any entry code.** `TrainingPanel._exit_tree()`
-(`scripts/ui/training_panel.gd:67`) sets `GameManager.training_mode = false` unless its own
+(`scripts/ui/training_panel.gd:68`) sets `GameManager.training_mode = false` unless its own
 `_reloading` flag is set. `change_scene_to_file()` frees the old scene *before* the new one's
 `_ready()`, so **re-entering the training room from inside the training room clears the flag on
 the way out** and `main_arena._ready()` then builds a real run — waves, phase clock, death screen.
@@ -159,23 +161,19 @@ All content follows the data factory pattern: `static func create() -> Resource`
 
 ## Godot Rules
 
-- **Never hand-edit `.tscn` files.** Use MCP tools or the Godot editor.
-- **3x viewport scaling.** All UI text sizes must account for this.
-- After implementing spatial/positioning features, verify coordinates are within arena bounds (±800 x ±600).
-
-## Godot Notes
-
-- F8/F9 in Godot are built-in Stop/Pause hotkeys, not crashes; do not diagnose them as errors and avoid binding features to these keys.
-
-## Godot Scene Files (.tscn)
-
-- Do NOT hand-edit .tscn files to add/remove nodes on instanced sub-scenes — Godot silently strips unowned nodes on save.
-- Always use the Godot MCP editor tools for scene structure changes.
-- When changing UI, account for the 3x viewport scaling (text/font sizes must be large enough to remain readable).
-
-## Editing Rules
-
-- Before editing scenes or loaders, confirm you are targeting the correct file/scene (e.g., not Base Camp/Map.tscn) and never auto-generate new random IDs that overwrite previously-committed scenes.
+- **Never hand-edit `.tscn` files.** Use the Godot MCP editor tools (or the editor itself) for all
+  scene structure changes. Hand-editing silently strips unowned nodes on instanced sub-scenes, and
+  loses font UIDs.
+- Before editing scenes or loaders, confirm you are targeting the correct file/scene (e.g., not
+  Base Camp/Map.tscn), and never auto-generate new random IDs that overwrite committed scenes.
+- **3x viewport scaling.** 640x360 renders to 1920x1080 — all UI text/font sizes must stay legible
+  after the upscale.
+- Spatial/positioning work: verify coordinates against the bounds of the mode you're targeting.
+  Descent mode (default) is `Rect2(0, 0, level_width≈648, total_height)` — all-positive coords,
+  height varies with the block stack. The flat arena (training room, non-descent LDtk fallback) is
+  ±800 x ±600 centred on the origin. `main_arena.gd` `ARENA_HALF_W/H` are the flat-arena constants.
+- F8/F9 are Godot's built-in Stop/Pause hotkeys, not crashes — don't diagnose them as errors, and
+  never bind features to them.
 
 ## Verification
 
@@ -214,7 +212,7 @@ All content follows the data factory pattern: `static func create() -> Resource`
 
 ## Key Technical Details
 
-- Arena bounds: ±800 x ±600 pixels
+- Flat-arena bounds: ±800 x ±600 pixels (descent mode uses its own block-stack bounds — see Godot Rules)
 - ProjectileManager: 256-slot pooled parallel arrays, `_draw()` rendering, zero node churn
 - CombatFeedbackManager: 128-slot pooled, composite damage numbers per frame
 - SpatialGrid: cell-based proximity queries, rebuilt every frame

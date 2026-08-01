@@ -608,6 +608,9 @@ const BUFF_NAMES: Dictionary = {
 	"blood_power": "PACT",       "battle_fury": "FURY",     "honed_edge": "HONED",
 	"loaded_chambers": "LOADED", "concealed": "HIDDEN",     "slippery": "SLIPPERY",
 	"aegis_shield": "SHIELD",    "hallowed": "HALLOWED",
+	## Ranger quiver stance (E). These two carry no duration, so their chip fill sits full for as
+	## long as the head is loaded — that's the intended read: a stance, not a timer.
+	"quiver_fire": "FIRE",       "quiver_frost": "FROST",
 }
 
 func _build_skill_slots() -> void:
@@ -659,9 +662,23 @@ func _build_skill_slots() -> void:
 			key.add_theme_font_override("font", load("res://assets/fonts/m5x7.ttf"))
 		root.add_child(key)
 
+		## Glyph art for the bound input, centred over the slot. A TextureRect
+		## rather than folding art into `key` because `key` doubles as the
+		## cooldown countdown — keeping them separate means the countdown path
+		## stays a plain Label and only visibility swaps between the two.
+		var icon := TextureRect.new()
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+		icon.set_anchors_preset(Control.PRESET_FULL_RECT)
+		icon.offset_right = SKILL_SLOT
+		icon.offset_bottom = SKILL_SLOT
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon.visible = false
+		root.add_child(icon)
+
 		_skill_slots[slot] = {
-			"root": root, "veil": veil, "key": key,
+			"root": root, "veil": veil, "key": key, "icon": icon,
 			"key_text": "Q" if slot == "skill_q" else "E",
+			"icon_tex": null,
 			"prev_remaining": 0.0,
 		}
 
@@ -757,15 +774,26 @@ func _update_buff_chips() -> void:
 
 
 func _refresh_skill_slot_keys() -> void:
-	## Device-aware slot glyphs (Ⓧ/Ⓑ on pad, Q/E on keyboard) — re-run on
-	## device switches and rebinds so the labels never go stale.
+	## Device-aware slot glyphs — the pack's button/keycap art where it exists,
+	## the text glyph otherwise. Re-run on device switches and rebinds so the
+	## slots never go stale.
 	for slot in _skill_slots:
 		var entry: Dictionary = _skill_slots[slot]
 		var glyph: String = InputGlyphs.action_glyph(slot)
 		if glyph == "?":
 			glyph = "Q" if slot == "skill_q" else "E"
 		entry.key_text = glyph
-		entry.key.text = entry.key_text
+		entry.icon_tex = InputGlyphs.action_glyph_texture(slot)
+		entry.icon.texture = entry.icon_tex
+		_show_skill_key(entry, true)
+
+
+## Swaps a slot between its glyph (art if the pack has it, else text) and the
+## cooldown countdown, which is always text.
+func _show_skill_key(entry: Dictionary, ready: bool) -> void:
+	var has_art: bool = ready and entry.get("icon_tex") != null
+	entry.icon.visible = has_art
+	entry.key.text = "" if has_art else entry.key_text
 
 func _update_skill_slots() -> void:
 	if player_ref == null or not is_instance_valid(player_ref):
@@ -786,10 +814,11 @@ func _update_skill_slots() -> void:
 		entry.veil.visible = frac > 0.0
 		entry.veil.size.y = (SKILL_SLOT - 4.0) * frac
 		if remaining > 0.0:
+			_show_skill_key(entry, false)
 			entry.key.text = str(ceili(remaining))
 			entry.key.add_theme_color_override("font_color", Color(0.72, 0.68, 0.60))
 		else:
-			entry.key.text = entry.key_text
+			_show_skill_key(entry, true)
 			entry.key.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0))
 		## Ready pop: brief bright flash the moment the cooldown finishes.
 		if entry.prev_remaining > 0.0 and remaining <= 0.0:

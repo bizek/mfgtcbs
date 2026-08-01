@@ -30,6 +30,11 @@ extends Resource
 @export var visual_scale: Vector2 = Vector2.ONE
 @export var rotation_offset: float = 0.0   ## Sprite baseline correction in radians (e.g. -PI/2 if sprite points up)
 @export var fallback_color: Color = Color(1.0, 0.5, 0.1, 0.9) ## Procedural circle color when no sprite_frames
+## Multiplied over sprite_frames when drawn. WHITE = the sheet as authored (the default, so every
+## existing projectile renders exactly as before). Used to re-colour ONE sheet per variant instead
+## of shipping a sheet per variant — the Ranger's fire/frost arrowheads recolour her own arrow art.
+## Channels may exceed 1.0 to read as heat rather than a wash.
+@export var tint: Color = Color.WHITE
 
 # --- Hit Detection ---
 @export var hit_radius: float = 8.0              ## Distance at which a target is "hit"

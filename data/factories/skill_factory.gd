@@ -4,7 +4,7 @@ extends RefCounted
 ## shared ChoreographyRunner. See docs/fighter_kit_spec.md §4. Numbers PROVISIONAL — tune after test.
 ##
 ## Damage effects: AreaDamageEffect self-centers on the player (host fires it on [self]).
-## DisplacementEffect (Uppercut) is dispatched per-enemy by player.choreo_fire_effects.
+## Skills do NOT displace enemies — knockback was cut from every kit (Ben, 2026-07-31).
 
 
 ## Dispatcher: neutral-special skills for a character's melee_kit, as { slot: AbilityDefinition }.
@@ -20,7 +20,7 @@ static func build_kit_skills(kit_id: String, weapon_data: Dictionary) -> Diction
 		"ranger":
 			return {
 				"skill_q": build_ranger_mirror_archer(weapon_data),
-				"skill_e": build_ranger_conceal(weapon_data),
+				"skill_e": build_ranger_quiver_swap(weapon_data),
 			}
 		"paladin":
 			return {
@@ -129,8 +129,10 @@ static func build_demon_archdemon(weapon_data: Dictionary) -> AbilityDefinition:
 
 
 ## Must stay equal to player.ARCHDEMON_SPELL_LIFE — the archdemon has to sink back into the sigil on
-## the same frame its ground zone stops biting.
-const ARCHDEMON_SPELL_TIME: float = 2.45
+## the same frame its ground zone stops biting. That value is now derived from the sheet's playback
+## rate (27 frames / ARCHDEMON_SPELL_FPS), so this zone duration FOLLOWS the art: if the cast needs
+## to be longer or shorter, change the fps there, not the number here.
+const ARCHDEMON_SPELL_TIME: float = 27.0 / 11.0   ## 2.4545s — was a hand-rounded 2.45
 
 
 ## Second Wind (Fighter, Q): the soldier bangs his shield and catches his breath — heal 12%
@@ -172,9 +174,14 @@ static func build_fighter_shield_rush(weapon_data: Dictionary) -> AbilityDefinit
 ## gesture, and it is the same sheet the E skill uses, playing the kit's own art twice over rather
 ## than borrowing another class's.
 ##
-## The kick this replaced was the kit's escape; Conceal (E) still is one, so the swap costs no
-## survivability. What it costs is the dash-charge refund — deliberate, since the Scavenger already
-## carries the roster's most generous disengage in a 5s vanish.
+## The kick this replaced was the kit's escape. Conceal (E) was the other one, and it is gone too
+## as of 2026-07-31 (build_ranger_quiver_swap) — so the Scavenger's only disengage is now her dash
+## plus the melee knives she gives up when she arms a head. That is the intended shape: her
+## survivability is range and positioning, not a panic button.
+##
+## The archer INHERITS the loaded quiver — its arrows are built through the same ChainFactory
+## helper the player injects into (mirror_archer.gd), so a Frost stance puts a second chill-stacker
+## on the field. It is the stance's strongest single payoff and it cost nothing to wire.
 static func build_ranger_mirror_archer(_weapon_data: Dictionary) -> AbilityDefinition:
 	## "mirrored" is a pure HUD marker, the same job the Warden's Aegis status does: it carries no
 	## modifiers, it just runs a buff-bar timer for exactly as long as the reflection stands. It is
@@ -200,28 +207,41 @@ static func build_ranger_mirror_archer(_weapon_data: Dictionary) -> AbilityDefin
 	return _ability("ranger_mirror_archer", "Mirror Archer", phase, 14.0)
 
 
-## Conceal (Ranger, E — swapped off RMB-hold, Ben 2026-07-20): duck under the cloak and vanish
-## — "concealed" for 5s (player.is_invisible; enemies stop chasing, and any attack breaks it).
-## The RMB-hold slot it vacated became the sustained Volley channel (ChainFactory).
-static func build_ranger_conceal(_weapon_data: Dictionary) -> AbilityDefinition:
-	var conceal := StatusEffectDefinition.new()
-	conceal.status_id = "concealed"
-	conceal.is_positive = true
-	conceal.max_stacks = 1
-	conceal.base_duration = 5.0
-	conceal.duration_refresh_mode = "overwrite"
-	var apply := ApplyStatusEffectData.new()
-	apply.status = conceal
-	apply.stacks = 1
-	apply.apply_to_self = true
-
+## Quiver Swap (Ranger, E — replaced Conceal, Ben 2026-07-31). A STANCE, not a cast: each press
+## cycles the loaded arrowhead Unarmed → Fire → Frost → Unarmed, and that head rides every arrow
+## the Scavenger looses on RMB (the elemental shot string), the held Volley, and her Mirror Archer.
+##
+## Why Conceal died. `concealed` is the NINJA's Smoke Bomb status — same id, same code path — so
+## the Scavenger's E was renting another class's identity, and in a game where you are always
+## attacking a 5s vanish that breaks on your first arrow is a "stop playing" button. Stealth stays
+## owned by the Ninja. (Ben: "stealth isnt required in this game for.. literally anything".)
+##
+## Why a toggle and not a timed buff. A cooldown'd "your next N arrows are fire" makes the player
+## count arrows and watch a timer; a free-ish toggle makes them decide what kind of ranger they
+## are right now. The 0.6s cooldown exists only so the stance can't be strobed mid-chain.
+##
+## Unarmed is IN the cycle because it is how you get the melee knives back — arming a head costs
+## you the kit's point-blank panic swing (player._tick_combo picks the RMB graph off the stance),
+## so the toggle is a trade rather than a free upgrade.
+##
+## The swap itself happens in player.choreo_on_start the instant the ability fires, NOT on a hit
+## frame: a stance must never be eaten by an interrupted body. The phase carries no effects — the
+## cloak duck is pure flourish.
+##
+## Timing. The duck is 14f @ 16fps = 0.875s, far too long to stand in for a stance change, so it
+## plays at 3x for a ~0.29s commitment. That is deliberately a real cost (you cannot swap heads
+## for free mid-chain) and deliberately NOT a "wait" phase: a wait with no branches is a dead
+## idle, which ComboTimingAudit correctly flags as a STALL. anim_finished at speed keeps the whole
+## pack animation on screen and ends the moment it's drawn.
+static func build_ranger_quiver_swap(_weapon_data: Dictionary) -> AbilityDefinition:
 	var phase := ChoreographyPhase.new()
 	phase.animation = "conceal"
-	phase.hit_frame = 6
-	phase.effects = [apply]
+	phase.hit_frame = -1
+	phase.effects = []
 	phase.exit_type = "anim_finished"
+	phase.telegraph_speed_scale = 3.0    ## 0.875s duck → ~0.29s
 	phase.default_next = -1
-	return _ability("ranger_conceal", "Conceal", phase, 10.0)
+	return _ability("ranger_quiver_swap", "Quiver Swap", phase, 0.6)
 
 
 ## Aegis Shield (Paladin, Q — was a heal, Ben 2026-07-20: "we want an absorb shield"): the oath
@@ -411,7 +431,7 @@ static func build_blood_mage_blood_eruption(weapon_data: Dictionary) -> AbilityD
 	var phase := ChoreographyPhase.new()
 	phase.animation = "spikes"
 	phase.hit_frame = 5
-	phase.effects = [ChainFactory._aoe(dtype, dmg * 1.0, 48.0), ChainFactory._shove(), pool]
+	phase.effects = [ChainFactory._aoe(dtype, dmg * 1.0, 48.0), pool]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
 	return _ability("blood_mage_blood_eruption", "Blood Eruption", phase, 8.0)
@@ -501,7 +521,7 @@ static func build_gunslinger_whip(weapon_data: Dictionary) -> AbilityDefinition:
 	var phase := ChoreographyPhase.new()
 	phase.animation = "whip"
 	phase.hit_frame = 2
-	phase.effects = [crack, ChainFactory._shove()]
+	phase.effects = [crack]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
 	return _ability("gunslinger_whip", "Whip Attack", phase, 6.0)
@@ -532,7 +552,7 @@ static func build_druid_thornburst(weapon_data: Dictionary) -> AbilityDefinition
 	var phase := ChoreographyPhase.new()
 	phase.animation = "attack"
 	phase.hit_frame = 1
-	phase.effects = [nova, ChainFactory._shove()]
+	phase.effects = [nova]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
 	return _ability("druid_thornburst", "Thornburst", phase, 6.0)

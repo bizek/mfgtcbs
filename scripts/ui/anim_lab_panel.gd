@@ -441,6 +441,11 @@ func _build_usage() -> void:
 		["RMB tap", player_ref.get("_combo_heavy")],
 		["RMB hold", player_ref.get("_combo_channel")],
 	]
+	## The Scavenger's RMB is stance-dependent (quiver loaded → the elemental shot string), so the
+	## Lab has to list BOTH graphs or the elemental nodes would be unreachable for retiming.
+	var heavy_ele = player_ref.get("_combo_heavy_elemental")
+	if heavy_ele != null:
+		graphs.append(["RMB tap (armed)", heavy_ele])
 	var sc = player_ref.get("skill_component")
 	if sc:
 		graphs.append(["Q skill", sc.get_skill("skill_q")])

@@ -3,10 +3,11 @@ extends Node2D
 ## MirrorArcher — the Scavenger's (Ranger) Q companion: a spectral duplicate of HERSELF that
 ## splits off, plants its feet and looses arrows at whatever wanders into range, then fades.
 ##
-## Replaced Skirmisher's Step (Ben 2026-07-29). The kit keeps an escape either way — Conceal (E) is
-## a 5s vanish — so trading the Q shove for sustained ranged pressure costs the Scavenger no
-## survivability, and it gives the roster's only pure archer a reason to hold a firing line instead
-## of kiting forever.
+## Replaced Skirmisher's Step (Ben 2026-07-29): trading the Q shove for sustained ranged pressure
+## gives the roster's only pure archer a reason to hold a firing line instead of kiting forever.
+## Conceal (E) covered the survivability that cost at the time; Conceal is gone as of 2026-07-31
+## (the slot is Quiver Swap), so the Scavenger's disengage is now her dash plus the melee knives
+## she gives up when she arms a head — range and positioning, not a panic button.
 ##
 ## It is a MIRROR, so it is drawn from the Ranger's own sheets (Idle / Walk / SingleShot) tinted
 ## a cold translucent blue, and — this is the point — it fires the player's ACTUAL arrow through
@@ -24,14 +25,25 @@ const ASSET_DIR: String = "res://assets/minifantasy/Minifantasy_True_Heroes_III_
 ## Facing → sheet row, the pack's diagonal 4-row convention (CharacterSpriteFactory.DIR_ROWS).
 const DIR_ROWS: Dictionary = {"down_right": 0, "down_left": 1, "up_right": 2, "up_left": 3}
 
-## Frame durations come from the pack's own AnimationInfo.txt: 100ms (10fps) for Single Shot,
-## 200ms (5fps) for Idle and Walk.
+## Playback rates are THE SCAVENGER'S, not the pack's.
+##
+## The pack's AnimationInfo.txt authors these sheets at 200ms (5fps) for Idle/Walk and 100ms (10fps)
+## for Single Shot, and this used to play them at exactly that — the only thing in the game that took
+## a Minifantasy rate literally. That was right about the sheet and wrong on screen: the Mirror Archer
+## stands next to the Scavenger running THE SAME THREE SHEETS at 9 / 10 / 24, so the reflection
+## animated at roughly half her speed, side by side (idle 3.20s vs 1.78s, shot 1.00s vs 0.42s).
+## It was also the only companion outside the pet house rates (idle 8-10 / move 10-12 / attack 14+)
+## that AngryDemon, SkeletalChampion, SpiritGuardian, FireFamiliar and BloodElemental all share.
+## Matched to her own rates so it reads as a reflection. (Audit 2026-07-31.)
+const IDLE_FPS: float = 9.0
+const WALK_FPS: float = 10.0
 const IDLE_FRAMES: int = 16
 const WALK_FRAMES: int = 4
 const SHOT_FRAMES: int = 10
-const SHOT_FPS: float = 10.0
+const SHOT_FPS: float = 24.0
 const SHOT_HIT_FRAME: int = 6
-const DRAW_DELAY: float = float(SHOT_HIT_FRAME) / SHOT_FPS   ## the loose, 0.6s into the draw
+## Derived, so retiming the draw automatically retimes the loose — never hand-set this.
+const DRAW_DELAY: float = float(SHOT_HIT_FRAME) / SHOT_FPS   ## 0.25s into the draw
 
 const WALK_SPEED: float = 46.0            ## own legs — constant speed, never lerp-glued
 const CATCHUP_MULT: float = 1.7
@@ -63,6 +75,7 @@ var _rescan: float = 0.0
 var _trudging: bool = false
 var _home_side: float = 1.0
 var _arrow: SpawnProjectilesEffect = null
+var _arrow_quiver: String = ""     ## head the template currently carries; "" = unarmed (its build state)
 
 static var _frames_cache: SpriteFrames = null
 
@@ -175,6 +188,7 @@ func _loose() -> void:
 		return
 	if not is_instance_valid(player_ref) or player_ref.combat_manager == null:
 		return
+	_sync_quiver()
 	_arrow.projectile.on_hit_effects[0].base_damage = player_ref.get_stat("damage") * damage_mult
 	_arrow.spawn_offset = global_position - player_ref.global_position
 	var prev: Node2D = player_ref.attack_target
@@ -182,6 +196,24 @@ func _loose() -> void:
 	EffectDispatcher.execute_effects([_arrow], player_ref, [player_ref],
 			ability_ref, player_ref.combat_manager)
 	player_ref.attack_target = prev
+
+
+## The reflection shoots what the Scavenger has loaded (quiver stance, player E). The arrow is one
+## reused template, so the head can't just be appended per shot — it would compound. Instead the
+## template is REBUILT from the factory whenever the stance changes and stamped once, which also
+## makes unloading the quiver revert it cleanly.
+func _sync_quiver() -> void:
+	if not player_ref.has_method("get_quiver"):
+		return
+	var quiver: String = player_ref.get_quiver()
+	if quiver == _arrow_quiver:
+		return
+	_arrow_quiver = quiver
+	var offset: Vector2 = _arrow.spawn_offset
+	_arrow = ChainFactory._arrow_volley("Physical", 1.0, 1, 0.0)
+	_arrow.spawn_offset = offset
+	if quiver != "":
+		player_ref.apply_quiver(_arrow)
 
 
 ## Early dismissal (resummon or lifetime end): thin out and go.
@@ -233,8 +265,8 @@ static func _get_frames() -> SpriteFrames:
 		return _frames_cache
 	var frames := SpriteFrames.new()
 	frames.clear_all()
-	_slice_rows(frames, "idle",  ASSET_DIR + "General_Animations/Ranger_Idle.png", IDLE_FRAMES, 5.0, true)
-	_slice_rows(frames, "move",  ASSET_DIR + "General_Animations/Ranger_walk.png", WALK_FRAMES, 5.0, true)
+	_slice_rows(frames, "idle",  ASSET_DIR + "General_Animations/Ranger_Idle.png", IDLE_FRAMES, IDLE_FPS, true)
+	_slice_rows(frames, "move",  ASSET_DIR + "General_Animations/Ranger_walk.png", WALK_FRAMES, WALK_FPS, true)
 	_slice_rows(frames, "shoot", ASSET_DIR + "General_Animations/Ranger_SingleShot_Diagonal.png",
 			SHOT_FRAMES, SHOT_FPS, false)
 	_frames_cache = frames
