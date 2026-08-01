@@ -622,27 +622,19 @@ const ALL: Dictionary = {
 				"attack_2":     ["Minifantasy_TrueHeroesDruidAttack.png", 4, 26.0],
 				## Root Summoning: the cast; the erupted RootAttack rides a host ground decal.
 				"root_cast":    ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Druid/Special_Animations/Root_Summoning/Minifantasy_TrueHeroesDruidRootSummoning.png", 7, 16.0],
-				## Shapeshift finishers: morph wind-up (single-row) → the form's own Attack sheet.
-				"morph_beast":  ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Druid/Special_Animations/Shape_Shifting/Forest_Beast/Minifantasy_TrueHeroesDruidShapeShiftHumanToForestBeast.png", 21, 30.0],
-				"beast_attack": ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Druid/Special_Animations/Shape_Shifting/Forest_Beast/Minifantasy_TrueHeroesForestBeastAttack.png", 5, 18.0],
-				"morph_owl":    ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Druid/Special_Animations/Shape_Shifting/Forest_Owl/Minifantasy_TrueHeroesDruidShapeShiftHumanToForestOwl.png", 21, 30.0],
-				"owl_attack":   ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Druid/Special_Animations/Shape_Shifting/Forest_Owl/Minifantasy_TrueHeroesForestOwlAttack.png", 4, 18.0],
-				## Hound Frenzy channel body (fast melee ticks while held).
-				"hound_attack": ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Druid/Special_Animations/Shape_Shifting/Forest_Hound/Minifantasy_TrueHeroesForestHoundAttack.png", 4, 14.0],
-				## ── Wild Shape stance bodies ────────────────────────────────────────────────────
-				## NOT LISTED HERE. Ben already imported the three forms' idle/walk/dmg sheets and all
-				## three revert sheets through the Animation Lab, so they live in anim_overrides.json's
-				## "_custom_anims" registry under HIS names: beast_idle/beast_walk/beast_dmg/
-				## beast_revert, owl_idle/owl_dmg/owl_revert, hound_idle/hound_walk/hound_dmg/
-				## hound_morph/hound_revert. CharacterSpriteFactory.all_anim_specs merges that registry
-				## into this table at build time, and a custom entry OVERWRITES a table entry of the
-				## same name — so duplicating them here would create a second, silently-losing source
-				## of truth. player.SHAPE_BODY maps onto those names instead (Ben 2026-08-01).
+				## The two calls of the wild (Q: Summon Bear · E: Summon Hounds). Both re-slice the Root
+				## Summoning cast — the Verdant calling something up out of the ground is the same gesture
+				## either way — but they carry DISTINCT NAMES because the host branches its spawn hook off
+				## the anim name (player.choreo_fire_effects), the same trick the Shade's
+				## rise_corpse/bone_legion pair uses to reach two different summons from one body.
 				##
-				## Note the naming is "<form>_dmg" (not _damage) and "<form>_revert" (not unmorph_*),
-				## and that the beast/owl morph-INs are table entries above while the hound's is a
-				## custom ("hound_morph"). If you rename any of them in the Lab, update SHAPE_BODY /
-				## SHAPE_MORPH / SHAPE_REVERT to match.
+				## The forms' own sheets are NOT listed here any more: the Forest Beast and Forest Hound are
+				## summoned companions now, not bodies the player wears, so ForestCompanion slices those
+				## sheets itself. The shapeshift morph/revert sheets and the whole Forest Owl set are
+				## consequently unused — see the note in ChainFactory's Verdant section (Ben 2026-08-01:
+				## "i dont like the transformations at all").
+				"summon_bear":  ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Druid/Special_Animations/Root_Summoning/Minifantasy_TrueHeroesDruidRootSummoning.png", 7, 14.0],
+				"summon_hounds":["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Druid/Special_Animations/Root_Summoning/Minifantasy_TrueHeroesDruidRootSummoning.png", 7, 18.0],
 
 				## The Verdant's own leap — his dash body, and the last unwired General_Animations sheet.
 				"dodge":        ["Minifantasy_TrueHeroesDruidJump.png", 4, 18.0],

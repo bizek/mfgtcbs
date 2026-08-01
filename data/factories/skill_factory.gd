@@ -64,8 +64,8 @@ static func build_kit_skills(kit_id: String, weapon_data: Dictionary) -> Diction
 			}
 		"druid":
 			return {
-				"skill_q": build_druid_regrowth(weapon_data),
-				"skill_e": build_druid_wild_shape(weapon_data),
+				"skill_q": build_druid_summon_bear(weapon_data),
+				"skill_e": build_druid_summon_hounds(weapon_data),
 			}
 		"cleric":
 			return {
@@ -550,38 +550,55 @@ static func build_gunslinger_whip(weapon_data: Dictionary) -> AbilityDefinition:
 	return _ability("gunslinger_whip", "Whip Attack", phase, 6.0)
 
 
-## Regrowth (Druid, Q): a nature mend — the host routes the bare HealEffect onto the Verdant.
-## Uses "attack_2" as a neutral gesture (root_cast/pray_* names carry host side-effects).
-static func build_druid_regrowth(_weapon_data: Dictionary) -> AbilityDefinition:
+## Summon Bear (Druid, Q) — Ben 2026-08-01: "what if Q summoned a bear and E summoned 2 hounds".
+##
+## The Verdant CALLS the forest instead of becoming it. Shapeshifting is gone: he stays the ranged
+## caster and the Forest Beast / Forest Hound sheets drive autonomous companions instead of his own
+## body. That removes the whole class of problem the transformations had — nothing swaps his
+## animation set mid-swing, because nothing swaps his animation set at all.
+##
+## ONE bear; resummoning replaces it (player._spawn_forest_bear), the single-elite rule the Angry
+## Demon follows. The "summon_bear" anim NAME is what the host keys the spawn off, and the small
+## nature pulse both reads on cast and guarantees choreo_fire_effects runs so the hook fires.
+## Mirrors Rise Corpse / Summon Angry Demon / Spirit Guardians.
+static func build_druid_summon_bear(weapon_data: Dictionary) -> AbilityDefinition:
+	var dmg: float = weapon_data.get("damage", 42.0)
+	var dtype: String = _damage_type(weapon_data)
+
+	var pulse := AreaDamageEffect.new()
+	pulse.damage_type = dtype
+	pulse.base_damage = dmg * 0.3
+	pulse.aoe_radius = 26.0
+
 	var phase := ChoreographyPhase.new()
-	phase.animation = "attack_2"
-	phase.hit_frame = 3
-	phase.effects = [ChainFactory._self_heal(0.15)]        ## 15% max HP burst
+	phase.animation = "summon_bear"
+	phase.hit_frame = 4                                    ## the roots open and it climbs out
+	phase.effects = [pulse]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
-	return _ability("druid_regrowth", "Regrowth", phase, 12.0)
+	return _ability("druid_summon_bear", "Summon Bear", phase, 16.0)
 
 
-## Wild Shape (Druid, E — Ben 2026-08-01: "Druid very incomplete, needs more work"). Cycles the
-## Verdant through Forest Beast → Owl → Hound → human, and he STAYS in the form: he idles, walks and
-## flinches as the creature, and wears its stance (player.SHAPE_STATS) until he shifts again.
-##
-## It replaces Thornburst, which was a nova on the plain "attack" body — no art of its own, no
-## identity, and nothing to do with shapeshifting. The pack ships three complete forms (idle, walk,
-## damage, attack, and a morph in BOTH directions); before this, thirteen of those sheets were
-## unused and the Verdant only ever flickered into a beast for a single swing mid-combo. Wearing the
-## shape is the class.
-##
-## "wild_shape" is a SENTINEL, not a sheet: player.choreo_anim_name swaps it for the right
-## morph_/unmorph_ animation based on the form currently worn, so one definition covers all four
-## steps of the cycle. The cooldown is short because shifting is a stance change, not a nuke.
-static func build_druid_wild_shape(_weapon_data: Dictionary) -> AbilityDefinition:
+## Summon Hounds (Druid, E): a PAIR of Forest Hounds, fanned either side of the aim. Faster cooldown
+## and far less damage each than the bear — they are pressure and chase, where the bear is an anchor
+## that holds ground. Reuses the same cast body under a distinct anim NAME so the host branches to
+## the pack spawn instead of the single bear, exactly like the Shade's rise_corpse/bone_legion pair.
+static func build_druid_summon_hounds(weapon_data: Dictionary) -> AbilityDefinition:
+	var dmg: float = weapon_data.get("damage", 42.0)
+	var dtype: String = _damage_type(weapon_data)
+
+	var pulse := AreaDamageEffect.new()
+	pulse.damage_type = dtype
+	pulse.base_damage = dmg * 0.25
+	pulse.aoe_radius = 30.0
+
 	var phase := ChoreographyPhase.new()
-	phase.animation = "wild_shape"
-	phase.hit_frame = -1                                   ## a transformation deals nothing
+	phase.animation = "summon_hounds"
+	phase.hit_frame = 4
+	phase.effects = [pulse]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
-	return _ability("druid_wild_shape", "Wild Shape", phase, 4.0)
+	return _ability("druid_summon_hounds", "Summon Hounds", phase, 11.0)
 
 
 ## Sanctuary (Cleric, Q): pray — a self-heal plus "blessed" (−20% damage taken for 5s). The

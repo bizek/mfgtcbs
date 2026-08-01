@@ -85,7 +85,9 @@ const HELLBREACH_FORWARD: float = 20.0
 const GUARD_TICK: float = 0.4       ## Barbarian Guard stance re-check beat (the block is host-side)
 const BLADES_TICK: float = 0.4      ## Ninja Thousand Blades storm beat (blades body 4f @ 10fps)
 const STORM_TICK: float = 0.7       ## Gunslinger Desert Storm volley beat (storm body 14f @ 20fps)
-const HOUND_TICK: float = 0.3        ## Druid Hound Frenzy melee beat (hound_attack 4f @ 14fps ≈ 0.29s)
+## Druid Bramble Barrage beat — one thorn per beat while RMB is held. Named for the beat, not the
+## old Hound Frenzy channel it used to time (that channel went away with the shapeshift system).
+const BARRAGE_TICK: float = 0.3
 const PRAY_TICK: float = 1.1         ## Cleric Healing Words prayer beat (pray_heal 22f @ 20fps = 1.1s
 									 ## cast — was 0.9, which cut the prayer 4 frames short every beat)
 const WIZARD_CHARGE_MAX: float = 1.6   ## Fireball overcharge cap — auto-releases at full power
@@ -157,11 +159,14 @@ static func build_kit(kit_id: String, weapon_data: Dictionary) -> Dictionary:
 				"heavy": build_gunslinger_fan(weapon_data),
 				"channel": build_gunslinger_desert_storm(weapon_data),
 			}
+		## The Verdant is a ranged caster all the way through — the beasts are SUMMONS on Q/E
+		## (SkillFactory), not shapes he wears, so there is exactly one moveset here like every
+		## other kit (Ben 2026-08-01: "i dont like the transformations at all").
 		"druid":
 			return {
 				"light": build_druid_light(weapon_data),
 				"heavy": build_druid_root(weapon_data),
-				"channel": build_druid_hound(weapon_data),
+				"channel": build_druid_barrage(weapon_data),
 			}
 		"cleric":
 			return {
@@ -1530,86 +1535,95 @@ static func build_gunslinger_desert_storm(weapon_data: Dictionary) -> AbilityDef
 	return _ability("gunslinger_storm", "Desert Storm", choreo)
 
 
-# --- Druid: light combo (LMB) ---
-## The Verdant — nature strikes that finish by flickering into a form: the Beast maul (morph →
-## claw) or, gated mid-combo, the Owl swoop. Forms-as-stances (design §2.8): the morph sheets are
-## the finisher wind-ups; the form's own Attack sheet is the strike. Phase indices:
-## 0 Claw · 1 Claw II · 2 Beast morph · 3 Beast Maul · 4 Owl morph · 5 Owl Swoop.
+# ═══ The Verdant: a caster who calls the forest ═════════════════════════════════════════════
+## One moveset, like every other kit. The Druid is a RANGED caster start to finish — thorn bolts on
+## LMB, a root snare on RMB tap, a thorn barrage on RMB hold — and the animals arrive as SUMMONS on
+## Q and E (SkillFactory.build_druid_summon_bear / _hounds), not as bodies he wears.
+##
+## Two earlier designs are gone. Shapeshifting first appeared as a light-chain FINISHER (nodes that
+## played morph_beast/morph_owl before swinging the form's Attack sheet), then as a worn stance that
+## swapped all three chains. The stance version was mechanically correct — a bear did swing a bear
+## chain — but Ben's verdict on playing it was simply "i dont like the transformations at all",
+## so the whole mechanism came out rather than being tuned. Summons give the same fantasy (the
+## forest fights for him) with none of the body-swapping fragility, and they use the exact same
+## Forest Beast / Forest Hound sheets through ForestCompanion.
+##
+## CONSEQUENTLY UNUSED: the six morph/revert sheets and the entire Forest Owl set. That is a
+## deliberate cost of Ben's call, not an oversight — the owl is the obvious candidate if a third
+## companion or a flight dash is ever wanted.
+
+# --- Druid: light combo (LMB) — the caster ---
+## Thorn → Thorn II → Bramble Volley. Ranged, because the Verdant never enters melee himself: the
+## bear and the hounds he calls are what fight up close. Phase indices:
+## 0 Thorn · 1 Thorn II · 2 Bramble Volley.
 static func build_druid_light(weapon_data: Dictionary) -> AbilityDefinition:
 	var dmg: float = weapon_data.get("damage", 42.0)
 	var dtype: String = _damage_type(weapon_data)
 
-	# 0 — Claw (crisp opener). No form branch here (gate = depth ≥ Claw II).
-	var claw := ChoreographyPhase.new()
-	claw.animation = "attack"
-	claw.hit_frame = 1
-	claw.effects = [_aoe(dtype, dmg * 0.9, 28.0)]
-	claw.exit_type = "wait"
-	claw.wait_duration = CANCEL_WIN
-	claw.default_next = -1
-	claw.branches = [
-		_branch_buffered("light_attack", 2),               # tap → Beast morph (into the maul)
+	# 0 — Thorn (crisp opener: one seed-thorn at the cursor).
+	var thorn := ChoreographyPhase.new()
+	thorn.animation = "attack"
+	thorn.hit_frame = 1
+	thorn.effects = [_thorn_bolt(dtype, dmg * 0.75)]
+	thorn.exit_type = "wait"
+	thorn.wait_duration = CANCEL_WIN
+	thorn.default_next = -1
+	thorn.branches = [
+		_branch_buffered("light_attack", 1),               # tap → Thorn II
 	]
 
-	# 1 — (unused index kept for readability) — collapsed; see phases array below.
-
-	# 2 — Beast morph (wind-up, no hit): the Verdant flickers into the Forest Beast.
-	var morph_beast := ChoreographyPhase.new()
-	morph_beast.animation = "morph_beast"
-	morph_beast.hit_frame = -1
-	morph_beast.exit_type = "anim_finished"
-	morph_beast.default_next = 3
-
-	# 3 — Beast Maul (finisher: heavy claw AoE; loops back to Claw on a fresh tap).
-	var maul := ChoreographyPhase.new()
-	maul.animation = "beast_attack"
-	maul.hit_frame = 2
-	maul.effects = [_aoe(dtype, dmg * 1.3, 46.0)]
-	maul.exit_type = "wait"
-	maul.wait_duration = CANCEL_WIN
-	maul.default_next = -1
-	maul.is_finisher = true
-	maul.branches = [
-		_branch_buffered("heavy_attack", 4),               # RMB → Owl Swoop
-		_branch_buffered("light_attack", 0),               # tap → loop to Claw
+	# 1 — Thorn II (faster re-slice of the same cast).
+	var thorn2 := ChoreographyPhase.new()
+	thorn2.animation = "attack_2"
+	thorn2.hit_frame = 1
+	thorn2.effects = [_thorn_bolt(dtype, dmg * 0.65)]
+	thorn2.exit_type = "wait"
+	thorn2.wait_duration = CANCEL_WIN
+	thorn2.default_next = -1
+	thorn2.branches = [
+		_branch_buffered("light_attack", 2),               # tap → Bramble Volley
 	]
 
-	# 4 — Owl morph (wind-up, no hit).
-	var morph_owl := ChoreographyPhase.new()
-	morph_owl.animation = "morph_owl"
-	morph_owl.hit_frame = -1
-	morph_owl.exit_type = "anim_finished"
-	morph_owl.default_next = 5
-
-	# 5 — Owl Swoop (gated finisher; terminal): a wide diving rake (no owl projectile in-pack, so
-	# the swoop is a broad melee arc rather than a bolt).
-	var swoop := ChoreographyPhase.new()
-	swoop.animation = "owl_attack"
-	swoop.hit_frame = 2
-	swoop.effects = [_aoe(dtype, dmg * 1.2, 52.0)]
-	swoop.exit_type = "anim_finished"
-	swoop.default_next = -1
-	swoop.is_finisher = true
-
-	# 1 — Claw II (faster re-slice; gate now met → Owl branch available). Declared here so the
-	# phases array reads 0..5 in index order.
-	var claw2 := ChoreographyPhase.new()
-	claw2.animation = "attack_2"
-	claw2.hit_frame = 1
-	claw2.effects = [_aoe(dtype, dmg * 0.7, 28.0)]
-	claw2.exit_type = "wait"
-	claw2.wait_duration = CANCEL_WIN
-	claw2.default_next = -1
-	claw2.branches = [
-		_branch_buffered("light_attack", 2),               # tap → Beast morph
-		_branch_buffered("heavy_attack", 4),               # RMB → Owl morph
+	# 2 — Bramble Volley (finisher: a 3-thorn spread; loops back on a fresh tap).
+	var volley := ChoreographyPhase.new()
+	volley.animation = "attack_2"
+	volley.hit_frame = 1
+	volley.effects = [_thorn_volley(dtype, dmg * 0.55)]
+	volley.exit_type = "wait"
+	volley.wait_duration = CANCEL_WIN
+	volley.default_next = -1
+	volley.is_finisher = true
+	volley.branches = [
+		_branch_buffered("light_attack", 0),               # tap → loop to Thorn
 	]
-	# Claw's tap should reach Claw II first — repoint it now that claw2 exists at index 1.
-	claw.branches = [_branch_buffered("light_attack", 1)]
 
 	var choreo := ChoreographyDefinition.new()
-	choreo.phases = [claw, claw2, morph_beast, maul, morph_owl, swoop]
+	choreo.phases = [thorn, thorn2, volley]
 	return _ability("druid_light", "Verdant Combo", choreo)
+
+
+# --- Druid: channel (RMB hold) — Bramble Barrage ---
+## Looses a stream of thorns at the cursor while held, one per beat. Same shape as the Shade's Bone
+## Barrage. Replaces the old Hound Frenzy channel, which had the Verdant's human body playing the
+## hound's Attack sheet — one of the reads that made the shapeshift version look broken.
+static func build_druid_barrage(weapon_data: Dictionary) -> AbilityDefinition:
+	var dmg: float = weapon_data.get("damage", 42.0)
+	var dtype: String = _damage_type(weapon_data)
+
+	var beat := ChoreographyPhase.new()
+	beat.animation = "attack_2"
+	beat.hit_frame = 1
+	beat.effects = [_thorn_bolt(dtype, dmg * 0.4)]
+	beat.exit_type = "wait"
+	beat.wait_duration = BARRAGE_TICK
+	beat.default_next = 0
+	beat.branches = [
+		_branch_held("heavy_attack", HOLD_KEEP, -1, true), # released → end
+	]
+
+	var choreo := ChoreographyDefinition.new()
+	choreo.phases = [beat]
+	return _ability("druid_barrage", "Bramble Barrage", choreo)
 
 
 # --- Druid: Root Summoning (RMB tap) ---
@@ -1632,27 +1646,63 @@ static func build_druid_root(weapon_data: Dictionary) -> AbilityDefinition:
 	return _ability("druid_root", "Root Summoning", choreo)
 
 
-# --- Druid: Hound Frenzy channel (RMB hold) ---
-## Fight as the forest hound: fast close melee ticks while held. Player slow host-side like all
-## channels. Single looping node.
-static func build_druid_hound(weapon_data: Dictionary) -> AbilityDefinition:
-	var dmg: float = weapon_data.get("damage", 42.0)
-	var dtype: String = _damage_type(weapon_data)
+# --- Druid thorn bolt (the human caster's ammo) ---
 
-	var hound := ChoreographyPhase.new()
-	hound.animation = "hound_attack"
-	hound.hit_frame = 2
-	hound.effects = [_aoe(dtype, dmg * 0.4, 30.0)]         # per-tick (lower; repeats)
-	hound.exit_type = "wait"
-	hound.wait_duration = HOUND_TICK
-	hound.default_next = 0                                  # still held → keep worrying the horde
-	hound.branches = [
-		_branch_held("heavy_attack", HOLD_KEEP, -1, true), # released → end
-	]
+const DRUID_THORN_DIR: String = "res://assets/minifantasy/Minifantasy_Spell Effects_v1.0/Minifantasy_Spell_Effects_Assets/Poison/Burst/Burst_Poison.png"
+static var _thorn_impact_frames: SpriteFrames = null
 
-	var choreo := ChoreographyDefinition.new()
-	choreo.phases = [hound]
-	return _ability("druid_hound", "Hound Frenzy", choreo)
+
+## A thrown seed-thorn. DELIBERATELY PROCEDURAL (Ben 2026-08-01): the Druid pack ships no projectile
+## sheet of any kind, and the alternative was recolouring another class's arrow or bolt — so the
+## body is ProjectileConfig's own drawn circle in verdant, and the pack-authored art does the work
+## that matters, the Spell Effects Poison burst tinted green as the impact. Keeps the Verdant free
+## of borrowed character assets (CLAUDE.md) while still landing on real animation.
+##
+## Seeks like every other player projectile (BOLT profile) — a caster's ammo should curve.
+static func _thorn_config(dtype: String, hit_damage: float) -> ProjectileConfig:
+	var cfg := ProjectileConfig.new()
+	cfg.motion_type = "directional"
+	cfg.speed = 250.0
+	cfg.max_range = 215.0
+	cfg.hit_radius = 7.0
+	_steer(cfg, BOLT_SEEK, BOLT_CONE, BOLT_TURN_R)
+	cfg.use_directional_anims = false
+	cfg.fallback_color = Color(0.55, 0.95, 0.42, 0.95)   ## thorn green; no sheet, this IS the body
+	cfg.visual_scale = Vector2(0.7, 0.7)                  ## a seed, not a fireball
+	var hit := DealDamageEffect.new()
+	hit.damage_type = dtype
+	hit.base_damage = hit_damage
+	cfg.on_hit_effects = [hit]
+	cfg.impact_sprite_frames = _get_thorn_impact()
+	cfg.impact_animation = "impact"
+	return cfg
+
+
+static func _thorn_bolt(dtype: String, hit_damage: float) -> SpawnProjectilesEffect:
+	var e := SpawnProjectilesEffect.new()
+	e.projectile = _thorn_config(dtype, hit_damage)
+	e.spawn_pattern = "aimed_single"
+	e.count = 1
+	return e
+
+
+## Bramble Volley: 3 thorns in a narrow cone toward the cursor.
+static func _thorn_volley(dtype: String, per_thorn: float) -> SpawnProjectilesEffect:
+	var e := SpawnProjectilesEffect.new()
+	e.projectile = _thorn_config(dtype, per_thorn)
+	e.spawn_pattern = "spread"
+	e.count = 3
+	e.spread_angle = 22.0
+	return e
+
+
+## The impact burst: the Spell Effects pack's Poison burst, tinted verdant by the projectile's own
+## draw. Cached like every other one-shot in this file.
+static func _get_thorn_impact() -> SpriteFrames:
+	if _thorn_impact_frames:
+		return _thorn_impact_frames
+	_thorn_impact_frames = _oneshot_row_frames(DRUID_THORN_DIR, 18.0)
+	return _thorn_impact_frames
 
 
 ## Root Summoning zone: snare (−60% move_speed, refreshed each tick) + Nature DoT for 4 s.
