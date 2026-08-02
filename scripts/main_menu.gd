@@ -48,6 +48,7 @@ func _ready() -> void:
 	_build_toast()
 	## Title shares the hub track — the crossfade into the hub is then a no-op.
 	AudioManager.play_music("mus_hub")
+	GameCursor.use_pointer()
 	var tree_panel := preload("res://scripts/ui/passive_tree_debug_panel.gd").new()
 	add_child(tree_panel)
 

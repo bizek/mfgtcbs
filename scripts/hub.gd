@@ -96,6 +96,7 @@ func _ready() -> void:
 	_build_ui()
 	AudioManager.play_music("mus_hub")
 	AchievementManager.check_thresholds()
+	GameCursor.use_pointer()
 
 # ── Room ──────────────────────────────────────────────────────────────────────
 

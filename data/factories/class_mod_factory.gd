@@ -37,6 +37,61 @@ static func apply_upgrade_dicts_to_skills(kit_id: String, skills: Dictionary, di
 	_apply_dicts_to_abilities(kit_id, skills, dicts)
 
 
+## ── Anim-target validation ───────────────────────────────────────────────────────────────────
+##
+## Every phase-targeting entry in ClassModData / AbilityUpgradeData names its phase by ANIMATION
+## NAME, and nothing enforces that the name still exists. When a kit edit renames or removes a
+## phase, the matcher just stops matching: no error, no warning, no visible symptom. The player
+## takes a level-up that reads "+35% damage, +20% radius" and receives nothing at all.
+##
+## This is not hypothetical. A sweep on 2026-08-02 found SEVEN dead entries at once — the
+## Verdant's shapeshift removal (0f5dfed) orphaned `beast_attack`, `hound_attack` and
+## `owl_attack`, and the Demon's heavy phase had been renamed `hellfire` → `hellfire_2`. All
+## seven are fixed. This exists so the NEXT kit edit reports itself instead of rotting quietly.
+##
+## Returns one human-readable line per dead entry; empty means everything resolves.
+static func validate_anim_targets(weapon_data: Dictionary = {}) -> Array[String]:
+	var problems: Array[String] = []
+	## Kit ids come from the content itself rather than a hardcoded list, so a kit added later
+	## is covered without touching this function.
+	var kit_ids: Dictionary = {}
+	for src: Dictionary in [ClassModData.ALL, AbilityUpgradeData.ALL]:
+		for entry_id: String in src:
+			var kit: String = (src[entry_id] as Dictionary).get("kit", "")
+			if kit != "":
+				kit_ids[kit] = true
+
+	for kit_id: String in kit_ids:
+		## Pristine kit — no mods, no upgrades. Phase animation names are what we're checking,
+		## and no op renames a phase, so the unmutated build is the right reference.
+		## Kit graphs and skills are merged into one dict here. The game applies them in two
+		## calls (apply_to_kit / apply_to_skills), but for "does this target hit anything at
+		## all" the union is equivalent — and it lets a graph-less target find a skill phase.
+		var abilities: Dictionary = ChainFactory.build_kit(kit_id, weapon_data)
+		var skills: Dictionary = SkillFactory.build_kit_skills(kit_id, weapon_data)
+		for slot: String in skills:
+			abilities[slot] = skills[slot]
+
+		for src: Dictionary in [ClassModData.ALL, AbilityUpgradeData.ALL]:
+			for entry_id: String in src:
+				var entry: Dictionary = src[entry_id]
+				if entry.get("kit", "") != kit_id:
+					continue
+				var op: String = entry.get("op", "")
+				## Same exclusions the apply paths use: these ops never touch a phase.
+				if op == "modifier" or op == "kit_flag" or op == "":
+					continue
+				var target: Dictionary = entry.get("target", {})
+				if target.is_empty():
+					problems.append("%s (%s): op '%s' targets a phase but has no target dict"
+						% [entry_id, kit_id, op])
+					continue
+				if _for_each_targeted_phase(abilities, target, Callable()) == 0:
+					problems.append("%s (%s): target %s matches no phase — this entry does nothing"
+						% [entry_id, kit_id, str(target)])
+	return problems
+
+
 ## Player-level ModifierDefinitions for "modifier" class mods (kit-agnostic stat buffs while
 ## equipped). source_name prefixed "classmod_" so player.reload/switch can remove them cleanly.
 static func build_modifiers(kit_id: String, active_ids: Array) -> Array[ModifierDefinition]:
@@ -65,20 +120,9 @@ static func _apply_dicts_to_abilities(kit_id: String, abilities: Dictionary, dic
 		var op: String = mod.get("op", "")
 		if op == "modifier" or op == "kit_flag" or op == "":
 			continue   ## modifier → ModifierComponent; kit_flag → read by the entity. Not phases.
-		var target: Dictionary = mod.get("target", {})
-		var want_graph: String = target.get("graph", "")
-		var want_anim: String  = target.get("anim", "")
 		var params: Dictionary = mod.get("params", {})
-		for key: String in abilities.keys():
-			if want_graph != "" and key != want_graph:
-				continue
-			var ability: AbilityDefinition = abilities[key]
-			if ability == null or ability.choreography == null:
-				continue
-			for phase: ChoreographyPhase in ability.choreography.phases:
-				if want_anim != "" and phase.animation != want_anim:
-					continue
-				_apply_op_to_phase(op, phase, params)
+		_for_each_targeted_phase(abilities, mod.get("target", {}),
+			func(phase: ChoreographyPhase) -> void: _apply_op_to_phase(op, phase, params))
 
 
 ## Apply every phase-targeting class mod in `active_ids` to the abilities in `abilities`
@@ -94,20 +138,36 @@ static func _apply_to_abilities(kit_id: String, abilities: Dictionary, active_id
 			continue   ## handled by build_modifiers, not a phase mutation
 		if op == "kit_flag":
 			continue   ## routing-level; the entity reads the equipped id itself (player._load_combo)
-		var target: Dictionary = mod.get("target", {})
-		var want_graph: String = target.get("graph", "")
-		var want_anim: String  = target.get("anim", "")
 		var params: Dictionary = mod.get("params", {})
-		for key: String in abilities.keys():
-			if want_graph != "" and key != want_graph:
+		_for_each_targeted_phase(abilities, mod.get("target", {}),
+			func(phase: ChoreographyPhase) -> void: _apply_op_to_phase(op, phase, params))
+
+
+## The ONE place a `target` dict is resolved against a { graph_key: AbilityDefinition } dict.
+## Calls `fn` on every phase the target selects and returns how many it matched.
+##
+## The return value is the whole point of factoring this out: a target that matches ZERO phases
+## is dead content — _apply_op_to_phase simply never runs, so the mod or upgrade is silently
+## inert. Both apply paths and validate_anim_targets() share this function so the validator can
+## never disagree with what the game actually does.
+static func _for_each_targeted_phase(abilities: Dictionary, target: Dictionary,
+		fn: Callable) -> int:
+	var want_graph: String = target.get("graph", "")
+	var want_anim: String  = target.get("anim", "")
+	var matched: int = 0
+	for key: String in abilities.keys():
+		if want_graph != "" and key != want_graph:
+			continue
+		var ability: AbilityDefinition = abilities[key]
+		if ability == null or ability.choreography == null:
+			continue
+		for phase: ChoreographyPhase in ability.choreography.phases:
+			if want_anim != "" and phase.animation != want_anim:
 				continue
-			var ability: AbilityDefinition = abilities[key]
-			if ability == null or ability.choreography == null:
-				continue
-			for phase: ChoreographyPhase in ability.choreography.phases:
-				if want_anim != "" and phase.animation != want_anim:
-					continue
-				_apply_op_to_phase(op, phase, params)
+			matched += 1
+			if fn.is_valid():
+				fn.call(phase)
+	return matched
 
 
 static func _apply_op_to_phase(op: String, phase: ChoreographyPhase, params: Dictionary) -> void:

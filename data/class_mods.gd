@@ -217,25 +217,35 @@ const ALL: Dictionary = {
 
 	## ── Druid (The Verdant) ───────────────────────────────────────────────────────────────────
 
+	## Retargeted 2026-08-02 alongside the ability upgrades: the shapeshift kit is gone
+	## (0f5dfed), so "beast_attack" and "owl_attack" matched no phase and these two did
+	## nothing while equipped. The IDS ARE DELIBERATELY UNCHANGED — class-mod ids are
+	## persisted in ProgressionManager.character_mods/owned_mods, and get_active_class_mods
+	## silently drops ids it can't resolve, so a rename would quietly delete an equipped mod
+	## from a live save. Names/descriptions/targets changed; ids frozen.
 	"druid_savage_maul": {
 		"id": "druid_savage_maul",
-		"name": "SAVAGE MAUL",
+		"name": "SAVAGE THORNS",
 		"kit": "druid",
-		"desc": "Beast Maul tears 25% harder across a 30% wider arc of claws.",
+		"desc": "The opening Thorn bites 25% harder — the first seed carries the most spite.",
 		"color": Color(0.55, 0.85, 0.25),
-		"target": { "anim": "beast_attack" },
+		"target": { "graph": "light", "anim": "attack" },
 		"op": "scale_aoe",
-		"params": { "radius_mult": 1.3, "damage_mult": 1.25 },
+		## No radius_mult: a thorn is a projectile, and _scale_effects has no radius to scale
+		## on SpawnProjectilesEffect — it would read as a buff and apply nothing.
+		"params": { "damage_mult": 1.25 },
 	},
 	"druid_diving_owl": {
 		"id": "druid_diving_owl",
-		"name": "DIVING OWL",
+		"name": "BRISTLING VOLLEY",
 		"kit": "druid",
-		"desc": "Owl Swoop arcs 40% wider — nothing survives the dive.",
+		"desc": "Thorn II and Bramble Volley each carry one more thorn.",
 		"color": Color(0.8, 0.95, 0.5),
-		"target": { "anim": "owl_attack" },
-		"op": "scale_aoe",
-		"params": { "radius_mult": 1.4 },
+		## "attack_2" is BOTH light phases 1 and 2 — the mod hits both, which is what the
+		## description says. graph pins it out of the channel, which shares the anim name.
+		"target": { "graph": "light", "anim": "attack_2" },
+		"op": "add_projectiles",
+		"params": { "count": 1 },
 	},
 	"druid_strangling_roots": {
 		"id": "druid_strangling_roots",
@@ -249,13 +259,15 @@ const ALL: Dictionary = {
 	},
 	"druid_pack_leader": {
 		"id": "druid_pack_leader",
-		"name": "PACK LEADER",
+		"name": "ENDLESS BRAMBLE",
 		"kit": "druid",
-		"desc": "Hound Frenzy bites 20% harder in a 35% wider frenzy.",
+		"desc": "Bramble Barrage beats 20% harder for as long as you hold it.",
 		"color": Color(0.7, 0.5, 0.2),
-		"target": { "graph": "channel", "anim": "hound_attack" },
+		## Was the Hound Frenzy channel; the channel is Bramble Barrage now and its beat
+		## plays "attack_2". Id frozen for save compatibility — see the note above.
+		"target": { "graph": "channel", "anim": "attack_2" },
 		"op": "scale_aoe",
-		"params": { "radius_mult": 1.35, "damage_mult": 1.2 },
+		"params": { "damage_mult": 1.2 },
 	},
 
 	## ── Necromancer (The Shade) ──────────────────────────────────────────────────────────────
@@ -452,7 +464,8 @@ const ALL: Dictionary = {
 		"kit": "demonologist",
 		"desc": "Hellfire sprays 35% wider and sears 20% harder.",
 		"color": Color(1.0, 0.45, 0.15),
-		"target": { "anim": "hellfire" },
+		## See ability_upgrades.demon_conflagration: the phase name is "hellfire_2", not "hellfire".
+		"target": { "anim": "hellfire_2" },
 		"op": "scale_aoe",
 		"params": { "radius_mult": 1.35, "damage_mult": 1.2 },
 	},

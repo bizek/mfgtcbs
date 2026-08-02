@@ -139,6 +139,40 @@ func _ready() -> void:
 	ExtractionManager.extraction_complete.connect(on_extraction_complete)
 	## Track kills via combat signal instead of direct register_kill() calls
 	EventBus.on_kill.connect(_on_entity_killed_eb)
+	## Deferred: GameManager is the FIRST autoload, so Logger (declared last in project.godot)
+	## does not exist yet during _ready. One frame later every autoload is up.
+	_validate_content.call_deferred()
+
+
+## Debug-only content sweep. Class mods and ability upgrades bind to phases by ANIMATION NAME,
+## and a kit edit that renames a phase turns them into silent no-ops — no error, no symptom,
+## just a level-up choice that does nothing (seven entries were dead this way on 2026-08-02).
+## Builds every kit once at startup and reports anything that resolves to no phase.
+## debug_mode-gated: this costs 12 kit builds and players never need it.
+## NOTE ON `Logger`: it is reached through get_node("/root/Logger"), NOT by the bare autoload
+## name. Godot 4.6 ships a NATIVE `Logger` class, and it wins name resolution — writing
+## `Logger.log_info(...)` here compiles and then fails at runtime with
+## 'Static function "log_info()" not found in base "GDScriptNativeClass"'. These three calls
+## were the first code outside logger.gd ever to call the autoload, which is why the collision
+## had not surfaced before. Anything else that wants the crash log must do the same.
+func _validate_content() -> void:
+	if not debug_mode:
+		return
+	var problems: Array[String] = ClassModFactory.validate_anim_targets()
+	var log_node: Node = get_node_or_null("/root/Logger")
+	if problems.is_empty():
+		print("[content] All class-mod / ability-upgrade anim targets resolve.")
+		if log_node:
+			log_node.log_info("Content validation: all anim targets resolve.")
+		return
+	## push_warning so it lands in the editor's error list too — a dead entry is invisible in
+	## play, so the startup sweep is the only place it can announce itself.
+	push_warning("[content] %d DEAD class-mod / ability-upgrade entries (they apply nothing)"
+		% problems.size())
+	for p: String in problems:
+		push_warning("[content]   " + p)
+		if log_node:
+			log_node.log_warn("Dead content entry: " + p)
 
 func _process(delta: float) -> void:
 	if current_state != GameState.RUN_ACTIVE or is_paused:

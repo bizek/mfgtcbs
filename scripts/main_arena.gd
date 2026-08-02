@@ -99,6 +99,9 @@ var _descent_miniboss_spawned: bool = false
 
 
 func _ready() -> void:
+	## Combat is manual cursor aim — swap the menu pointer for the reticle.
+	GameCursor.use_aim()
+
 	# Build engine status effect definitions
 	StatusFactory.build_all()
 

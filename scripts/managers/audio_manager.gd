@@ -39,6 +39,11 @@ var _pos_next: int = 0
 var _music_players: Array[AudioStreamPlayer] = []
 var _music_active: int = 0  ## index into _music_players of the audible track
 var _loop_player: AudioStreamPlayer = null
+## SECOND, independent loop slot for held combat channels. It is deliberately not the same
+## player as _loop_player: the extraction hum is a gameplay cue with real stakes, and a player
+## who channels an ability while standing in the extraction zone must not silence it. Two slots,
+## two owners, no interference.
+var _channel_loop_player: AudioStreamPlayer = null
 
 # --- Preloaded streams ---
 var _sfx_streams: Dictionary = {}    ## sound_id -> Array[AudioStream] (only files that exist)
@@ -54,6 +59,7 @@ var _current_music_id: String = ""
 var _music_before_boss: String = ""  ## biome track to restore after final_boss_defeated
 var _music_tween: Tween = null
 var _active_loop_id: String = ""
+var _active_channel_loop_id: String = ""
 
 
 func _ready() -> void:
@@ -94,6 +100,11 @@ func _build_pools() -> void:
 	_loop_player.bus = Settings.BUS_SFX
 	_loop_player.finished.connect(_on_loop_finished)
 	add_child(_loop_player)
+
+	_channel_loop_player = AudioStreamPlayer.new()
+	_channel_loop_player.bus = Settings.BUS_SFX
+	_channel_loop_player.finished.connect(_on_channel_loop_finished)
+	add_child(_channel_loop_player)
 
 
 func _preload_streams() -> void:
@@ -187,7 +198,13 @@ func play(sound_id: String, world_pos: Variant = null, pitch_semitones: float = 
 	var stream: AudioStream = streams[randi() % streams.size()]
 	var volume_db: float = entry.get("volume_db", 0.0) + STACK_FALLOFF_DB * count
 	var variance: float = entry.get("pitch_variance", DEFAULT_PITCH_VARIANCE)
-	var pitch: float = (1.0 + randf_range(-variance, variance)) * pow(2.0, pitch_semitones / 12.0)
+	## "pitch_semitones" on the ENTRY is a fixed re-voicing of the source file, on top of the
+	## per-play argument and the random variance. The library is small and mostly CC0, so several
+	## sounds are the same file wearing a different pitch — this is the knob that lets one asset
+	## serve as two without duplicating an .ogg on disk.
+	var base_semitones: float = entry.get("pitch_semitones", 0.0)
+	var pitch: float = (1.0 + randf_range(-variance, variance)) \
+		* pow(2.0, (pitch_semitones + base_semitones) / 12.0)
 	var bus: String = entry.get("bus", Settings.BUS_SFX)
 
 	if entry.get("loop", false):
@@ -264,6 +281,53 @@ func stop_music(fade_duration: float = 1.0) -> void:
 func stop_loop() -> void:
 	_active_loop_id = ""
 	_loop_player.stop()
+
+
+## Start the sustained bed for a HELD combat channel (Immolate, Bramble Barrage, Bone Barrage,
+## Taunt, Dictum, Reckoning's dome…). Call from the channel's start hook; always pair it with
+## stop_channel_loop().
+##
+## Why a channel needs this at all: a channel's per-beat sounds only fire when the beat CONNECTS
+## (they ride on_hit_dealt). Hold one while missing and the ability is completely silent, so
+## there is no audio difference between "channelling into empty air" and "not channelling".
+## The bed is what says the ability is live.
+##
+## Re-calling with the id already playing is a no-op, so a per-beat call site is safe.
+func play_channel_loop(sound_id: String) -> void:
+	if sound_id == "":
+		return
+	if _active_channel_loop_id == sound_id and _channel_loop_player.playing:
+		return
+	var entry: Dictionary = SoundTable.ALL.get(sound_id, {})
+	if entry.is_empty():
+		if not _missing_warned.has(sound_id):
+			_missing_warned[sound_id] = true
+			push_warning("[AudioManager] Unknown channel loop id '%s'" % sound_id)
+		return
+	var streams: Array = _sfx_streams.get(sound_id, [])
+	if streams.is_empty():
+		## No file on disk yet — stay silent rather than substituting something wrong.
+		if not _missing_warned.has(sound_id):
+			_missing_warned[sound_id] = true
+			push_warning("[AudioManager] No audio file for channel loop '%s' — silent" % sound_id)
+		return
+	_active_channel_loop_id = sound_id
+	_channel_loop_player.stream = streams[0]
+	_channel_loop_player.volume_db = entry.get("volume_db", -14.0)
+	_channel_loop_player.pitch_scale = pow(2.0, float(entry.get("pitch_semitones", 0.0)) / 12.0)
+	_channel_loop_player.bus = entry.get("bus", Settings.BUS_SFX)
+	_channel_loop_player.play()
+
+
+func stop_channel_loop() -> void:
+	_active_channel_loop_id = ""
+	_channel_loop_player.stop()
+
+
+func _on_channel_loop_finished() -> void:
+	## Manual looping, same as _on_loop_finished — works without import loop points.
+	if _active_channel_loop_id != "":
+		_channel_loop_player.play()
 
 
 # ── Pool acquisition (round-robin with steal, house style) ────────────────────
@@ -420,6 +484,7 @@ func _on_run_started() -> void:
 	## Safety net: a loop that leaked from the previous run (e.g. an extraction
 	## channel that never resolved) must not follow the player into a new one.
 	stop_loop()
+	stop_channel_loop()
 	play_music(LevelData.get_music_id(GameManager.current_level))
 
 
@@ -438,6 +503,9 @@ func _on_final_boss_defeated() -> void:
 
 func _on_player_died() -> void:
 	stop_loop()
+	## Death interrupts the runner, but the loop is stopped here too so a death that races
+	## the interrupt can't leave a channel droning over the death screen.
+	stop_channel_loop()
 	stop_music(2.0)
 
 

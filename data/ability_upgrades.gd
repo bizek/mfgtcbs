@@ -150,15 +150,28 @@ const ALL: Dictionary = {
 	},
 
 	## ── Druid (The Verdant) ───────────────────────────────────────────────────
-	"druid_wild_maul": {
-		"id": "druid_wild_maul",
-		"name": "Wild Maul",
-		"description": "Beast Maul +35% damage",
+	## Retargeted 2026-08-02. These were written for the shapeshift kit, which is gone
+	## (0f5dfed — Ben: "i dont like the transformations at all"). "beast_attack" and
+	## "hound_attack" stopped being phase animations anywhere in the game, so Wild Maul and
+	## Pack Frenzy matched no phase and silently did nothing — the Verdant ran on ONE live
+	## ability upgrade out of three. Rewritten against the thorn-caster kit, one per graph:
+	## light opener · heavy root zone · channel barrage.
+	##
+	## Note there is deliberately no summon-scaling upgrade here: ForestCompanion reads the
+	## player's live damage stat at strike time (forest_companion.gd:218), so the only lever
+	## this system has on the bear/hounds is a global +damage stat stick. A real pet dial is
+	## rework territory — see docs/mod_levelup_rework_plan.md §3.
+	"druid_seedstorm": {
+		"id": "druid_seedstorm",
+		"name": "Seedstorm",
+		"description": "Thorn looses a second seed",
 		"kit": "druid",
 		"is_ability_upgrade": true,
-		"op": "scale_aoe",
-		"target": { "anim": "beast_attack" },
-		"params": { "damage_mult": 1.35 },
+		"op": "add_projectiles",
+		## Light phase 0 is the only "attack" phase in the kit. aimed_single fans the extra
+		## shot 6° off the aim line and keeps shot #0 dead on the cursor.
+		"target": { "graph": "light", "anim": "attack" },
+		"params": { "count": 1 },
 	},
 	"druid_strangling_roots": {
 		"id": "druid_strangling_roots",
@@ -170,15 +183,18 @@ const ALL: Dictionary = {
 		"target": { "anim": "root_cast" },
 		"params": { "radius_mult": 1.40 },
 	},
-	"druid_pack_frenzy": {
-		"id": "druid_pack_frenzy",
-		"name": "Pack Frenzy",
-		"description": "Hound Frenzy ticks +20% damage",
+	"druid_wild_barrage": {
+		"id": "druid_wild_barrage",
+		"name": "Wild Barrage",
+		"description": "Bramble Barrage beats +30% damage",
 		"kit": "druid",
 		"is_ability_upgrade": true,
 		"op": "scale_aoe",
-		"target": { "anim": "hound_attack" },
-		"params": { "damage_mult": 1.20 },
+		## graph pins this to the channel — "attack_2" is also light phases 1 and 2.
+		## radius_mult is omitted deliberately: the beat looses a projectile, and _scale_effects
+		## has no radius to scale on a SpawnProjectilesEffect.
+		"target": { "graph": "channel", "anim": "attack_2" },
+		"params": { "damage_mult": 1.30 },
 	},
 
 	## ── Necromancer (The Shade) ───────────────────────────────────────────────
@@ -333,7 +349,10 @@ const ALL: Dictionary = {
 		"kit": "demonologist",
 		"is_ability_upgrade": true,
 		"op": "scale_aoe",
-		"target": { "anim": "hellfire" },
+		## "hellfire_2" is the heavy's poke phase — the Demon's body sheet is "hellfire" but the
+		## phase carries a distinct NAME so it can re-fire back-to-back (chain_factory.build_demon_heavy).
+		## Targeting "hellfire" matched nothing and this upgrade did nothing at all.
+		"target": { "anim": "hellfire_2" },
 		"params": { "damage_mult": 1.35, "radius_mult": 1.20 },
 	},
 	"demon_wider_circle": {

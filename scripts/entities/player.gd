@@ -1312,6 +1312,8 @@ func _physics_process(delta: float) -> void:
 			choreography_runner.interrupt()
 		else:
 			choreography_runner.tick(delta)
+	_tick_channel_audio()
+	_tick_cursor_state()
 
 	# Attack: melee-combo characters run the combo graph; everyone else uses weapon fire.
 	# BehaviorComponent.tick handles auto-attack timer and targeting.
@@ -1693,6 +1695,44 @@ func _quiver_retype(pool: Array, dtype: String) -> Array:
 		else:
 			out.append(eff)
 	return out
+
+
+## Sustained audio bed under a held channel, polled once per physics frame.
+##
+## A channel's per-beat sounds ride on_hit_dealt, so they only fire when a beat CONNECTS — hold
+## Immolate facing an empty room and the ability is completely silent, with nothing to tell you
+## it is even running. The bed is the "this is live" cue.
+##
+## Polled rather than driven from choreo_on_start/on_end because two kits enter a channel from
+## INSIDE their light chain (the Fighter's Whirlwind, the Paladin's Dictum), so the bed has to
+## follow the current PHASE, not the ability. Both AudioManager calls are idempotent, so
+## re-asserting the same state every frame costs nothing.
+func _tick_channel_audio() -> void:
+	if choreography_runner and choreography_runner.current_phase_is_held_channel():
+		AudioManager.play_channel_loop(SoundTable.CHANNEL_LOOP_BY_KIT.get(_kit_id, ""))
+	else:
+		AudioManager.stop_channel_loop()
+
+
+## Redden the aim reticle while an enemy sits under it (GameCursor).
+##
+## Deliberately keyed to the REAL mouse position rather than _get_aim_world_position(): with
+## auto-aim on, the aim point is the locked target, which may be nowhere near where the player
+## is actually pointing. The reticle describes what is under the reticle, nothing else.
+const CURSOR_HOSTILE_RADIUS: float = 12.0   ## the bracket reticle is 16px; this is "inside it"
+
+func _tick_cursor_state() -> void:
+	if spatial_grid == null or _using_controller_aim:
+		return   ## on a controller the OS pointer is not the aiming device
+	var at: Vector2 = get_global_mouse_position()
+	var near: Array = spatial_grid.get_nearby_in_range(
+		at, 1, CURSOR_HOSTILE_RADIUS * CURSOR_HOSTILE_RADIUS)
+	var hostile: bool = false
+	for e in near:
+		if is_instance_valid(e) and e.is_alive:
+			hostile = true
+			break
+	GameCursor.set_hostile(hostile)
 
 
 func _on_skill_q() -> void:
@@ -3304,6 +3344,10 @@ func choreo_on_end() -> void:
 	## Reckoning: the dome comes down — everything it soaked goes back out.
 	if _active_choreo_id == "paladin_dome" and _dome_absorbed > 0.0:
 		_detonate_reckoning()
+	## Belt-and-braces with _tick_channel_audio: the poll would clear the bed on the next frame
+	## anyway, but ending the graph is the moment the channel is over and it should not outlive
+	## it by even one frame. Stopping a bed that isn't playing is a no-op.
+	AudioManager.stop_channel_loop()
 	_active_choreo_id = ""
 	_attack_anim_active = false
 	is_attacking = false

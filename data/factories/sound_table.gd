@@ -23,14 +23,10 @@ extends RefCounted
 
 const ALL: Dictionary = {
 	# ── Combat: weapon swings (P1 — "weapon fire") ───────────────────────────
-	"sfx_swing_light": {
-		"streams": [
-			"res://assets/audio/sfx/combat/swing_light_0.ogg",
-			"res://assets/audio/sfx/combat/swing_light_1.ogg",
-			"res://assets/audio/sfx/combat/swing_light_2.ogg",
-		],
-		"volume_db": -9.0, "max_per_frame": 3, "positional": true,
-	},
+	## "sfx_swing_light" was removed 2026-08-02: it had no caller anywhere. Light-chain
+	## swings play through the sfx_combo_step pitch ladder instead (AudioManager._on_combo_step),
+	## which is what gives the chain its rising cadence. Its three swing_light_*.ogg streams are
+	## still in use below by sfx_projectile_fire.
 	## Weapon/ability fire (P2 "weapon fire") — no dedicated CC0 asset found, so these
 	## alias the swing whooshes with wider pitch variance (manifest §synthesis). Fired
 	## from EventBus.on_ability_used for every non-combo ability (player weapons and
@@ -181,6 +177,49 @@ const ALL: Dictionary = {
 	"sfx_status_void_apply": {
 		"streams": ["res://assets/audio/sfx/status/void_apply.ogg"],
 		"volume_db": -10.0, "positional": true, "min_interval_ms": 80,
+	},
+	## "A ward snaps on" — the Q/E self-buffs (Steeled, Hallowed, Blessed, Battle Fury, Honed
+	## Edge, Loaded Chambers, Aegis, Second Wind). No dedicated asset exists for these, so it is
+	## block.ogg pitched up half an octave and dropped in level: a block IS a ward catching
+	## something, and at +6 it reads as a shimmer rather than an impact.
+	##
+	## Scope note (2026-08-02): the buffs are deliberately the ONLY statuses added here. The
+	## obvious next candidate, bleed, was rejected — it lands on the same frame as the hit that
+	## caused it, so it layers a second impact under sfx_hit_physical and just makes mud. That is
+	## the exact mistake already documented and removed from _on_hit_dealt. Statuses worth
+	## sounding are the ones that land with nothing else playing; the rest need real assets.
+	## ── Held-channel beds (2026-08-02) ────────────────────────────────────────
+	## A channel's per-beat sounds ride on_hit_dealt, so they only fire when a beat CONNECTS.
+	## Hold one while missing and the ability is completely silent — nothing distinguishes
+	## "channelling into empty air" from "not channelling". These sustained beds fix that.
+	##
+	## THE FILES DO NOT EXIST YET. AudioManager.play_channel_loop stays silent (one warning)
+	## until they do, which is deliberate: the only true loop asset in the library is
+	## extraction_channel_hum.ogg, and re-voicing THAT would put an extraction cue — a
+	## high-stakes gameplay signal — under ordinary combat. Better silent than misleading.
+	##
+	## To render (REAPER, docs/audio_pipeline.md): three seamless ~2s loops, low and unobtrusive,
+	## mixed to sit UNDER the beat hits rather than compete with them. Suggested character —
+	##   channel_loop_fire:     a low roaring bed (Immolate, Hellfire)
+	##   channel_loop_arcane:   a dry rattling/whispering bed (Bone Barrage, Bramble Barrage)
+	##   channel_loop_martial:  a low physical rumble (Taunt, Dictum, the Reckoning dome)
+	## Drop them in assets/audio/sfx/combat/ and they light up with no code change.
+	"sfx_channel_loop_fire": {
+		"streams": ["res://assets/audio/sfx/combat/channel_loop_fire.ogg"],
+		"volume_db": -18.0, "loop": true,
+	},
+	"sfx_channel_loop_arcane": {
+		"streams": ["res://assets/audio/sfx/combat/channel_loop_arcane.ogg"],
+		"volume_db": -18.0, "loop": true,
+	},
+	"sfx_channel_loop_martial": {
+		"streams": ["res://assets/audio/sfx/combat/channel_loop_martial.ogg"],
+		"volume_db": -18.0, "loop": true,
+	},
+	"sfx_status_buff_apply": {
+		"streams": ["res://assets/audio/sfx/combat/block.ogg"],
+		"volume_db": -13.0, "pitch_semitones": 6.0, "pitch_variance": 0.05,
+		"positional": true, "min_interval_ms": 120,
 	},
 
 	# ── Pickups (P1: xp/currency/weapon; P2: mod/keystone — real assets) ────
@@ -344,6 +383,36 @@ const STATUS_SOUND: Dictionary = {
 	"frozen": "sfx_status_frozen",
 	"shocked": "sfx_status_shocked_apply",
 	"void_touched": "sfx_status_void_apply",
+	## Self-cast wards and buffs (2026-08-02). These land on the player from a Q/E cast with no
+	## competing sound on the frame, which is what makes them worth voicing — see the scope note
+	## on sfx_status_buff_apply. Unmapped statuses stay silent by design.
+	"steeled": "sfx_status_buff_apply",           ## Fighter — Second Wind's ward
+	"hallowed": "sfx_status_buff_apply",          ## Paladin — Lay on Hands
+	"blessed": "sfx_status_buff_apply",
+	"battle_fury": "sfx_status_buff_apply",
+	"honed_edge": "sfx_status_buff_apply",
+	"loaded_chambers": "sfx_status_buff_apply",   ## Gunslinger — Reload
+	"aegis_shield": "sfx_status_buff_apply",
+	"second_wind": "sfx_status_buff_apply",
+}
+
+## melee_kit id → the sustained bed played while that kit holds a channel.
+## Grouped by timbre rather than one-per-kit: three beds cover twelve kits without twelve
+## renders, and a channel bed is background texture, not an identity cue.
+## Kits absent from this map simply get no bed.
+const CHANNEL_LOOP_BY_KIT: Dictionary = {
+	"demonologist": "sfx_channel_loop_fire",     ## Immolate
+	"blood_mage":   "sfx_channel_loop_fire",
+	"wizard":       "sfx_channel_loop_arcane",
+	"necromancer":  "sfx_channel_loop_arcane",   ## Bone Barrage
+	"druid":        "sfx_channel_loop_arcane",   ## Bramble Barrage
+	"cleric":       "sfx_channel_loop_arcane",
+	"fighter":      "sfx_channel_loop_martial",  ## Taunt
+	"paladin":      "sfx_channel_loop_martial",  ## Dictum / Reckoning dome
+	"barbarian":    "sfx_channel_loop_martial",
+	"ninja":        "sfx_channel_loop_martial",
+	"gunslinger":   "sfx_channel_loop_martial",
+	"ranger":       "sfx_channel_loop_martial",
 }
 
 ## pickup_type (EventBus.on_pickup payload) → sound ID.

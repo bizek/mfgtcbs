@@ -1,0 +1,155 @@
+extends Node
+
+## GameCursor — the game's mouse pointer. Autoload.
+##
+## The game's core combat verb is manual cursor aim, and until now it shipped the OS arrow
+## (docs/ui_pack_inventory.md gap 2: "No custom mouse cursor is set anywhere"). This replaces it
+## with the UI pack's own art: a bracket reticle while playing, the pack's arrow in menus.
+##
+## Two things make this more than one set_custom_mouse_cursor call:
+##
+##  1. SCALE. The game renders at 640x360 and is upscaled to the window, but the hardware cursor
+##     is drawn in REAL screen pixels and is not upscaled with it. A raw 16x16 cursor would be a
+##     third the apparent size of every other pixel on screen. So the source cell is nearest-
+##     neighbour scaled by the same integer factor the viewport is using, recomputed whenever the
+##     window changes size.
+##  2. STATE. The sheet ships every cursor in four tints. The reticle goes red while an enemy is
+##     under it, which is real aiming information rather than decoration.
+
+## 440x72: 27 cursors across (16px cells), 4 tint rows down.
+const SHEET: String = "res://assets/minifantasy/Minifantasy_UI _Overhaul_v1.0/_Minifantasy_UI_Overhaul_Assets/_General_UI_Resources/Cursors/_Cursors.png"
+const CELL: int = 16
+
+## Column indices into the sheet. Order is fixed by the pack: 4 large arrows, 4 small arrows,
+## 4 crosshairs, hand, hand-clicking, melee/ranged/magic attack, then the tool cursors.
+const COL_ARROW: int = 0        ## large arrow — menus, hub, anything you click
+const COL_RETICLE: int = 8      ## corner-bracket crosshair: an OPEN centre, so it frames what
+                                ## you are aiming at instead of covering it. The other three
+                                ## (dense diamond, dot cross, star cross) all fill the middle.
+
+## Tint rows. Row 1 (white) is deliberately unused — it is nearly invisible against the cave
+## floor, which is most of what the player looks at.
+const ROW_DEFAULT: int = 0      ## black outline + tan fill; the readable one
+const ROW_RED: int = 2          ## enemy under the reticle
+const ROW_GREEN: int = 3        ## unused for now; kept named so the intent is obvious
+
+const BASE_VIEWPORT_WIDTH: float = 640.0
+
+## Hotspot in SOURCE pixels — the point in the cell that "is" the mouse position. It is (8,8)
+## for both cursors we use, which is not a coincidence and is not just "the middle":
+##   • the reticle's brackets are centred, opaque box x[2..13] y[2..13], so its centre is (8,8);
+##   • the arrow is drawn entirely in the cell's BOTTOM-RIGHT quadrant, opaque box x[8..14]
+##     y[8..14], so its pointing tip is (8,8) too — the pack leaves the top-left eighth empty
+##     precisely so this is the hotspot.
+## Both measured off the sheet's alpha, not eyeballed. A (0,0) hotspot would land menu clicks
+## 8 source pixels up and left of the arrow tip.
+const HOTSPOT: float = 8.0
+
+enum Mode { POINTER, AIM }
+
+var _mode: int = Mode.POINTER
+var _hostile: bool = false
+var _scale: int = 0                  ## 0 = nothing built yet
+var _sheet_image: Image = null
+var _cache: Dictionary = {}          ## "col,row,scale" -> ImageTexture
+var _applied_key: String = ""        ## last texture actually handed to the OS
+
+
+func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	get_tree().root.size_changed.connect(_on_window_resized)
+	_refresh()
+
+
+## Menus, hub, anything you point and click at.
+func use_pointer() -> void:
+	if _mode == Mode.POINTER:
+		return
+	_mode = Mode.POINTER
+	_refresh()
+
+
+## Gameplay — the aiming reticle.
+func use_aim() -> void:
+	if _mode == Mode.AIM:
+		return
+	_mode = Mode.AIM
+	_refresh()
+
+
+## Called by the player each frame while aiming. Cheap: only touches the OS when the state
+## actually flips, so a steady hand costs one bool compare per frame.
+func set_hostile(hostile: bool) -> void:
+	if _hostile == hostile:
+		return
+	_hostile = hostile
+	_refresh()
+
+
+## Restore the OS cursor (used if the custom art fails to load).
+func use_system() -> void:
+	Input.set_custom_mouse_cursor(null)
+	_applied_key = ""
+
+
+func _on_window_resized() -> void:
+	_refresh()
+
+
+func _refresh() -> void:
+	var want_scale: int = _current_scale()
+	if want_scale != _scale:
+		_scale = want_scale
+		_cache.clear()
+		_applied_key = ""
+
+	var col: int = COL_RETICLE if _mode == Mode.AIM else COL_ARROW
+	var row: int = ROW_DEFAULT
+	if _mode == Mode.AIM and _hostile:
+		row = ROW_RED
+
+	var key: String = "%d,%d,%d" % [col, row, _scale]
+	if key == _applied_key:
+		return
+	var tex: ImageTexture = _texture_for(col, row)
+	if tex == null:
+		use_system()
+		return
+	_applied_key = key
+	Input.set_custom_mouse_cursor(tex, Input.CURSOR_ARROW, Vector2(HOTSPOT, HOTSPOT) * _scale)
+
+
+## Integer upscale factor the viewport is currently being drawn at, so the cursor's pixels are
+## the same size as the game's. Clamped to >= 1 so a window smaller than the base viewport still
+## gets a usable cursor rather than a zero-sized one.
+func _current_scale() -> int:
+	var win_w: float = float(DisplayServer.window_get_size().x)
+	return maxi(1, int(floor(win_w / BASE_VIEWPORT_WIDTH)))
+
+
+func _texture_for(col: int, row: int) -> ImageTexture:
+	var key: String = "%d,%d,%d" % [col, row, _scale]
+	if _cache.has(key):
+		return _cache[key]
+
+	if _sheet_image == null:
+		var sheet: Texture2D = load(SHEET) as Texture2D
+		if sheet == null:
+			push_warning("[GameCursor] Cursor sheet missing: %s" % SHEET)
+			return null
+		_sheet_image = sheet.get_image()
+	if _sheet_image == null:
+		return null
+
+	var src := Rect2i(col * CELL, row * CELL, CELL, CELL)
+	if not Rect2i(Vector2i.ZERO, _sheet_image.get_size()).encloses(src):
+		push_warning("[GameCursor] Cell (%d,%d) is outside the sheet" % [col, row])
+		return null
+
+	var cell := Image.create(CELL, CELL, false, _sheet_image.get_format())
+	cell.blit_rect(_sheet_image, src, Vector2i.ZERO)
+	## INTERPOLATE_NEAREST is the whole point — anything else turns pixel art to mush.
+	cell.resize(CELL * _scale, CELL * _scale, Image.INTERPOLATE_NEAREST)
+	var tex := ImageTexture.create_from_image(cell)
+	_cache[key] = tex
+	return tex

@@ -71,6 +71,39 @@ func get_ability() -> AbilityDefinition:
 	return _ability
 
 
+## True while the CURRENT phase is a sustained held-channel beat — the player is holding an
+## input and the graph is parked on a node that repeats until they let go (Immolate, Bramble
+## Barrage, Bone Barrage, Taunt, the Reckoning dome, the Ninja's blade storm, and the Whirlwind
+## / Dictum nodes embedded inside the Fighter's and Paladin's LIGHT chains).
+##
+## Deliberately a per-phase question, not a per-ability one. Two kits reach a channel from
+## inside their light chain, so "is this ability a channel" would start a channel bed on an
+## ordinary opening swing. Callers poll this; it flips true on entry to the held node and false
+## the moment the graph moves on.
+##
+## Both clauses are load-bearing, verified against all 12 kits:
+##   • parked-on-self (default_next == self, or hold_anim_on_reentry) — the common shape, and
+##     the only one that catches the Ninja's storm, whose release branch goes to an OUTRO
+##     phase rather than ending the graph;
+##   • held-branch-exits (a ConditionInputHeld branch with next_phase < 0) — catches the Blood
+##     Mage's Vampirize, which alternates between TWO phases so neither points at itself.
+## Requiring a held branch in both cases is what excludes the light-chain nodes whose held
+## branch is a GATE INTO the channel (next_phase = the hold node) rather than the hold itself.
+func current_phase_is_held_channel() -> bool:
+	if not _running or _choreo == null:
+		return false
+	if _phase_index < 0 or _phase_index >= _choreo.phases.size():
+		return false
+	var phase: ChoreographyPhase = _choreo.phases[_phase_index]
+	var parked: bool = phase.hold_anim_on_reentry or phase.default_next == _phase_index
+	for branch in phase.branches:
+		if not (branch.condition is ConditionInputHeld):
+			continue
+		if parked or branch.next_phase < 0:
+			return true
+	return false
+
+
 ## True if the current phase has a branch listening for `action` (buffered or held). Lets the
 ## host tell "this press will be consumed by the graph" apart from "this press dead-ends here"
 ## (e.g. RMB on a light opener before the heavy-finisher gate opens).
