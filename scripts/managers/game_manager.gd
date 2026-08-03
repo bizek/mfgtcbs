@@ -133,6 +133,31 @@ var final_boss_alive: bool = false
 ## Values: "timed", "guarded", "locked", "sacrifice"
 var active_extraction_type: String = "timed"
 
+## ── Extraction payout curve ───────────────────────────────────────────────────────────────────
+## What leaving is worth, by how far you got before you left.
+##
+## DELIBERATELY CONVEX — each further rung pays disproportionately more, not equally more.
+## Dying loses the whole haul, so every "push on" is a gamble against a guaranteed alternative,
+## and the break-even survival odds are 1/multiplier. Ben's first sketch was a flat 1.0/1.2/1.4,
+## which needs 71% / 83% / 86% survival to be worth taking — odds that RISE as the run gets
+## harder, so every successive push is a worse bet than the last and the rational play is always
+## to leave at the first window. That would let the escape hatch eat the descent it was added to
+## rescue. This curve asks roughly the same confidence at every rung instead.
+##
+## THESE NUMBERS ARE PROVISIONAL. They are constants precisely so tuning them is a one-line edit
+## once the density pass lands and real survival rates exist to set them against (Ben 2026-08-02:
+## "before we remove mob numbers, lets give player's methods of dealing with it").
+##
+## A type absent from this table pays 1.0 — every flat-arena extraction is unaffected.
+const EXTRACTION_PAYOUT: Dictionary = {
+	"gateway": 1.0,          ## the free escape hatch, available at any window
+	"miniboss": 1.7,         ## earned: the descent miniboss died at 50% depth
+	"descent_portal": 3.0,   ## the whole descent — ten blocks and the boss at the bottom
+}
+
+## The multiplier actually applied to the run that just ended, for the results screen to show.
+var last_run_payout_mult: float = 1.0
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	## Listen to extraction completion via signal (not direct call)
@@ -226,6 +251,7 @@ func start_run() -> void:
 	guardian_killed_this_phase = false
 	final_boss_alive = false
 	active_extraction_type = "timed"
+	last_run_payout_mult = 1.0
 	last_run_was_win = false
 
 	## Cursed passive: start every run in the Unsettled instability tier
@@ -345,6 +371,10 @@ func on_extraction_complete() -> void:
 		var phase_bonuses: Array = [0.0, 0.0, 0.0, 0.25, 0.50, 1.00]
 		var bonus: float = phase_bonuses[clampi(phase_number, 0, 5)]
 		last_run_loot *= (1.0 + bonus)
+	## How far you got before leaving. Types absent from the table pay 1.0, so nothing outside
+	## descent changes behaviour.
+	last_run_payout_mult = EXTRACTION_PAYOUT.get(active_extraction_type, 1.0)
+	last_run_loot *= last_run_payout_mult
 	## Note: run_loot_manifest is NOT cleared here — results screen reads it
 	loot_carried = 0.0
 	instability = 0.0

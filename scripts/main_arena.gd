@@ -113,6 +113,8 @@ var _descent_boss_spawned: bool = false
 
 ## Descent miniboss — Warped Colossus ambush at the halfway depth milestone
 var _descent_miniboss_spawned: bool = false
+## The live miniboss, held so its death can be recognised (it earns the middle payout rung).
+var _descent_miniboss: Node2D = null
 
 
 func _ready() -> void:
@@ -607,7 +609,34 @@ func _on_descent_depth_milestone(percent: float) -> void:
 	spawn_pos.x = clampf(spawn_pos.x, bounds.position.x + 20.0, bounds.end.x - 20.0)
 	spawn_pos.y = clampf(spawn_pos.y, bounds.position.y + 20.0, bounds.end.y - 20.0)
 	_boss_intro_beat(LevelData.get_miniboss_id(GameManager.current_level), spawn_pos)
-	EnemySpawnManager.spawn_miniboss_at(spawn_pos)
+	## Held so its death can be recognised — killing it is the middle rung of the payout curve
+	## and earns a gateway that does not expire. See _on_entity_died_for_miniboss.
+	_descent_miniboss = EnemySpawnManager.spawn_miniboss_at(spawn_pos)
+	if _descent_miniboss != null and not EventBus.on_death.is_connected(_on_entity_died_for_miniboss):
+		EventBus.on_death.connect(_on_entity_died_for_miniboss)
+
+
+## The miniboss rung (Ben 2026-08-02: "they need an avenue to beating the first mini boss which
+## should open an extraction possibilty"). Its death opens a gateway that ignores the extraction
+## window — the free window gateway is a bus you catch or miss, this one you earned and it waits.
+func _on_entity_died_for_miniboss(entity: Variant) -> void:
+	if _descent_miniboss == null or entity != _descent_miniboss:
+		return
+	_descent_miniboss = null
+	if EventBus.on_death.is_connected(_on_entity_died_for_miniboss):
+		EventBus.on_death.disconnect(_on_entity_died_for_miniboss)
+	## Replace any window gateway currently open — the earned one is strictly better.
+	## Freed OUTRIGHT rather than played out through close_gateway(): that is a ~1.3s animation,
+	## and during it the old node still holds the name "GatewayExtraction", so the replacement
+	## gets auto-renamed by Godot and every lookup by name finds the corpse instead.
+	if _gateway != null and is_instance_valid(_gateway):
+		## remove_child BEFORE freeing: queue_free() defers removal to end of frame, so the old
+		## node still owns the name "GatewayExtraction" when the replacement is added and Godot
+		## silently auto-names the new one. Detaching first hands the name straight back.
+		remove_child(_gateway)
+		_gateway.queue_free()
+		_gateway = null
+	_open_gateway("miniboss", true)
 
 
 func _on_descent_boss_defeated() -> void:
@@ -719,7 +748,7 @@ func _on_extraction_window_opened() -> void:
 ## Descent's early exit: a gateway opens at one side of the block the player is standing in, a
 ## keeper steps out of it, and a dome holds the horde off the pocket around it. See
 ## GatewayExtraction — including why descent had no early exit at all before this.
-func _open_gateway() -> void:
+func _open_gateway(payout_type: String = "gateway", persistent: bool = false) -> void:
 	if _gateway != null and is_instance_valid(_gateway):
 		return  ## already open this window
 	if player == null or not is_instance_valid(player):
@@ -733,7 +762,8 @@ func _open_gateway() -> void:
 	_gateway = GatewayScript.new()
 	_gateway.name = "GatewayExtraction"
 	add_child(_gateway)
-	_gateway.open_at(spot["pos"], player, orchestrator.spatial_grid, bool(spot["face_left"]))
+	_gateway.open_at(spot["pos"], player, orchestrator.spatial_grid, bool(spot["face_left"]),
+		payout_type, persistent)
 
 
 ## Choose the far side of the player's CURRENT block, so leaving is a run across the room rather
@@ -776,7 +806,9 @@ func _on_extraction_window_closed() -> void:
 	if _timed != null and is_instance_valid(_timed):
 		_timed.close_window()
 		_timed = null
-	if _gateway != null and is_instance_valid(_gateway):
+	## The miniboss reward gateway is persistent — it outlives the window that happened to be
+	## open when it appeared, because it was earned rather than granted.
+	if _gateway != null and is_instance_valid(_gateway) and not _gateway.is_persistent:
 		_gateway.close_gateway()
 		_gateway = null
 

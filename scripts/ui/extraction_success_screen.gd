@@ -222,6 +222,13 @@ func _build_loot_section(lv: VBoxContainer, resources_earned: int) -> void:
 		if bonus_pct > 0:
 			_loot(lv, "Locked Bonus: +%d%%" % bonus_pct, Color(0.9, 0.75, 0.2), 16)
 
+	## How far you got, priced. Only shown when it actually moved the number — a 1.0x line on
+	## every escape would read as a penalty rather than a baseline.
+	var mult: float = GameManager.last_run_payout_mult
+	if not is_equal_approx(mult, 1.0):
+		_loot(lv, "Depth Bonus:  x%.2f  (%s)" % [mult, _payout_label()],
+			Color(0.55, 0.95, 0.65), 17)
+
 	_loot(lv, "── TOTAL RESOURCES:  +%s" % _fmt(resources_earned), Color(1.0, 0.92, 0.4), 21)
 
 
@@ -327,6 +334,15 @@ func _fmt(value: Variant) -> String:
 		if count % 3 == 0 and i > 0:
 			out = "," + out
 	return ("-" + out) if neg else out
+
+
+## Plain-English name for the rung the run settled on.
+func _payout_label() -> String:
+	match GameManager.active_extraction_type:
+		"miniboss": return "miniboss slain"
+		"descent_portal": return "full descent"
+		"locked": return "locked extraction"
+		_: return "escaped"
 
 
 func _reset_scroll() -> void:

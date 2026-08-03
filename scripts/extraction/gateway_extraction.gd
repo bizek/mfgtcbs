@@ -95,6 +95,10 @@ var _grid: SpatialGrid = null
 var _open: bool = false
 var _closing: bool = false
 var _spent: bool = false            ## latched once the player leaves through it
+var _payout_type: String = "gateway"
+## True for the miniboss reward: survives the extraction window closing. MainArena checks it
+## before tearing the gateway down.
+var is_persistent: bool = false
 
 static var _gate_frames: SpriteFrames = null
 static var _npc_frames: SpriteFrames = null
@@ -102,10 +106,18 @@ static var _npc_frames: SpriteFrames = null
 
 ## `face_left` orients the NPC toward the middle of the block (i.e. toward the player), so a
 ## gateway on the right of the block has its keeper looking left.
-func open_at(pos: Vector2, player: Node2D, grid: SpatialGrid, face_left: bool) -> void:
+##
+## `payout_type` is the key this extraction settles under (GameManager.EXTRACTION_PAYOUT) — the
+## free window gateway is worth less than the one the miniboss's death earns you.
+## `persistent` gateways ignore the extraction window closing: the miniboss reward stays open
+## because you paid for it in blood, where the free one is a window you catch or miss.
+func open_at(pos: Vector2, player: Node2D, grid: SpatialGrid, face_left: bool,
+		payout_type: String = "gateway", persistent: bool = false) -> void:
 	global_position = pos
 	_player = player
 	_grid = grid
+	_payout_type = payout_type
+	is_persistent = persistent
 
 	_build_dome()
 	_build_gate()
@@ -192,7 +204,7 @@ func _check_player() -> void:
 		return
 	_spent = true
 	_open = false
-	GameManager.active_extraction_type = "gateway"
+	GameManager.active_extraction_type = _payout_type
 	if not ExtractionManager.extract_now():
 		## Refused (already extracted, or the final-boss gate is up) — stay open rather than
 		## silently becoming furniture.

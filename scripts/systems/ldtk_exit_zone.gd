@@ -82,6 +82,9 @@ func _process(_delta: float) -> void:
 
 	if player_inside and not _channeling and not ExtractionManager.is_channeling:
 		_channeling = true
+		## Top of the payout curve: reaching this means the whole descent plus the boss that
+		## gates it. Declared here so settlement can tell it apart from the escape gateway.
+		GameManager.active_extraction_type = "descent_portal"
 		GameManager.open_extraction_window_immediate()
 		ExtractionManager.start_channel()
 	elif not player_inside and _channeling:
