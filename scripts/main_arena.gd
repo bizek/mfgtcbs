@@ -215,11 +215,14 @@ func _ready() -> void:
 		add_child(anim_lab)
 		anim_lab.setup(player)
 
-		var ReportManagerScript := preload("res://scripts/systems/run_report_manager.gd")
-		var run_report: Node = ReportManagerScript.new()
-		run_report.name = "RunReportManager"
-		add_child(run_report)
-		run_report.setup(player, _depth_tracker)
+	## Run telemetry — ALWAYS on, not debug-gated: it is the data source behind the results
+	## screen (damage per ability, damage taken, healing, depth). Signal-driven with no _process,
+	## so it costs nothing per frame. Its JSON dump is still debug-only, inside _finalize.
+	var ReportManagerScript := preload("res://scripts/systems/run_report_manager.gd")
+	var run_report: Node = ReportManagerScript.new()
+	run_report.name = "RunReportManager"
+	add_child(run_report)
+	run_report.setup(player, _depth_tracker)
 
 	# Start run
 	GameManager.start_run()
