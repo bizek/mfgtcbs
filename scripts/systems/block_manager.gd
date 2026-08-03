@@ -57,6 +57,9 @@ func build_descent(ldtk_project_path: String, desired_block_count: int,
 		var block_id: String = sequence[i]
 		var loader := LdtkLoader.new()
 		loader.name = "Block_%d" % i
+		## A block is a fragment of a descent stack, not a standalone level — suppresses the
+		## "no Region entities" warning, which does not apply here (see _validate_regions).
+		loader.is_block_fragment = true
 		add_child(loader)
 
 		var result: Dictionary = loader.load_level(ldtk_project_path, block_id)

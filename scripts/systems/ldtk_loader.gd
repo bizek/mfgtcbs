@@ -91,6 +91,11 @@ var _obstacle_nodes: Array[Node] = []
 ## layers use different grid sizes (8px vs 2px), so each keeps its own mask +
 ## dims and the FlowField rasterizer merges them onto the nav grid.
 ## Entries: {mask: PackedByteArray (1 = solid), cw: int, ch: int, gs: int}
+## Set by BlockManager before load_level(). Marks this loader as reading one BLOCK of a descent
+## stack rather than a whole standalone level, which changes what counts as a defect — see
+## _validate_regions.
+var is_block_fragment: bool = false
+
 var nav_masks: Array[Dictionary] = []
 var nav_circles: Array[Dictionary] = []  ## Obstacle colliders: {pos: Vector2, radius: float}
 
@@ -717,7 +722,14 @@ func _grid_point_to_pos(point_value: Variant, ent: Dictionary) -> Vector2:
 
 func _validate_regions(result: Dictionary) -> void:
 	if result.regions.is_empty():
-		_warn(result, "Level has no Region entities — gameplay rules (spawn / boss seal) will not apply.")
+		## Descent BLOCKS are fragments of a level, not levels, and legitimately have none.
+		## Regions drive LdtkLevelDirector, which only the single-level path builds
+		## (MainArena._setup_ldtk_level) — descent has its own equivalents: BlockManager's
+		## spawn zones, the 50%-depth miniboss, and the boss on the portal block. Warning per
+		## block meant ten spurious "gameplay rules will not apply" lines on every descent run,
+		## which reads like a broken level and is how I mis-diagnosed it once already.
+		if not is_block_fragment:
+			_warn(result, "Level has no Region entities — gameplay rules (spawn / boss seal) will not apply.")
 		return
 	## Sort by top-Y and check no-gap top→bottom tiling. We tolerate ±1 px rounding.
 	var sorted: Array = result.regions.duplicate()
