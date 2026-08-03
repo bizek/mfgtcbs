@@ -48,6 +48,27 @@ func start_channel(speed_multiplier: float = 1.0) -> void:
 	extraction_speed_multiplier = speed_multiplier
 	extraction_channel_started.emit()
 
+## Extract IMMEDIATELY, with no channel — the gateway portal's exit (Ben 2026-08-02: "soon as
+## the player touches the actual portal, it should be loading screen back to hub").
+##
+## Every other extraction in the game channels for 4 seconds. This one deliberately does not:
+## the gateway opens across the block and the run to reach it through the horde IS the tension.
+## A channel on top would be a second tax on a player who has already made the hard part.
+##
+## Carries the same guards as start_channel() — a completed run can't re-extract, and the
+## final-boss gate still applies. Returns false when refused so the caller can stay quiet.
+func extract_now() -> bool:
+	if _completed_this_run:
+		return false
+	if not GameManager.is_extraction_allowed():
+		return false
+	is_channeling = false
+	channel_timer = 0.0
+	_completed_this_run = true
+	extraction_complete.emit()
+	return true
+
+
 func interrupt_channel() -> void:
 	if not is_channeling:
 		return

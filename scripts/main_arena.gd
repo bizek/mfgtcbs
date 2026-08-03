@@ -24,6 +24,23 @@ var orchestrator: CombatOrchestrator = null
 
 ## Extraction handlers
 var _timed: TimedExtraction = null
+## Descent's early exit. Lives only for the length of one extraction window.
+## Instantiated via preload rather than its class_name (same pattern as RunReportManager below):
+## a global class is only resolvable once the editor has rescanned, which makes a freshly added
+## script unloadable until Godot restarts. Typed as Node2D so this file has no load-order
+## dependency on the new class registering.
+const GatewayScript := preload("res://scripts/extraction/gateway_extraction.gd")
+var _gateway: Node2D = null
+## Inset from the block's side wall, and how far to walk the probe inward looking for standable
+## ground. Blocks are 648 wide, so 24px in from the edge is inside the room, not in the wall.
+const GATEWAY_EDGE_MARGIN: float = 24.0
+const GATEWAY_PROBE_STEPS: Array[float] = [0.0, 16.0, 32.0, 48.0, 72.0, 100.0, 140.0]
+## Furthest the gateway may open from the player. A block is 648px wide and the viewport is 640,
+## so "the side of the block" can be further away than the player can SEE — measured in a live
+## descent, a player at x=316 got a gateway at x=624, putting it 12px from the screen edge. You
+## cannot dash to something you cannot see. 230 keeps the whole dome (58px radius) comfortably
+## on screen while still being most of a screen's width of open ground to cross.
+const GATEWAY_MAX_DASH: float = 230.0
 var _guarded: GuardedExtraction = null
 var _locked: LockedExtraction = null
 var _sacrifice: SacrificeExtraction = null
@@ -683,6 +700,9 @@ func _on_any_extraction_interrupted() -> void:
 	ExtractionManager.channel_duration = 4.0
 
 func _on_extraction_window_opened() -> void:
+	if _using_descent:
+		_open_gateway()
+		return
 	if _using_ldtk:
 		return  ## LDtk mode: exit zone handles exit; skip timed-extraction overlay
 	if GameManager.phase_number >= GameManager.MAX_PHASES:
@@ -696,6 +716,59 @@ func _on_extraction_window_opened() -> void:
 		add_child(_timed)
 		_timed.open_window()
 
+## Descent's early exit: a gateway opens at one side of the block the player is standing in, a
+## keeper steps out of it, and a dome holds the horde off the pocket around it. See
+## GatewayExtraction — including why descent had no early exit at all before this.
+func _open_gateway() -> void:
+	if _gateway != null and is_instance_valid(_gateway):
+		return  ## already open this window
+	if player == null or not is_instance_valid(player):
+		return
+	if _block_manager == null or _block_manager.block_bounds.is_empty():
+		return
+
+	var spot: Dictionary = _pick_gateway_spot()
+	if spot.is_empty():
+		return
+	_gateway = GatewayScript.new()
+	_gateway.name = "GatewayExtraction"
+	add_child(_gateway)
+	_gateway.open_at(spot["pos"], player, orchestrator.spatial_grid, bool(spot["face_left"]))
+
+
+## Choose the far side of the player's CURRENT block, so leaving is a run across the room rather
+## than a step. Falls back inward along the row until it finds somewhere actually standable —
+## block interiors are hand-painted and the literal edge is usually wall.
+func _pick_gateway_spot() -> Dictionary:
+	var idx: int = _block_manager.get_block_index_at_y(player.global_position.y)
+	if idx < 0 or idx >= _block_manager.block_bounds.size():
+		return {}
+	var bounds: Rect2 = _block_manager.block_bounds[idx]
+	var w: float = _block_manager.level_width
+
+	## Far side = a real dash. Player left of centre -> gateway on the right, and vice versa.
+	var on_right: bool = player.global_position.x < w * 0.5
+	var y: float = clampf(player.global_position.y,
+		bounds.position.y + GATEWAY_EDGE_MARGIN,
+		bounds.position.y + bounds.size.y - GATEWAY_EDGE_MARGIN)
+
+	## Toward the far side, but never further than the player can see (GATEWAY_MAX_DASH).
+	var edge_x: float = (w - GATEWAY_EDGE_MARGIN) if on_right else GATEWAY_EDGE_MARGIN
+	var px: float = player.global_position.x
+	var target_x: float = clampf(edge_x, px - GATEWAY_MAX_DASH, px + GATEWAY_MAX_DASH)
+
+	var ff = orchestrator.flow_field
+	for step in GATEWAY_PROBE_STEPS:
+		## Probe back toward the player, since that direction is always inside the block.
+		var x: float = (target_x - step) if on_right else (target_x + step)
+		var candidate := Vector2(x, y)
+		## is_reachable, not just is_walkable: an unreachable pocket behind a wall would be a
+		## gateway the player can see and never touch.
+		if ff == null or not ff.is_active() or ff.is_reachable(candidate):
+			return {"pos": candidate, "face_left": on_right}
+	return {}
+
+
 func _on_extraction_window_closed() -> void:
 	if _active_channeling_type == "timed":
 		ExtractionManager.interrupt_channel()
@@ -703,6 +776,9 @@ func _on_extraction_window_closed() -> void:
 	if _timed != null and is_instance_valid(_timed):
 		_timed.close_window()
 		_timed = null
+	if _gateway != null and is_instance_valid(_gateway):
+		_gateway.close_gateway()
+		_gateway = null
 
 func _on_phase_advanced(phase: int) -> void:
 	if _guarded:
