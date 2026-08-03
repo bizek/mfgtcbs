@@ -1,7 +1,20 @@
 # Polish Plan — 2026-08-01
 
-> **Status 2026-08-02: Tier 0 and Tier 1 are DONE**, all verified in-engine. Corrections to this
-> plan's own claims, found while doing the work:
+> **Status 2026-08-02: Tier 0 and Tier 1 are DONE**, plus a body of extraction work that grew out
+> of Ben's playtest the same day and is NOT part of this plan. In commit order:
+>
+> | Commit | What |
+> |---|---|
+> | `dc37254` | Tier 0 + Tier 1 of this plan |
+> | `d84830a` | Results screen — full after-action report; `RunReportManager` now always on |
+> | `1a8ad69` | `GatewayExtraction` — descent's first-ever early exit |
+> | `afecb67` | Three-rung convex payout curve + the miniboss rung |
+> | `b64ec9b` | Silenced the bogus "no Region entities" warning on descent blocks |
+>
+> **The headline finding of the day is not in this document**: descent mode, the default run
+> path, had **no early exit at all**. See `docs/engine_reference.md` → Extraction System.
+>
+> Corrections to this plan's own claims, found while doing the work:
 >
 > * Tier 0.1 was **7 dead entries, not 6** — the first sweep only checked `ability_upgrades.gd`,
 >   so it missed `owl_attack` in `class_mods.gd` (`druid_diving_owl`). A startup validator now
@@ -170,6 +183,32 @@ Not recommended as the next thing. Recommended as the thing you decide about aft
 Items 1–3 need nothing from you and I can start on any of them the moment you say go.
 
 ---
+
+## Open threads, newest first (2026-08-02)
+
+**The paid town portal.** Agreed design, not built. The free gateway arrives on the phase clock
+and you catch it or miss it; a *purchased* town portal would be one you trigger whenever you like
+— mid-boss, at 90% depth, the moment it goes wrong. That distinction is what makes it worth
+buying, and it dodges the death-spiral of paid-escape economies, since the free window still
+exists for a broke player.
+
+**Currency naming.** `GameManager.loot_carried` (in-run, **at risk**) and
+`ProgressionManager.resources` (banked, **safe**) are two genuinely different things whose UI
+names — "LOOT" and "RESOURCES" — read as synonyms. That distinction is the entire reason the
+tension exists. Ben's shortlist was a pair: **Haul** (carried) and **Vault**/**Coffers** (banked).
+Internally there is also `gold` (38 refs), `currency` (6) and a stray `scrap`.
+
+**Upgrade pool bias.** Ben, on difficulty: *"before we remove mob numbers, lets give player's
+methods of dealing with it."* The pool is 16 stat sticks and 6 one-shot procs. Enemies spawn on a
+**340px ring** around the player and walk inward, so what answers them is crowd-clear, reach, and
+space-making — not `+20% damage`. Deliberately NOT started unsupervised: it is per-kit creative
+design, and the mechanically interesting options need new statuses and trigger listeners.
+
+**`descent_portal` (3.0x) is unverified.** Its type assignment and settlement path are shared
+with the two verified rungs, but reaching it needs a full ten-block descent plus the boss.
+
+**`Level_Instructions` warning.** Blocks 3, 6 and 8 warn; the other seven don't. Unlike the Region
+warning that was silenced alongside it, that inconsistency may be real authoring drift.
 
 ## What is left (2026-08-02)
 

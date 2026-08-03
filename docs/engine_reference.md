@@ -333,9 +333,37 @@ Beyond base roles, these behavioral variants appear at specific phase thresholds
 
 ## Extraction System
 
-`ExtractionManager` (autoload) tracks channeling state and extraction outcomes. Four extraction types exist, each with distinct activation requirements and risk/reward profiles. Types are placed in levels via LDtk `Extraction` entities (see `docs/ldtk_schema.md` §6).
+`ExtractionManager` (autoload) tracks channeling state and extraction outcomes. Types are placed in levels via LDtk `Extraction` entities (see `docs/ldtk_schema.md` §6).
 
-### Timed Extraction
+> **Read this before assuming any of the four types below is reachable.** The Timed / Guarded /
+> Locked / Sacrifice zones are built by `MainArena._setup_extraction_zones()`, which is only
+> called on the **flat-arena branch**. Descent mode — the default run path — never calls it, and
+> `BlockManager.get_extractions()` (which collects `Extraction` entities out of the blocks) has
+> no callers at all. The four types below are therefore **flat-arena only**.
+>
+> Descent has its own two exits, described in the next section. Until 2026-08-02 it had *neither*
+> of them and no early exit whatsoever: the phase clock opened an 18-second "EXTRACTION IN X"
+> window five times a run with nothing behind it.
+
+### Descent extractions (the default run path)
+
+| Exit | Opens when | Channel | Payout |
+|---|---|---|---|
+| **Gateway** (`GatewayExtraction`) | every phase-clock extraction window | **none** — touch it | `1.0x` |
+| **Gateway (earned)** | the descent miniboss dies at 50% depth; **persists** past the window | none | `1.7x` |
+| **Portal** (`LdtkExitZone`) | bottom of the block stack, unlocked by the descent boss | 4 s | `3.0x` |
+
+The gateway opens at the far side of the player's current block (capped to `MainArena.GATEWAY_MAX_DASH`
+so it can't land off-screen — a block is 648px wide and the viewport is 640), a keeper NPC steps
+out of it, and a dome pushes enemies to its edge every physics frame. Touching the arch calls
+`ExtractionManager.extract_now()`, which settles with no channel: the run across the block *is*
+the cost.
+
+Multipliers live in `GameManager.EXTRACTION_PAYOUT` and are **deliberately convex** — see the
+comment there for why a flat curve makes every successive push a worse bet than the last. They are
+provisional and meant to be tuned against real survival rates.
+
+### Timed Extraction *(flat arena only)*
 
 The baseline option — appears at the end of each phase. A 10-second warning plays, then a portal materializes at the designated arena location and remains active for 18 seconds before the next phase begins. Activation requires a 4-second channel; taking damage during the channel does not interrupt it, but the player must survive.
 

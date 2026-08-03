@@ -21,7 +21,13 @@ a ported component-based combat engine with data-driven content creation.
 Component-based entity system with data-driven content. CombatOrchestrator (scene-owned, child of MainArena) manages all combat subsystems. All effects route through `EffectDispatcher`. New content = new data factories, not new scripts.
 
 ### Autoloads
-`EventBus` (combat signal bus), `GameManager` (state machine, phases, difficulty), `ProgressionManager` (save/load, unlocks, meta-progression), `UpgradeManager` (level-up choices), `EnemySpawnManager` (wave composition, spawn timing), `ExtractionManager` (channeling state), `CodexManager` (combo discovery/mastery), `LootTables` (drop rolls), `Settings` (options + persistence), `AudioManager` (SFX/music routing), `InputGlyphs` (kb/controller prompt glyphs), `AchievementManager` (detection + unlock), `Logger` (levelled logging)
+`EventBus` (combat signal bus), `GameManager` (state machine, phases, difficulty), `ProgressionManager` (save/load, unlocks, meta-progression), `UpgradeManager` (level-up choices), `EnemySpawnManager` (wave composition, spawn timing), `ExtractionManager` (channeling state), `CodexManager` (combo discovery/mastery), `LootTables` (drop rolls), `Settings` (options + persistence), `AudioManager` (SFX/music routing), `InputGlyphs` (kb/controller prompt glyphs), `AchievementManager` (detection + unlock), `Logger` (levelled logging), `GameCursor` (the game's own mouse cursor — reticle in play, arrow in menus)
+
+> **`Logger` cannot be reached by its bare name.** Godot 4.6 ships a NATIVE `Logger` class which
+> wins name resolution, so `Logger.log_info(...)` compiles and then fails at runtime with
+> *Static function "log_info()" not found in base "GDScriptNativeClass"*. Use
+> `get_node("/root/Logger")`. Nothing outside `logger.gd` had ever called it, which is why this
+> stayed hidden until 2026-08-02.
 
 Source of truth is `project.godot [autoload]`. `MCPScreenshot` / `MCPInputService` / `MCPGameInspector` are editor-tooling autoloads from the `godot_mcp` addon, not game systems.
 
