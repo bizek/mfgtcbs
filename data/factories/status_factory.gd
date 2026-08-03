@@ -36,10 +36,22 @@ static var adrenaline_rush: StatusEffectDefinition
 static var thorns_passive: StatusEffectDefinition
 static var second_wind: StatusEffectDefinition
 
+## Crowd-answer upgrades (2026-08-03). The level-up pool had sixteen stat sticks and no answer to
+## the thing that actually kills you: enemies spawn on a 340px ring around the player
+## (EnemySpawnManager) against a 320px screen half-width, so they arrive just off-screen and
+## converge from every side. +20% damage does nothing about a ring. These four do — each one is
+## worth more the more enemies are on you, and near-worthless against a single target.
+static var cinder_skin: StatusEffectDefinition
+static var glacial_guard: StatusEffectDefinition
+static var volatile_remains: StatusEffectDefinition
+static var last_stand: StatusEffectDefinition
+
 ## Evolution combined statuses
 static var vampiric_blade: StatusEffectDefinition
 static var overdrive: StatusEffectDefinition
 static var lightning_reflexes: StatusEffectDefinition
+static var pyre: StatusEffectDefinition
+static var bulwark: StatusEffectDefinition
 
 ## Mod interaction combo statuses
 ## Hellfire (Burning + Shocked): 15 hybrid AoE, consumes both
@@ -91,9 +103,17 @@ static func build_all() -> void:
 	thorns_passive = _build_thorns_passive()
 	second_wind = _build_second_wind()
 
+	## Must follow chilled — glacial_guard embeds it as the nova's on-hit payload.
+	cinder_skin = _build_cinder_skin()
+	glacial_guard = _build_glacial_guard()
+	volatile_remains = _build_volatile_remains()
+	last_stand = _build_last_stand()
+
 	vampiric_blade = _build_vampiric_blade()
 	overdrive = _build_overdrive()
 	lightning_reflexes = _build_lightning_reflexes()
+	pyre = _build_pyre()
+	bulwark = _build_bulwark()
 
 	searing_wound = _build_searing_wound()
 	galvanized_shocked = _build_galvanized_shocked()
@@ -166,12 +186,24 @@ static func get_by_id(status_id: String) -> StatusEffectDefinition:
 			return thorns_passive
 		"second_wind":
 			return second_wind
+		"cinder_skin":
+			return cinder_skin
+		"glacial_guard":
+			return glacial_guard
+		"volatile_remains":
+			return volatile_remains
+		"last_stand":
+			return last_stand
 		"vampiric_blade":
 			return vampiric_blade
 		"overdrive":
 			return overdrive
 		"lightning_reflexes":
 			return lightning_reflexes
+		"pyre":
+			return pyre
+		"bulwark":
+			return bulwark
 		"elite_hasting":
 			return elite_hasting
 		"elite_exploding":
@@ -563,7 +595,174 @@ static func _build_second_wind() -> StatusEffectDefinition:
 	return def
 
 
+# ── Crowd answers ─────────────────────────────────────────────────────────
+#
+# Every one of these scales with how many enemies are on you and does almost nothing to a lone
+# target — the opposite of the stat sticks that made up the rest of the pool. The shapes are
+# factored into helpers so each evolution is demonstrably the SAME mechanic with bigger numbers
+# and cannot drift from the upgrade it replaces.
+
+
+## A standing ring of harm centred on the bearer. Uses the aura path StatusEffectComponent
+## already runs for the Shade's bone swirl (ChainFactory._bone_swirl_orbit) — proven on the
+## player, not a new code path. Needs tick_interval > 0 or the aura never fires.
+static func _sear_aura_onto(def: StatusEffectDefinition, radius: float,
+		tick: float, dmg: float) -> void:
+	def.tick_interval = tick
+	def.aura_radius = radius
+	def.aura_target_faction = "enemy"
+	var sear := DealDamageEffect.new()
+	sear.damage_type = "Fire"
+	sear.base_damage = dmg
+	def.aura_tick_effects = [sear]
+
+
+## Kill something and the pack it came from eats the corpse. Centred on the VICTIM
+## (target_self = false), which is safe because enemy._on_health_died emits on_kill long before
+## the death animation ends and the node frees.
+##
+## The internal cooldown is load-bearing, not balance garnish: on_kill is emitted synchronously
+## from inside take_damage, so a burst that kills is a NESTED dispatch. Without an ICD a dense
+## pack could chain-detonate to arbitrary call depth. The ICD bounds the cascade at one.
+static func _corpse_burst_listener(dmg: float, radius: float,
+		icd: float) -> TriggerListenerDefinition:
+	var burst := AreaDamageEffect.new()
+	burst.damage_type = "Fire"
+	burst.base_damage = dmg
+	burst.aoe_radius = radius
+
+	var listener := TriggerListenerDefinition.new()
+	listener.event = "on_kill"
+	listener.target_self = false
+	listener.conditions = [TriggerConditionSourceIsSelf.new()]
+	listener.internal_cooldown = icd
+	listener.effects = [burst]
+	return listener
+
+
+## Getting hit buys you room: a chill nova centred on the bearer. Space-making WITHOUT knockback —
+## player knockback was cut from every kit on 2026-07-31 and is not coming back, so distance has
+## to come from slowing them instead of shoving them. Feeds Frostfire / Superconductor too.
+static func _frost_nova_listener(dmg: float, radius: float,
+		icd: float) -> TriggerListenerDefinition:
+	var nova := AreaDamageEffect.new()
+	nova.damage_type = "Ice"
+	nova.base_damage = dmg
+	nova.aoe_radius = radius
+
+	var chill := ApplyStatusEffectData.new()
+	chill.status = chilled
+	chill.stacks = 1
+	nova.on_hit_effects = [chill]
+
+	var listener := TriggerListenerDefinition.new()
+	listener.event = "on_hit_received"
+	listener.target_self = true                  ## nova centred on me, not on whoever hit me
+	listener.conditions = [TriggerConditionTargetIsSelf.new()]
+	listener.internal_cooldown = icd
+	listener.effects = [nova]
+	return listener
+
+
+## Turns on only when you are actually being swarmed. First use of
+## StatusEffectDefinition.targeting_count_threshold, which counts enemies whose attack_target is
+## the bearer — so it reads real aggro, not proximity. Checked from _execute_tick_effects, hence
+## the tick_interval; the surge outlives one check interval so it holds steady while surrounded
+## and lapses about a second after you break out.
+static func _last_stand_onto(def: StatusEffectDefinition, threshold: int,
+		damage_reduction: float, speed_bonus: float) -> void:
+	var surge := StatusEffectDefinition.new()
+	surge.status_id = "%s_surge" % def.status_id
+	surge.tags = ["Passive"]
+	surge.is_positive = true
+	surge.max_stacks = 1
+	surge.base_duration = 1.0
+	surge.duration_refresh_mode = "overwrite"
+
+	## ("All", "damage_taken") — damage_taken is an OPERATION, never a tag (ModifierComponent
+	## NEVER_A_TAG). DamageCalculator does raw *= 1.0 + sum, so the value is negative to reduce.
+	var dr := ModifierDefinition.new()
+	dr.target_tag = "All"
+	dr.operation = "damage_taken"
+	dr.value = -damage_reduction
+	dr.source_name = surge.status_id
+
+	var spd := ModifierDefinition.new()
+	spd.target_tag = "move_speed"
+	spd.operation = "bonus"
+	spd.value = speed_bonus
+	spd.source_name = surge.status_id
+
+	surge.modifiers = [dr, spd]
+
+	def.tick_interval = maxf(def.tick_interval, 0.5)
+	def.targeting_count_threshold = threshold
+	def.targeting_count_status = surge
+
+
+## Tags are set by each caller (not passed in) so every assignment stays a literal going straight
+## into the Array[String] property, matching every other builder in this file.
+static func _passive_shell(id: String) -> StatusEffectDefinition:
+	var def := StatusEffectDefinition.new()
+	def.status_id = id
+	def.is_positive = true
+	def.max_stacks = 1
+	def.base_duration = -1.0  ## Permanent
+	return def
+
+
+static func _build_cinder_skin() -> StatusEffectDefinition:
+	## 5 Fire every 0.5s to everything inside 70px — 10 dps per enemy in contact. Trivial against
+	## one target, brutal against the ring that is actually killing you.
+	var def := _passive_shell("cinder_skin")
+	def.tags = ["Passive", "Fire"]
+	_sear_aura_onto(def, 70.0, 0.5, 5.0)
+	## The overlay is the radius tell — an invisible damage ring would be a guessing game.
+	_attach_aura(def, "fire", Vector2(1.1, 1.1), Color(1.0, 0.72, 0.42))
+	return def
+
+
+static func _build_glacial_guard() -> StatusEffectDefinition:
+	var def := _passive_shell("glacial_guard")
+	def.tags = ["Passive", "Ice"]
+	def.trigger_listeners = [_frost_nova_listener(8.0, 100.0, 2.0)]
+	return def
+
+
+static func _build_volatile_remains() -> StatusEffectDefinition:
+	var def := _passive_shell("volatile_remains")
+	def.tags = ["Passive", "Fire"]
+	def.trigger_listeners = [_corpse_burst_listener(22.0, 65.0, 0.25)]
+	return def
+
+
+static func _build_last_stand() -> StatusEffectDefinition:
+	var def := _passive_shell("last_stand")
+	def.tags = ["Passive"]
+	_last_stand_onto(def, 5, 0.20, 0.20)
+	return def
+
+
 # ── Evolution combined statuses ────────────────────────────────────────────
+
+static func _build_pyre() -> StatusEffectDefinition:
+	## Cinder Skin + Volatile Remains: a wider, hotter ring whose kills feed the next detonation.
+	var def := _passive_shell("pyre")
+	def.tags = ["Passive", "Fire"]
+	_sear_aura_onto(def, 90.0, 0.4, 7.0)
+	def.trigger_listeners = [_corpse_burst_listener(32.0, 80.0, 0.2)]
+	_attach_aura(def, "fire", Vector2(1.35, 1.35), Color(1.0, 0.6, 0.3))
+	return def
+
+
+static func _build_bulwark() -> StatusEffectDefinition:
+	## Glacial Guard + Last Stand: the swarm that closes on you is the swarm that freezes.
+	var def := _passive_shell("bulwark")
+	def.tags = ["Passive", "Ice"]
+	def.trigger_listeners = [_frost_nova_listener(12.0, 120.0, 1.5)]
+	_last_stand_onto(def, 4, 0.30, 0.25)
+	return def
+
 
 static func _build_vampiric_blade() -> StatusEffectDefinition:
 	## Combines Bloodthirst + Serrated Strikes: on-hit bleed + on-kill heal 8% max HP.

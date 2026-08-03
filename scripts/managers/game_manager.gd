@@ -184,15 +184,18 @@ func _validate_content() -> void:
 	if not debug_mode:
 		return
 	var problems: Array[String] = ClassModFactory.validate_anim_targets()
+	## Same failure shape one layer over: a level-up entry naming a status StatusFactory does not
+	## build resolves to null and applies nothing, just as silently.
+	problems.append_array(UpgradeManager.validate_status_ids())
 	var log_node: Node = get_node_or_null("/root/Logger")
 	if problems.is_empty():
-		print("[content] All class-mod / ability-upgrade anim targets resolve.")
+		print("[content] All class-mod / ability-upgrade anim targets and upgrade statuses resolve.")
 		if log_node:
-			log_node.log_info("Content validation: all anim targets resolve.")
+			log_node.log_info("Content validation: all anim targets and upgrade statuses resolve.")
 		return
 	## push_warning so it lands in the editor's error list too — a dead entry is invisible in
 	## play, so the startup sweep is the only place it can announce itself.
-	push_warning("[content] %d DEAD class-mod / ability-upgrade entries (they apply nothing)"
+	push_warning("[content] %d DEAD content entries (they apply nothing)"
 		% problems.size())
 	for p: String in problems:
 		push_warning("[content]   " + p)

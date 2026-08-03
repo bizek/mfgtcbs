@@ -551,7 +551,17 @@ aura_status.aura_tick_effects = [ApplyStatusEffectData]  # buff/debuff per tick
 
 Uses SpatialGrid. Applied to bearer at spawn via `EnemyDefinition.on_spawn_statuses`.
 
-**Coverage**: Herald enemy only (`herald_data.gd`). Still the cheapest untapped lever for enemy design.
+**`tick_interval` must be > 0** or the aura never fires — `_execute_aura_tick` is only reached from
+`_execute_tick_effects`. Aura hits run the full DamageCalculator per target, so they crit and
+respect resists like any other hit.
+
+**Works on the player, not just enemies.** `CombatOrchestrator._inject_references` gives the player's
+StatusEffectComponent the same `combat_manager` every enemy gets, which is all the aura path needs.
+Two shipping examples: the Shade's orbiting bones (`ChainFactory._bone_swirl_orbit`, a timed aura
+from an ability) and Cinder Skin (`StatusFactory._build_cinder_skin`, a permanent one from a
+level-up).
+
+**Coverage**: Herald enemy (`herald_data.gd`), Shade bone swirl, Cinder Skin / Pyre level-ups.
 
 ### VFX System
 
@@ -618,6 +628,10 @@ Two distinct paths, and picking the wrong one is a common mistake:
 ### Targeting Count Threshold
 
 `StatusEffectDefinition.targeting_count_threshold` + `targeting_count_status` — when N+ enemies are targeting the bearer, auto-apply a status. Checked each status tick. Wired in StatusEffectComponent.
+
+Counts enemies whose `attack_target` **is** the bearer, so it reads real aggro rather than mere proximity — the honest "am I being swarmed?" signal. Requires `tick_interval > 0` (the check lives in `_execute_tick_effects`), and re-applies the status on every check while the threshold holds; give the applied status `duration_refresh_mode = "overwrite"` and a duration longer than the tick so it stays steady and lapses shortly after you break out. Re-application is safe — `_sync_modifiers` unregisters before re-adding, so modifiers never compound — but it does re-emit `on_status_applied` each tick, so don't map the applied status to a SFX in `SoundTable.STATUS_SFX`.
+
+**Coverage**: the Last Stand / Bulwark level-up upgrades (`StatusFactory._last_stand_onto`). First use in the game, added 2026-08-03.
 
 ### Damage Type Conversion
 

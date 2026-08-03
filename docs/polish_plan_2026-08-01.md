@@ -198,11 +198,38 @@ names — "LOOT" and "RESOURCES" — read as synonyms. That distinction is the e
 tension exists. Ben's shortlist was a pair: **Haul** (carried) and **Vault**/**Coffers** (banked).
 Internally there is also `gold` (38 refs), `currency` (6) and a stray `scrap`.
 
-**Upgrade pool bias.** Ben, on difficulty: *"before we remove mob numbers, lets give player's
-methods of dealing with it."* The pool is 16 stat sticks and 6 one-shot procs. Enemies spawn on a
-**340px ring** around the player and walk inward, so what answers them is crowd-clear, reach, and
-space-making — not `+20% damage`. Deliberately NOT started unsupervised: it is per-kit creative
-design, and the mechanically interesting options need new statuses and trigger listeners.
+**Upgrade pool bias — DONE 2026-08-03.** Ben, on difficulty: *"before we remove mob numbers, lets
+give player's methods of dealing with it."* Enemies spawn on a **340px ring** around the player and
+walk inward, so what answers them is crowd-clear, reach and space-making — not `+20% damage`.
+
+Every pool entry now carries a `role` (`crowd` / `space` / `survive` / `power`), and four new
+universal upgrades were added, each worth more the more enemies are on you and near-worthless
+against one target:
+
+| Upgrade | Effect | Engine primitive |
+|---|---|---|
+| **Cinder Skin** | 5 Fire / 0.5s to everything inside 70px | `aura_radius` + `aura_tick_effects` (the path the Shade's bone swirl already used) |
+| **Volatile Remains** | on kill, the corpse detonates for 22 Fire at 65px | `on_kill` listener, centred on the victim |
+| **Glacial Guard** | when hit, chill everything within 100px | `on_hit_received` listener, 2.0s internal cooldown |
+| **Last Stand** | while 5+ enemies target you: −20% damage taken, +20% move speed | `targeting_count_threshold` — **first use in the game** |
+
+Plus two evolutions so the branch has a top end: **PYRE** (Cinder Skin + Volatile Remains) and
+**BULWARK** (Glacial Guard + Last Stand).
+
+The draw reserves one slot for a crowd/space answer **until the player owns two of them**, then
+tapers off. The taper is the whole balance point: guaranteeing an answer every level-up for a full
+run measured at 83% of generic slots and squeezed power picks to 7.6% — biasing the pool, not
+deleting builds. Measured after the change: 100% of early level-ups offer an answer, and once the
+taper is spent the free slots read space 34% · power 24% · survive 22% · crowd 20%.
+
+All four verified live in the Training Room (aura damage, corpse burst at range, chill nova plus
+its cooldown, and the surge's `("All","damage_taken")` modifier pair). The startup validator now
+also checks that every upgrade/evolution `status_id` resolves in `StatusFactory` — a miss there is
+silent at runtime, exactly like the anim-target class it already covered.
+
+Still open on this thread: the level-up **card layout is text-only** (`name\ndescription` on a
+210×38 button), so the new upgrades read as flat as the stat sticks they are meant to stand out
+from. Role colour or an icon would sell the distinction.
 
 **`descent_portal` (3.0x) is unverified.** Its type assignment and settlement path are shared
 with the two verified rungs, but reaching it needs a full ten-block descent plus the boss.
