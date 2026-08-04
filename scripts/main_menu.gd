@@ -22,10 +22,10 @@ const C_T0 := Color(0.800, 0.690, 0.565)
 const C_T1 := Color(0.541, 0.408, 0.282)
 const C_T2 := Color(0.314, 0.235, 0.157)
 
-const FS_TITLE := 40
+const FS_TITLE := 32
 const FS_SUB   := 16
-const FS_BTN   := 20
-const FS_XS    := 14
+const FS_BTN   := 16
+const FS_XS    := 16
 
 var _menu_buttons: Array[Button] = []
 var _confirm_overlay: Control = null

@@ -179,7 +179,7 @@ func _build_panel() -> Control:
 	title_lbl.position = Vector2(8.0, 4.0)
 	if pixel_font:
 		title_lbl.add_theme_font_override("font", pixel_font)
-	title_lbl.add_theme_font_size_override("font_size", 17)
+	title_lbl.add_theme_font_size_override("font_size", 16)
 	title_lbl.add_theme_color_override("font_color", Color(0.95, 0.28, 0.28))
 	panel.add_child(title_lbl)
 

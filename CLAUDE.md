@@ -174,6 +174,35 @@ All content follows the data factory pattern: `static func create() -> Resource`
   Base Camp/Map.tscn), and never auto-generate new random IDs that overwrite committed scenes.
 - **3x viewport scaling.** 640x360 renders to 1920x1080 — all UI text/font sizes must stay legible
   after the upscale.
+- **Font sizes are 16 or 32. Nothing else.** `m5x7.ttf` is a 16px-native pixel font — every glyph
+  coordinate sits on a 1024/16 = 64-unit grid, so one design pixel equals one screen pixel *only*
+  at 16 and its integer multiples. At any other size the stems land on fractional pixels and,
+  with `antialiasing=0` + `hinting=0` in the import, snap unevenly (some 1px, some 2px) before the
+  3x upscale magnifies the mess. **Body/headings = 16, screen titles = 32.** There is no crisp
+  "slightly bigger" — 19 was the game-wide default until 2026-08-03 and was the reason everything
+  outside the results screen looked soft. Section hierarchy comes from color and rule lines
+  (`── COMBAT ──────`), not size. Also: any new screen must apply the font — `game_over_screen.gd`
+  had shipped with none and rendered in Godot's default vector font.
+  **Below 16, glyphs FUSE, not just soften.** At 14 a 5px-wide glyph scales to 4.375px and the
+  1px inter-letter gap disappears: "Fire" renders with `ir` welded into one blob, `R` reads as
+  `A`, `s` as `a`. This is an illegibility bug, not a polish issue — it is why `anim_lab_panel.gd`
+  deliberately does not use the pixel font. **Never set a player-facing size below 16.**
+  **Counting sites: grep for digits is WRONG and will under-report by ~half.** Most sizes come
+  from named constants (`FS_MD`, `FS_XS`, `_FS_LG`, `FS_TINY`) applied via
+  `add_theme_font_size_override("font_size", FS_MD)`. Resolve the constants. True inventory as of
+  2026-08-03: **217 sites, 130 crisp, 64 fuzzy** — all remaining fuzz is *below* 16.
+  **Still fuzzy and player-facing** (needs m3x6 — Daniel Linssen's 8px-native companion to m5x7,
+  same free license — or a reflow): in-run HUD sublabels, floating damage numbers
+  (`combat_feedback_manager` 9/10/14), merchant shop, pause menu, codex grid, insurance panel,
+  world-space pickup labels. Debug tools (anim lab, debug panel, entity inspector, passive-tree
+  debug) are deliberately left alone.
+  **Also unresolved:** `Settings.TEXT_SIZE_SCALE` is `{0.85, 1.0, 1.25}`, so the SMALL/LARGE
+  accessibility options multiply 16 into 14/20 and reintroduce the fuzz for anyone off NORMAL.
+  **Layout footgun this exposed:** shrinking body text narrows any container that sizes to its
+  content minimum, which surfaces latent layout bugs. `hub_launch_panel.gd` used a bare `Panel`
+  (not a container — it never stretches children) so its brief column had always hugged content;
+  at 16 it collapsed to a ~90px ribbon. Fixed to `PanelContainer`. Re-check panels after any
+  font-size change.
 - Spatial/positioning work: verify coordinates against the bounds of the mode you're targeting.
   Descent mode (default) is `Rect2(0, 0, level_width≈648, total_height)` — all-positive coords,
   height varies with the block stack. The flat arena (training room, non-descent LDtk fallback) is

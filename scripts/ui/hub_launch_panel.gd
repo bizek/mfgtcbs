@@ -7,9 +7,9 @@ signal close_requested
 
 const _FONT := HubPanelBase.PIXEL_FONT
 const _FS_LG := 16
-const _FS_MD := 19
+const _FS_MD := 16
 const _FS_SM := 16
-const _FS_XS := 14
+const _FS_XS := 16
 
 @onready var _base:    HubPanelBase = $PanelBase
 @onready var _content: Control      = $PanelBase/ContentContainer
@@ -49,7 +49,12 @@ func populate(pm: Node) -> void:
 	root.add_child(vbox)
 
 	## ── Loadout card ─────────────────────────────────────────────────────────
-	var card := Panel.new()
+	## PanelContainer, not Panel: a bare Panel is not a container, so it never stretched the
+	## MarginContainer below it — the brief column sat at its own content minimum and the
+	## autowrapped PASSIVE line wrapped to a ~90px ribbon with half the card empty beside it.
+	## Latent since this panel was written; only became visible when the body font dropped to 16
+	## and the content minimum got narrower with it.
+	var card := PanelContainer.new()
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var cs := StyleBoxFlat.new()
 	cs.bg_color            = Color(0.082, 0.075, 0.063)

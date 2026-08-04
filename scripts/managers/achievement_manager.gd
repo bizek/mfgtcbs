@@ -161,7 +161,7 @@ func _build_toast() -> void:
 	_toast_icon = Label.new()
 	_toast_icon.position = Vector2(8.0, 6.0)
 	_toast_icon.size = Vector2(24.0, 32.0)
-	_toast_icon.add_theme_font_size_override("font_size", 20)
+	_toast_icon.add_theme_font_size_override("font_size", 16)
 	_toast_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_toast_icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_toast_root.add_child(_toast_icon)
@@ -177,7 +177,7 @@ func _build_toast() -> void:
 	_toast_name = Label.new()
 	_toast_name.position = Vector2(38.0, 20.0)
 	_toast_name.size = Vector2(176.0, 20.0)
-	_toast_name.add_theme_font_size_override("font_size", 19)
+	_toast_name.add_theme_font_size_override("font_size", 16)
 	_toast_name.add_theme_color_override("font_color", Color(1.0, 0.92, 0.4))
 	_toast_root.add_child(_toast_name)
 

@@ -40,10 +40,10 @@ const C_ARCANA  := Color(0.639, 0.463, 0.925)   ## violet
 const C_BRIDGE  := Color(0.706, 0.667, 0.588)   ## neutral stone
 
 const FONT    := HubPanelBase.PIXEL_FONT
-const FS_MD   := 19
+const FS_MD   := 16
 const FS_SM   := 16
-const FS_XS   := 14
-const FS_TINY := 13
+const FS_XS   := 16
+const FS_TINY := 16
 
 ## Marquee for node text that overflows its card: waits, scrolls slowly to the
 ## end, pauses there, snaps back, repeats — only while the node is focused.

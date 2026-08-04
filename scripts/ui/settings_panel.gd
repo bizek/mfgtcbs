@@ -24,8 +24,8 @@ const C_T2       := Color(0.314, 0.235, 0.157)
 
 const FONT  := HubPanelBase.PIXEL_FONT
 const FS_SM := 16
-const FS_MD := 19
-const FS_XS := 14
+const FS_MD := 16
+const FS_XS := 16
 
 const LABEL_W := 160.0
 const VALUE_W := 56.0

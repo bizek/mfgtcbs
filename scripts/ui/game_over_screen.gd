@@ -12,11 +12,34 @@ extends CanvasLayer
 @onready var level_label: Label = $VBox/LevelLabel
 @onready var restart_button: Button = $VBox/RestartButton
 
+const FONT_PATH: String = "res://assets/fonts/m5x7.ttf"
+
+## m5x7 is a 16px-native pixel font: one design pixel equals one screen pixel only at 16 and
+## its integer multiples. Anything else lands glyph stems on fractional pixels, and with
+## antialiasing off they snap unevenly before the 3x viewport upscale magnifies the mess.
+## So: body at 16, the title at 32, nothing in between.
+const TITLE_SIZE: int = 32
+const BODY_SIZE: int  = 16
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
 	restart_button.pressed.connect(_on_return_to_hub)
 	GameManager.run_failed.connect(_show_lost_run)
+	_apply_font()
+
+## This screen had shipped with no font override at all, so the one screen you are guaranteed to
+## read on a bad run was the only one still rendering in Godot's default vector font — antialiased
+## at 640x360, then nearest-upscaled 3x into mush. Every sibling screen already did this.
+func _apply_font() -> void:
+	if not ResourceLoader.exists(FONT_PATH):
+		return
+	var font := load(FONT_PATH)
+	for child in $VBox.get_children():
+		if child is Label or child is Button:
+			child.add_theme_font_override("font", font)
+			child.add_theme_font_size_override(
+				"font_size", TITLE_SIZE if child == title_label else BODY_SIZE)
 
 func _show_lost_run(abandoned: bool) -> void:
 	var loot_value: int = int(GameManager.loot_carried)
@@ -37,6 +60,10 @@ func _show_lost_run(abandoned: bool) -> void:
 		var ins_lbl := Label.new()
 		ins_lbl.text = "[★] Insured: %s kept" % display
 		ins_lbl.add_theme_color_override("font_color", Color(1.0, 0.88, 0.22))
+		## Built after _apply_font() has already walked the VBox, so it fonts itself.
+		if ResourceLoader.exists(FONT_PATH):
+			ins_lbl.add_theme_font_override("font", load(FONT_PATH))
+		ins_lbl.add_theme_font_size_override("font_size", BODY_SIZE)
 		$VBox.add_child(ins_lbl)
 		$VBox.move_child(ins_lbl, restart_button.get_index())
 

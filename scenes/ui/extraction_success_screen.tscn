@@ -31,7 +31,7 @@ alignment = 0
 [node name="Title" type="Label" parent="VBox"]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_font")
-theme_override_font_sizes/font_size = 21
+theme_override_font_sizes/font_size = 32
 text = "EXTRACTION SUCCESSFUL"
 horizontal_alignment = 1
 
@@ -39,7 +39,7 @@ horizontal_alignment = 1
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_font")
-theme_override_font_sizes/font_size = 19
+theme_override_font_sizes/font_size = 16
 text = "Kills: 0"
 horizontal_alignment = 1
 
@@ -47,7 +47,7 @@ horizontal_alignment = 1
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_font")
-theme_override_font_sizes/font_size = 19
+theme_override_font_sizes/font_size = 16
 text = "Time: 0:00"
 horizontal_alignment = 1
 
@@ -55,7 +55,7 @@ horizontal_alignment = 1
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_font")
-theme_override_font_sizes/font_size = 19
+theme_override_font_sizes/font_size = 16
 text = "Level: 1"
 horizontal_alignment = 1
 
@@ -67,5 +67,5 @@ custom_minimum_size = Vector2(0, 4)
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_font")
-theme_override_font_sizes/font_size = 19
+theme_override_font_sizes/font_size = 16
 text = "PLAY AGAIN"
