@@ -125,6 +125,17 @@ signal insured_item_changed(item_id: String)
 var player_has_keystone: bool = false
 var guardian_killed_this_phase: bool = false  ## Tracks first guardian kill per phase
 
+## Town portal — a bought escape you spend WHEN YOU CHOOSE, as opposed to the free gateway that
+## arrives on the phase clock and is a bus you either catch or miss. That timing control is the
+## whole product: it is worth loot precisely because it works at 90% depth, mid-miniboss, the
+## moment a run goes wrong. It pays the same 1.0x as the free escape — you are buying safety, not
+## a bonus (see EXTRACTION_PAYOUT).
+##
+## Unlike the keystone this deliberately SURVIVES _advance_phase(): a keystone is a per-phase key
+## the run hands you, a town portal is a thing you paid for and keep until you spend it.
+var player_has_town_portal: bool = false
+signal town_portal_changed(has_portal: bool)
+
 ## Final boss gate — when true, Phase 5 extraction channel is locked.
 ## Flipped true when the boss spawns, false when it dies.
 var final_boss_alive: bool = false
@@ -251,6 +262,8 @@ func start_run() -> void:
 	run_loot_manifest.clear()
 	insured_item = ""
 	player_has_keystone = false
+	player_has_town_portal = false
+	town_portal_changed.emit(false)
 	guardian_killed_this_phase = false
 	final_boss_alive = false
 	active_extraction_type = "timed"
@@ -408,6 +421,21 @@ func on_extraction_complete() -> void:
 func pickup_keystone() -> void:
 	player_has_keystone = true
 	keystone_picked_up.emit()
+
+
+func grant_town_portal() -> void:
+	player_has_town_portal = true
+	town_portal_changed.emit(true)
+
+
+## Spend it. Returns false if there was nothing to spend, so the caller can leave the player's
+## loot alone and say so rather than silently eating a purchase.
+func consume_town_portal() -> bool:
+	if not player_has_town_portal:
+		return false
+	player_has_town_portal = false
+	town_portal_changed.emit(false)
+	return true
 
 func equip_mod_mid_run(weapon_id: String, slot: int, mod_id: String) -> void:
 	if not run_equipped_mods.has(weapon_id):

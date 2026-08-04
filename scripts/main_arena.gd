@@ -745,6 +745,54 @@ func _on_extraction_window_opened() -> void:
 		add_child(_timed)
 		_timed.open_window()
 
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("town_portal"):
+		_try_town_portal()
+
+
+## Spend a bought town portal. The free gateway is a bus — it arrives on the phase clock and you
+## catch it or you miss it. This is the one you paid for, so it opens WHEN YOU SAY: at 90% depth,
+## mid-miniboss, the moment the run turns. Mechanically it is the same gateway (same dome, same
+## dash, same touch-to-leave) opened out of band and made persistent, because a portal you bought
+## should not evaporate on a timer you do not control.
+##
+## Silent when you own none — T is not a key most players will have bound in their head, and
+## beeping at someone who never bought one is noise. Every failure that happens WITH a portal in
+## hand says why, and none of them consume it.
+func _try_town_portal() -> void:
+	if not GameManager.player_has_town_portal:
+		return
+	if GameManager.current_state != GameManager.GameState.RUN_ACTIVE:
+		return
+	if player == null or not is_instance_valid(player) or not player.is_alive:
+		return
+
+	if not _using_descent or _block_manager == null or _block_manager.block_bounds.is_empty():
+		_town_portal_refused("NO ANCHOR TO OPEN A PORTAL HERE")
+		return
+	## Deliberately NOT overridden: the final-boss seal is an existing design statement about the
+	## climax being a commitment, and a bought item should not be the thing that quietly repeals it.
+	if not GameManager.is_extraction_allowed():
+		_town_portal_refused("THE BOSS SEALS THE WAY OUT")
+		return
+	if _gateway != null and is_instance_valid(_gateway):
+		_town_portal_refused("A GATEWAY IS ALREADY OPEN")
+		return
+
+	if not GameManager.consume_town_portal():
+		return
+	AudioManager.play_ui("sfx_ui_purchase")
+	_open_gateway("gateway", true)
+	if hud and hud.has_method("flash_text"):
+		hud.flash_text("TOWN PORTAL OPENED", Color(0.62, 0.78, 1.0), 1.6)
+
+
+func _town_portal_refused(reason: String) -> void:
+	AudioManager.play_ui("sfx_ui_error")
+	if hud and hud.has_method("flash_text"):
+		hud.flash_text(reason, Color(1.0, 0.45, 0.35), 1.4)
+
+
 ## Descent's early exit: a gateway opens at one side of the block the player is standing in, a
 ## keeper steps out of it, and a dome holds the horde off the pocket around it. See
 ## GatewayExtraction — including why descent had no early exit at all before this.

@@ -186,11 +186,36 @@ Items 1–3 need nothing from you and I can start on any of them the moment you 
 
 ## Open threads, newest first (2026-08-02)
 
-**The paid town portal.** Agreed design, not built. The free gateway arrives on the phase clock
-and you catch it or miss it; a *purchased* town portal would be one you trigger whenever you like
-— mid-boss, at 90% depth, the moment it goes wrong. That distinction is what makes it worth
-buying, and it dodges the death-spiral of paid-escape economies, since the free window still
-exists for a broke player.
+**The paid town portal — BUILT 2026-08-03.** The free gateway arrives on the phase clock and you
+catch it or miss it; the purchased town portal is one you trigger whenever you like. That
+distinction is the product, and it dodges the death-spiral of paid-escape economies since the free
+window still exists for a broke player.
+
+- **Bought from the merchant for 25 loot** — the dearest thing on the shelf, and bought with
+  `loot_carried`, the haul you are trying to leave with. The price is the decision: give up a
+  slice of the run to guarantee you keep the rest. Offered only in descent, and only when you
+  hold none.
+- **Spent with `[T]`** (new input action, D-pad Down on a pad). It opens the same gateway the
+  free window opens — same dome, same dash, same touch-to-leave — out of band and **persistent**,
+  because a portal you paid for should not evaporate on a timer you do not control.
+- **Pays 1.0x**, same as the free escape. You are buying safety, not a bonus.
+- **Survives `_advance_phase()`**, unlike the keystone it otherwise mirrors: a keystone is a
+  per-phase key the run hands you, a portal is a thing you bought and keep until you spend it.
+- **HUD pill under the keystone pill**, carrying its own key prompt.
+
+Every refusal path is verified and none of them consume the portal: no anchor (non-descent),
+boss seal, gateway already open, dead player. Guard order means the anchor check short-circuits
+first, which is why the boss-seal branch needed a stubbed BlockManager to reach in testing.
+
+**One deliberate non-decision:** the final-boss seal (`is_extraction_allowed()`) is *not*
+overridden. It is an existing design statement that the climax is a commitment, and a bought item
+should not be the thing that quietly repeals it. If you want the portal to work mid-final-boss,
+that is a one-line change — but it should be your call, not a side effect of this feature.
+
+**Still unverified:** the success path itself. It needs a real descent, and Training-Room-only is
+non-negotiable without your say-so. The call it makes, `_open_gateway("gateway", true)`, is
+identical in form to the miniboss gateway verified live on 2026-08-02, and both argument values
+are individually proven — but that is an argument, not a test.
 
 **Currency naming.** `GameManager.loot_carried` (in-run, **at risk**) and
 `ProgressionManager.resources` (banked, **safe**) are two genuinely different things whose UI

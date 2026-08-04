@@ -18,6 +18,11 @@ const MOD_PRICE: int = 8
 const KEYSTONE_PRICE: int = 20
 const STABILITY_PRICE: int = 15
 const STABILITY_REDUCTION: int = 20
+## The most expensive thing on the shelf, on purpose. It is bought with loot_carried — the haul
+## you are trying to get out with — so the price IS the decision: you give up a slice of the run
+## to guarantee you keep the rest. Cheap enough to be reachable by the merchant block (~50% depth),
+## dear enough that taking it means skipping a weapon and a mod.
+const TOWN_PORTAL_PRICE: int = 25
 
 var _pixel_font: Font = null
 var _loot_counter: Label = null
@@ -91,6 +96,18 @@ func _generate_offers() -> Array[Dictionary]:
 			"sold": false,
 		})
 
+	## Town portal — descent only, since it opens a gateway and gateways need the block stack.
+	## Offered only when you have none: a second one would do nothing, the first ends the run.
+	if GameManager.use_descent_mode and not GameManager.player_has_town_portal:
+		result.append({
+			"type": "town_portal",
+			"id": "town_portal",
+			"display": "TOWN PORTAL  (escape anywhere, [T])",
+			"price": TOWN_PORTAL_PRICE,
+			"color": Color(0.62, 0.78, 1.0),
+			"sold": false,
+		})
+
 	## Stability bundle
 	result.append({
 		"type": "stability",
@@ -134,7 +151,7 @@ func _build_ui(offers: Array[Dictionary]) -> void:
 	title_lbl.position = Vector2(8.0, 4.0)
 	if _pixel_font:
 		title_lbl.add_theme_font_override("font", _pixel_font)
-	title_lbl.add_theme_font_size_override("font_size", 17)
+	title_lbl.add_theme_font_size_override("font_size", 16)
 	title_lbl.add_theme_color_override("font_color", Color(1.0, 0.85, 0.18))
 	panel.add_child(title_lbl)
 
@@ -276,6 +293,8 @@ func _on_buy(offer: Dictionary, row: HBoxContainer, btn: Button) -> void:
 				GameManager.collected_mods.append(mid)
 		"keystone":
 			GameManager.pickup_keystone()
+		"town_portal":
+			GameManager.grant_town_portal()
 		"stability":
 			GameManager.modify_instability(-STABILITY_REDUCTION)
 

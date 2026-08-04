@@ -50,6 +50,8 @@ var _first_run_overlay: FirstRunOverlay = null
 
 ## ── Keystone indicator (top-right area, shown when player holds a keystone) ──
 var _keystone_indicator: Control = null
+## ── Town portal indicator (directly under the keystone pill) ─────────────────
+var _town_portal_indicator: Control = null
 ## ── Boss health bars (guardian + bosses share this system) ───────────────────
 ## Keyed by boss id. Entry: { root: Control, bar: ProgressBar, label: Label,
 ##                            color: Color, display_name: String, y_offset: float }
@@ -91,6 +93,7 @@ func _ready() -> void:
 	ExtractionManager.extraction_interrupted.connect(_on_extraction_interrupted)
 	ExtractionManager.extraction_complete.connect(_on_extraction_complete)
 	GameManager.keystone_picked_up.connect(_on_keystone_picked_up)
+	GameManager.town_portal_changed.connect(_on_town_portal_changed)
 	GameManager.guardian_state_changed.connect(_on_guardian_state_changed)
 	GameManager.boss_state_changed.connect(_on_boss_state_changed)
 	GameManager.final_boss_spawned.connect(_on_final_boss_spawned)
@@ -100,6 +103,7 @@ func _ready() -> void:
 	_build_skill_slots()
 	_build_buff_chips()
 	_build_keystone_indicator()
+	_build_town_portal_indicator()
 	_build_guardian_health_bar()
 	_build_phase_flash_label()
 	_build_extraction_warning_label()
@@ -152,6 +156,8 @@ func _process(delta: float) -> void:
 	## Keystone indicator visibility
 	if _keystone_indicator:
 		_keystone_indicator.visible = GameManager.player_has_keystone
+	if _town_portal_indicator:
+		_town_portal_indicator.visible = GameManager.player_has_town_portal
 
 	_update_skill_slots()
 	_update_buff_chips()
@@ -428,6 +434,62 @@ func _on_keystone_picked_up() -> void:
 		t.tween_property(_keystone_indicator, "modulate:a", 0.2, 0.05)
 		t.tween_property(_keystone_indicator, "modulate:a", 1.0, 0.20)
 
+## ── Town portal indicator ─────────────────────────────────────────────────────
+## Sits directly under the keystone pill and copies its shape on purpose: both are "you are
+## carrying a thing that opens a way out", and reading as a pair is the point. Carries its key
+## prompt because, unlike the keystone, this one does nothing unless you press something.
+
+func _build_town_portal_indicator() -> void:
+	var root := Control.new()
+	root.name = "TownPortalIndicator"
+	root.position = Vector2(480.0, 20.0)
+	root.visible = false
+	_town_portal_indicator = root
+	add_child(root)
+
+	var bg := NinePatchRect.new()
+	bg.texture = _sheet()
+	bg.region_rect = PANEL_PILL
+	bg.patch_margin_left = 5
+	bg.patch_margin_top = 5
+	bg.patch_margin_right = 5
+	bg.patch_margin_bottom = 5
+	bg.size = Vector2(78.0, 16.0)
+	bg.modulate = Color(0.72, 0.66, 0.58, 0.94)
+	root.add_child(bg)
+
+	var rune := ColorRect.new()
+	rune.color = Color(0.62, 0.78, 1.0)
+	rune.size = Vector2(8.0, 8.0)
+	rune.position = Vector2(3.0, 4.0)
+	root.add_child(rune)
+
+	var lbl := Label.new()
+	lbl.text = "PORTAL [T]"
+	lbl.position = Vector2(14.0, 2.0)
+	## 12 to match the keystone pill it pairs with, and to fit a 16px pill. Belongs to the
+	## known-fuzzy HUD sublabel batch waiting on m3x6 — not a new offender.
+	lbl.add_theme_font_size_override("font_size", _ts(12))
+	lbl.add_theme_color_override("font_color", Color(0.32, 0.20, 0.06))
+	if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
+		lbl.add_theme_font_override("font", load("res://assets/fonts/m5x7.ttf"))
+	root.add_child(lbl)
+
+	var pulse := root.create_tween().set_loops()
+	pulse.tween_property(rune, "modulate:a", 0.45, 0.8)
+	pulse.tween_property(rune, "modulate:a", 1.0, 0.8)
+
+
+func _on_town_portal_changed(has_portal: bool) -> void:
+	if _town_portal_indicator == null:
+		return
+	_town_portal_indicator.visible = has_portal
+	if not has_portal:
+		return
+	var t := _town_portal_indicator.create_tween()
+	t.tween_property(_town_portal_indicator, "modulate:a", 0.2, 0.05)
+	t.tween_property(_town_portal_indicator, "modulate:a", 1.0, 0.20)
+
 ## ── Boss / Guardian health bars ───────────────────────────────────────────────
 ## Shared system. Guardian uses id="guardian" at y=40. Minibosses, bosses, and
 ## the final boss register on first show via _on_boss_state_changed.
@@ -540,7 +602,7 @@ func _build_phase_flash_label() -> void:
 	lbl.position = Vector2(120.0, 147.0)
 	lbl.size = Vector2(400.0, 40.0)
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.add_theme_font_size_override("font_size", _ts(27))
+	lbl.add_theme_font_size_override("font_size", _ts(32))
 	lbl.add_theme_color_override("font_color", Color(1.0, 0.9, 0.7))
 	lbl.modulate.a = 0.0
 	if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
