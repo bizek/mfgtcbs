@@ -231,7 +231,7 @@ func _build_weapon_cache(pixel_font: FontFile) -> void:
 	choices_container.add_child(sep)
 
 	var header := Label.new()
-	header.text = "— WEAPON CACHE  [%.0f / %.0f loot] —" % [GameManager.loot_carried, WEAPON_SWAP_COST]
+	header.text = "— WEAPON CACHE  [%.0f / %.0f haul] —" % [GameManager.loot_carried, WEAPON_SWAP_COST]
 	if pixel_font:
 		header.add_theme_font_override("font", pixel_font)
 	header.add_theme_font_size_override("font_size", 16)
@@ -242,7 +242,7 @@ func _build_weapon_cache(pixel_font: FontFile) -> void:
 	var display: String = wdata.get("display_name", offered)
 	var desc: String    = wdata.get("description", "")
 	var btn := Button.new()
-	btn.text = "%s\n%s\n[Cost: 30 loot — drops current weapon]" % [display, desc]
+	btn.text = "%s\n%s\n[Cost: 30 haul — drops current weapon]" % [display, desc]
 	btn.custom_minimum_size = Vector2(210, 52)
 	btn.disabled = GameManager.loot_carried < WEAPON_SWAP_COST
 	if pixel_font:

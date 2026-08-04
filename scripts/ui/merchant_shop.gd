@@ -158,7 +158,7 @@ func _build_ui(offers: Array[Dictionary]) -> void:
 	## Loot counter — top-right of panel
 	var loot_lbl := Label.new()
 	loot_lbl.name = "LootCounter"
-	loot_lbl.text = "Loot: %d" % int(GameManager.loot_carried)
+	loot_lbl.text = "Haul: %d" % int(GameManager.loot_carried)
 	loot_lbl.position = Vector2(PANEL_W - 110.0, 5.0)
 	loot_lbl.size = Vector2(100.0, 14.0)
 	loot_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -170,7 +170,7 @@ func _build_ui(offers: Array[Dictionary]) -> void:
 	_loot_counter = loot_lbl
 
 	var sub_lbl := Label.new()
-	sub_lbl.text = "Spend loot for goods and passage."
+	sub_lbl.text = "Spend haul for goods and passage."
 	sub_lbl.position = Vector2(8.0, 26.0)
 	if _pixel_font:
 		sub_lbl.add_theme_font_override("font", _pixel_font)
@@ -243,8 +243,8 @@ func _build_offer_row(offer: Dictionary) -> HBoxContainer:
 
 	var price: int = int(offer.get("price", 0))
 	var price_lbl := Label.new()
-	price_lbl.text = "%d L" % price
-	price_lbl.custom_minimum_size = Vector2(38.0, 0.0)
+	price_lbl.text = "%d HAUL" % price
+	price_lbl.custom_minimum_size = Vector2(56.0, 0.0)
 	if _pixel_font:
 		price_lbl.add_theme_font_override("font", _pixel_font)
 	price_lbl.add_theme_font_size_override("font_size", 14)
@@ -279,7 +279,7 @@ func _on_buy(offer: Dictionary, row: HBoxContainer, btn: Button) -> void:
 
 	AudioManager.play_ui("sfx_ui_purchase")
 	if _loot_counter != null:
-		_loot_counter.text = "Loot: %d" % int(GameManager.loot_carried)
+		_loot_counter.text = "Haul: %d" % int(GameManager.loot_carried)
 
 	var type_key: String = str(offer.get("type", ""))
 	match type_key:

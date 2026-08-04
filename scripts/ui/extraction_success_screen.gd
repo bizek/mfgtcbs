@@ -173,7 +173,10 @@ func _build_damage_breakdown(lv: VBoxContainer, summary: Dictionary) -> void:
 
 
 func _build_loot_section(lv: VBoxContainer, resources_earned: int) -> void:
-	_heading(lv, "LOOT")
+	## HAUL is what you carried and stood to lose; VAULT is where it lands once you are out.
+	## This screen is the only place a player watches one become the other, so it is the place
+	## the two names have to be unmistakable. See the note on GameManager.loot_carried.
+	_heading(lv, "HAUL")
 
 	var manifest: Array = GameManager.run_loot_manifest
 	var total_resource_value: float = 0.0
@@ -198,7 +201,7 @@ func _build_loot_section(lv: VBoxContainer, resources_earned: int) -> void:
 	if resource_counts["medium"] > 0: res_parts.append("%d medium" % resource_counts["medium"])
 	if resource_counts["large"]  > 0: res_parts.append("%d large"  % resource_counts["large"])
 	var res_detail: String = "(" + ", ".join(res_parts) + ")" if not res_parts.is_empty() else ""
-	_loot(lv, "Resources:  +%s  %s" % [_fmt(total_resource_value), res_detail], COL_GOLD, 17)
+	_loot(lv, "Salvage:  +%s  %s" % [_fmt(total_resource_value), res_detail], COL_GOLD, 17)
 
 	for w in weapons_found:
 		_loot(lv, "  Weapon:  %s  [%s]" % [w.name, w.rarity.to_upper()],
@@ -210,7 +213,7 @@ func _build_loot_section(lv: VBoxContainer, resources_earned: int) -> void:
 				LootTables.RARITY_COLORS.get(m.rarity, Color.WHITE), 17)
 
 	if manifest.is_empty():
-		_loot(lv, "  (no loot extracted)", Color(0.5, 0.5, 0.5), 16)
+		_loot(lv, "  (nothing hauled out)", Color(0.5, 0.5, 0.5), 16)
 
 	var peak: float = GameManager.peak_instability
 	var peak_tier: Dictionary = LootTables.get_instability_tier(peak)
@@ -229,7 +232,7 @@ func _build_loot_section(lv: VBoxContainer, resources_earned: int) -> void:
 		_loot(lv, "Depth Bonus:  x%.2f  (%s)" % [mult, _payout_label()],
 			Color(0.55, 0.95, 0.65), 17)
 
-	_loot(lv, "── TOTAL RESOURCES:  +%s" % _fmt(resources_earned), Color(1.0, 0.92, 0.4), 21)
+	_loot(lv, "── BANKED TO VAULT:  +%s" % _fmt(resources_earned), Color(1.0, 0.92, 0.4), 21)
 
 
 # ── Row builders ──────────────────────────────────────────────────────────────────────────────

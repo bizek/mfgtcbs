@@ -93,6 +93,20 @@ const DIFFICULTY_SCALE_RATE: float = 0.15
 var difficulty_multiplier: float = 1.0
 
 ## Loot and instability (decoupled — instability tracks per-item weights, not raw loot value)
+##
+## PLAYER-FACING NAME: **HAUL**. This is what you are carrying and stand to LOSE — it is zeroed on
+## death and banked on extraction. Its counterpart is ProgressionManager.resources, player-facing
+## **VAULT**, which is banked and safe.
+##
+## The names were split on 2026-08-03. Before that the UI called this "LOOT" and the banked total
+## "RESOURCES"/"RES", plus "gold" in one achievement — four names for two things, and the two that
+## mattered read as synonyms. That distinction is the entire reason the extraction tension exists:
+## the whole game is deciding when to stop converting HAUL into more HAUL and go bank it.
+##
+## The identifiers were deliberately NOT renamed: `resources` is a save key, so renaming it costs a
+## migration and buys the player nothing. If you touch UI copy, use HAUL and VAULT. "loot" is still
+## fine as a verb and as the word for stuff on the ground — you loot things, and what you carry out
+## is your haul.
 var loot_carried: float = 0.0
 var instability: float = 0.0
 var peak_instability: float = 0.0  ## High-water mark for results screen

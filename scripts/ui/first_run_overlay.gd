@@ -113,7 +113,7 @@ func _on_leveled_up(_new_level: int) -> void:
 
 func _on_instability_changed(new_value: float) -> void:
 	if new_value > 0.0:
-		_queue_cue("instability", "Instability is rising (top meter) — push too far and loot gets risky.", "corner")
+		_queue_cue("instability", "Instability is rising (top meter) — push too far and your haul gets risky.", "corner")
 
 func _on_extraction_window_opened() -> void:
 	_queue_cue("extraction_window", "Extraction window open — channel at the portal to extract.", "corner")

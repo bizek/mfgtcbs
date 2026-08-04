@@ -105,7 +105,7 @@ const ALL: Dictionary = {
 	"instability_siphon": {
 		"id": "instability_siphon",
 		"name": "INSTABILITY SIPHON",
-		"desc": "Kills reduce Instability by 1. Manage loot risk through aggression.",
+		"desc": "Kills reduce Instability by 1. Manage haul risk through aggression.",
 		"color": Color(0.40, 1.0, 0.55),
 		"effect_type": "instability_siphon",
 		"requires": [],   ## universal — kill-triggered global behavior, kit-agnostic

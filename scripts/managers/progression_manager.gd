@@ -41,6 +41,9 @@ const UPGRADE_COSTS: Dictionary = {
 	"extraction_intel_1":    600,
 }
 
+## PLAYER-FACING NAME: **VAULT**. Banked and safe — the counterpart to GameManager.loot_carried
+## (**HAUL**), which is carried and at risk. Full naming rationale lives on that declaration.
+## This identifier is also the SAVE KEY, which is why it was not renamed along with the UI copy.
 var resources: int = 0
 var run_stats: Dictionary = {}            ## Per-run stats (deepest_phase, etc.)
 var unlocked_weapons: Array = []

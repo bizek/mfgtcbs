@@ -31,9 +31,9 @@ const C_T2 := Color(0.314, 0.235, 0.157)
 
 const FONT  := HubPanelBase.PIXEL_FONT
 const FS_LG := 16
-const FS_MD := 19
+const FS_MD := 16
 const FS_SM := 16
-const FS_XS := 14
+const FS_XS := 16
 
 ## Portrait size in the detail pane (rendered with NEAREST for crisp 2× upscale).
 const PORTRAIT_DETAIL_PX := 48   ## 32px native × 1.5 (fits detail pane without scrolling)
@@ -470,7 +470,7 @@ func _build_detail_pane(parent: HBoxContainer) -> void:
 	res_vb.add_theme_constant_override("separation", 1)
 	res_vb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	foot_row.add_child(res_vb)
-	_lbl(res_vb, "RESOURCES", FS_XS, C_T2)
+	_lbl(res_vb, "VAULT", FS_XS, C_T2)
 	_lbl(res_vb, str(_pm.resources), FS_SM, C_T0)
 
 	var foot_spacer := Control.new()

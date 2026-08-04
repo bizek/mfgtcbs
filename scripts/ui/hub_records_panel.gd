@@ -16,9 +16,9 @@ const C_LOCKED := Color(0.42, 0.40, 0.44)
 const C_DESC   := Color(0.55, 0.53, 0.58)
 
 const FONT  := HubPanelBase.PIXEL_FONT
-const FS_MD := 19
+const FS_MD := 16
 const FS_SM := 16
-const FS_XS := 14
+const FS_XS := 16
 
 var _stats_btn:  Button
 var _achv_btn:   Button
@@ -164,7 +164,7 @@ func _build_stats_page(pm: Node) -> VBoxContainer:
 		["Deaths",                 str(0 if pm == null else pm.deaths)],
 		["Total Kills",            str(0 if pm == null else pm.total_kills)],
 		["Deepest Phase",          str(0 if pm == null else pm.deepest_phase)],
-		["Most Loot",              str(0 if pm == null else int(pm.most_loot_extracted))],
+		["Biggest Haul",           str(0 if pm == null else int(pm.most_loot_extracted))],
 		["Extraction Rate",        rate_str],
 	]
 

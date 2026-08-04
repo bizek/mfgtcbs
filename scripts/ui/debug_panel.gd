@@ -101,7 +101,7 @@ func _build_panel() -> void:
 
 	## Button definitions  [label, callable]
 	var defs: Array = [
-		["Give Resources +10k",  _cmd_give_resources],
+		["Give Vault +10k",      _cmd_give_resources],
 		["Level Up ×5",          _cmd_level_up_five],
 		["Skip to Extraction",   _cmd_skip_extraction],
 		["God Mode: OFF",        _cmd_god_mode],

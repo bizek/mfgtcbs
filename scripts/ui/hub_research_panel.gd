@@ -21,8 +21,8 @@ const C_T2       := Color(0.314, 0.235, 0.157)
 
 const FONT  := HubPanelBase.PIXEL_FONT
 const FS_SM := 16
-const FS_MD := 19
-const FS_XS := 14
+const FS_MD := 16
+const FS_XS := 16
 
 ## ── State ─────────────────────────────────────────────────────────────────────
 var _base:      HubPanelBase   = null
@@ -89,7 +89,7 @@ func _build_ui() -> void:
 	amber_rule.color                 = Color(C_AMBER.r, C_AMBER.g, C_AMBER.b, 0.60)
 	hdr.add_child(amber_rule)
 
-	_res_label = _lbl(hdr, "RES: —", FS_XS, C_T2)
+	_res_label = _lbl(hdr, "VAULT: —", FS_XS, C_T2)
 
 	## ── ScrollContainer fills remaining height
 	var scroll := ScrollContainer.new()
@@ -120,7 +120,7 @@ func _refresh_cards() -> void:
 	if _pm == null:
 		return
 
-	_res_label.text = "RES: %d" % _pm.resources
+	_res_label.text = "VAULT: %d" % _pm.resources
 
 	for weapon_id: String in WeaponData.ALL:
 		var wdata: Dictionary = WeaponData.ALL[weapon_id]
@@ -225,7 +225,7 @@ func _build_weapon_card(weapon_id: String, wdata: Dictionary) -> void:
 	if owned:
 		cost_lbl.text = ""
 	else:
-		cost_lbl.text = "%d RES" % cost
+		cost_lbl.text = "%d VAULT" % cost
 		cost_lbl.add_theme_color_override("font_color",
 			C_RED_HI if not can_afford else C_T2)
 	rv.add_child(cost_lbl)

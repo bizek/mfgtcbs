@@ -20,9 +20,9 @@ const C_T1       := Color(0.541, 0.408, 0.282)
 const C_T2       := Color(0.314, 0.235, 0.157)
 
 const FONT  := HubPanelBase.PIXEL_FONT
-const FS_MD := 19
+const FS_MD := 16
 const FS_SM := 16
-const FS_XS := 14
+const FS_XS := 16
 
 ## ── State ────────────────────────────────────────────────────────────────────
 var _pm: Node = null
@@ -121,7 +121,7 @@ func _get_all_upgrades() -> Array[Dictionary]:
 	result.append({
 		"name":         "INSURANCE LICENSE",
 		"tier_text":    "OWNED" if ins_owned else "SINGLE PURCHASE",
-		"cost_text":    "---" if ins_owned else "%d RES" % ins_cost,
+		"cost_text":    "---" if ins_owned else "%d VAULT" % ins_cost,
 		"upgrade_id":   "insurance_license",
 		"is_maxed":     ins_owned,
 		"is_affordable": not ins_owned and _pm.resources >= ins_cost,
@@ -135,7 +135,7 @@ func _get_all_upgrades() -> Array[Dictionary]:
 	result.append({
 		"name":         "ARMORY EXPANSION",
 		"tier_text":    "TIER %d / 2" % arm_tier,
-		"cost_text":    "---" if arm_max else "%d RES" % arm_cost,
+		"cost_text":    "---" if arm_max else "%d VAULT" % arm_cost,
 		"upgrade_id":   arm_next,
 		"is_maxed":     arm_max,
 		"is_affordable": not arm_max and _pm.resources >= arm_cost,
@@ -149,7 +149,7 @@ func _get_all_upgrades() -> Array[Dictionary]:
 	result.append({
 		"name":         "CHANNEL ACCELERATOR",
 		"tier_text":    "TIER %d / 3" % ch_tier,
-		"cost_text":    "---" if ch_max else "%d RES" % ch_cost,
+		"cost_text":    "---" if ch_max else "%d VAULT" % ch_cost,
 		"upgrade_id":   ch_next,
 		"is_maxed":     ch_max,
 		"is_affordable": not ch_max and _pm.resources >= ch_cost,
@@ -163,7 +163,7 @@ func _get_all_upgrades() -> Array[Dictionary]:
 	result.append({
 		"name":         "REROLL CAPACITY",
 		"tier_text":    "TIER %d / 2" % rc_tier,
-		"cost_text":    "---" if rc_max else "%d RES" % rc_cost,
+		"cost_text":    "---" if rc_max else "%d VAULT" % rc_cost,
 		"upgrade_id":   rc_next,
 		"is_maxed":     rc_max,
 		"is_affordable": not rc_max and _pm.resources >= rc_cost,
@@ -175,7 +175,7 @@ func _get_all_upgrades() -> Array[Dictionary]:
 	result.append({
 		"name":         "EXTRACTION INTEL I",
 		"tier_text":    "OWNED" if intel_owned else "SINGLE PURCHASE",
-		"cost_text":    "---" if intel_owned else "%d RES" % intel_cost,
+		"cost_text":    "---" if intel_owned else "%d VAULT" % intel_cost,
 		"upgrade_id":   "extraction_intel_1",
 		"is_maxed":     intel_owned,
 		"is_affordable": not intel_owned and _pm.resources >= intel_cost,
@@ -301,7 +301,7 @@ func _build_footer(parent: Control) -> void:
 	var res_text  := "—"
 	var tier_text := "—"
 	if not Engine.is_editor_hint() and _pm != null:
-		res_text = "%d RES REMAINING" % _pm.resources
+		res_text = "%d VAULT REMAINING" % _pm.resources
 		var tier_labels: Array[String] = ["BARE", "TORCHES LIT", "RESTORED"]
 		tier_text = "HUB: %s" % tier_labels[_pm.get_hub_tier()]
 

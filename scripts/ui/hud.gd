@@ -1,7 +1,7 @@
 extends CanvasLayer
 
-## HUD — Health bar, XP bar, level display, loot counter, instability vignette,
-## extraction window countdown, LOOT AT RISK warning, and combo discovery popups.
+## HUD — Health bar, XP bar, level display, haul counter, instability vignette,
+## extraction window countdown, HAUL AT RISK warning, and combo discovery popups.
 
 ## ── Minifantasy UI theme (Classic set) ───────────────────────────────────────
 ## Bars/panels are sourced from the Minifantasy UI Overhaul "Classic" sheet.
@@ -203,12 +203,18 @@ func _on_xp_changed(current: float, needed: float) -> void:
 func _on_leveled_up(new_level: int) -> void:
 	level_label.text = "Lv%d" % new_level
 
+## HAUL is the player-facing name for GameManager.loot_carried — what you are carrying and stand
+## to LOSE. Its counterpart is VAULT (ProgressionManager.resources), which is banked and safe.
+## Those two were both called some flavour of "loot"/"resources" until 2026-08-03, which made the
+## single most important distinction in the game read as a pair of synonyms. See the naming note
+## on GameManager.loot_carried. "loot" survives as a verb and as the word for stuff on the ground —
+## you loot things, and what you are carrying out is your haul.
 func _on_loot_changed(new_value: float) -> void:
-	loot_label.text = "LOOT: %d" % int(new_value)
+	loot_label.text = "HAUL: %d" % int(new_value)
 
 func _on_instability_changed(new_value: float) -> void:
 	## Instability reads atmospherically — no meter. A tier-colored vignette
-	## creeps in from ~50 instability, plus the LOOT AT RISK warning at Volatile+.
+	## creeps in from ~50 instability, plus the HAUL AT RISK warning at Volatile+.
 	var tier: Dictionary = LootTables.get_instability_tier(new_value)
 	var col: Color = tier.color
 
@@ -219,7 +225,7 @@ func _on_instability_changed(new_value: float) -> void:
 	vig_left.color   = vig_col
 	vig_right.color  = vig_col
 
-	## LOOT AT RISK label — visible at Volatile+ (71+)
+	## HAUL AT RISK label — visible at Volatile+ (71+)
 	loot_at_risk_label.visible = new_value >= 71.0
 
 func _on_extraction_started() -> void:

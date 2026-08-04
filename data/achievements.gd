@@ -111,7 +111,7 @@ const ALL: Dictionary = {
 	},
 	"gold_hoarder": {
 		"title": "Gilded",
-		"description": "Earn 5000 total gold across all runs.",
+		"description": "Bank 5000 to your Vault across all runs.",
 		"secret": false,
 		"icon": "◉",
 		"color": Color(1.0, 0.92, 0.4),

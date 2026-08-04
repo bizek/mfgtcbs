@@ -218,11 +218,33 @@ through the real input pipeline consumed the portal and opened a gateway 230px a
 whole claim: it ignores the phase clock. `is_persistent` true, `payout_type` "gateway". Walking in
 settled 500 loot at **x1.00** and rendered the results screen. Save restored byte-identical after.
 
-**Currency naming.** `GameManager.loot_carried` (in-run, **at risk**) and
-`ProgressionManager.resources` (banked, **safe**) are two genuinely different things whose UI
-names — "LOOT" and "RESOURCES" — read as synonyms. That distinction is the entire reason the
-tension exists. Ben's shortlist was a pair: **Haul** (carried) and **Vault**/**Coffers** (banked).
-Internally there is also `gold` (38 refs), `currency` (6) and a stray `scrap`.
+**Currency naming — DONE 2026-08-03. HAUL / VAULT** (Ben's pick).
+
+`GameManager.loot_carried` is player-facing **HAUL** — carried, at risk, zeroed on death.
+`ProgressionManager.resources` is player-facing **VAULT** — banked, safe. Those two are the entire
+reason the extraction tension exists, and the UI had been calling them "LOOT" and
+"RESOURCES"/"RES", plus "gold" in one achievement: four names for two things, and the two that
+mattered read as synonyms.
+
+Every player-facing string now uses one of the two — HUD counter and the AT RISK warning, merchant
+(header, subtitle, and the `%d HAUL` price column), level-up weapon cache, pause-menu abandon
+confirm, records, roster, research, workshop, first-run tutorial cue, one mod description, one
+achievement. The results screen carries the most weight, because it is the only place a player
+watches one become the other: it now reads **HAUL** at the top and **── BANKED TO VAULT** at the
+bottom.
+
+**The identifiers were deliberately NOT renamed** (Ben's call). `resources` is a save key, so
+renaming it costs a migration and buys the player nothing. Anchor comments on both declarations
+map each internal name to its player-facing one. "loot" survives as a verb and as the word for
+stuff on the ground — you loot things, and what you carry out is your haul, so the menu subtitle
+"descend. loot. extract." and the `loot_find` stat ("+15% Loot Find") are correct as they stand.
+
+Two dead placeholders left alone: `hub_records_panel.tscn` and `hub_roster_panel.tscn` still carry
+"Most Loot (run)" / "Resources: 0" as design-time label text, but both panels `queue_free()` every
+child and rebuild from code, so neither string ever reaches a player. Not worth re-serialising two
+more scenes into the in-progress font pass.
+
+Verified on screen: HUD, merchant, research, workshop, results.
 
 **Upgrade pool bias — DONE 2026-08-03.** Ben, on difficulty: *"before we remove mob numbers, lets
 give player's methods of dealing with it."* Enemies spawn on a **340px ring** around the player and
