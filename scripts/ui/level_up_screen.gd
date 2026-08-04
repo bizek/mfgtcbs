@@ -11,6 +11,43 @@ var _glyph_bar: GlyphBar
 
 const WEAPON_SWAP_COST: float = 30.0
 
+## --- Card identity (2026-08-03) ---
+## The pool gained roles, but every generic card still rendered as undifferentiated white text, so
+## the crowd answers read exactly as flat as the stat sticks they exist to stand out from. Each
+## card now carries a role colour on its name, a left accent bar, and a leading glyph — the glyph
+## because colour alone is not a cue for a colourblind player, and this is a 640x360 game where
+## hue is most of what a 210px card can spend.
+##
+## GLYPHS ARE ASCII ON PURPOSE. m5x7 has no coverage for the decorative Unicode marks: the ★ and ✦
+## this screen used until now were silently falling back to Godot's default vector font, so the
+## one glyph meant to make a card feel special was also the one blurry thing on it. Every mark
+## below is verified present in m5x7 — check with FontFile.has_char() before adding another.
+const C_CROWD:   Color = Color(1.00, 0.55, 0.28)   ## burst orange — hits many at once
+const C_SPACE:   Color = Color(0.42, 0.82, 1.00)   ## cyan — distance and mobility
+const C_SURVIVE: Color = Color(0.48, 0.85, 0.48)   ## green — endure what lands
+const C_POWER:   Color = Color(0.88, 0.86, 0.78)   ## bone white — the baseline stat stick
+const C_EVO:     Color = Color(1.00, 0.85, 0.15)   ## gold, unchanged
+const C_DESC:    Color = Color(0.70, 0.69, 0.66)   ## descriptions stay neutral so they stay legible
+const C_CARD_BG: Color = Color(0.082, 0.075, 0.063) ## matches the hub card plate (hub_armory_panel)
+
+const ROLE_COLORS: Dictionary = {
+	"crowd": C_CROWD, "space": C_SPACE, "survive": C_SURVIVE, "power": C_POWER,
+}
+## Shapes chosen to stay apart at 16px: a burst, a chevron pair, a wall, a plus.
+const ROLE_GLYPHS: Dictionary = {
+	"crowd": "*", "space": "»", "survive": "#", "power": "+",
+}
+const EVO_GLYPH: String = "&"   ## an evolution is literally two upgrades fused — "and" fits
+const KIT_GLYPH: String = "^"   ## your kit steps up
+
+const CARD_SIZE: Vector2 = Vector2(210, 40)
+## Usable text width inside a card: CARD_SIZE.x minus the 9px left inset (clear of the accent bar)
+## and the 4px right one. Descriptions are the widest thing on a card and ten of them run past it —
+## every evolution, plus three kit upgrades, the worst at 285px. They clipped on the old single-
+## string button too; wrapping is what actually fixes it.
+const CARD_TEXT_WIDTH: float = 197.0
+const CARD_MAX_DESC_LINES: int = 2
+
 var player_ref: Node2D = null
 var _choices: Array[Dictionary] = []
 var _rerolls_remaining: int = 0
@@ -44,24 +81,10 @@ func _show_choices() -> void:
 	## Load pixel font for buttons (same font used by the HUD)
 	var pixel_font: FontFile = load("res://assets/fonts/m5x7.ttf")
 
-	## Create a button for each choice
+	## Create a button for each choice. All three share one height so the row reads as a row.
+	var card_h: float = _card_height_for(_choices, pixel_font)
 	for i in range(_choices.size()):
-		var upgrade: Dictionary = _choices[i]
-		var btn := Button.new()
-		if upgrade.get("is_evolution", false):
-			btn.text = "★ %s\n%s" % [upgrade.name, upgrade.description]
-			btn.add_theme_color_override("font_color", Color(1.0, 0.85, 0.15))
-		elif upgrade.get("is_ability_upgrade", false):
-			btn.text = "✦ %s\n%s" % [upgrade.name, upgrade.description]
-			var char_color: Color = CharacterData.ALL.get(
-				ProgressionManager.selected_character, {}).get("color", Color.WHITE)
-			btn.add_theme_color_override("font_color", char_color)
-		else:
-			btn.text = "%s\n%s" % [upgrade.name, upgrade.description]
-		btn.custom_minimum_size = Vector2(210, 38)
-		if pixel_font:
-			btn.add_theme_font_override("font", pixel_font)
-		btn.add_theme_font_size_override("font_size", 16)
+		var btn := _build_choice_card(_choices[i], pixel_font, card_h)
 		btn.pressed.connect(_on_choice_pressed.bind(i))
 		UINav.apply_focus_ring(btn)
 		choices_container.add_child(btn)
@@ -71,7 +94,7 @@ func _show_choices() -> void:
 	reroll_btn.custom_minimum_size = Vector2(210, 30)
 	if pixel_font:
 		reroll_btn.add_theme_font_override("font", pixel_font)
-	reroll_btn.add_theme_font_size_override("font_size", 19)
+	reroll_btn.add_theme_font_size_override("font_size", 16)
 	reroll_btn.disabled = _rerolls_remaining <= 0
 	reroll_btn.text = "Reroll  [%d left]" % _rerolls_remaining
 	reroll_btn.pressed.connect(_on_reroll_pressed)
@@ -80,6 +103,111 @@ func _show_choices() -> void:
 
 	_build_weapon_cache(pixel_font)
 	UINav.focus_first(choices_container)
+
+## One choice card. A Button holding its own layout rather than a two-line `text` string, because
+## the name and the description want different colours and Button.text can only be one.
+##
+## Children are anchored, not laid out by a Container, so the Button is NOT a container and its
+## minimum size stays exactly CARD_SIZE. That is deliberate: the level-up Panel is a PanelContainer
+## that grows to fit its content, and a card free to grow with its text could push the panel past
+## the 360px viewport on a long description.
+## Uniform card height for the offered set: one name line plus however many lines the LONGEST
+## description on offer needs, capped. Sizing every card to the tallest keeps the row square —
+## three different heights would read as a layout bug rather than as emphasis. The cap is safe:
+## the widest description in the game measures 285px, which is two lines at 197px.
+func _card_height_for(choices: Array[Dictionary], pixel_font: FontFile) -> float:
+	var line_h: float = 18.0
+	if pixel_font:
+		line_h = pixel_font.get_string_size("Ag", HORIZONTAL_ALIGNMENT_LEFT, -1, 16).y
+	var max_lines: int = 1
+	for c: Dictionary in choices:
+		if not pixel_font:
+			break
+		var w: float = pixel_font.get_string_size(
+			str(c.get("description", "")), HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
+		max_lines = maxi(max_lines, clampi(ceili(w / CARD_TEXT_WIDTH), 1, CARD_MAX_DESC_LINES))
+	return maxf(CARD_SIZE.y, line_h * float(1 + max_lines) + 4.0)
+
+
+func _build_choice_card(upgrade: Dictionary, pixel_font: FontFile, card_h: float) -> Button:
+	var accent: Color = C_POWER
+	var glyph: String = "+"
+	if upgrade.get("is_evolution", false):
+		accent = C_EVO
+		glyph = EVO_GLYPH
+	elif upgrade.get("is_ability_upgrade", false):
+		accent = CharacterData.ALL.get(
+			ProgressionManager.selected_character, {}).get("color", Color.WHITE)
+		glyph = KIT_GLYPH
+	else:
+		var role: String = upgrade.get("role", "power")
+		accent = ROLE_COLORS.get(role, C_POWER)
+		glyph = ROLE_GLYPHS.get(role, "+")
+
+	var btn := Button.new()
+	btn.text = ""
+	btn.custom_minimum_size = Vector2(CARD_SIZE.x, card_h)
+	## UINav.apply_focus_ring only overrides "focus", and draws border-only on top — these three
+	## do not fight it.
+	btn.add_theme_stylebox_override("normal", _card_style(accent, 0.06))
+	btn.add_theme_stylebox_override("hover", _card_style(accent, 0.16))
+	btn.add_theme_stylebox_override("pressed", _card_style(accent, 0.24))
+
+	## Left accent bar — the same 3-4px strip the hub cards use to signal state.
+	var strip := ColorRect.new()
+	strip.color = accent
+	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	strip.anchor_left = 0.0
+	strip.anchor_top = 0.0
+	strip.anchor_right = 0.0
+	strip.anchor_bottom = 1.0
+	strip.offset_left = 0.0
+	strip.offset_top = 0.0
+	strip.offset_right = 3.0
+	strip.offset_bottom = 0.0
+	btn.add_child(strip)
+
+	var margin := MarginContainer.new()
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.add_theme_constant_override("margin_left", 9)
+	margin.add_theme_constant_override("margin_right", 4)
+	margin.add_theme_constant_override("margin_top", 1)
+	margin.add_theme_constant_override("margin_bottom", 1)
+	btn.add_child(margin)
+
+	var col := VBoxContainer.new()
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_theme_constant_override("separation", 0)
+	margin.add_child(col)
+
+	col.add_child(_card_line("%s %s" % [glyph, str(upgrade.get("name", "?"))], accent, pixel_font))
+	var desc := _card_line(str(upgrade.get("description", "")), C_DESC, pixel_font)
+	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	col.add_child(desc)
+	return btn
+
+
+func _card_line(text: String, color: Color, pixel_font: FontFile) -> Label:
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lbl.add_theme_color_override("font_color", color)
+	if pixel_font:
+		lbl.add_theme_font_override("font", pixel_font)
+	lbl.add_theme_font_size_override("font_size", 16)
+	return lbl
+
+
+## Card plate: the hub's dark card colour pulled a little toward the role hue, framed in a dimmed
+## version of the same hue so the border belongs to the card instead of outlining it.
+func _card_style(accent: Color, tint: float) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = C_CARD_BG.lerp(accent, tint)
+	sb.border_color = C_CARD_BG.lerp(accent, 0.35)
+	sb.set_border_width_all(1)
+	return sb
+
 
 func _build_weapon_cache(pixel_font: FontFile) -> void:
 	var current_weapon: String = player_ref.get_active_weapon_id()
@@ -106,7 +234,7 @@ func _build_weapon_cache(pixel_font: FontFile) -> void:
 	header.text = "— WEAPON CACHE  [%.0f / %.0f loot] —" % [GameManager.loot_carried, WEAPON_SWAP_COST]
 	if pixel_font:
 		header.add_theme_font_override("font", pixel_font)
-	header.add_theme_font_size_override("font_size", 19)
+	header.add_theme_font_size_override("font_size", 16)
 	header.add_theme_color_override("font_color", Color(0.55, 0.85, 1.0))
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	choices_container.add_child(header)
@@ -119,7 +247,7 @@ func _build_weapon_cache(pixel_font: FontFile) -> void:
 	btn.disabled = GameManager.loot_carried < WEAPON_SWAP_COST
 	if pixel_font:
 		btn.add_theme_font_override("font", pixel_font)
-	btn.add_theme_font_size_override("font_size", 17)
+	btn.add_theme_font_size_override("font_size", 16)
 	btn.add_theme_color_override("font_color", Color(0.55, 0.85, 1.0))
 	btn.pressed.connect(_on_weapon_swap_pressed.bind(offered))
 	choices_container.add_child(btn)

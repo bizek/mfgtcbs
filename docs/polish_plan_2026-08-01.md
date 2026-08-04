@@ -227,9 +227,22 @@ its cooldown, and the surge's `("All","damage_taken")` modifier pair). The start
 also checks that every upgrade/evolution `status_id` resolves in `StatusFactory` — a miss there is
 silent at runtime, exactly like the anim-target class it already covered.
 
-Still open on this thread: the level-up **card layout is text-only** (`name\ndescription` on a
-210×38 button), so the new upgrades read as flat as the stat sticks they are meant to stand out
-from. Role colour or an icon would sell the distinction.
+**Level-up card colours — DONE 2026-08-03.** Each card now carries a role colour on its name, a
+matching 3px left accent bar, a role-tinted plate, and a leading glyph: `*` crowd (orange) · `»`
+space (cyan) · `#` survive (green) · `+` power (bone) · `&` evolution (gold) · `^` kit upgrade
+(character colour). Descriptions stay neutral grey so they stay readable.
+
+Two pre-existing bugs surfaced and were fixed on the way:
+
+- **`★` and `✦` were not in m5x7.** The two marks meant to make evolution and kit-upgrade cards
+  feel special were the only blurry things on them, silently falling back to Godot's vector font.
+  Every glyph above is verified with `FontFile.has_char()` — check before adding another.
+- **Ten descriptions overflowed the card.** All seven evolutions plus three kit upgrades run past
+  the 197px of usable width, the worst at 285px, and clipped on the old single-string button too.
+  Descriptions now wrap, and the three cards on offer share one height computed from the longest.
+
+Verified in the Training Room across all six treatments, including the worst case — three
+two-line cards *with* the weapon cache open still fit the 360px viewport.
 
 **`descent_portal` (3.0x) is unverified.** Its type assignment and settlement path are shared
 with the two verified rungs, but reaching it needs a full ten-block descent plus the boss.
