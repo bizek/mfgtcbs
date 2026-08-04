@@ -207,15 +207,16 @@ Every refusal path is verified and none of them consume the portal: no anchor (n
 boss seal, gateway already open, dead player. Guard order means the anchor check short-circuits
 first, which is why the boss-seal branch needed a stubbed BlockManager to reach in testing.
 
-**One deliberate non-decision:** the final-boss seal (`is_extraction_allowed()`) is *not*
-overridden. It is an existing design statement that the climax is a commitment, and a bought item
-should not be the thing that quietly repeals it. If you want the portal to work mid-final-boss,
-that is a one-line change — but it should be your call, not a side effect of this feature.
+**The final-boss seal stays** (Ben, 2026-08-03): `is_extraction_allowed()` is not overridden, so
+the climax remains a commitment. The portal covers everything before it, which is where being
+overwhelmed actually happens.
 
-**Still unverified:** the success path itself. It needs a real descent, and Training-Room-only is
-non-negotiable without your say-so. The call it makes, `_open_gateway("gateway", true)`, is
-identical in form to the miniboss gateway verified live on 2026-08-02, and both argument values
-are individually proven — but that is an argument, not a test.
+**Success path verified** in a controlled descent (Ben-authorised, 2026-08-03): god mode on,
+`EnemySpawnManager.max_enemies = 0` to suppress spawns, ten blocks built. Pressing physical `[T]`
+through the real input pipeline consumed the portal and opened a gateway 230px away — the
+`GATEWAY_MAX_DASH` cap, exactly — with `extraction_window_active == false`, which is the feature's
+whole claim: it ignores the phase clock. `is_persistent` true, `payout_type` "gateway". Walking in
+settled 500 loot at **x1.00** and rendered the results screen. Save restored byte-identical after.
 
 **Currency naming.** `GameManager.loot_carried` (in-run, **at risk**) and
 `ProgressionManager.resources` (banked, **safe**) are two genuinely different things whose UI
