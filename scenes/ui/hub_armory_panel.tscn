@@ -49,7 +49,12 @@ content_margin_left = 2.0
 content_margin_top = 2.0
 content_margin_right = 2.0
 content_margin_bottom = 2.0
-bg_color = Color(0, 0, 0, 0)
+bg_color = Color(0.353, 0.173, 0.031, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.941, 0.565, 0.188, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4relw"]
 content_margin_left = 2.0
@@ -84,7 +89,12 @@ content_margin_left = 2.0
 content_margin_top = 2.0
 content_margin_right = 2.0
 content_margin_bottom = 2.0
-bg_color = Color(0, 0, 0, 0)
+bg_color = Color(0.353, 0.173, 0.031, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.941, 0.565, 0.188, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_s4k67"]
 content_margin_left = 2.0
@@ -119,7 +129,12 @@ content_margin_left = 2.0
 content_margin_top = 2.0
 content_margin_right = 2.0
 content_margin_bottom = 2.0
-bg_color = Color(0, 0, 0, 0)
+bg_color = Color(0.353, 0.173, 0.031, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.941, 0.565, 0.188, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_d52nm"]
 content_margin_left = 2.0
@@ -154,7 +169,12 @@ content_margin_left = 2.0
 content_margin_top = 2.0
 content_margin_right = 2.0
 content_margin_bottom = 2.0
-bg_color = Color(0, 0, 0, 0)
+bg_color = Color(0.353, 0.173, 0.031, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.941, 0.565, 0.188, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ewln5"]
 content_margin_left = 2.0
@@ -189,7 +209,12 @@ content_margin_left = 2.0
 content_margin_top = 2.0
 content_margin_right = 2.0
 content_margin_bottom = 2.0
-bg_color = Color(0, 0, 0, 0)
+bg_color = Color(0.18, 0.14, 0.1, 0.6)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.941, 0.565, 0.188, 1)
 
 [node name="HubArmoryPanel" type="Control" unique_id=100800008]
 layout_mode = 3
@@ -292,7 +317,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.314, 0.235, 0.157, 1)
 theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 16
 text = "mod description"
 clip_text = true
 
@@ -320,7 +345,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.314, 0.235, 0.157, 1)
 theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 16
 text = "mod description"
 clip_text = true
 
@@ -348,7 +373,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.314, 0.235, 0.157, 1)
 theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 16
 text = "mod description"
 clip_text = true
 
@@ -376,7 +401,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.314, 0.235, 0.157, 1)
 theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 16
 text = "mod description"
 clip_text = true
 

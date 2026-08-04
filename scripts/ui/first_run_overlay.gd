@@ -34,8 +34,10 @@ var _run_time: float = 0.0
 var _panel: PanelContainer = null
 var _label: RichTextLabel = null
 
+## Scaled font size, snapped to the m5x7 pixel grid — see Settings.snap_font_size for why a
+## raw multiply cannot be used here (0.85 and 1.25 both produce off-grid, and sub-16 fuses).
 func _ts(base_size: int) -> int:
-	return int(roundf(base_size * Settings.get_text_scale()))
+	return Settings.scaled_font_size(base_size)
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS

@@ -189,15 +189,32 @@ All content follows the data factory pattern: `static func create() -> Resource`
   deliberately does not use the pixel font. **Never set a player-facing size below 16.**
   **Counting sites: grep for digits is WRONG and will under-report by ~half.** Most sizes come
   from named constants (`FS_MD`, `FS_XS`, `_FS_LG`, `FS_TINY`) applied via
-  `add_theme_font_size_override("font_size", FS_MD)`. Resolve the constants. True inventory as of
-  2026-08-03: **217 sites, 130 crisp, 64 fuzzy** — all remaining fuzz is *below* 16.
-  **Still fuzzy and player-facing** (needs m3x6 — Daniel Linssen's 8px-native companion to m5x7,
-  same free license — or a reflow): in-run HUD sublabels, floating damage numbers
-  (`combat_feedback_manager` 9/10/14), merchant shop, pause menu, codex grid, insurance panel,
-  world-space pickup labels. Debug tools (anim lab, debug panel, entity inspector, passive-tree
-  debug) are deliberately left alone.
-  **Also unresolved:** `Settings.TEXT_SIZE_SCALE` is `{0.85, 1.0, 1.25}`, so the SMALL/LARGE
-  accessibility options multiply 16 into 14/20 and reintroduce the fuzz for anyone off NORMAL.
+  `add_theme_font_size_override("font_size", FS_MD)`. Resolve the constants.
+  **PASS COMPLETE 2026-08-03. Inventory: 191 sites, 173 crisp, 18 off-grid — and all 18 are in
+  debug tools** (anim lab, debug panel, entity inspector, passive-tree debug, ldtk test harness),
+  which are deliberately left alone. **Zero player-facing off-grid sizes remain.** m3x6 was never
+  needed; every sub-16 site went to 16 and reflowed instead.
+  **A font_size override alone fixes nothing — the FONT has to be applied too.** Five player-facing
+  scripts sized text but never set a font, so they rendered in Godot's default vector font:
+  `pause_menu.gd`, `insurance_panel.gd`, `arena_generator.gd`, `extraction_zone_base.gd`,
+  `ldtk_exit_zone.gd` (plus `game_over_screen.gd`, fixed earlier in the pass). Each now has a local
+  `_apply_pixel_font(c)` helper. **Check for this on any new screen** — it is invisible in a diff
+  and obvious on screen.
+  **The one deliberate exception: floating damage numbers.** `combat_feedback_manager` draws at
+  `FONT_SIZE = 7` via `draw_string`, and its `font` is never assigned, so it falls back to
+  `ThemeDB.fallback_font`. Because that is a *vector* font it does not fuse at 7px — so this is a
+  style inconsistency (vector type in a pixel game), not the crispness bug, and the earlier note
+  claiming "9/10/14, needs m3x6" was wrong on both counts. Left alone on purpose: forcing m5x7 at
+  16 would nearly double the size of every damage number over the play field. Decide the look
+  first; it needs a bitmap digit set or m3x6, not a size change.
+  **`Settings.TEXT_SIZE_SCALE` — resolved, with a caveat.** Scaled sizes now go through
+  `Settings.scaled_font_size()` → `snap_font_size()`, which returns the nearest multiple of 16 and
+  never less than 16, so no setting can produce an off-grid size. Consequence stated plainly: at
+  base-16 text, SMALL (0.85→13.6) and LARGE (1.25→20) both snap back to 16 and are **no-ops** —
+  with a 16px-native font there is no crisp in-between, only 16 and 32. Also worth knowing before
+  trusting this setting at all: **only 8 of 151 font sites route through it** (`hud.gd`,
+  `first_run_overlay.gd`); everything else hardcodes 16 or 32. Making it mean something game-wide
+  is a separate job, and LARGE would have to be 2.0.
   **Layout footgun this exposed:** shrinking body text narrows any container that sizes to its
   content minimum, which surfaces latent layout bugs. `hub_launch_panel.gd` used a bare `Panel`
   (not a container — it never stretches children) so its brief column had always hugged content;

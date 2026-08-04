@@ -274,8 +274,34 @@ func set_text_size(value: int) -> void:
 
 
 ## Multiplier to apply to any HUD/UI font_size before add_theme_font_size_override.
+## Prefer scaled_font_size() — a raw multiply produces off-grid sizes. See below.
 func get_text_scale() -> float:
 	return TEXT_SIZE_SCALE[text_size]
+
+
+## Snap a font size onto the m5x7 pixel grid: the nearest multiple of 16, never below 16.
+##
+## m5x7 is 16px-native, so only 16 and its integer multiples land one design pixel per screen
+## pixel; anything else falls on fractional pixels and snaps unevenly before the 3x viewport
+## upscale. There is no crisp "slightly bigger", which is exactly what this enforces.
+##
+## The floor is not fussiness. Below 16 m5x7 glyphs FUSE rather than merely soften — at 14 a 5px
+## glyph scales to 4.375px and the 1px inter-letter gap vanishes, so "Fire" renders with the `ir`
+## welded into one blob and `R` reads as `A`. A smaller option is unreadable, not just small.
+##
+## Consequence, stated plainly: with a 16px-native font, SMALL and LARGE cannot both exist and be
+## crisp. 16 x 0.85 = 13.6 and 16 x 1.25 = 20 both snap back to 16, so at base-16 text those two
+## options are no-ops. Making the setting mean something across the whole UI is a separate job —
+## LARGE would have to be 2.0 (i.e. 32), and every fixed-size container tuned at 16 would need
+## rechecking. Worth knowing first: only 8 of the game's 151 font sites route through this setting
+## at all (hud.gd and first_run_overlay.gd); everything else hardcodes 16 or 32.
+func snap_font_size(size: float) -> int:
+	return maxi(16, int(roundf(size / 16.0)) * 16)
+
+
+## The one call every scaled font size should go through.
+func scaled_font_size(base_size: int) -> int:
+	return snap_font_size(float(base_size) * get_text_scale())
 
 
 ## ── Gameplay setters ──────────────────────────────────────────────────────────

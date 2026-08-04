@@ -53,7 +53,8 @@ func _build_visuals() -> void:
 	var lbl := Label.new()
 	lbl.text = "KEYSTONE"
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.position = Vector2(-40, -30)
+	lbl.size = Vector2(120.0, 0.0)
+	lbl.position = Vector2(-60.0, -30.0)
 	lbl.modulate = Color(1.0, 0.88, 0.18)
 	if ResourceLoader.exists(PIXEL_FONT_PATH):
 		var ls := LabelSettings.new()
@@ -63,7 +64,7 @@ func _build_visuals() -> void:
 		ls.outline_color = Color(0.0, 0.0, 0.0, 0.9)
 		lbl.label_settings = ls
 	else:
-		lbl.add_theme_font_size_override("font_size", 14)
+		lbl.add_theme_font_size_override("font_size", 16)
 	add_child(lbl)
 
 	## Gem spin

@@ -1,5 +1,6 @@
 extends CanvasLayer
 
+
 ## PauseMenu — ESC / controller Start opens/closes. Shows Resume, Settings, Abandon Run,
 ## and (in debug mode) the Debug Panel toggle.
 ## process_mode = ALWAYS so it runs while tree is paused.
@@ -97,6 +98,7 @@ func _build_menu() -> void:
 	var title := Label.new()
 	title.text = "PAUSED"
 	title.add_theme_font_size_override("font_size", 16)
+	_apply_pixel_font(title)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.modulate = Color(1.0, 1.0, 1.0)
 	vbox.add_child(title)
@@ -107,7 +109,8 @@ func _build_menu() -> void:
 	## Resume button
 	var resume_btn := Button.new()
 	resume_btn.text = "Resume"
-	resume_btn.add_theme_font_size_override("font_size", 14)
+	resume_btn.add_theme_font_size_override("font_size", 16)
+	_apply_pixel_font(resume_btn)
 	resume_btn.pressed.connect(_close)
 	UINav.apply_focus_ring(resume_btn)
 	vbox.add_child(resume_btn)
@@ -115,7 +118,8 @@ func _build_menu() -> void:
 	## Settings button
 	var settings_btn := Button.new()
 	settings_btn.text = "Settings"
-	settings_btn.add_theme_font_size_override("font_size", 14)
+	settings_btn.add_theme_font_size_override("font_size", 16)
+	_apply_pixel_font(settings_btn)
 	settings_btn.pressed.connect(func():
 		AudioManager.play_ui("sfx_ui_click")
 		_open_settings())
@@ -126,7 +130,8 @@ func _build_menu() -> void:
 	## never reads as a neutral option, and armed by a second press (see _on_abandon_pressed).
 	var abandon_btn := Button.new()
 	abandon_btn.text = "Abandon Run"
-	abandon_btn.add_theme_font_size_override("font_size", 14)
+	abandon_btn.add_theme_font_size_override("font_size", 16)
+	_apply_pixel_font(abandon_btn)
 	abandon_btn.add_theme_color_override("font_color", Color(1.0, 0.42, 0.36))
 	abandon_btn.pressed.connect(_on_abandon_pressed)
 	UINav.apply_focus_ring(abandon_btn)
@@ -137,7 +142,8 @@ func _build_menu() -> void:
 	if GameManager.debug_mode:
 		var debug_btn := Button.new()
 		debug_btn.text = "Debug Panel"
-		debug_btn.add_theme_font_size_override("font_size", 14)
+		debug_btn.add_theme_font_size_override("font_size", 16)
+		_apply_pixel_font(debug_btn)
 		debug_btn.pressed.connect(_toggle_debug_panel)
 		UINav.apply_focus_ring(debug_btn)
 		vbox.add_child(debug_btn)
@@ -194,3 +200,16 @@ func _close_settings() -> void:
 	_panel.visible = true
 	if _resume_btn:
 		_resume_btn.grab_focus.call_deferred()
+
+
+## ── Pixel font ────────────────────────────────────────────────────────────────
+## Every site in this file set a font_size but no FONT, so the text rendered in Godot's default
+## vector font — antialiased at 640x360, then nearest-upscaled 3x into mush. It is the same bug
+## game_over_screen.gd shipped with, and a font_size override on its own does nothing to fix it.
+const PIXEL_FONT_PATH: String = "res://assets/fonts/m5x7.ttf"
+
+
+func _apply_pixel_font(c: Control) -> void:
+	if not ResourceLoader.exists(PIXEL_FONT_PATH):
+		return
+	c.add_theme_font_override("font", load(PIXEL_FONT_PATH))

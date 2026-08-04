@@ -170,7 +170,7 @@ func _build_toast() -> void:
 	_toast_title.text = "ACHIEVEMENT UNLOCKED"
 	_toast_title.position = Vector2(38.0, 6.0)
 	_toast_title.size = Vector2(176.0, 14.0)
-	_toast_title.add_theme_font_size_override("font_size", 12)
+	_toast_title.add_theme_font_size_override("font_size", 16)
 	_toast_title.add_theme_color_override("font_color", Color(0.65, 0.65, 0.72))
 	_toast_root.add_child(_toast_title)
 

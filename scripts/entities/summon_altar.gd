@@ -44,8 +44,12 @@ func _build_visuals() -> void:
 
 	var name_lbl := Label.new()
 	name_lbl.text = "SUMMON ALTAR"
-	name_lbl.position = Vector2(-38.0, -28.0)
-	name_lbl.add_theme_font_size_override("font_size", 12)
+	## Self-centring: a fixed negative x offset assumes a text width, so it drifts the moment
+	## the font size or the item name changes. Width + CENTER holds at any size.
+	name_lbl.size = Vector2(140.0, 0.0)
+	name_lbl.position = Vector2(-70.0, -28.0)
+	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_lbl.add_theme_font_size_override("font_size", 16)
 	name_lbl.add_theme_color_override("font_color", Color(0.75, 0.35, 1.0))
 	if _pixel_font:
 		name_lbl.add_theme_font_override("font", _pixel_font)
@@ -55,15 +59,19 @@ func _build_visuals() -> void:
 	## The old "[E] Summon" brackets are gone — the keycap sprite is the bracket.
 	var prompt := GlyphBar.rich_prompt(11, Color(0.80, 0.60, 1.0))
 	prompt.text = "%s Summon  (Risky)" % InputGlyphs.action_glyph_bb("interact")
-	prompt.position = Vector2(-36.0, 14.0)
+	prompt.size = Vector2(140.0, 0.0)
+	prompt.position = Vector2(-70.0, 14.0)
+	prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	prompt.visible = false
 	add_child(prompt)
 	_prompt_label = prompt
 
 	var status := Label.new()
 	status.text = ""
-	status.position = Vector2(-36.0, 26.0)
-	status.add_theme_font_size_override("font_size", 11)
+	status.size = Vector2(140.0, 0.0)
+	status.position = Vector2(-70.0, 26.0)
+	status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	status.add_theme_font_size_override("font_size", 16)
 	status.add_theme_color_override("font_color", Color(1.0, 0.55, 0.55))
 	status.visible = false
 	if _pixel_font:
@@ -183,8 +191,10 @@ class AltarExtractionZone extends Node2D:
 		pulse.tween_property(fill, "modulate:a", 1.0, 0.65)
 
 		var lbl := Label.new()
-		lbl.position = Vector2(-36.0, -58.0)
-		lbl.add_theme_font_size_override("font_size", 12)
+		lbl.size = Vector2(140.0, 0.0)
+		lbl.position = Vector2(-70.0, -58.0)
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lbl.add_theme_font_size_override("font_size", 16)
 		lbl.add_theme_color_override("font_color", Color(0.15, 1.0, 0.5))
 		if font:
 			lbl.add_theme_font_override("font", font)

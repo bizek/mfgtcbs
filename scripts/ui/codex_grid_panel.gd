@@ -154,7 +154,7 @@ func _build_ui() -> void:
 	for def in filter_defs:
 		var key: String = def[0]
 		var btn := _make_button(def[1], fx, filter_y, 108, 14)
-		btn.add_theme_font_size_override("font_size", 14)
+		btn.add_theme_font_size_override("font_size", 16)
 		_style_btn_flat(btn, Color.TRANSPARENT, Color(0.28, 0.18, 0.48, 0.55))
 		btn.pressed.connect(func():
 			_filter = key
@@ -176,7 +176,7 @@ func _build_ui() -> void:
 	for def in sort_defs:
 		var key: String = def[0]
 		var btn := _make_button(def[1], sx, sort_y, 88, 12)
-		btn.add_theme_font_size_override("font_size", 12)
+		btn.add_theme_font_size_override("font_size", 16)
 		_style_btn_flat(btn, Color.TRANSPARENT, Color(0.20, 0.14, 0.32, 0.40))
 		btn.pressed.connect(func():
 			_sort = key
@@ -373,7 +373,7 @@ func _build_list_row(entry: CodexEntry) -> Control:
 	# Combo name label
 	var name_lbl := Label.new()
 	name_lbl.add_theme_font_override("font", PIXEL_FONT)
-	name_lbl.add_theme_font_size_override("font_size", 15)
+	name_lbl.add_theme_font_size_override("font_size", 16)
 	name_lbl.position = Vector2(8.0, 2.0)
 	name_lbl.size     = Vector2(146.0, 13.0)
 	name_lbl.clip_text = true
@@ -403,7 +403,7 @@ func _build_list_row(entry: CodexEntry) -> Control:
 	if entry.is_mastered():
 		var star := Label.new()
 		star.add_theme_font_override("font", PIXEL_FONT)
-		star.add_theme_font_size_override("font_size", 15)
+		star.add_theme_font_size_override("font_size", 16)
 		star.text = "\u2605"
 		star.add_theme_color_override("font_color", COL_MASTERED)
 		star.position = Vector2(156.0, 2.0)
@@ -414,7 +414,7 @@ func _build_list_row(entry: CodexEntry) -> Control:
 	if entry.discovered and not entry.revealed and not entry.is_mastered():
 		var hint := Label.new()
 		hint.add_theme_font_override("font", PIXEL_FONT)
-		hint.add_theme_font_size_override("font_size", 12)
+		hint.add_theme_font_size_override("font_size", 16)
 		hint.text = "???"
 		hint.add_theme_color_override("font_color", COL_DIM)
 		hint.position = Vector2(156.0, 3.0)
@@ -586,7 +586,7 @@ func _make_button(text: String, x: float, y: float,
 	btn.position = Vector2(x, y)
 	btn.size     = Vector2(w, h)
 	btn.add_theme_font_override("font", PIXEL_FONT)
-	btn.add_theme_font_size_override("font_size", 15)
+	btn.add_theme_font_size_override("font_size", 16)
 	btn.focus_mode = Control.FOCUS_ALL
 	return btn
 

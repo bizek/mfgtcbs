@@ -41,8 +41,12 @@ func _build_visuals() -> void:
 
 	var name_lbl := Label.new()
 	name_lbl.text = "MERCHANT"
-	name_lbl.position = Vector2(-28.0, -28.0)
-	name_lbl.add_theme_font_size_override("font_size", 12)
+	## Self-centring: a fixed negative x offset assumes a text width, so it drifts the moment
+	## the font size or the item name changes. Width + CENTER holds at any size.
+	name_lbl.size = Vector2(120.0, 0.0)
+	name_lbl.position = Vector2(-60.0, -28.0)
+	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_lbl.add_theme_font_size_override("font_size", 16)
 	name_lbl.add_theme_color_override("font_color", Color(1.0, 0.88, 0.22))
 	if _pixel_font:
 		name_lbl.add_theme_font_override("font", _pixel_font)
@@ -52,7 +56,9 @@ func _build_visuals() -> void:
 	## The old "[Q] Trade" brackets are gone — the keycap sprite is the bracket.
 	var prompt := GlyphBar.rich_prompt(11, Color(0.85, 0.85, 0.70))
 	prompt.text = "%s Trade" % InputGlyphs.action_glyph_bb("interact")
-	prompt.position = Vector2(-22.0, 14.0)
+	prompt.size = Vector2(120.0, 0.0)
+	prompt.position = Vector2(-60.0, 14.0)
+	prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	prompt.visible = false
 	add_child(prompt)
 	_prompt_label = prompt

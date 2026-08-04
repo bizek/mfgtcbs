@@ -60,13 +60,17 @@ func _build_label() -> void:
 	if not target_char_id.is_empty():
 		cargo_tag = " → " + CharacterData.ALL.get(target_char_id, {}).get("display_name", target_char_id)
 	lbl.text = "[" + rarity.to_upper() + "] " + display + cargo_tag
-	lbl.position = Vector2(-52.0, -30.0)
+	## Self-centring: a fixed negative x offset assumes a text width, so it drifts the moment
+	## the font size or the item name changes. Width + CENTER holds at any size.
+	lbl.size = Vector2(160.0, 0.0)
+	lbl.position = Vector2(-80.0, -30.0)
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
 	var settings := LabelSettings.new()
 	var font = load("res://assets/fonts/m5x7.ttf")
 	if font:
 		settings.font      = font
-		settings.font_size = 13
+		settings.font_size = 16
 	settings.outline_size  = 1
 	settings.outline_color = Color(0.0, 0.0, 0.0, 0.9)
 	settings.font_color    = rarity_color

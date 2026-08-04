@@ -1,6 +1,7 @@
 extends Node2D
 class_name ArenaGenerator
 
+
 ## ArenaGenerator — Prototype-only procedural arena layout.
 ## Builds wall collision bounds, scatters cover obstacles, marks the fixed
 ## extraction position, and paints spawn-zone hints at the arena edges.
@@ -249,7 +250,8 @@ func _place_extraction_marker() -> void:
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.position = Vector2(-32.0, -68.0)
 	lbl.modulate = Color(0.0, 0.85, 0.38, 0.5)
-	lbl.add_theme_font_size_override("font_size", 12)
+	lbl.add_theme_font_size_override("font_size", 16)
+	_apply_pixel_font(lbl)
 	marker.add_child(lbl)
 
 	add_child(marker)
@@ -289,7 +291,8 @@ func _place_guarded_marker() -> void:
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.position = Vector2(-32.0, -68.0)
 	lbl.modulate = Color(0.80, 0.20, 0.15, 0.45)
-	lbl.add_theme_font_size_override("font_size", 12)
+	lbl.add_theme_font_size_override("font_size", 16)
+	_apply_pixel_font(lbl)
 	marker.add_child(lbl)
 
 	add_child(marker)
@@ -338,7 +341,8 @@ func _place_locked_marker() -> void:
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.position = Vector2(-28.0, -68.0)
 	lbl.modulate = Color(0.70, 0.30, 0.95, 0.50)
-	lbl.add_theme_font_size_override("font_size", 12)
+	lbl.add_theme_font_size_override("font_size", 16)
+	_apply_pixel_font(lbl)
 	marker.add_child(lbl)
 
 	var key_lbl := Label.new()
@@ -346,7 +350,8 @@ func _place_locked_marker() -> void:
 	key_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	key_lbl.position = Vector2(-20.0, -58.0)
 	key_lbl.modulate = Color(0.75, 0.60, 0.90, 0.40)
-	key_lbl.add_theme_font_size_override("font_size", 11)
+	key_lbl.add_theme_font_size_override("font_size", 16)
+	_apply_pixel_font(key_lbl)
 	marker.add_child(key_lbl)
 
 	add_child(marker)
@@ -386,7 +391,21 @@ func _place_sacrifice_marker() -> void:
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.position = Vector2(-32.0, -68.0)
 	lbl.modulate = Color(0.85, 0.12, 0.12, 0.45)
-	lbl.add_theme_font_size_override("font_size", 12)
+	lbl.add_theme_font_size_override("font_size", 16)
+	_apply_pixel_font(lbl)
 	marker.add_child(lbl)
 
 	add_child(marker)
+
+
+## ── Pixel font ────────────────────────────────────────────────────────────────
+## Every site in this file set a font_size but no FONT, so the text rendered in Godot's default
+## vector font — antialiased at 640x360, then nearest-upscaled 3x into mush. It is the same bug
+## game_over_screen.gd shipped with, and a font_size override on its own does nothing to fix it.
+const PIXEL_FONT_PATH: String = "res://assets/fonts/m5x7.ttf"
+
+
+func _apply_pixel_font(c: Control) -> void:
+	if not ResourceLoader.exists(PIXEL_FONT_PATH):
+		return
+	c.add_theme_font_override("font", load(PIXEL_FONT_PATH))

@@ -1,6 +1,7 @@
 extends Node2D
 class_name ExtractionZoneBase
 
+
 ## ExtractionZoneBase — Shared logic for all extraction zone types.
 ## Each subclass implements its own zone visuals, activation conditions,
 ## and channeling behavior. The base handles proximity detection and
@@ -60,7 +61,21 @@ func _build_state_label(parent: Node2D, text: String, label_color: Color, x_offs
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.position = Vector2(x_offset, -80.0)
 	lbl.modulate = label_color
-	lbl.add_theme_font_size_override("font_size", 12)
+	lbl.add_theme_font_size_override("font_size", 16)
+	_apply_pixel_font(lbl)
 	parent.add_child(lbl)
 	_state_label = lbl
 	return lbl
+
+
+## ── Pixel font ────────────────────────────────────────────────────────────────
+## Every site in this file set a font_size but no FONT, so the text rendered in Godot's default
+## vector font — antialiased at 640x360, then nearest-upscaled 3x into mush. It is the same bug
+## game_over_screen.gd shipped with, and a font_size override on its own does nothing to fix it.
+const PIXEL_FONT_PATH: String = "res://assets/fonts/m5x7.ttf"
+
+
+func _apply_pixel_font(c: Control) -> void:
+	if not ResourceLoader.exists(PIXEL_FONT_PATH):
+		return
+	c.add_theme_font_override("font", load(PIXEL_FONT_PATH))

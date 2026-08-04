@@ -90,7 +90,7 @@ func _create_popup_ui() -> void:
 	_combo_subtitle_label.text = "COMBO DISCOVERED!"
 	_combo_subtitle_label.position = Vector2(10.0, 28.0)
 	_combo_subtitle_label.size = Vector2(220.0, 12.0)
-	_combo_subtitle_label.add_theme_font_size_override("font_size", 14)
+	_combo_subtitle_label.add_theme_font_size_override("font_size", 16)
 	_combo_subtitle_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
 	if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
 		_combo_subtitle_label.add_theme_font_override("font", load("res://assets/fonts/m5x7.ttf"))
