@@ -49,6 +49,23 @@ var _by_ability: Dictionary = {}
 const OTHER_SOURCE_KEY: String = "__other__"
 const OTHER_SOURCE_NAME: String = "Companions & effects"
 
+## ── What hit YOU (2026-08-03) ────────────────────────────────────────────────────────────────
+## The mirror of _by_ability. The death screen's whole job is answering "what killed me", and
+## until now the only thing recorded was `_death_cause`, a bare enemy_id that went to a debug JSON
+## file no player ever sees. This is the same bucketing applied to incoming damage.
+##
+## source_key -> {"name": String, "damage": float, "hits": int}
+var _taken_by_source: Dictionary = {}
+
+## The blow that ended the run: {"name", "amount", "ability", "crit"}. Captured as "the last
+## damaging hit the player took", which is exactly the killing blow by the time run_failed fires.
+var _last_taken: Dictionary = {}
+
+const ENV_SOURCE_KEY: String = "__environment__"
+const ENV_SOURCE_NAME: String = "Hazards & bleed-out"
+const SELF_SOURCE_KEY: String = "__self__"
+const SELF_SOURCE_NAME: String = "Your own power"
+
 
 func setup(player: Node2D, depth_tracker: DepthTracker) -> void:
 	_player = player
@@ -127,6 +144,7 @@ func _on_hit_dealt(source: Node, target: Node, hit_data) -> void:
 			_current_block_dmg_taken += amount
 		if source != null and "enemy_id" in source:
 			_death_cause = str(source.enemy_id)
+		_credit_damage_source(source, hit_data, amount)
 
 
 ## Bucket a player hit under the ability that produced it. Companion strikes and ground-zone
@@ -148,6 +166,57 @@ func _credit_ability(hit_data, amount: float) -> void:
 	var row: Dictionary = _by_ability[key]
 	row["damage"] = float(row["damage"]) + amount
 	row["hits"] = int(row["hits"]) + 1
+
+
+## Bucket an incoming hit under whatever dealt it, and remember it as the running "last blow".
+## Zero-damage hits (fully dodged, fully blocked) are counted in neither: they would seed the
+## breakdown with sources that never actually hurt you, and a dodge is a bad answer to "what
+## killed me".
+func _credit_damage_source(source: Node, hit_data, amount: float) -> void:
+	if amount <= 0.0:
+		return
+	var ident: Array = _source_identity(source)
+	var key: String = ident[0]
+	var display: String = ident[1]
+
+	if not _taken_by_source.has(key):
+		_taken_by_source[key] = {"name": display, "damage": 0.0, "hits": 0}
+	var row: Dictionary = _taken_by_source[key]
+	row["damage"] = float(row["damage"]) + amount
+	row["hits"] = int(row["hits"]) + 1
+
+	var move: String = ""
+	if hit_data is HitData and hit_data.ability != null:
+		var ab = hit_data.ability
+		if "ability_name" in ab and str(ab.ability_name) != "":
+			move = str(ab.ability_name)
+	_last_taken = {
+		"name": display,
+		"amount": amount,
+		"ability": move,
+		"crit": hit_data is HitData and hit_data.is_crit,
+	}
+
+
+## [key, display name] for a damage source. Enemies resolve through their EnemyDefinition so the
+## player reads "Bone Warden", not "bone_warden". Everything without an identity — ground zones,
+## burning ticks whose caster already died, instability bleed — pools under one honest label
+## rather than being dropped, so the breakdown still sums to damage taken.
+func _source_identity(source: Node) -> Array:
+	if source == null or not is_instance_valid(source):
+		return [ENV_SOURCE_KEY, ENV_SOURCE_NAME]
+	if source == _player:
+		return [SELF_SOURCE_KEY, SELF_SOURCE_NAME]
+	if not ("enemy_id" in source):
+		return [ENV_SOURCE_KEY, ENV_SOURCE_NAME]
+	var id: String = str(source.enemy_id)
+	var display: String = ""
+	var def = source.get("_enemy_def")
+	if def != null and "enemy_name" in def and str(def.enemy_name) != "":
+		display = str(def.enemy_name)
+	if display == "":
+		display = id.replace("_", " ").capitalize()
+	return [id, display]
 
 
 func _on_heal(_source: Node, target: Node, amount: float) -> void:
@@ -189,6 +258,19 @@ func get_summary() -> Dictionary:
 		})
 	abilities.sort_custom(func(a, b): return float(a["damage"]) > float(b["damage"]))
 
+	var threats: Array[Dictionary] = []
+	for key: String in _taken_by_source:
+		var trow: Dictionary = _taken_by_source[key]
+		var tdmg: float = float(trow["damage"])
+		threats.append({
+			"id": key,
+			"name": str(trow["name"]),
+			"damage": tdmg,
+			"hits": int(trow["hits"]),
+			"share": (tdmg / _total_taken) if _total_taken > 0.0 else 0.0,
+		})
+	threats.sort_custom(func(a, b): return float(a["damage"]) > float(b["damage"]))
+
 	var out: Dictionary = {
 		"damage_dealt": _total_dealt,
 		"damage_taken": _total_taken,
@@ -196,6 +278,9 @@ func get_summary() -> Dictionary:
 		"hits_dealt": _hits_dealt,
 		"biggest_hit": _biggest_hit,
 		"abilities": abilities,
+		## Same shape as `abilities`, so one renderer draws both breakdowns.
+		"threats": threats,
+		"killing_blow": _last_taken.duplicate(),
 		"gold_earned": _gold_earned,
 		"gold_spent": _gold_spent,
 	}
@@ -252,6 +337,10 @@ func _finalize(outcome: String) -> void:
 		## Per-ability damage share. This is the balance data for the mod/level-up rework — it is
 		## what will show which of the 12 kits have moves nobody's damage actually comes from.
 		"damage_by_ability": get_summary()["abilities"],
+		## The other half of the balance picture: which enemies actually cost the player HP, and
+		## what finished the run. Pairs with damage_by_ability for tuning.
+		"damage_taken_by_source": get_summary()["threats"],
+		"killing_blow": _last_taken.duplicate(),
 		"damage_taken_total": _total_taken,
 		"healed_total": _total_healed,
 		"deepest_percent": _deepest_percent,

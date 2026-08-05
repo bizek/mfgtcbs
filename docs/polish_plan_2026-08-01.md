@@ -186,6 +186,40 @@ Items 1–3 need nothing from you and I can start on any of them the moment you 
 
 ## Open threads, newest first (2026-08-02)
 
+**Death screen + tutorial — DONE 2026-08-03.** Ben: the death screen should have just as much
+information as the win screen, including what killed the player.
+
+Both screens now share `RunReportView` (`scripts/ui/run_report_view.gd`) so they cannot drift.
+`RunReportManager` gained two things it never tracked: **damage taken bucketed by source**
+(the mirror of damage-by-ability) and the **killing blow**. The only thing recorded before was
+`_death_cause`, a bare `enemy_id` that went to a debug JSON no player ever sees.
+
+The death screen leads with **KILLED BY**, then **WHAT HIT YOU** — because those answer different
+questions and the difference matters. In the verification run the killing blow was the Bone Warden
+while the Cave Stalker had done 51% of the damage; only the second number changes how you play the
+next run.
+
+Tutorial: the first-run cue said *"channel at the portal to extract"*, which describes the **flat
+arena**. Descent is the default path and works nothing like that. It now branches, and a new cue
+teaches the town portal — nothing anywhere told a player that key exists.
+
+**Two bugs found on the way, both fixed:**
+
+- `modify_instability()` never updated `peak_instability`; only `add_instability()` did. Every
+  void-touched death raises instability through the first one, so the peak was under-reported on
+  **both** results screens.
+- The 25% death salvage was hardcoded separately in `game_over_screen.gd` and
+  `progression_manager.gd`. Now noted as needing to match, so the screen cannot silently lie.
+
+**Verification gap, stated plainly:** the death screen, the report data and both tutorial cues were
+verified on screen with real combat. The **extraction success screen was NOT re-rendered** after its
+migration onto the shared renderer. Godot's editor cached a failed parse of that file mid-session
+and would not release it — `reload_project`, targeted re-imports and fresh game launches all kept
+serving the stale copy, and a second headless instance was not run because it shares `.godot/` with
+the open editor. The file itself parses clean via `CACHE_MODE_IGNORE` with the right method list,
+and every call site was audited against the module's signatures, but that is review, not a render.
+**Restart the Godot editor and open a successful extraction once before trusting it.**
+
 **The paid town portal — BUILT 2026-08-03.** The free gateway arrives on the phase clock and you
 catch it or miss it; the purchased town portal is one you trigger whenever you like. That
 distinction is the product, and it dodges the death-spiral of paid-escape economies since the free

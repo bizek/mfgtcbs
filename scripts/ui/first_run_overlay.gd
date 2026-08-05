@@ -49,6 +49,7 @@ func _ready() -> void:
 	GameManager.extraction_successful.connect(_on_run_ended)
 	GameManager.instability_changed.connect(_on_instability_changed)
 	GameManager.extraction_window_opened.connect(_on_extraction_window_opened)
+	GameManager.town_portal_changed.connect(_on_town_portal_changed)
 	EventBus.on_kill.connect(_on_kill)
 	EventBus.on_pickup.connect(_on_pickup)
 	EventBus.on_hit_dealt.connect(_on_combat_signal)
@@ -61,9 +62,12 @@ func setup(player: Node2D) -> void:
 		return
 	player_ref.leveled_up.connect(_on_leveled_up)
 	_queue_cue("spawn", "", "center")
-	_queue_cue("depth_meter",
-		"The depth meter (left edge) tracks your descent — find the portal below.",
-		"corner")
+	## Descent-only: the flat arena has no depth meter and no portal below, so this cue would be
+	## pointing a new player at UI that is not on their screen.
+	if GameManager.use_descent_mode:
+		_queue_cue("depth_meter",
+			"The depth meter (left edge) tracks your descent — find the portal below.",
+			"corner")
 
 func _process(delta: float) -> void:
 	if not _active:
@@ -117,8 +121,25 @@ func _on_instability_changed(new_value: float) -> void:
 	if new_value > 0.0:
 		_queue_cue("instability", "Instability is rising (top meter) — push too far and your haul gets risky.", "corner")
 
+## The old text — "channel at the portal to extract" — described the FLAT ARENA, where you stand
+## in a zone and hold still while a bar fills. Descent is the default path and works nothing like
+## that: a gateway opens at one side of your block and you leave by touching it. A new player's
+## first run was being taught a mechanic the game no longer puts in front of them.
 func _on_extraction_window_opened() -> void:
-	_queue_cue("extraction_window", "Extraction window open — channel at the portal to extract.", "corner")
+	if GameManager.use_descent_mode:
+		_queue_cue("extraction_window",
+			"A gateway has opened — reach it to escape with your haul. Deeper pays more.",
+			"corner")
+	else:
+		_queue_cue("extraction_window",
+			"Extraction window open — channel at the portal to extract.", "corner")
+
+
+## Fires the moment one is bought. Nothing anywhere told the player this key exists, and an
+## escape you do not know you own is worth exactly nothing.
+func _on_town_portal_changed(has_portal: bool) -> void:
+	if has_portal:
+		_queue_cue("town_portal", "", "corner")
 
 func _on_run_ended() -> void:
 	if not ProgressionManager.first_run_complete:
@@ -175,6 +196,9 @@ func _cue_text(id: String) -> String:
 		"dash":
 			return "Getting hit? %s dashes you clear (brief i-frames)." \
 					% InputGlyphs.action_glyph_bb("dash")
+		"town_portal":
+			return "Town portal ready — %s opens a way out wherever you stand." \
+					% InputGlyphs.action_glyph_bb("town_portal")
 	return ""
 
 

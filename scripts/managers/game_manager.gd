@@ -475,8 +475,13 @@ func spend_loot(amount: float) -> bool:
 
 ## Adjusts instability by delta (can be negative — e.g. Instability Siphon on kill).
 ## Clamps to zero minimum so the meter never goes below Stable.
+## The signed counterpart to add_instability — same value, but clamped at zero so a reduction
+## cannot go negative. It MUST update the high-water mark too: it did not until 2026-08-03, so
+## every void-touched death (enemy.gd raises instability by 2 through here) was invisible to
+## peak_instability, and both results screens under-reported the peak the run actually hit.
 func modify_instability(delta: int) -> void:
 	instability = maxf(instability + float(delta), 0.0)
+	peak_instability = maxf(peak_instability, instability)
 	instability_changed.emit(instability)
 
 ## Called when a bagged mod pickup is collected during a run.
