@@ -211,14 +211,22 @@ teaches the town portal — nothing anywhere told a player that key exists.
 - The 25% death salvage was hardcoded separately in `game_over_screen.gd` and
   `progression_manager.gd`. Now noted as needing to match, so the screen cannot silently lie.
 
-**Verification gap, stated plainly:** the death screen, the report data and both tutorial cues were
-verified on screen with real combat. The **extraction success screen was NOT re-rendered** after its
-migration onto the shared renderer. Godot's editor cached a failed parse of that file mid-session
-and would not release it — `reload_project`, targeted re-imports and fresh game launches all kept
-serving the stale copy, and a second headless instance was not run because it shares `.godot/` with
-the open editor. The file itself parses clean via `CACHE_MODE_IGNORE` with the right method list,
-and every call site was audited against the module's signatures, but that is review, not a render.
-**Restart the Godot editor and open a successful extraction once before trusting it.**
+**Verification gap — CLOSED 2026-08-03, and it was a real bug, not a cache.** After an editor
+restart the extraction success screen still failed to parse: two `ReportView.line()` calls in the
+loot manifest were passing four arguments to a three-argument function, left over from the
+migration. Both fixed; the screen now renders in full, including the exact weapon and mod lines
+that were broken.
+
+**The lesson is about how it was missed.** The migration was "verified" by grepping call sites for
+a trailing *numeric literal* — but these two ended in `Color.WHITE), 17)`, where the offending arg
+follows a nested call, so the pattern never matched. A `## grep audit` is not a compile. The signal
+that would have caught it in one step is `mcp__godot-mcp-pro__validate_script`, which reports
+"Parse error" with the file and line; `Script.can_instantiate()` is NOT a usable check — it returns
+false for every non-tool script in the editor, including known-good ones. Use method count (0 means
+it failed) or `validate_script`.
+
+The stale-cache theory was wrong, and reporting it as "probably fine, restart to confirm" was
+too generous to code that had never once compiled.
 
 **The paid town portal — BUILT 2026-08-03.** The free gateway arrives on the phase clock and you
 catch it or miss it; the purchased town portal is one you trigger whenever you like. That

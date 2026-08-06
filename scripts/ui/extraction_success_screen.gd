@@ -135,12 +135,12 @@ func _build_loot_section(lv: VBoxContainer, resources_earned: int) -> void:
 
 	for w in weapons_found:
 		ReportView.line(lv, "  Weapon:  %s  [%s]" % [w.name, w.rarity.to_upper()],
-				LootTables.RARITY_COLORS.get(w.rarity, Color.WHITE), 17)
+				LootTables.RARITY_COLORS.get(w.rarity, Color.WHITE))
 
 	## Mods are the "special find" line — the one that makes someone go deeper next run.
 	for m in mods_found:
 		ReportView.line(lv, "  Mod:     %s  [%s]" % [m.name, m.rarity.to_upper()],
-				LootTables.RARITY_COLORS.get(m.rarity, Color.WHITE), 17)
+				LootTables.RARITY_COLORS.get(m.rarity, Color.WHITE))
 
 	if manifest.is_empty():
 		ReportView.line(lv, "  (nothing hauled out)", Color(0.5, 0.5, 0.5))
