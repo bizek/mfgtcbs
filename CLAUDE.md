@@ -170,15 +170,32 @@ All content follows the data factory pattern: `static func create() -> Resource`
 - **Never hand-edit `.tscn` files.** Use the Godot MCP editor tools (or the editor itself) for all
   scene structure changes. Hand-editing silently strips unowned nodes on instanced sub-scenes, and
   loses font UIDs.
-- **Saving a scene that parents children INTO an instanced sub-scene destroys them.** This is the
-  same failure as hand-editing, and the MCP `save_scene` tool does *not* protect you from it.
-  Measured 2026-08-07: `hub_roster_panel.tscn` instances `hub_panel_base.tscn` and parents 27 nodes
-  under `PanelBase/ContentContainer` — a node owned by the sub-scene. One `save_scene` dropped
-  **all 27 (278 lines)**, leaving a scene that still loaded and rendered an empty panel. The five
-  affected scenes are `hub_roster_panel`, `hub_launch_panel`, `hub_records_panel`,
-  `hub_workshop_panel`, `hub_armory_panel`. **Do not save them.** Change their behaviour from
-  `hub_panel_base.gd` at runtime instead, which is how the theme reaches them. Always `git diff`
-  a scene after any save, and treat a large deletion count as data loss, not cleanup.
+- **The editor does not fully LOAD the five hub panel scenes, so saving one truncates it.**
+  Measured 2026-08-07, then re-tested from scratch because the first write-up of it here was wrong.
+  What is actually true:
+  - The `.tscn` files are **valid and complete**. `hub_roster_panel.tscn` declares 32 nodes, 27 of
+    them parented under `PanelBase/ContentContainer` — a node owned by the instanced
+    `hub_panel_base.tscn`.
+  - **The runtime is fine.** `PackedScene.instantiate()` returns the full tree in *all three* edit
+    states, `GEN_EDIT_STATE_MAIN` included. The panels render correctly in game. Nothing about
+    these scenes is malformed.
+  - **The editor's edited-scene tree contains only 8 of those nodes.** Reproduced on an untouched
+    file and on a pristine copy. Saving from that state writes the 8 and drops the other 27
+    (278 lines from `hub_roster_panel.tscn`), leaving a scene that still loads and renders an
+    empty panel. Reverted via git.
+  - Adding the `[editable path="PanelBase"]` marker sets `is_editable_instance` true but does **not**
+    restore the missing nodes, so that is not the fix.
+
+  The five affected scenes are `hub_roster_panel`, `hub_launch_panel`, `hub_records_panel`,
+  `hub_workshop_panel`, `hub_armory_panel`. **Never save one** — not via MCP `save_scene`, not from
+  the editor. Change their behaviour from `hub_panel_base.gd` at runtime instead, which is how the
+  project theme reaches them. Before saving *any* scene, `git diff` it afterwards and treat a large
+  deletion count as data loss rather than cleanup.
+
+  Two practical corollaries. If Godot offers **"Files have been modified outside Godot"** for one of
+  these, choose **Reload from disk** — "Ignore external changes" keeps a possibly-truncated
+  in-memory copy that the next save would persist. And the truncation is visible: if the Scene dock
+  shows a hub panel with nothing under `PanelBase/ContentContainer`, that tab is unsafe to save.
 - Before editing scenes or loaders, confirm you are targeting the correct file/scene (e.g., not
   Base Camp/Map.tscn), and never auto-generate new random IDs that overwrite committed scenes.
 - **3x viewport scaling.** 640x360 renders to 1920x1080 — all UI text/font sizes must stay legible

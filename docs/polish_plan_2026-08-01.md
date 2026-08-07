@@ -204,6 +204,17 @@ Items 1–3 need nothing from you and I can start on any of them the moment you 
   every node parented under `PanelBase/ContentContainer` — measured at 27 nodes / 278 lines from
   `hub_roster_panel.tscn`, reverted. They are stripped at runtime from `hub_panel_base.gd` instead.
   Recorded in CLAUDE.md's Godot Rules.
+
+  **Re-tested 2026-08-07 after Ben pushed back on the first write-up, which was wrong about the
+  cause.** The claim was that the MCP `save_scene` tool was at fault and that Godot's own save might
+  be safe. Neither holds. The `.tscn` files are valid and complete, and `PackedScene.instantiate()`
+  returns the full tree in all three edit states — so the runtime was never at risk and the scenes
+  are not malformed. The truncation happens at **editor load**: the edited-scene tree contains 8 of
+  32 nodes, reproduced on an untouched file and on a pristine copy, and a save merely writes what
+  was loaded. Adding `[editable path="PanelBase"]` flips `is_editable_instance` to true but does not
+  restore the nodes, so it is not the fix either. The rule is therefore broader than first written —
+  never save these five from any path — and the reassurance that the files themselves were damaged
+  was also wrong: they are fine.
 - **`validate_script` false-failed on `hub_panel_base.gd`** with `Parse Error: Class "HubPanelBase"
   hides a global script class` — the known `class_name` limitation, not a real error. The check that
   works is a `CACHE_MODE_IGNORE` reload plus a method count; a plain `load()` serves the stale
