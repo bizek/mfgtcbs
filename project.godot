@@ -52,6 +52,10 @@ window/stretch/mode="viewport"
 
 enabled=PackedStringArray("res://addons/godot_mcp/plugin.cfg")
 
+[gui]
+
+theme/custom="res://assets/ui/grim_theme.tres"
+
 [input]
 
 ui_accept={

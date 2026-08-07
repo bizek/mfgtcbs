@@ -130,6 +130,10 @@ func _build_menu() -> void:
 	## never reads as a neutral option, and armed by a second press (see _on_abandon_pressed).
 	var abandon_btn := Button.new()
 	abandon_btn.text = "Abandon Run"
+	## The Grim sheet carries five button palettes; this is the one they exist for.
+	## Red text on a brown plate said "danger" only in the label — the plate itself
+	## now says it too, before the word is read.
+	abandon_btn.theme_type_variation = &"DangerButton"
 	abandon_btn.add_theme_font_size_override("font_size", 16)
 	_apply_pixel_font(abandon_btn)
 	abandon_btn.add_theme_color_override("font_color", Color(1.0, 0.42, 0.36))

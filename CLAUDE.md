@@ -170,6 +170,15 @@ All content follows the data factory pattern: `static func create() -> Resource`
 - **Never hand-edit `.tscn` files.** Use the Godot MCP editor tools (or the editor itself) for all
   scene structure changes. Hand-editing silently strips unowned nodes on instanced sub-scenes, and
   loses font UIDs.
+- **Saving a scene that parents children INTO an instanced sub-scene destroys them.** This is the
+  same failure as hand-editing, and the MCP `save_scene` tool does *not* protect you from it.
+  Measured 2026-08-07: `hub_roster_panel.tscn` instances `hub_panel_base.tscn` and parents 27 nodes
+  under `PanelBase/ContentContainer` — a node owned by the sub-scene. One `save_scene` dropped
+  **all 27 (278 lines)**, leaving a scene that still loaded and rendered an empty panel. The five
+  affected scenes are `hub_roster_panel`, `hub_launch_panel`, `hub_records_panel`,
+  `hub_workshop_panel`, `hub_armory_panel`. **Do not save them.** Change their behaviour from
+  `hub_panel_base.gd` at runtime instead, which is how the theme reaches them. Always `git diff`
+  a scene after any save, and treat a large deletion count as data loss, not cleanup.
 - Before editing scenes or loaders, confirm you are targeting the correct file/scene (e.g., not
   Base Camp/Map.tscn), and never auto-generate new random IDs that overwrite committed scenes.
 - **3x viewport scaling.** 640x360 renders to 1920x1080 — all UI text/font sizes must stay legible
@@ -194,7 +203,12 @@ All content follows the data factory pattern: `static func create() -> Resource`
   debug tools** (anim lab, debug panel, entity inspector, passive-tree debug, ldtk test harness),
   which are deliberately left alone. **Zero player-facing off-grid sizes remain.** m3x6 was never
   needed; every sub-16 site went to 16 and reflowed instead.
-  **A font_size override alone fixes nothing — the FONT has to be applied too.** Five player-facing
+  **The project `Theme` now supplies m5x7 @ 16 as the default font** (`assets/ui/grim_theme.tres`,
+  wired via `project.godot [gui] theme/custom`, built by `tools/build_ui_theme.gd`). A new Control
+  therefore renders in the pixel font *without* the script doing anything — the whole class of bug
+  below is now a default rather than a thing to remember. The existing per-script font overrides
+  still win and were left alone; the theme is a floor, not a replacement.
+  **A font_size override alone fixed nothing — the FONT had to be applied too.** Five player-facing
   scripts sized text but never set a font, so they rendered in Godot's default vector font:
   `pause_menu.gd`, `insurance_panel.gd`, `arena_generator.gd`, `extraction_zone_base.gd`,
   `ldtk_exit_zone.gd` (plus `game_over_screen.gd`, fixed earlier in the pass). Each now has a local

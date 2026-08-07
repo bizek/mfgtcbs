@@ -9,7 +9,11 @@ extends Panel
 
 const PIXEL_FONT  := preload("res://assets/fonts/m5x7.ttf")
 const FONT_TITLE  := 16
-const FONT_BODY   := 19
+## Was 19 — off the m5x7 pixel grid, and the reason the font pass exists at all.
+## It survived that pass because `add_row()` below has no callers, so a grep for
+## rendered sizes never reached it. Dead code still sets the default for whoever
+## calls it next, so it is corrected rather than left as a trap.
+const FONT_BODY   := 16
 const FONT_DIM    := 16
 const ROW_GAP     := 23
 const LABEL_W     := 363
@@ -18,6 +22,9 @@ const PANEL_W     := 400
 const PANEL_H     := 267
 const TITLE_H     := 29
 const CONTENT_H   := 238   ## PANEL_H - TITLE_H
+## The Grim R1 plate's corner-bracket size (see tools/build_ui_theme.gd). Content
+## pinned to the panel edge has to clear this much or it covers the frame.
+const PLATE_INSET := 5
 
 ## Set these exports in each panel's scene file (Inspector) for per-panel identity.
 @export var title_text: String  = "PANEL"
@@ -37,9 +44,17 @@ func _ready() -> void:
 	$TitleBar/TitleLabel.text = title_text
 	$TitleBar/TitleLabel.add_theme_color_override("font_color", accent_color)
 	$TitleBar/TitleLabel.add_theme_font_size_override("font_size", FONT_TITLE)
-	var style := get_theme_stylebox("panel").duplicate() as StyleBoxFlat
-	style.border_color = accent_color
-	add_theme_stylebox_override("panel", style)
+	_apply_accent_to_panel()
+
+	## The title bar is a full-bleed ColorRect pinned to the panel's top edge,
+	## which sat on top of the frame and left the plate reading as an ornament on
+	## three sides and a flat cut on the fourth. Inset by the plate's own corner
+	## size so the frame closes all the way round. Done here rather than in the
+	## scene because the five panel scenes cannot currently be saved without
+	## losing nodes — see _apply_accent_to_panel().
+	$TitleBar.offset_left = float(PLATE_INSET)
+	$TitleBar.offset_right = -float(PLATE_INSET)
+	$TitleBar.offset_top = float(PLATE_INSET)
 	$TitleBar/CloseButton.pressed.connect(func():
 		AudioManager.play_ui("sfx_ui_panel_close")
 		close_requested.emit())
@@ -63,12 +78,11 @@ func _ready() -> void:
 	accent_rule.mouse_filter  = Control.MOUSE_FILTER_IGNORE
 	$TitleBar.add_child(accent_rule)
 
-	## Soften close button hover from harsh red to dark red.
-	var close_hover_sb := StyleBoxFlat.new()
-	close_hover_sb.bg_color = Color(0.55, 0.18, 0.12, 0.80)
-	close_hover_sb.set_border_width_all(0)
-	$TitleBar/CloseButton.add_theme_stylebox_override("hover",   close_hover_sb)
-	$TitleBar/CloseButton.add_theme_stylebox_override("pressed", close_hover_sb)
+	## The close button's softened hover red used to be re-applied here on top of
+	## the scene's own hover/pressed overrides. Because this is a @tool script the
+	## editor ran it too, so saving the scene baked this exact colour into it —
+	## which is how the duplication surfaced. The scene now carries the shipped
+	## value and this block would only re-set what is already set, so it is gone.
 
 	## Left-edge accent strip — 2px glow on the content area's left side.
 	var left_strip := ColorRect.new()
@@ -80,6 +94,56 @@ func _ready() -> void:
 	left_strip.color         = Color(accent_color.r, accent_color.g, accent_color.b, 0.18)
 	left_strip.mouse_filter  = Control.MOUSE_FILTER_IGNORE
 	$ContentContainer.add_child(left_strip)
+
+## Carries each panel's identity colour into its frame.
+##
+## This used to be one line — duplicate the stylebox, set `border_color` — which
+## worked only because the scene hard-overrode `panel` with a StyleBoxFlat. That
+## override is gone (2026-08-07) so the panel plate now comes from the project
+## theme's Grim art, and `as StyleBoxFlat` on a StyleBoxTexture returns **null**,
+## which would have crashed on the very next line. Both shapes are handled here
+## because a texture stylebox has no border colour to set.
+func _apply_accent_to_panel() -> void:
+	## Five hub panel scenes (roster, launch, records, workshop, armory) each
+	## baked a *copy* of the old flat plate onto their own `PanelBase` instance
+	## back when the base scene carried one. Those copies sit in front of the
+	## project theme, so removing the base's override alone changed nothing —
+	## the panels kept rendering their stale local copy.
+	##
+	## They are stripped here rather than edited out of the five .tscn files
+	## because saving any of those scenes is currently destructive: they parent
+	## their content into `PanelBase/ContentContainer`, a node that belongs to
+	## the instanced sub-scene, and a save drops every one of those children
+	## (measured: 278 lines / 27 nodes lost from hub_roster_panel.tscn). Doing it
+	## at runtime costs one call, covers all five, and covers any panel added later.
+	##
+	## Runtime only: in the editor this would show a removal that a subsequent
+	## Ctrl+S would try to persist, which is the exact save that loses nodes.
+	if not Engine.is_editor_hint():
+		remove_theme_stylebox_override("panel")
+
+	var base: StyleBox = get_theme_stylebox("panel")
+	if base == null:
+		return
+	var style: StyleBox = base.duplicate()
+	if style is StyleBoxFlat:
+		(style as StyleBoxFlat).border_color = accent_color
+	elif style is StyleBoxTexture:
+		## The Grim plate is a near-black fill inside a bone outline, and
+		## modulate multiplies — so black stays black and only the outline takes
+		## the accent. The accent has to be lifted most of the way to white
+		## first: multiplying the bone outline by a raw Color(0.45, 0.52, 0.95)
+		## lands it around 0.35 luminance, which on a black fill reads as grime
+		## rather than as identity. 0.7 keeps the outline near its own brightness
+		## and lets the hue through — checked on screen, not guessed.
+		##
+		## Alpha 0.97 preserves what the old flat plate had: the hub is faintly
+		## visible through the panel, so it reads as an overlay rather than a
+		## hole cut in the screen. The Grim art is fully opaque on its own.
+		var tint: Color = accent_color.lerp(Color.WHITE, 0.7)
+		tint.a = 0.97
+		(style as StyleBoxTexture).modulate_color = tint
+	add_theme_stylebox_override("panel", style)
 
 ## Returns the Content area Control where panels add their dynamic rows.
 func get_content() -> Control:
