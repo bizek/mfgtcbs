@@ -7,6 +7,12 @@ extends Control
 
 signal close_requested
 
+## Reached through preload under a DIFFERENT local name, not the bare `UIIcons` class_name.
+## A newly added class_name is not in the editor's global class list until it rescans, and until
+## then every script naming it fails to parse — the same trap RunReportView and GatewayExtraction
+## both hit. The alias also avoids colliding with the class_name once the registry does catch up.
+const Icons := preload("res://scripts/ui/ui_icons.gd")
+
 @onready var _base: HubPanelBase = $PanelBase
 
 ## ── Color palette ─────────────────────────────────────────────────────────────
@@ -402,9 +408,9 @@ func _build_detail_pane(parent: HBoxContainer) -> void:
 	var arm_val: float = ddata.get("base_armor",         0.0)
 	var spd_val: float = ddata.get("base_move_speed",  200.0)
 
-	_stat_row(stats_vbox, "HP",    int(hp_val),  hp_val  / 200.0, C_RED_HI)
-	_stat_row(stats_vbox, "ARMOR", int(arm_val), arm_val /  20.0, C_AMBER)
-	_stat_row(stats_vbox, "SPEED", int(spd_val), spd_val / 300.0, C_GREEN_HI)
+	_stat_row(stats_vbox, "HP",    int(hp_val),  hp_val  / 200.0, C_RED_HI,   Icons.HEART)
+	_stat_row(stats_vbox, "ARMOR", int(arm_val), arm_val /  20.0, C_AMBER,   Icons.SHIELD)
+	_stat_row(stats_vbox, "SPEED", int(spd_val), spd_val / 300.0, C_GREEN_HI, Icons.BOLT)
 
 	## Starting weapon
 	var wpn_row := HBoxContainer.new()
@@ -518,12 +524,20 @@ func _build_detail_pane(parent: HBoxContainer) -> void:
 # ── Stat row with value + bar ──────────────────────────────────────────────────
 
 func _stat_row(parent: Control, label: String, value: int,
-		norm: float, col: Color) -> void:
+		norm: float, col: Color, icon_x: int = -1) -> void:
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", 5)
 	hb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hb.custom_minimum_size   = Vector2(0, 12)
 	parent.add_child(hb)
+
+	## Pack icon ahead of the word. The label stays — at 8x8 a heart and a shield are
+	## distinguishable but "ARMOR" vs "SPEED" is not something to make the player infer from a
+	## silhouette. The icon is recognition, the word is confirmation.
+	if icon_x >= 0:
+		var ico: TextureRect = Icons.node(icon_x)
+		if ico != null:
+			hb.add_child(ico)
 
 	var lbl := Label.new()
 	lbl.text = label

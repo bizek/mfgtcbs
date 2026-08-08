@@ -296,11 +296,25 @@ The designs are **not on an even vertical stride** — solid `y47`, brackets `y9
 Assuming a stride produced misaligned crops on the first attempt; the rects above are measured
 bounding boxes.
 
-### 9. Icons → stat rows, currencies, settings
+### 9. Icons → stat rows, currencies, settings — **PARTIAL (2026-08-07)**
 
-Heart, shield, crossed swords, lightning, stamina, backpack, anvil, magic spark — the character
-set covers most of what the armory and level-up screens spell out in words. The general set
-(gear, sound, screen, controller, save) covers the settings panel rows.
+`scripts/ui/ui_icons.gd` (`UIIcons`) is the shared atlas helper, and the roster's HP / ARMOR /
+SPEED rows are wired to heart / shield / bolt. **Still open: the armory rows, the level-up cards,
+and the settings rows** — the helper exists so those are now small additions, not new plumbing.
+
+Measured layout, since it is not a plain lattice: the character set sits top-right in two rows on
+a 16px horizontal stride — `y=24` starting `x=384` (11 icons), and `y=40` starting `x=376`
+(12 icons). The second row is offset by 8, so a single lattice origin does **not** describe both.
+Icons are 8×8. Useful ones: heart `x=472`, shield `x=424`, crossed swords `x=392`, hammer `x=440`,
+bolt `x=504`, spark `x=488`, muscle `x=520` — all on `y=40`.
+
+**The character set ships pre-coloured** (red heart, yellow bolt, cyan spark), unlike the general
+set which is greyscale in 8 tint bands. So it needs no modulate, and tinting one fights the art.
+
+Two traps this hit, both already documented elsewhere in the repo and both hit anyway:
+`AtlasTexture.filter_clip` is required (8px art on a 16px stride bleeds its neighbour otherwise),
+and a brand-new `class_name` is unresolvable until the editor rescans — consumers reach it as
+`const Icons := preload(...)` under a different local name, the same fix `RunReportView` uses.
 
 ### 10. Window buttons · dividers · decoration
 
