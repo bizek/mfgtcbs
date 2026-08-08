@@ -74,10 +74,24 @@ static func focus_ring(base: StyleBoxFlat, accent: Color) -> StyleBoxFlat:
 	return sb
 
 
-## Bright border-only focus overlay for buttons that use the default theme
-## (no custom styleboxes) — the stock focus stylebox is too subtle to follow
-## with a D-pad. Draws just the ring, so the button's normal look is untouched.
+## Focus overlay for buttons that would otherwise be hard to follow with a D-pad.
+##
+## Now defers to the project theme, which carries the UI pack's corner-bracket selector
+## (`tools/build_ui_theme.gd` → _build_focus). That matters for correctness, not just looks: an
+## override applied here WINS over the theme, so keeping the old flat 2px ring would have meant
+## the pack art never appeared on any button that went through UINav — which is most of them.
+##
+## The `accent` parameter still does something: the theme's ring is duplicated and re-tinted, so
+## a caller can mark a destructive or class-coloured control without inventing its own stylebox.
+## A flat ring is still built when no theme ring is available, so this keeps working if the theme
+## is ever unset.
 static func apply_focus_ring(btn: Control, accent: Color = Color(1.0, 0.85, 0.3)) -> void:
+	var themed: StyleBox = btn.get_theme_stylebox("focus", "Button")
+	if themed is StyleBoxTexture:
+		var ring := (themed as StyleBoxTexture).duplicate() as StyleBoxTexture
+		ring.modulate_color = accent
+		btn.add_theme_stylebox_override("focus", ring)
+		return
 	var sb := StyleBoxFlat.new()
 	sb.draw_center = false
 	sb.border_color = accent

@@ -262,19 +262,39 @@ slice, in 5 line styles.
 Pre-animated globes in 5 colours × 3 sizes. Mock_Up_1 shows them as the anchor of a dark HUD. An
 option for the HP readout, or for a class-resource meter that currently has no distinct visual.
 
-### 6. Tabs → hub station switching, codex categories
+### 6. Tabs → settings / codex categories — **DONE (2026-08-07)**
 
-Grim TABS group. Hub panel switching is currently unthemed.
+Grim TABS group, colour column 0, the brighter right-hand sub-group, wired as `TabContainer` /
+`TabBar` styleboxes in the project theme. No per-screen work was needed: the settings panel already
+used a real `TabContainer`, so this is theme-only.
+
+The pack draws tabs at **two heights, and that IS the selected/unselected metaphor** — the active
+tab is taller and stands proud of the row. Using `TAB_SHORT` (48×15) for unselected and `TAB_TALL`
+(48×23) for selected gets that from the art instead of faking it with colour. The body below the
+row uses the standard R1 plate so the tab strip and its panel read as one object.
 
 ### 7. Labels & tags → rarity, class, "NEW"
 
 8 colours × 2 designs. Maps directly onto a rarity scale, and onto the codex's
 discovered/mastered markers.
 
-### 8. Selectors → controller focus ring
+### 8. Selectors → controller focus ring — **DONE (2026-08-07)**
 
-Corner-bracket and dashed-box selectors in 4 tints. `ui_nav_utils.gd` handles focus today without
-a pixel-art focus visual.
+`_Selectors.png` corner brackets, `Rect2(255, 95, 18, 18)` (white tint; +48 per tint), as the
+theme's `focus` stylebox for Button, every button variation, CheckBox and OptionButton.
+
+`draw_center = false` plus a 2px expand margin, so the ring sits **outside** the control and never
+paints over its plate — the old flat 2px ring sat exactly on the border and disappeared against a
+button that already had one.
+
+**`ui_nav_utils.apply_focus_ring` had to change or none of this would ever appear.** An override
+applied there wins over the theme, and it is called on most buttons in the game. It now duplicates
+the theme's ring and re-tints it, so the `accent` argument still means something, and falls back to
+the old flat ring if no themed one exists.
+
+The designs are **not on an even vertical stride** — solid `y47`, brackets `y95`, dotted `y143`.
+Assuming a stride produced misaligned crops on the first attempt; the rects above are measured
+bounding boxes.
 
 ### 9. Icons → stat rows, currencies, settings
 

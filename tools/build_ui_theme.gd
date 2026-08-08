@@ -94,6 +94,24 @@ const DIVIDER: Rect2      = Rect2(323, 678, 42, 3)
 ## SLOTS group, R1 — the 22x22 item slot, margin 2.
 const SLOT: Rect2 = Rect2(109, 285, 22, 22)
 
+## TABS group, colour column 0, the brighter (right-hand) sub-group. Tabs come in two heights and
+## that IS the selected/unselected metaphor — the active tab is taller and stands proud of the
+## row. Using one short and one tall rect gets that for free instead of faking it with colour.
+const TAB_SHORT: Rect2 = Rect2(544, 213, 48, 15)   ## unselected
+const TAB_TALL: Rect2 = Rect2(544, 333, 48, 23)    ## selected
+const TAB_MARGIN: int = 6
+
+## ── Selectors (_General_UI_Resources/Selectors/_Selectors.png) ────────────────
+## A separate sheet from Grim, 4 designs x 4 tints. Corner brackets are the focus visual:
+## they mark the control without boxing it, so a focused button does not gain a second border on
+## top of the one its own stylebox already draws.
+## Bounding boxes measured, not assumed — the designs are NOT on an even stride
+## (solid y47, brackets y95, dotted y143), which is why eyeballing a stride produced misaligned
+## crops on the first try.
+const SELECTOR_SHEET: String = "res://assets/minifantasy/Minifantasy_UI _Overhaul_v1.0/_Minifantasy_UI_Overhaul_Assets/_General_UI_Resources/Selectors/_Selectors.png"
+const SELECTOR_BRACKETS: Rect2 = Rect2(255, 95, 18, 18)  ## white tint; +48 per tint
+const SELECTOR_MARGIN: int = 5
+
 ## ── Palette ───────────────────────────────────────────────────────────────────
 ## Taken from what the UI code already uses, not invented: these are the most
 ## frequent Color() literals across scripts/ui. Matching them means the theme
@@ -140,6 +158,8 @@ func _run() -> void:
 	_build_separators(theme)
 	_build_text_inputs(theme)
 	_build_scrollbars(theme)
+	_build_tabs(theme)
+	_build_focus(theme)
 
 	DirAccess.make_dir_recursive_absolute(OUT_PATH.get_base_dir())
 	var err := ResourceSaver.save(theme, OUT_PATH)
@@ -387,3 +407,53 @@ func _build_scrollbars(theme: Theme) -> void:
 		theme.set_stylebox("grabber_pressed", t, grab_hi)
 
 	theme.set_stylebox("panel", "ScrollContainer", StyleBoxEmpty.new())
+
+
+func _build_tabs(theme: Theme) -> void:
+	## The settings panel already uses a real TabContainer (AUDIO / DISPLAY / CONTROLS /
+	## ACCESSIBILITY), so this is a pure theme change with no per-screen wiring.
+	var unselected := _nine(TAB_SHORT, TAB_MARGIN)
+	unselected.modulate_color = Color(0.72, 0.72, 0.72)  ## sits back from the active tab
+	var selected := _nine(TAB_TALL, TAB_MARGIN)
+	var hovered := _nine(TAB_SHORT, TAB_MARGIN)
+	hovered.modulate_color = Color(0.9, 0.9, 0.9)
+
+	for t in ["TabContainer", "TabBar"]:
+		theme.set_stylebox("tab_selected", t, selected)
+		theme.set_stylebox("tab_unselected", t, unselected)
+		theme.set_stylebox("tab_hovered", t, hovered)
+		theme.set_stylebox("tab_disabled", t, unselected)
+		theme.set_color("font_selected_color", t, BONE)
+		theme.set_color("font_unselected_color", t, BONE_DIM)
+		theme.set_color("font_hovered_color", t, Color(0.95, 0.88, 0.76))
+		theme.set_font_size("font_size", t, FONT_SIZE)
+
+	## The body below the tab row is the standard panel plate, so the two read as one object.
+	theme.set_stylebox("panel", "TabContainer", _nine(PANEL_R1, PANEL_M1, PANEL_M1 + 2))
+
+
+func _build_focus(theme: Theme) -> void:
+	## Corner-bracket selector, drawn OUTSIDE the control.
+	##
+	## draw_center is false so it never paints over the button's own plate, and the expand margins
+	## push it clear of the edge — a focus ring that sits exactly on the border is invisible
+	## against a frame that already has one, which is the failure mode of the flat 2px ring this
+	## replaces (ui_nav_utils.apply_focus_ring).
+	var sheet: Texture2D = load(SELECTOR_SHEET)
+	if sheet == null:
+		push_warning("build_ui_theme: selector sheet missing, focus ring left flat")
+		return
+	var sb := StyleBoxTexture.new()
+	sb.texture = sheet
+	sb.region_rect = SELECTOR_BRACKETS
+	sb.draw_center = false
+	for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
+		sb.set_texture_margin(side, float(SELECTOR_MARGIN))
+		sb.set_expand_margin(side, 2.0)
+	sb.modulate_color = AMBER
+	theme.set_stylebox("focus", "Button", sb)
+	for variation: String in PALETTES.keys():
+		if variation != "Button":
+			theme.set_stylebox("focus", variation, sb)
+	theme.set_stylebox("focus", "CheckBox", sb)
+	theme.set_stylebox("focus", "OptionButton", sb)
