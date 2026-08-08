@@ -120,6 +120,66 @@ static func general_node(cell: Vector2i, tint: Color = Color.WHITE) -> TextureRe
 	return _wrap(general(cell), tint)
 
 
+## ── Rarity tags ───────────────────────────────────────────────────────────────
+## Labels_And_Tags horizontal pill, 48x12, x=16 plain / x=176 white-outlined, on a 16px vertical
+## stride from y=82. Eight colours, sampled rather than read off a render:
+##   82 orange #d6812d · 98 gold #e7b14a · 114 green #4e9f4c · 130 blue #5064c2
+##   146 purple #af50c2 · 162 red #c25050 · 178 tan #cf9b5d · 194 cream #faddb4
+##
+## Four of the five game rarities land on a near-exact match, which is why this maps cleanly:
+## uncommon→green, rare→blue, epic→purple, legendary→gold. `common` has no grey in the set and
+## takes the cream, which reads as "plain" next to the others and is the right role for it.
+const TAG_PILL_X: int = 16
+const TAG_PILL_W: int = 48
+const TAG_PILL_H: int = 12
+const RARITY_TAG_Y: Dictionary = {
+	"common": 194, "uncommon": 114, "rare": 130, "epic": 146, "legendary": 98,
+}
+## Ink colour for text sitting ON a pill. The pills are mid-to-light fills, so the label has to go
+## dark — bone-on-gold is unreadable at 16px.
+const TAG_INK: Color = Color(0.12, 0.09, 0.07)
+
+static var _tag_sheet: Texture2D = null
+
+
+## A rarity pill with its name inside, ready to drop into a row. Returns null if the sheet is
+## missing so a caller can fall back to plain bracket text.
+static func rarity_tag(rarity: String, text: String = "") -> Control:
+	if not RARITY_TAG_Y.has(rarity):
+		return null
+	if _tag_sheet == null:
+		if not ResourceLoader.exists(TAG_SHEET):
+			return null
+		_tag_sheet = load(TAG_SHEET)
+
+	var sb := StyleBoxTexture.new()
+	sb.texture = _tag_sheet
+	sb.region_rect = Rect2(TAG_PILL_X, RARITY_TAG_Y[rarity], TAG_PILL_W, TAG_PILL_H)
+	## The cap is the rounded end; only the flat middle may stretch, or the pill goes oval.
+	for side in [SIDE_LEFT, SIDE_RIGHT]:
+		sb.set_texture_margin(side, 6.0)
+		sb.set_content_margin(side, 5.0)
+	for side in [SIDE_TOP, SIDE_BOTTOM]:
+		sb.set_texture_margin(side, 5.0)
+		sb.set_content_margin(side, 0.0)
+
+	var pc := PanelContainer.new()
+	pc.add_theme_stylebox_override("panel", sb)
+	pc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	pc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	var lbl := Label.new()
+	lbl.text = (text if text != "" else rarity).to_upper()
+	lbl.add_theme_color_override("font_color", TAG_INK)
+	lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0))
+	lbl.add_theme_constant_override("outline_size", 0)
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pc.add_child(lbl)
+	return pc
+
+
 static func _wrap(tex: AtlasTexture, tint: Color) -> TextureRect:
 	if tex == null:
 		return null

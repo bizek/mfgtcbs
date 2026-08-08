@@ -289,10 +289,29 @@ tab is taller and stands proud of the row. Using `TAB_SHORT` (48×15) for unsele
 (48×23) for selected gets that from the art instead of faking it with colour. The body below the
 row uses the standard R1 plate so the tab strip and its panel read as one object.
 
-### 7. Labels & tags → rarity, class, "NEW"
+### 7. Labels & tags → rarity — **DONE (2026-08-07)**
 
-8 colours × 2 designs. Maps directly onto a rarity scale, and onto the codex's
-discovered/mastered markers.
+`UIIcons.rarity_tag()` builds the pack's horizontal pill with the rarity name inside it, and the
+extraction results screen's haul manifest uses it — `Weapon: Thornstaff [UNCOMMON]` is now a green
+pill instead of bracket text. The haul is a run's payoff moment and it was carrying that entirely
+in punctuation.
+
+Rects: horizontal pill `48×12`, `x=16` plain / `x=176` white-outlined, 16px vertical stride from
+`y=82`. Colours **sampled, not read off a render**: 82 orange `#d6812d` · 98 gold `#e7b14a` ·
+114 green `#4e9f4c` · 130 blue `#5064c2` · 146 purple `#af50c2` · 162 red `#c25050` ·
+178 tan `#cf9b5d` · 194 cream `#faddb4`.
+
+Four of the five game rarities land on a near-exact match — uncommon→green, rare→blue,
+epic→purple, legendary→gold. `common` has no grey in the set and takes the cream, which reads as
+"plain" beside the others and is the right role for it.
+
+Text on a pill goes **dark** (`TAG_INK`): the fills are mid-to-light and bone-on-gold is
+unreadable at 16px. Nine-patch margins keep the rounded caps intact and stretch only the flat
+middle, or the pill goes oval. `ReportView.tagged_line()` falls back to the exact previous bracket
+string when the sheet is unavailable, so a loot line can never lose its rarity entirely.
+
+**Still open:** the codex's discovered/mastered markers, and any "NEW" badge — the helper covers
+them, they are just not wired.
 
 ### 8. Selectors → controller focus ring — **DONE (2026-08-07)**
 

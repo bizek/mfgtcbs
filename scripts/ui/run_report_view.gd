@@ -1,6 +1,11 @@
 class_name RunReportView
 extends RefCounted
 
+## Preloaded under an alias rather than the bare class_name — a newly added class_name is not in
+## the editor's global class list until it rescans, and this file already learned that lesson the
+## hard way once (see the note in extraction_success_screen.gd).
+const UIIconsRef := preload("res://scripts/ui/ui_icons.gd")
+
 ## RunReportView — the shared after-action report renderer.
 ##
 ## Both endings deserve the same report. The extraction screen was rebuilt on 2026-08-02 into a
@@ -177,6 +182,25 @@ static func heading(parent: VBoxContainer, text: String) -> void:
 
 static func line(parent: VBoxContainer, text: String, col: Color) -> void:
 	parent.add_child(label(text, col))
+
+
+## A manifest line that ends in a rarity PILL rather than bracket text.
+##
+## The haul is the payoff moment of a run, and "[RARE]" was carrying that entirely in punctuation.
+## The pill is the UI pack's own tag art, colour-matched to LootTables.RARITY_COLORS.
+##
+## Falls back to the exact previous string when the tag sheet is unavailable, so this can never
+## leave a loot line with the rarity silently missing — the one thing worse than plain text here.
+static func tagged_line(parent: VBoxContainer, text: String, col: Color, rarity: String) -> void:
+	var tag: Control = UIIconsRef.rarity_tag(rarity)
+	if tag == null:
+		line(parent, "%s  [%s]" % [text, rarity.to_upper()], col)
+		return
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+	row.add_child(label(text, col))
+	row.add_child(tag)
+	parent.add_child(row)
 
 
 static func label(text: String, col: Color) -> Label:
