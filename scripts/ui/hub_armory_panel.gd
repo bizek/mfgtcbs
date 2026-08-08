@@ -876,10 +876,33 @@ func _style_btn_flat(btn: Button, normal_bg: Color, hover_bg: Color) -> void:
 		btn.add_theme_stylebox_override(state, sb)
 
 
+## Mod / weapon slots. The frame is the UI pack's real item slot, taken from the theme's
+## SlotButton variation; the RARITY COLOUR stays here, because which mod is socketed is this
+## panel's business and not the theme's.
+##
+## The slot art is a near-black plate inside a bone outline and modulate multiplies, so the fill
+## stays dark and only the outline takes the colour — the same trick hub_panel_base uses for panel
+## accents. An empty slot is left uncoloured and reads as an empty frame, which is what it is.
+##
+## Falls back to the old flat box if the theme has no SlotButton (theme unset, or this script
+## running before the theme loads), so the armory is never left with unstyled buttons.
 func _style_btn_mod(btn: Button, border_col: Color, filled: bool) -> void:
+	btn.theme_type_variation = &"SlotButton"
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
-		var sb: StyleBoxFlat = StyleBoxFlat.new()
 		var hot: bool = state in ["hover", "pressed", "focus"]
+		var base: StyleBox = btn.get_theme_stylebox(state, "SlotButton")
+		if base is StyleBoxTexture:
+			var tex := (base as StyleBoxTexture).duplicate() as StyleBoxTexture
+			if state == "focus":
+				tex.modulate_color = C_AMBER_HI
+			elif filled or hot:
+				## Lifted toward white before multiplying, or a mid-saturation rarity colour
+				## drags the bone outline down to something that reads as dirt.
+				tex.modulate_color = border_col.lerp(Color.WHITE, 0.55)
+			btn.add_theme_stylebox_override(state, tex)
+			continue
+
+		var sb: StyleBoxFlat = StyleBoxFlat.new()
 		sb.bg_color = Color(0.10, 0.09, 0.07, 0.90) if hot else (
 			C_PLATE if filled else Color(0.055, 0.048, 0.040)
 		)

@@ -251,11 +251,27 @@ What is deliberately **kept**: `separation` and `margin_*` constants (layout, no
 `font_color` overrides (rarity, role, damage type), per-screen styleboxes, and any size that is not
 16. Those are design, not duplication. Roughly 539 calls remain and most of them should.
 
-### 4. Slots + grids → armory, passive tree, codex
+### 4. Slots + grids — **SLOTS DONE (2026-08-07), GRIDS OPEN**
 
-`hub_armory_panel.gd` and `codex_grid_panel.gd` draw their own boxes. The pack has real item slots
-(including 4-way D-pad clusters for equip layouts) and pre-built 3×3 / 5×5 grid frames on a 16px
-slice, in 5 line styles.
+The armory's mod and weapon slots now use the pack's real item slot, via a `SlotButton` theme
+variation. The two ornament tiers **are** the states: R0 `Rect2(109, 237, 22, 22)` idle,
+R1 `Rect2(109, 285, 22, 22)` hover/pressed.
+
+**Tiled, not stretched, and that is the whole finding.** The slot is authored as a 22×22 *square*
+item cell; a mod row is ~190px wide. Nine-patch stretching smeared its edge detail into an uneven
+dashed line. The pack's own note says the set is "16x16px sliced to facilitate the creation of
+panels of any size" — i.e. tile the middle. With `AXIS_STRETCH_MODE_TILE` the edge repeats at its
+authored scale and the row reads as a proper slot. Same lesson as the Paladin breastplate in the
+portrait pass: **the art has an intended shape, and a wide row is not a square cell.**
+
+The rarity colour stays in `hub_armory_panel.gd` rather than the theme, because which mod is
+socketed is the panel's business. It duplicates the theme's stylebox and modulates it — the same
+split `hub_panel_base` uses for panel accents — lifted 55% toward white first, or a mid-saturation
+rarity colour drags the bone outline down to something that reads as dirt. A flat-box fallback
+remains for when no `SlotButton` is available, so the armory is never left unstyled.
+
+**Still open:** the codex's grid frames. `Grids.png` (1360×496, 16×16 sliced, 5 tints × 5 line
+styles) is not yet measured, and `codex_grid_panel.gd` still draws its own boxes.
 
 ### 5. Resource orbs → HP / class resource
 

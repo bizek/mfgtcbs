@@ -91,7 +91,9 @@ const SLIDER_TRACK: Rect2 = Rect2(339, 740, 42, 7)
 const SLIDER_GRAB: Rect2  = Rect2(325, 740, 6, 7)
 const DIVIDER: Rect2      = Rect2(323, 678, 42, 3)
 
-## SLOTS group, R1 — the 22x22 item slot, margin 2.
+## SLOTS group — the 22x22 item slot, margin 2. Two ornament tiers: R0 is the plainer frame,
+## R1 adds brighter corners, which makes them a natural idle/hover pair for a clickable slot.
+const SLOT_R0: Rect2 = Rect2(109, 237, 22, 22)
 const SLOT: Rect2 = Rect2(109, 285, 22, 22)
 
 ## TABS group, colour column 0, the brighter (right-hand) sub-group. Tabs come in two heights and
@@ -182,6 +184,25 @@ func _nine(region: Rect2, margin: int, content: int = -1) -> StyleBoxTexture:
 	return sb
 
 
+## A slot frame sized for a WIDE row rather than a square cell.
+##
+## The slot art is authored as a 22x22 item cell. Stretching that across a ~190px mod row smears
+## its edge detail into an uneven dashed line — the same mistake as picking a breastplate for the
+## Paladin portrait: the art has an intended shape and the wide row is not it. The pack's own note
+## says it is "16x16px sliced to facilitate the creation of panels of any size", i.e. TILE the
+## middle, do not stretch it, so the edge repeats at its authored scale instead of being
+## interpolated across nine times its width.
+func _slot_box(region: Rect2) -> StyleBoxTexture:
+	var sb := _nine(region, 2)
+	sb.axis_stretch_horizontal = StyleBoxTexture.AXIS_STRETCH_MODE_TILE
+	sb.axis_stretch_vertical = StyleBoxTexture.AXIS_STRETCH_MODE_TILE
+	sb.set_content_margin(SIDE_LEFT, 5.0)
+	sb.set_content_margin(SIDE_RIGHT, 3.0)
+	sb.set_content_margin(SIDE_TOP, 2.0)
+	sb.set_content_margin(SIDE_BOTTOM, 2.0)
+	return sb
+
+
 func _atlas(region: Rect2) -> AtlasTexture:
 	var a := AtlasTexture.new()
 	a.atlas = _sheet
@@ -212,6 +233,21 @@ func _build_panels(theme: Theme) -> void:
 	## The 22x22 item slot, for the armory and codex grids.
 	theme.set_type_variation("SlotPanel", "PanelContainer")
 	theme.set_stylebox("panel", "SlotPanel", _nine(SLOT, 2, 3))
+
+	## Clickable slot — the armory's mod and weapon slots are Buttons, not panels, so they need
+	## the full state set rather than one `panel` entry. The two ornament tiers ARE the states:
+	## R0 (plainer) sits idle, R1 (brighter corners) lights up under the cursor.
+	##
+	## Left deliberately un-tinted here. hub_armory_panel duplicates these and applies the mod's
+	## rarity colour as a modulate, because the colour is the panel's semantics, not the theme's —
+	## same split as hub_panel_base's accent tinting.
+	theme.set_type_variation("SlotButton", "Button")
+	var slot_idle := _slot_box(SLOT_R0)
+	var slot_hot := _slot_box(SLOT)
+	theme.set_stylebox("normal", "SlotButton", slot_idle)
+	theme.set_stylebox("disabled", "SlotButton", slot_idle)
+	theme.set_stylebox("hover", "SlotButton", slot_hot)
+	theme.set_stylebox("pressed", "SlotButton", slot_hot)
 
 
 func _build_buttons(theme: Theme) -> void:
