@@ -212,6 +212,12 @@ func _validate_content() -> void:
 	## Same failure shape one layer over: a level-up entry naming a status StatusFactory does not
 	## build resolves to null and applies nothing, just as silently.
 	problems.append_array(UpgradeManager.validate_status_ids())
+	## Third shape of the same failure, and the one that had actually shipped: an ability upgrade
+	## that resolves perfectly but is never REACHABLE, because get_upgrades_for_kit walks
+	## ORDER_BY_KIT rather than ALL. On 2026-08-07 the Druid was running on one of its three
+	## upgrades — the Tier 0.1 rewrite renamed two entries and left ORDER_BY_KIT pointing at the
+	## old ids, which the anim validator cannot see because a missing id never becomes a target.
+	problems.append_array(AbilityUpgradeData.validate_kit_order())
 	var log_node: Node = get_node_or_null("/root/Logger")
 	if problems.is_empty():
 		print("[content] All class-mod / ability-upgrade anim targets and upgrade statuses resolve.")

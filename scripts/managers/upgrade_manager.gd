@@ -225,11 +225,21 @@ func generate_choices(count: int = 3) -> Array[Dictionary]:
 			continue
 		generic_pool.append(entry)
 
-	## Ability upgrade pool: this class's kit-specific upgrades not yet picked this run.
+	## Ability upgrade pool: this class's kit-specific upgrades with a rank still to take.
+	##
+	## This used to be a flat "not yet picked this run" filter, which is why every kit ran out of
+	## class identity at level 4: three entries, one guaranteed slot per level-up, done. Entries now
+	## carry `max_rank`, and the same upgrade can be offered again until the player holds that many.
+	##
+	## Stacking needed no new machinery — `apply_upgrade` already appends duplicates to
+	## `ability_upgrades`, and `apply_upgrade_dicts_to_kit` applies every dict to a pristine kit on
+	## each rebuild, so two copies of a `scale_aoe` multiply twice. Only this filter blocked it.
 	var ability_pool: Array[Dictionary] = []
 	for entry: Dictionary in AbilityUpgradeData.get_upgrades_for_kit(kit_id):
-		if entry["id"] not in owned_ids:
-			ability_pool.append(entry)
+		var rank: int = _ability_rank(entry["id"])
+		if rank >= AbilityUpgradeData.max_rank_of(entry):
+			continue
+		ability_pool.append(_with_rank_label(entry, rank + 1))
 
 	## Weighting, in slot order:
 	##   1. one ability upgrade (guaranteed class flavour until the kit's list is exhausted)
@@ -280,6 +290,34 @@ func generate_choices(count: int = 3) -> Array[Dictionary]:
 		choices[replace_idx] = available_evo
 
 	return choices
+
+
+## How many copies of one ability upgrade the player already holds this run.
+func _ability_rank(upgrade_id: String) -> int:
+	var n: int = 0
+	for u: Dictionary in ability_upgrades:
+		if u.get("id", "") == upgrade_id:
+			n += 1
+	return n
+
+
+const RANK_NUMERALS: Array[String] = ["", "", " II", " III", " IV", " V"]
+
+## Returns the entry ready to offer at `rank`, labelled so the card says which rank is on the
+## table. Rank 1 is left completely untouched — an upgrade you have never taken should not read
+## as "Extended Whirlwind I", it is just Extended Whirlwind.
+##
+## The copy is shallow and that is deliberate: `id`, `op`, `target` and `params` must stay
+## identical to the source entry, because `_ability_rank` counts by id and ClassModFactory reads
+## the op fields straight off the dict that lands in `ability_upgrades`.
+func _with_rank_label(entry: Dictionary, rank: int) -> Dictionary:
+	if rank <= 1:
+		return entry
+	var out: Dictionary = entry.duplicate()
+	var numeral: String = RANK_NUMERALS[rank] if rank < RANK_NUMERALS.size() else " x%d" % rank
+	out["name"] = str(entry.get("name", "")) + numeral
+	out["rank"] = rank
+	return out
 
 
 ## How many crowd/space upgrades the player has actually taken this run. Evolutions land in
