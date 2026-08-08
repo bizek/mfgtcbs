@@ -237,10 +237,19 @@ longer renders in Godot's vector font just because its script forgot to call `ad
 Scrollbars are in-palette `StyleBoxFlat`, not art: the pack has no scrollbar sheet, and Godot's
 default light-grey bar was the loudest thing on an otherwise dark screen.
 
-**Still hand-styled on purpose.** Roughly 53 scripts keep their own `add_theme_*_override` calls.
-Overrides win over a theme, so those screens are unchanged — the theme's palette was taken from
-the colour literals those scripts already use, so the two layers agree instead of fighting. Retiring
-them is a separate, incremental job, not a prerequisite.
+**Retiring the hand-styled overrides — first pass done 2026-08-07.** Override calls across
+`scripts/` went **711 → 539**, and `add_theme_font_override` is now at **zero**: every one of the
+118 call sites passed `m5x7`, which is exactly what `Theme.default_font` supplies. Also gone: every
+`add_theme_font_size_override(..., 16)`, since 16 is `default_font_size`.
+
+Verified before deleting anything, not assumed — a fresh `Label`, `Button`, `RichTextLabel`,
+`CheckBox`, `OptionButton` and `LineEdit` with no override each resolve to the same m5x7 resource
+at size 16. Deleting on a wrong assumption would have reproduced the exact vector-font bug the
+font pass existed to fix.
+
+What is deliberately **kept**: `separation` and `margin_*` constants (layout, not theme), semantic
+`font_color` overrides (rarity, role, damage type), per-screen styleboxes, and any size that is not
+16. Those are design, not duplication. Roughly 539 calls remain and most of them should.
 
 ### 4. Slots + grids → armory, passive tree, codex
 

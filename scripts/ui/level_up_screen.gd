@@ -92,9 +92,6 @@ func _show_choices() -> void:
 	## Reroll button
 	var reroll_btn := Button.new()
 	reroll_btn.custom_minimum_size = Vector2(210, 30)
-	if pixel_font:
-		reroll_btn.add_theme_font_override("font", pixel_font)
-	reroll_btn.add_theme_font_size_override("font_size", 16)
 	reroll_btn.disabled = _rerolls_remaining <= 0
 	reroll_btn.text = "Reroll  [%d left]" % _rerolls_remaining
 	reroll_btn.pressed.connect(_on_reroll_pressed)
@@ -193,9 +190,6 @@ func _card_line(text: String, color: Color, pixel_font: FontFile) -> Label:
 	lbl.text = text
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	lbl.add_theme_color_override("font_color", color)
-	if pixel_font:
-		lbl.add_theme_font_override("font", pixel_font)
-	lbl.add_theme_font_size_override("font_size", 16)
 	return lbl
 
 
@@ -232,9 +226,6 @@ func _build_weapon_cache(pixel_font: FontFile) -> void:
 
 	var header := Label.new()
 	header.text = "— WEAPON CACHE  [%.0f / %.0f haul] —" % [GameManager.loot_carried, WEAPON_SWAP_COST]
-	if pixel_font:
-		header.add_theme_font_override("font", pixel_font)
-	header.add_theme_font_size_override("font_size", 16)
 	header.add_theme_color_override("font_color", Color(0.55, 0.85, 1.0))
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	choices_container.add_child(header)
@@ -245,9 +236,6 @@ func _build_weapon_cache(pixel_font: FontFile) -> void:
 	btn.text = "%s\n%s\n[Cost: 30 haul — drops current weapon]" % [display, desc]
 	btn.custom_minimum_size = Vector2(210, 52)
 	btn.disabled = GameManager.loot_carried < WEAPON_SWAP_COST
-	if pixel_font:
-		btn.add_theme_font_override("font", pixel_font)
-	btn.add_theme_font_size_override("font_size", 16)
 	btn.add_theme_color_override("font_color", Color(0.55, 0.85, 1.0))
 	btn.pressed.connect(_on_weapon_swap_pressed.bind(offered))
 	choices_container.add_child(btn)

@@ -80,8 +80,6 @@ func _build_ui() -> void:
 
 	var title := Label.new()
 	title.text = "INSURANCE"
-	title.add_theme_font_size_override("font_size", 16)
-	_apply_pixel_font(title)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	outer.add_child(title)
 
@@ -90,8 +88,6 @@ func _build_ui() -> void:
 
 	var sub_lbl := Label.new()
 	sub_lbl.text = "Insure one item — it survives on death."
-	sub_lbl.add_theme_font_size_override("font_size", 16)
-	_apply_pixel_font(sub_lbl)
 	sub_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub_lbl.modulate = Color(0.65, 0.65, 0.72)
 	outer.add_child(sub_lbl)
@@ -135,8 +131,6 @@ func _rebuild_rows() -> void:
 	if items.is_empty():
 		var empty := Label.new()
 		empty.text = "No items at risk this run."
-		empty.add_theme_font_size_override("font_size", 16)
-		_apply_pixel_font(empty)
 		empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		empty.modulate = Color(0.55, 0.55, 0.62)
 		_item_vbox.add_child(empty)
@@ -148,14 +142,10 @@ func _rebuild_rows() -> void:
 		_item_vbox.add_child(hbox)
 
 		var lbl := Label.new()
-		lbl.add_theme_font_size_override("font_size", 16)
-		_apply_pixel_font(lbl)
 		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		hbox.add_child(lbl)
 
 		var btn := Button.new()
-		btn.add_theme_font_size_override("font_size", 16)
-		_apply_pixel_font(btn)
 		btn.custom_minimum_size = Vector2(64.0, 0.0)
 		hbox.add_child(btn)
 
@@ -185,16 +175,3 @@ func _refresh_rows() -> void:
 			lbl.modulate = Color(0.82, 0.82, 0.87)
 			btn.text = "Insure"
 			btn.disabled = false
-
-
-## ── Pixel font ────────────────────────────────────────────────────────────────
-## Every site in this file set a font_size but no FONT, so the text rendered in Godot's default
-## vector font — antialiased at 640x360, then nearest-upscaled 3x into mush. It is the same bug
-## game_over_screen.gd shipped with, and a font_size override on its own does nothing to fix it.
-const PIXEL_FONT_PATH: String = "res://assets/fonts/m5x7.ttf"
-
-
-func _apply_pixel_font(c: Control) -> void:
-	if not ResourceLoader.exists(PIXEL_FONT_PATH):
-		return
-	c.add_theme_font_override("font", load(PIXEL_FONT_PATH))

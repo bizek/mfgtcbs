@@ -63,8 +63,6 @@ func _build_visuals() -> void:
 		ls.outline_size = 1
 		ls.outline_color = Color(0.0, 0.0, 0.0, 0.9)
 		lbl.label_settings = ls
-	else:
-		lbl.add_theme_font_size_override("font_size", 16)
 	add_child(lbl)
 
 	## Gem spin

@@ -259,8 +259,6 @@ func _build_ui() -> void:
 	_label.add_theme_color_override("default_color", Color(0.94, 0.87, 0.75))
 	_label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.8))
 	_label.add_theme_constant_override("outline_size", 2)
-	if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
-		_label.add_theme_font_override("normal_font", load("res://assets/fonts/m5x7.ttf"))
 	_panel.add_child(_label)
 
 	_dismiss_timer = Timer.new()

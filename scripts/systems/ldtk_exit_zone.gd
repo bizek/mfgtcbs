@@ -48,8 +48,6 @@ func _build_visuals() -> void:
 	var lbl := Label.new()
 	lbl.name = "ExitLabel"
 	lbl.text = "EXIT"
-	lbl.add_theme_font_size_override("font_size", 16)
-	_apply_pixel_font(lbl)
 	lbl.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2))
 	lbl.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0))
 	lbl.add_theme_constant_override("outline_size", 2)
@@ -97,16 +95,3 @@ func _process(_delta: float) -> void:
 	## Reset flag when channel ends (complete or interrupt).
 	if _channeling and not ExtractionManager.is_channeling:
 		_channeling = false
-
-
-## ── Pixel font ────────────────────────────────────────────────────────────────
-## Every site in this file set a font_size but no FONT, so the text rendered in Godot's default
-## vector font — antialiased at 640x360, then nearest-upscaled 3x into mush. It is the same bug
-## game_over_screen.gd shipped with, and a font_size override on its own does nothing to fix it.
-const PIXEL_FONT_PATH: String = "res://assets/fonts/m5x7.ttf"
-
-
-func _apply_pixel_font(c: Control) -> void:
-	if not ResourceLoader.exists(PIXEL_FONT_PATH):
-		return
-	c.add_theme_font_override("font", load(PIXEL_FONT_PATH))

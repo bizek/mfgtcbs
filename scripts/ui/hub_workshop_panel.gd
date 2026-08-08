@@ -19,7 +19,6 @@ const C_T0       := Color(0.800, 0.690, 0.565)
 const C_T1       := Color(0.541, 0.408, 0.282)
 const C_T2       := Color(0.314, 0.235, 0.157)
 
-const FONT  := HubPanelBase.PIXEL_FONT
 const FS_MD := 16
 const FS_SM := 16
 const FS_XS := 16
@@ -256,7 +255,6 @@ func _build_upgrade_card(parent: Control, udata: Dictionary) -> void:
 	var btn := Button.new()
 	btn.focus_mode          = Control.FOCUS_ALL
 	btn.custom_minimum_size = Vector2(52, 0)
-	btn.add_theme_font_override("font", FONT)
 	btn.add_theme_font_size_override("font_size", FS_XS)
 
 	if is_maxed:
@@ -319,7 +317,6 @@ func _build_footer(parent: Control) -> void:
 func _lbl(parent: Control, text: String, sz: int, col: Color) -> Label:
 	var l := Label.new()
 	l.text = text
-	l.add_theme_font_override("font", FONT)
 	l.add_theme_font_size_override("font_size", sz)
 	l.add_theme_color_override("font_color", col)
 	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER

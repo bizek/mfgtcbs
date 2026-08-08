@@ -7,7 +7,6 @@ extends Panel
 ## for building dynamic content. Each concrete panel instances this scene as a child,
 ## accesses ContentContainer to add rows, and forwards the close_requested signal.
 
-const PIXEL_FONT  := preload("res://assets/fonts/m5x7.ttf")
 const FONT_TITLE  := 16
 ## Was 19 — off the m5x7 pixel grid, and the reason the font pass exists at all.
 ## It survived that pass because `add_row()` below has no callers, so a grep for
@@ -187,7 +186,6 @@ func add_row(parent: Control, text: String, y: float,
 		color: Color = Color(0.82, 0.82, 0.87), font_size: int = FONT_BODY) -> void:
 	var lbl := Label.new()
 	lbl.text = text
-	lbl.add_theme_font_override("font", PIXEL_FONT)
 	lbl.add_theme_font_size_override("font_size", font_size)
 	lbl.add_theme_color_override("font_color", color)
 	lbl.position = Vector2(12, y)

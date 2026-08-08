@@ -23,8 +23,6 @@ var _toast_title: Label = null
 var _toast_name: Label = null
 var _toast_bar: ColorRect = null
 
-const FONT_PATH := "res://assets/fonts/m5x7.ttf"
-
 
 func _ready() -> void:
 	GameManager.run_started.connect(_on_run_started)
@@ -161,7 +159,6 @@ func _build_toast() -> void:
 	_toast_icon = Label.new()
 	_toast_icon.position = Vector2(8.0, 6.0)
 	_toast_icon.size = Vector2(24.0, 32.0)
-	_toast_icon.add_theme_font_size_override("font_size", 16)
 	_toast_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_toast_icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_toast_root.add_child(_toast_icon)
@@ -170,22 +167,14 @@ func _build_toast() -> void:
 	_toast_title.text = "ACHIEVEMENT UNLOCKED"
 	_toast_title.position = Vector2(38.0, 6.0)
 	_toast_title.size = Vector2(176.0, 14.0)
-	_toast_title.add_theme_font_size_override("font_size", 16)
 	_toast_title.add_theme_color_override("font_color", Color(0.65, 0.65, 0.72))
 	_toast_root.add_child(_toast_title)
 
 	_toast_name = Label.new()
 	_toast_name.position = Vector2(38.0, 20.0)
 	_toast_name.size = Vector2(176.0, 20.0)
-	_toast_name.add_theme_font_size_override("font_size", 16)
 	_toast_name.add_theme_color_override("font_color", Color(1.0, 0.92, 0.4))
 	_toast_root.add_child(_toast_name)
-
-	if ResourceLoader.exists(FONT_PATH):
-		var font := load(FONT_PATH)
-		_toast_icon.add_theme_font_override("font", font)
-		_toast_title.add_theme_font_override("font", font)
-		_toast_name.add_theme_font_override("font", font)
 
 
 func _queue_toast(id: String) -> void:

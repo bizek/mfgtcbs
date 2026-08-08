@@ -49,10 +49,7 @@ func _build_visuals() -> void:
 	name_lbl.size = Vector2(140.0, 0.0)
 	name_lbl.position = Vector2(-70.0, -28.0)
 	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_lbl.add_theme_font_size_override("font_size", 16)
 	name_lbl.add_theme_color_override("font_color", Color(0.75, 0.35, 1.0))
-	if _pixel_font:
-		name_lbl.add_theme_font_override("font", _pixel_font)
 	add_child(name_lbl)
 
 	## RichTextLabel so the bound input renders as the pack's keycap/button art.
@@ -71,11 +68,8 @@ func _build_visuals() -> void:
 	status.size = Vector2(140.0, 0.0)
 	status.position = Vector2(-70.0, 26.0)
 	status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	status.add_theme_font_size_override("font_size", 16)
 	status.add_theme_color_override("font_color", Color(1.0, 0.55, 0.55))
 	status.visible = false
-	if _pixel_font:
-		status.add_theme_font_override("font", _pixel_font)
 	add_child(status)
 	_status_label = status
 	InputGlyphs.device_changed.connect(_on_input_device_changed)
@@ -194,10 +188,7 @@ class AltarExtractionZone extends Node2D:
 		lbl.size = Vector2(140.0, 0.0)
 		lbl.position = Vector2(-70.0, -58.0)
 		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		lbl.add_theme_font_size_override("font_size", 16)
 		lbl.add_theme_color_override("font_color", Color(0.15, 1.0, 0.5))
-		if font:
-			lbl.add_theme_font_override("font", font)
 		add_child(lbl)
 		_countdown_label = lbl
 

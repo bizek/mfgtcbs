@@ -39,7 +39,6 @@ const C_FINESSE := Color(0.376, 0.784, 0.549)   ## jade green
 const C_ARCANA  := Color(0.639, 0.463, 0.925)   ## violet
 const C_BRIDGE  := Color(0.706, 0.667, 0.588)   ## neutral stone
 
-const FONT    := HubPanelBase.PIXEL_FONT
 const FS_MD   := 16
 const FS_SM   := 16
 const FS_XS   := 16
@@ -148,7 +147,6 @@ func _build_scaffold() -> void:
 	respec.text             = "RESPEC"
 	respec.focus_mode       = Control.FOCUS_ALL
 	respec.custom_minimum_size = Vector2(58, 0)
-	respec.add_theme_font_override("font", FONT)
 	respec.add_theme_font_size_override("font_size", FS_XS)
 	respec.add_theme_color_override("font_color",       C_TEXT)
 	respec.add_theme_color_override("font_hover_color", C_GOLD)
@@ -634,7 +632,6 @@ func _marquee_lbl(parent: Control, text: String, sz: int, col: Color) -> Control
 	clip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var lbl := Label.new()
 	lbl.text = text
-	lbl.add_theme_font_override("font", FONT)
 	lbl.add_theme_font_size_override("font_size", sz)
 	lbl.add_theme_color_override("font_color", col)
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -699,7 +696,6 @@ func _stop_marquee(btn: Button) -> void:
 func _lbl(parent: Control, text: String, sz: int, col: Color) -> Label:
 	var l := Label.new()
 	l.text = text
-	l.add_theme_font_override("font", FONT)
 	l.add_theme_font_size_override("font_size", sz)
 	l.add_theme_color_override("font_color", col)
 	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER

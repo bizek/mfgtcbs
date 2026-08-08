@@ -37,15 +37,11 @@ static func rich_prompt(size: int, color: Color) -> RichTextLabel:
 	rt.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	rt.add_theme_font_size_override("normal_font_size", size)
 	rt.add_theme_color_override("default_color", color)
-	if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
-		rt.add_theme_font_override("normal_font", load("res://assets/fonts/m5x7.ttf"))
 	return rt
 
 
 func _ready() -> void:
 	var font: FontFile = load("res://assets/fonts/m5x7.ttf")
-	if font:
-		add_theme_font_override("normal_font", font)
 	add_theme_font_size_override("normal_font_size", 14)
 	add_theme_color_override("default_color", Color(0.60, 0.60, 0.66))
 	bbcode_enabled = true

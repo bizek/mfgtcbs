@@ -52,7 +52,6 @@ const C_T0 := Color(0.800, 0.690, 0.565)
 const C_T1 := Color(0.541, 0.408, 0.282)
 const C_T2 := Color(0.314, 0.235, 0.157)
 
-const FONT   := HubPanelBase.PIXEL_FONT
 const FS_LG  := 16
 const FS_MD  := 16
 const FS_SM  := 16
@@ -251,7 +250,6 @@ func _build_weapon_card(parent: Control, slot: int) -> void:
 	name_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_btn.alignment           = HORIZONTAL_ALIGNMENT_LEFT
 	name_btn.focus_mode          = Control.FOCUS_ALL
-	name_btn.add_theme_font_override("font", FONT)
 	name_btn.add_theme_font_size_override("font_size", FS_MD)
 	name_btn.add_theme_color_override("font_color", C_T0 if has_weapon else C_T2)
 	name_btn.add_theme_color_override("font_hover_color", C_AMBER_HI)
@@ -307,7 +305,6 @@ func _build_weapon_card(parent: Control, slot: int) -> void:
 		mb.alignment             = HORIZONTAL_ALIGNMENT_LEFT
 		mb.focus_mode            = Control.FOCUS_ALL
 		mb.visible               = in_range
-		mb.add_theme_font_override("font", FONT)
 		mb.add_theme_font_size_override("font_size", FS_XS)
 
 		if has_mod:
@@ -344,7 +341,6 @@ func _stat_bar(parent: Control, label: String, norm: float, col: Color) -> void:
 	var lbl := Label.new()
 	lbl.text = label
 	lbl.custom_minimum_size = Vector2(22, 0)
-	lbl.add_theme_font_override("font", FONT)
 	lbl.add_theme_font_size_override("font_size", FS_XS)
 	lbl.add_theme_color_override("font_color", C_T2)
 	lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -411,7 +407,6 @@ func _build_weapon_picker(parent: Control) -> void:
 			btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			btn.alignment          = HORIZONTAL_ALIGNMENT_LEFT
 			btn.focus_mode         = Control.FOCUS_ALL
-			btn.add_theme_font_override("font", FONT)
 			btn.add_theme_font_size_override("font_size", FS_MD)
 			btn.add_theme_color_override("font_color", C_AMBER if is_sel else C_T1)
 			btn.add_theme_color_override("font_hover_color", C_AMBER_HI)
@@ -445,7 +440,6 @@ func _build_weapon_picker(parent: Control) -> void:
 	back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	back.alignment           = HORIZONTAL_ALIGNMENT_LEFT
 	back.focus_mode          = Control.FOCUS_ALL
-	back.add_theme_font_override("font", FONT)
 	back.add_theme_font_size_override("font_size", FS_MD)
 	back.add_theme_color_override("font_color", C_T1)
 	back.add_theme_color_override("font_hover_color", C_T0)
@@ -506,7 +500,6 @@ func _build_class_mod_card(parent: Control) -> void:
 		mb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		mb.alignment             = HORIZONTAL_ALIGNMENT_LEFT
 		mb.focus_mode            = Control.FOCUS_ALL
-		mb.add_theme_font_override("font", FONT)
 		mb.add_theme_font_size_override("font_size", FS_XS)
 		if has_mod:
 			mb.text = "◈ " + mod_name
@@ -558,7 +551,6 @@ func _build_class_mod_picker(parent: Control) -> void:
 		clear_btn.text = "✕ CLEAR SLOT"
 		clear_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		clear_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		clear_btn.add_theme_font_override("font", FONT)
 		clear_btn.add_theme_font_size_override("font_size", FS_SM)
 		clear_btn.add_theme_color_override("font_color", C_RED_HI)
 		_style_btn_flat(clear_btn, Color(0, 0, 0, 0), C_RED_LO)
@@ -594,7 +586,6 @@ func _build_class_mod_picker(parent: Control) -> void:
 			btn.text = ("◈ %s  ×%d" % [name_txt, count]) if count > 1 else ("◈ " + name_txt)
 			btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 			btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			btn.add_theme_font_override("font", FONT)
 			btn.add_theme_font_size_override("font_size", FS_MD)
 			btn.add_theme_color_override("font_color", mod_col if not already else mod_col.darkened(0.35))
 			btn.add_theme_color_override("font_hover_color", mod_col.lightened(0.25))
@@ -605,7 +596,6 @@ func _build_class_mod_picker(parent: Control) -> void:
 			if not desc.is_empty():
 				var dl := Label.new()
 				dl.text = "  " + desc + ("   [equipped elsewhere]" if already else "")
-				dl.add_theme_font_override("font", FONT)
 				dl.add_theme_font_size_override("font_size", FS_XS)
 				dl.add_theme_color_override("font_color", C_T2)
 				row.add_child(dl)
@@ -626,7 +616,6 @@ func _build_class_mod_picker(parent: Control) -> void:
 	back.text = "← BACK"
 	back.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	back.add_theme_font_override("font", FONT)
 	back.add_theme_font_size_override("font_size", FS_MD)
 	back.add_theme_color_override("font_color", C_T1)
 	back.add_theme_color_override("font_hover_color", C_T0)
@@ -685,7 +674,6 @@ func _build_footer(parent: Control) -> void:
 	if _codex_panel != null:
 		var cb := Button.new()
 		cb.text = "◆ CODEX"
-		cb.add_theme_font_override("font", FONT)
 		cb.add_theme_font_size_override("font_size", FS_XS)
 		cb.add_theme_color_override("font_color", Color(0.60, 0.42, 0.88))
 		cb.add_theme_color_override("font_hover_color", Color(0.82, 0.62, 1.0))
@@ -795,7 +783,6 @@ func _build_mod_picker() -> void:
 		btn.text = ("■ %s  ×%d" % [mod_name, count]) if count > 1 else ("■ " + mod_name)
 		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		btn.add_theme_font_override("font", FONT)
 		btn.add_theme_font_size_override("font_size", FS_MD)
 		btn.add_theme_color_override("font_color", shown_col)
 		btn.add_theme_color_override("font_hover_color", shown_col.lightened(0.25))
@@ -805,7 +792,6 @@ func _build_mod_picker() -> void:
 		if not desc.is_empty() or not applicable:
 			var desc_lbl := Label.new()
 			desc_lbl.text = ("  " + desc) if applicable else "  (no effect for this class)"
-			desc_lbl.add_theme_font_override("font", FONT)
 			desc_lbl.add_theme_font_size_override("font_size", FS_XS)
 			desc_lbl.add_theme_color_override("font_color", C_T2 if applicable else C_RED_LO.lightened(0.4))
 			desc_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -903,30 +889,25 @@ func _style_btn_mod(btn: Button, border_col: Color, filled: bool) -> void:
 
 
 func _style_picker_chrome() -> void:
-	_picker_header.add_theme_font_override("font", FONT)
 	_picker_header.add_theme_font_size_override("font_size", FS_MD)
 	_picker_header.add_theme_color_override("font_color", C_AMBER)
 
-	_picker_empty_label.add_theme_font_override("font", FONT)
 	_picker_empty_label.add_theme_font_size_override("font_size", FS_MD)
 	_picker_empty_label.add_theme_color_override("font_color", C_T2)
 
 	_picker_cancel_btn.text = "← CANCEL"
 	_picker_cancel_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	_picker_cancel_btn.add_theme_font_override("font", FONT)
 	_picker_cancel_btn.add_theme_font_size_override("font_size", FS_MD)
 	_picker_cancel_btn.add_theme_color_override("font_color", C_T1)
 	_picker_cancel_btn.add_theme_color_override("font_hover_color", C_T0)
 	_style_btn_flat(_picker_cancel_btn, Color(0, 0, 0, 0), Color(0.18, 0.14, 0.10, 0.60))
 
 	for btn in _picker_mod_btns:
-		btn.add_theme_font_override("font", FONT)
 		btn.add_theme_font_size_override("font_size", FS_MD)
 		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		_style_btn_flat(btn, Color(0, 0, 0, 0), C_AMBER_LO)
 
 	for d in _picker_mod_descs:
-		d.add_theme_font_override("font", FONT)
 		d.add_theme_font_size_override("font_size", FS_XS)
 		d.add_theme_color_override("font_color", C_T2)
 
@@ -934,7 +915,6 @@ func _style_picker_chrome() -> void:
 func _lbl(parent: Control, text: String, sz: int, col: Color) -> Label:
 	var l := Label.new()
 	l.text = text
-	l.add_theme_font_override("font", FONT)
 	l.add_theme_font_size_override("font_size", sz)
 	l.add_theme_color_override("font_color", col)
 	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER

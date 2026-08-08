@@ -4,7 +4,6 @@ extends CanvasLayer
 ## Wire into a scene by adding as a child node or instantiating in _ready().
 ## Pass a player Node2D via setup() to get live re-apply after allocations (arena only).
 
-const PIXEL_FONT := preload("res://assets/fonts/m5x7.ttf")
 
 const C_BG      := Color(0.055, 0.050, 0.040, 0.96)
 const C_CARD    := Color(0.082, 0.075, 0.063)
@@ -128,14 +127,12 @@ func _build_header() -> HBoxContainer:
 
 	var title := Label.new()
 	title.text = "Passive Tree  [P]"
-	title.add_theme_font_override("font", PIXEL_FONT)
 	title.add_theme_font_size_override("font_size", FS_HEADER)
 	title.add_theme_color_override("font_color", C_AMBER)
 	hbox.add_child(title)
 
 	_points_label = Label.new()
 	_points_label.text = "Points: 0"
-	_points_label.add_theme_font_override("font", PIXEL_FONT)
 	_points_label.add_theme_font_size_override("font_size", FS_HEADER)
 	_points_label.add_theme_color_override("font_color", C_T0)
 	_points_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -167,7 +164,6 @@ func _build_branch_tabs() -> VBoxContainer:
 		var label: String = BRANCH_LABELS[i]
 		var btn := Button.new()
 		btn.text = label
-		btn.add_theme_font_override("font", PIXEL_FONT)
 		btn.add_theme_font_size_override("font_size", FS_TAB)
 		btn.flat = false
 		_style_tab_btn(btn, branch == _current_branch)
@@ -274,7 +270,6 @@ func _build_node_row(node_id: String, node: Dictionary) -> HBoxContainer:
 	alloc_btn.text = "+" if not maxed else "✓"
 	alloc_btn.custom_minimum_size = Vector2(22, 16)
 	alloc_btn.disabled = maxed or not can
-	alloc_btn.add_theme_font_override("font", PIXEL_FONT)
 	alloc_btn.add_theme_font_size_override("font_size", FS_NODE)
 	_color_btn(alloc_btn, C_GREEN if not maxed else C_DIM, C_GREEN if not maxed else C_DIM)
 	alloc_btn.pressed.connect(_on_allocate.bind(node_id))
@@ -288,7 +283,6 @@ func _build_node_row(node_id: String, node: Dictionary) -> HBoxContainer:
 	elif kind == "notable":
 		name_text = "● " + name_text
 	name_lbl.text = name_text
-	name_lbl.add_theme_font_override("font", PIXEL_FONT)
 	name_lbl.add_theme_font_size_override("font_size", FS_NODE)
 	var c_name: Color = C_AMBER if kind == "keystone" else (C_T0 if kind == "notable" else C_T1)
 	if maxed:
@@ -302,7 +296,6 @@ func _build_node_row(node_id: String, node: Dictionary) -> HBoxContainer:
 	## Ranks / cost
 	var rank_lbl := Label.new()
 	rank_lbl.text = "%d/%d  [%dpt]" % [ranks, max_r, cost]
-	rank_lbl.add_theme_font_override("font", PIXEL_FONT)
 	rank_lbl.add_theme_font_size_override("font_size", FS_NODE)
 	rank_lbl.add_theme_color_override("font_color", C_DIM)
 	rank_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -350,7 +343,6 @@ func _reapply_tree() -> void:
 func _make_btn(text_str: String, col_normal: Color, col_hover: Color) -> Button:
 	var btn := Button.new()
 	btn.text = text_str
-	btn.add_theme_font_override("font", PIXEL_FONT)
 	btn.add_theme_font_size_override("font_size", FS_TAB)
 	_color_btn(btn, col_normal, col_hover)
 	return btn

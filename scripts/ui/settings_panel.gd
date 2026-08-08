@@ -22,7 +22,6 @@ const C_AMBER_LO := Color(0.353, 0.173, 0.031)
 const C_T0       := Color(0.800, 0.690, 0.565)
 const C_T2       := Color(0.314, 0.235, 0.157)
 
-const FONT  := HubPanelBase.PIXEL_FONT
 const FS_SM := 16
 const FS_MD := 16
 const FS_XS := 16
@@ -121,7 +120,6 @@ func _build_ui() -> void:
 	tabs.offset_top    = 4.0
 	tabs.offset_right  = -6.0
 	tabs.offset_bottom = -18.0
-	tabs.add_theme_font_override("font", FONT)
 	tabs.add_theme_font_size_override("font_size", FS_SM)
 	tabs.add_theme_color_override("font_selected_color", C_AMBER_HI)
 	tabs.add_theme_color_override("font_unselected_color", C_T2)
@@ -143,7 +141,6 @@ func _build_ui() -> void:
 	var version: String = ProjectSettings.get_setting("application/config/version", "0.0.0")
 	var version_lbl := Label.new()
 	version_lbl.text = "v%s" % version
-	version_lbl.add_theme_font_override("font", FONT)
 	version_lbl.add_theme_font_size_override("font_size", FS_XS)
 	version_lbl.add_theme_color_override("font_color", C_T2)
 	footer_hbox.add_child(version_lbl)
@@ -237,7 +234,6 @@ func _build_controls_tab() -> Control:
 	vbox.add_child(reset_row)
 	var reset_btn := Button.new()
 	reset_btn.text = "Reset to Defaults"
-	reset_btn.add_theme_font_override("font", FONT)
 	reset_btn.add_theme_font_size_override("font_size", FS_SM)
 	_base.style_btn(reset_btn, C_CARD, C_AMBER_LO)
 	reset_row.add_child(reset_btn)
@@ -263,7 +259,6 @@ func _bind_row(parent: Control, action: String) -> void:
 		var btn := Button.new()
 		btn.custom_minimum_size = Vector2(BIND_W, 0)
 		btn.text = _binding_text(action, cls)
-		btn.add_theme_font_override("font", FONT)
 		btn.add_theme_font_size_override("font_size", FS_SM)
 		_base.style_btn(btn, C_CARD, C_AMBER_LO)
 		row.add_child(btn)
@@ -376,7 +371,6 @@ func _show_conflict(action: String, event: InputEvent, conflict_action: String) 
 
 	var swap_btn := Button.new()
 	swap_btn.text = "Swap"
-	swap_btn.add_theme_font_override("font", FONT)
 	swap_btn.add_theme_font_size_override("font_size", FS_XS)
 	_base.style_btn(swap_btn, C_CARD, C_AMBER_LO)
 	_conflict_row.add_child(swap_btn)
@@ -389,7 +383,6 @@ func _show_conflict(action: String, event: InputEvent, conflict_action: String) 
 
 	var cancel_btn := Button.new()
 	cancel_btn.text = "Cancel"
-	cancel_btn.add_theme_font_override("font", FONT)
 	cancel_btn.add_theme_font_size_override("font_size", FS_XS)
 	_base.style_btn(cancel_btn, C_CARD, C_AMBER_LO)
 	_conflict_row.add_child(cancel_btn)
@@ -458,7 +451,6 @@ func _text_size_row(parent: Control) -> void:
 	_lbl(row, "Text Size", FS_SM, C_T0, LABEL_W)
 
 	var opt := OptionButton.new()
-	opt.add_theme_font_override("font", FONT)
 	opt.add_theme_font_size_override("font_size", FS_SM)
 	opt.add_item("Small", Settings.TextSize.SMALL)
 	opt.add_item("Normal", Settings.TextSize.NORMAL)
@@ -510,7 +502,6 @@ func _checkbox_row(parent: Control, label_text: String, initial: bool, on_change
 
 	var box := CheckBox.new()
 	box.button_pressed = initial
-	box.add_theme_font_override("font", FONT)
 	box.add_theme_font_size_override("font_size", FS_SM)
 	box.add_theme_color_override("font_color", C_T0)
 	box.add_theme_color_override("font_hover_color", C_AMBER_HI)
@@ -539,7 +530,6 @@ func _style_slider(slider: HSlider) -> void:
 func _lbl(parent: Control, text: String, font_size: int, color: Color, min_w: float = 0.0) -> Label:
 	var lbl := Label.new()
 	lbl.text = text
-	lbl.add_theme_font_override("font", FONT)
 	lbl.add_theme_font_size_override("font_size", font_size)
 	lbl.add_theme_color_override("font_color", color)
 	if min_w > 0.0:

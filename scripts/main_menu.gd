@@ -4,7 +4,6 @@ extends Control
 ## New player (no save) skips the hub entirely on New Game — first boot fast path (D4).
 ## Returning player (save exists) keeps menu -> hub via Continue.
 
-const PIXEL_FONT := preload("res://assets/fonts/m5x7.ttf")
 
 const C_CARD    := Color(0.082, 0.075, 0.063)
 const C_CARD_HI := Color(0.102, 0.092, 0.076)
@@ -87,7 +86,6 @@ func _build_title() -> void:
 	title.text = "EXTRACTION SURVIVORS"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title.add_theme_font_override("font", PIXEL_FONT)
 	title.add_theme_font_size_override("font_size", FS_TITLE)
 	title.add_theme_color_override("font_color", C_AMBER)
 	title.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.75))
@@ -99,7 +97,6 @@ func _build_title() -> void:
 	subtitle.text = "descend. loot. extract."
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	subtitle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	subtitle.add_theme_font_override("font", PIXEL_FONT)
 	subtitle.add_theme_font_size_override("font_size", FS_SUB)
 	subtitle.add_theme_color_override("font_color", C_T1)
 	vbox.add_child(subtitle)
@@ -183,7 +180,6 @@ func _make_button(label: String, normal_col: Color, hover_col: Color) -> Button:
 	btn.text = label
 	btn.custom_minimum_size = Vector2(180, 28)
 	btn.focus_mode = Control.FOCUS_ALL
-	btn.add_theme_font_override("font", PIXEL_FONT)
 	btn.add_theme_font_size_override("font_size", FS_BTN)
 	btn.add_theme_color_override("font_color", normal_col)
 	btn.add_theme_color_override("font_hover_color", hover_col)
@@ -217,7 +213,6 @@ func _build_version_label() -> void:
 	var version: String = ProjectSettings.get_setting("application/config/version", "0.0.0")
 	var lbl := Label.new()
 	lbl.text = "v%s" % version
-	lbl.add_theme_font_override("font", PIXEL_FONT)
 	lbl.add_theme_font_size_override("font_size", FS_XS)
 	lbl.add_theme_color_override("font_color", C_T2)
 	lbl.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
@@ -229,7 +224,6 @@ func _build_version_label() -> void:
 
 func _build_toast() -> void:
 	_toast_label = Label.new()
-	_toast_label.add_theme_font_override("font", PIXEL_FONT)
 	_toast_label.add_theme_font_size_override("font_size", FS_XS)
 	_toast_label.add_theme_color_override("font_color", C_T1)
 	_toast_label.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
@@ -317,7 +311,6 @@ func _show_confirm_dialog() -> void:
 	var msg := Label.new()
 	msg.text = "Starting a new game will erase\nyour current save. Continue?"
 	msg.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	msg.add_theme_font_override("font", PIXEL_FONT)
 	msg.add_theme_font_size_override("font_size", FS_XS)
 	msg.add_theme_color_override("font_color", C_T0)
 	vbox.add_child(msg)

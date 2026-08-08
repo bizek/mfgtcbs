@@ -15,7 +15,6 @@ const C_T2     := Color(0.314, 0.235, 0.157)
 const C_LOCKED := Color(0.42, 0.40, 0.44)
 const C_DESC   := Color(0.55, 0.53, 0.58)
 
-const FONT  := HubPanelBase.PIXEL_FONT
 const FS_MD := 16
 const FS_SM := 16
 const FS_XS := 16
@@ -127,7 +126,6 @@ func populate(pm: Node) -> void:
 func _tab_button(parent: Control, text: String, tab_id: String) -> Button:
 	var btn := Button.new()
 	btn.text = text
-	btn.add_theme_font_override("font", FONT)
 	btn.add_theme_font_size_override("font_size", FS_XS)
 	btn.custom_minimum_size = Vector2(0, 20)
 	btn.focus_mode = Control.FOCUS_ALL
@@ -261,7 +259,6 @@ func _add_achievement_row(parent: Control, id: String) -> void:
 func _lbl(parent: Control, text: String, sz: int, col: Color) -> Label:
 	var l := Label.new()
 	l.text = text
-	l.add_theme_font_override("font", FONT)
 	l.add_theme_font_size_override("font_size", sz)
 	l.add_theme_color_override("font_color", col)
 	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER

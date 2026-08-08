@@ -32,7 +32,6 @@ extends CanvasLayer
 ## connected to run_failed and never appeared. Same trap GatewayExtraction hit on 2026-08-02.
 const ReportView := preload("res://scripts/ui/run_report_view.gd")
 
-const FONT_PATH: String = "res://assets/fonts/m5x7.ttf"
 
 ## m5x7 is 16px-native: one design pixel equals one screen pixel only at 16 and its integer
 ## multiples. Title at 32, everything else at 16, nothing in between.
@@ -54,7 +53,6 @@ func _ready() -> void:
 	visible = false
 	restart_button.pressed.connect(_on_return_to_hub)
 	GameManager.run_failed.connect(_show_lost_run)
-	_apply_font()
 
 
 func _process(delta: float) -> void:
@@ -65,20 +63,6 @@ func _process(delta: float) -> void:
 	var dir: float = Input.get_axis("ui_up", "ui_down")
 	if dir != 0.0:
 		_scroll.scroll_vertical += int(dir * SCROLL_SPEED * delta)
-
-
-## This screen had shipped with no font override at all, so the one screen you are guaranteed to
-## read on a bad run was the only one still rendering in Godot's default vector font — antialiased
-## at 640x360, then nearest-upscaled 3x into mush. Every sibling screen already did this.
-func _apply_font() -> void:
-	if not ResourceLoader.exists(FONT_PATH):
-		return
-	var font := load(FONT_PATH)
-	for child in $VBox.get_children():
-		if child is Label or child is Button:
-			child.add_theme_font_override("font", font)
-			child.add_theme_font_size_override(
-				"font_size", TITLE_SIZE if child == title_label else BODY_SIZE)
 
 
 func _show_lost_run(abandoned: bool) -> void:

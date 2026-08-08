@@ -19,7 +19,6 @@ const C_GREEN_HI := Color(0.314, 0.690, 0.188)
 const C_T0       := Color(0.800, 0.690, 0.565)
 const C_T2       := Color(0.314, 0.235, 0.157)
 
-const FONT  := HubPanelBase.PIXEL_FONT
 const FS_SM := 16
 const FS_MD := 16
 const FS_XS := 16
@@ -198,7 +197,6 @@ func _build_weapon_card(weapon_id: String, wdata: Dictionary) -> void:
 	dl.text                  = desc
 	dl.clip_text             = true
 	dl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	dl.add_theme_font_override("font", FONT)
 	dl.add_theme_font_size_override("font_size", FS_XS)
 	dl.add_theme_color_override("font_color", C_T2)
 	lv.add_child(dl)
@@ -220,7 +218,6 @@ func _build_weapon_card(weapon_id: String, wdata: Dictionary) -> void:
 
 	var cost_lbl := Label.new()
 	cost_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	cost_lbl.add_theme_font_override("font", FONT)
 	cost_lbl.add_theme_font_size_override("font_size", FS_XS)
 	if owned:
 		cost_lbl.text = ""
@@ -233,7 +230,6 @@ func _build_weapon_card(weapon_id: String, wdata: Dictionary) -> void:
 	var btn := Button.new()
 	btn.focus_mode = Control.FOCUS_ALL
 	btn.alignment  = HORIZONTAL_ALIGNMENT_CENTER
-	btn.add_theme_font_override("font", FONT)
 	btn.add_theme_font_size_override("font_size", FS_XS)
 
 	if owned:
@@ -279,7 +275,6 @@ func _style_btn_flat(btn: Button, normal_bg: Color, hover_bg: Color) -> void:
 func _lbl(parent: Control, text: String, sz: int, col: Color) -> Label:
 	var l := Label.new()
 	l.text = text
-	l.add_theme_font_override("font", FONT)
 	l.add_theme_font_size_override("font_size", sz)
 	l.add_theme_color_override("font_color", col)
 	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER

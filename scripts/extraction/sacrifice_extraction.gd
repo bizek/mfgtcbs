@@ -142,13 +142,10 @@ func _on_item_selected(item_key: String) -> void:
 ## ── Panel building ───────────────────────────────────────────────────────────
 
 func _build_panel() -> Control:
-	const PIXEL_FONT_PATH := "res://assets/fonts/m5x7.ttf"
 	const PANEL_W: float = 360.0
 	const PANEL_H: float = 293.0
 	const VW: float = 480.0
 	const VH: float = 270.0
-
-	var pixel_font: Font = load(PIXEL_FONT_PATH) if ResourceLoader.exists(PIXEL_FONT_PATH) else null
 
 	## Dark overlay (owns the Esc/Ⓑ cancel path — see _SacrificeOverlay)
 	var overlay := _SacrificeOverlay.new()
@@ -177,18 +174,12 @@ func _build_panel() -> Control:
 	var title_lbl := Label.new()
 	title_lbl.text = "SACRIFICE EXTRACTION"
 	title_lbl.position = Vector2(8.0, 4.0)
-	if pixel_font:
-		title_lbl.add_theme_font_override("font", pixel_font)
-	title_lbl.add_theme_font_size_override("font_size", 16)
 	title_lbl.add_theme_color_override("font_color", Color(0.95, 0.28, 0.28))
 	panel.add_child(title_lbl)
 
 	var sub_lbl := Label.new()
 	sub_lbl.text = "Choose one item to destroy. Extraction is instant."
 	sub_lbl.position = Vector2(8.0, 26.0)
-	if pixel_font:
-		sub_lbl.add_theme_font_override("font", pixel_font)
-	sub_lbl.add_theme_font_size_override("font_size", 16)
 	sub_lbl.add_theme_color_override("font_color", Color(0.65, 0.55, 0.55))
 	sub_lbl.size = Vector2(PANEL_W - 16.0, 16.0)
 	panel.add_child(sub_lbl)
@@ -209,18 +200,18 @@ func _build_panel() -> Control:
 
 	## Weapons
 	for weapon_id in GameManager.collected_weapons:
-		var row := _build_row(weapon_id, weapon_id, pixel_font)
+		var row := _build_row(weapon_id, weapon_id)
 		vbox.add_child(row)
 
 	## Mods
 	for mod_id in GameManager.collected_mods:
 		var mod_name: String = ModData.ALL.get(mod_id, {}).get("name", mod_id)
-		var row := _build_row(mod_name + " (mod)", "mod_" + mod_id, pixel_font)
+		var row := _build_row(mod_name + " (mod)", "mod_" + mod_id)
 		vbox.add_child(row)
 
 	## Generic loot fallback
 	if GameManager.collected_weapons.is_empty() and GameManager.collected_mods.is_empty() and GameManager.loot_carried > 0.0:
-		var row := _build_row("All resources  (%d)" % int(GameManager.loot_carried), "all_loot", pixel_font)
+		var row := _build_row("All resources  (%d)" % int(GameManager.loot_carried), "all_loot")
 		vbox.add_child(row)
 
 	UINav.wire_scroll_follow(scroll)
@@ -228,9 +219,6 @@ func _build_panel() -> Control:
 	if vbox.get_child_count() == 0:
 		var empty := Label.new()
 		empty.text = "Nothing to sacrifice."
-		if pixel_font:
-			empty.add_theme_font_override("font", pixel_font)
-		empty.add_theme_font_size_override("font_size", 16)
 		empty.add_theme_color_override("font_color", Color(0.50, 0.50, 0.55))
 		vbox.add_child(empty)
 
@@ -246,9 +234,6 @@ func _build_panel() -> Control:
 	cancel_btn.size = Vector2(PANEL_W - 16.0, 20.0)
 	cancel_btn.position = Vector2(8.0, PANEL_H - 26.0)
 	cancel_btn.process_mode = Node.PROCESS_MODE_ALWAYS
-	if pixel_font:
-		cancel_btn.add_theme_font_override("font", pixel_font)
-	cancel_btn.add_theme_font_size_override("font_size", 16)
 	cancel_btn.add_theme_color_override("font_color", Color(0.60, 0.55, 0.55))
 	cancel_btn.pressed.connect(close_ui)
 	panel.add_child(cancel_btn)
@@ -256,16 +241,13 @@ func _build_panel() -> Control:
 	overlay.add_child(panel)
 	return overlay
 
-func _build_row(display_text: String, item_key: String, pixel_font: Font) -> HBoxContainer:
+func _build_row(display_text: String, item_key: String) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 4)
 
 	var name_lbl := Label.new()
 	name_lbl.text = display_text
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	if pixel_font:
-		name_lbl.add_theme_font_override("font", pixel_font)
-	name_lbl.add_theme_font_size_override("font_size", 16)
 	name_lbl.add_theme_color_override("font_color", Color(0.85, 0.78, 0.78))
 	row.add_child(name_lbl)
 
@@ -273,9 +255,6 @@ func _build_row(display_text: String, item_key: String, pixel_font: Font) -> HBo
 	btn.text = "SACRIFICE"
 	btn.custom_minimum_size = Vector2(80.0, 18.0)
 	btn.process_mode = Node.PROCESS_MODE_ALWAYS
-	if pixel_font:
-		btn.add_theme_font_override("font", pixel_font)
-	btn.add_theme_font_size_override("font_size", 16)
 	btn.add_theme_color_override("font_color", Color(0.95, 0.28, 0.28))
 	var cap_key: String = item_key
 	btn.pressed.connect(func(): _on_item_selected(cap_key))

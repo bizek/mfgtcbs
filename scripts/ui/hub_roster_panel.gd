@@ -29,7 +29,6 @@ const C_T0 := Color(0.800, 0.690, 0.565)
 const C_T1 := Color(0.541, 0.408, 0.282)
 const C_T2 := Color(0.314, 0.235, 0.157)
 
-const FONT  := HubPanelBase.PIXEL_FONT
 const FS_LG := 16
 const FS_MD := 16
 const FS_SM := 16
@@ -231,7 +230,6 @@ func _build_char_card(parent: VBoxContainer, char_id: String) -> void:
 	var name_lbl := Label.new()
 	name_lbl.text = cdata.get("display_name", char_id)
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	name_lbl.add_theme_font_override("font", FONT)
 	name_lbl.add_theme_font_size_override("font_size", FS_SM)
 	name_lbl.add_theme_color_override("font_color", char_col if is_owned else C_T2)
 	name_lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -241,7 +239,6 @@ func _build_char_card(parent: VBoxContainer, char_id: String) -> void:
 	if is_active:
 		var act_lbl := Label.new()
 		act_lbl.text = "▶"
-		act_lbl.add_theme_font_override("font", FONT)
 		act_lbl.add_theme_font_size_override("font_size", FS_XS)
 		act_lbl.add_theme_color_override("font_color", char_col)
 		act_lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -258,7 +255,6 @@ func _build_char_card(parent: VBoxContainer, char_id: String) -> void:
 		var cost: int = cdata.get("unlock_cost", 0)
 		sub_lbl.text = "LOCKED  %d" % cost
 		sub_lbl.add_theme_color_override("font_color", C_T2)
-	sub_lbl.add_theme_font_override("font", FONT)
 	sub_lbl.add_theme_font_size_override("font_size", FS_XS)
 	sub_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content_col.add_child(sub_lbl)
@@ -354,7 +350,6 @@ func _build_detail_pane(parent: HBoxContainer) -> void:
 		if not is_owned:
 			var lock_lbl := Label.new()
 			lock_lbl.text = "?"
-			lock_lbl.add_theme_font_override("font", FONT)
 			lock_lbl.add_theme_font_size_override("font_size", FS_LG)
 			lock_lbl.add_theme_color_override("font_color", C_T2)
 			lock_lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -371,7 +366,6 @@ func _build_detail_pane(parent: HBoxContainer) -> void:
 
 	var name_lbl := Label.new()
 	name_lbl.text = ddata.get("display_name", _detail_char)
-	name_lbl.add_theme_font_override("font", FONT)
 	name_lbl.add_theme_font_size_override("font_size", FS_LG)
 	name_lbl.add_theme_color_override("font_color",
 		char_col if is_owned else char_col.darkened(0.55))
@@ -382,7 +376,6 @@ func _build_detail_pane(parent: HBoxContainer) -> void:
 	if char_class != "":
 		var class_lbl := Label.new()
 		class_lbl.text = char_class.to_upper()
-		class_lbl.add_theme_font_override("font", FONT)
 		class_lbl.add_theme_font_size_override("font_size", FS_XS)
 		class_lbl.add_theme_color_override("font_color",
 			Color(char_col.r * 0.65, char_col.g * 0.65, char_col.b * 0.65) if is_owned else C_T2)
@@ -440,7 +433,6 @@ func _build_detail_pane(parent: HBoxContainer) -> void:
 
 	var p_lbl := Label.new()
 	p_lbl.text = ddata.get("passive_desc", "None.")
-	p_lbl.add_theme_font_override("font", FONT)
 	p_lbl.add_theme_font_size_override("font_size", FS_XS)
 	p_lbl.add_theme_color_override("font_color", C_T1 if is_owned else C_T2)
 	p_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -479,7 +471,6 @@ func _build_detail_pane(parent: HBoxContainer) -> void:
 
 	var btn := Button.new()
 	btn.focus_mode = Control.FOCUS_ALL
-	btn.add_theme_font_override("font", FONT)
 	btn.add_theme_font_size_override("font_size", FS_MD)
 
 	if is_active:
@@ -537,7 +528,6 @@ func _stat_row(parent: Control, label: String, value: int,
 	var lbl := Label.new()
 	lbl.text = label
 	lbl.custom_minimum_size = Vector2(36, 0)
-	lbl.add_theme_font_override("font", FONT)
 	lbl.add_theme_font_size_override("font_size", FS_XS)
 	lbl.add_theme_color_override("font_color", C_T2)
 	lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -546,7 +536,6 @@ func _stat_row(parent: Control, label: String, value: int,
 	var val_lbl := Label.new()
 	val_lbl.text = str(value)
 	val_lbl.custom_minimum_size = Vector2(28, 0)
-	val_lbl.add_theme_font_override("font", FONT)
 	val_lbl.add_theme_font_size_override("font_size", FS_XS)
 	val_lbl.add_theme_color_override("font_color", C_T0)
 	val_lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -605,7 +594,6 @@ func _style_btn_flat(btn: Button, normal_bg: Color, hover_bg: Color) -> void:
 func _lbl(parent: Control, text: String, sz: int, col: Color) -> Label:
 	var l := Label.new()
 	l.text = text
-	l.add_theme_font_override("font", FONT)
 	l.add_theme_font_size_override("font_size", sz)
 	l.add_theme_color_override("font_color", col)
 	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER

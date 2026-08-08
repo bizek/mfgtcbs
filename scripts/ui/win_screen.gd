@@ -8,24 +8,13 @@ extends CanvasLayer
 @onready var character_label: Label = $VBox/CharacterLabel
 @onready var continue_button: Button = $VBox/ContinueButton
 
-const FONT_PATH: String = "res://assets/fonts/m5x7.ttf"
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
 	continue_button.pressed.connect(_on_continue)
 	GameManager.extraction_successful.connect(_on_extraction_successful)
-	_apply_font()
 
-func _apply_font() -> void:
-	if not ResourceLoader.exists(FONT_PATH):
-		return
-	var font := load(FONT_PATH)
-	for child in $VBox.get_children():
-		if child is Label:
-			child.add_theme_font_override("font", font)
-		elif child is Button:
-			child.add_theme_font_override("font", font)
 
 func _on_extraction_successful() -> void:
 	if not GameManager.last_run_was_win:

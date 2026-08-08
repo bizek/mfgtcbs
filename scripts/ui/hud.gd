@@ -331,8 +331,6 @@ func _add_bar_inner_label(bar: ProgressBar, font_size: int) -> Label:
 	lbl.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.9))
 	lbl.add_theme_constant_override("outline_size", 2)
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
-		lbl.add_theme_font_override("font", load("res://assets/fonts/m5x7.ttf"))
 	bar.add_child(lbl)
 	return lbl
 
@@ -426,8 +424,6 @@ func _build_keystone_indicator() -> void:
 	lbl.position = Vector2(14.0, 2.0)
 	lbl.add_theme_font_size_override("font_size", _ts(12))
 	lbl.add_theme_color_override("font_color", Color(0.32, 0.20, 0.06))
-	if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
-		lbl.add_theme_font_override("font", load("res://assets/fonts/m5x7.ttf"))
 	root.add_child(lbl)
 
 	## Gem spin
@@ -479,8 +475,6 @@ func _build_town_portal_indicator() -> void:
 	## known-fuzzy HUD sublabel batch waiting on m3x6 — not a new offender.
 	lbl.add_theme_font_size_override("font_size", _ts(12))
 	lbl.add_theme_color_override("font_color", Color(0.32, 0.20, 0.06))
-	if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
-		lbl.add_theme_font_override("font", load("res://assets/fonts/m5x7.ttf"))
 	root.add_child(lbl)
 
 	var pulse := root.create_tween().set_loops()
@@ -613,8 +607,6 @@ func _build_phase_flash_label() -> void:
 	lbl.add_theme_font_size_override("font_size", _ts(32))
 	lbl.add_theme_color_override("font_color", Color(1.0, 0.9, 0.7))
 	lbl.modulate.a = 0.0
-	if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
-		lbl.add_theme_font_override("font", load("res://assets/fonts/m5x7.ttf"))
 	add_child(lbl)
 	_phase_flash_label = lbl
 
@@ -632,8 +624,6 @@ func _build_extraction_warning_label() -> void:
 	lbl.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.8))
 	lbl.add_theme_constant_override("outline_size", 2)
 	lbl.visible = false
-	if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
-		lbl.add_theme_font_override("font", load("res://assets/fonts/m5x7.ttf"))
 	add_child(lbl)
 	_extraction_warning_label = lbl
 
@@ -728,8 +718,6 @@ func _build_skill_slots() -> void:
 		key.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.9))
 		key.add_theme_constant_override("outline_size", 2)
 		key.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
-			key.add_theme_font_override("font", load("res://assets/fonts/m5x7.ttf"))
 		root.add_child(key)
 
 		## Glyph art for the bound input, centred over the slot. A TextureRect
@@ -793,8 +781,6 @@ func _build_buff_chips() -> void:
 		label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.9))
 		label.add_theme_constant_override("outline_size", 1)
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		if ResourceLoader.exists("res://assets/fonts/m5x7.ttf"):
-			label.add_theme_font_override("font", load("res://assets/fonts/m5x7.ttf"))
 		root.add_child(label)
 
 		_buff_chips.append({ "root": root, "bg": bg, "fill": fill, "label": label, "id": "" })

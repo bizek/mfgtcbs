@@ -5,7 +5,6 @@ extends Control
 
 signal close_requested
 
-const _FONT := HubPanelBase.PIXEL_FONT
 const _FS_LG := 16
 const _FS_MD := 16
 const _FS_SM := 16
@@ -138,7 +137,6 @@ func populate(pm: Node) -> void:
 	btn.text                  = "BEGIN DESCENT"
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn.focus_mode            = Control.FOCUS_ALL
-	btn.add_theme_font_override("font", _FONT)
 	btn.add_theme_font_size_override("font_size", _FS_LG)
 	btn.add_theme_color_override("font_color",       Color(0.820, 0.157, 0.063))
 	btn.add_theme_color_override("font_hover_color", Color(1.0, 0.4, 0.2))
@@ -160,7 +158,6 @@ func _row(parent: Control, label: String, value: String, val_col: Color) -> void
 	var lbl := Label.new()
 	lbl.text                = label
 	lbl.custom_minimum_size = Vector2(72, 0)
-	lbl.add_theme_font_override("font", _FONT)
 	lbl.add_theme_font_size_override("font_size", _FS_XS)
 	lbl.add_theme_color_override("font_color", Color(0.314, 0.235, 0.157))
 	lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -169,7 +166,6 @@ func _row(parent: Control, label: String, value: String, val_col: Color) -> void
 	var val := Label.new()
 	val.text                  = value
 	val.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	val.add_theme_font_override("font", _FONT)
 	val.add_theme_font_size_override("font_size", _FS_MD)
 	val.add_theme_color_override("font_color", val_col)
 	val.size_flags_vertical   = Control.SIZE_SHRINK_CENTER
@@ -184,7 +180,6 @@ func _row_passive(parent: Control, label: String, desc: String) -> void:
 	var lbl := Label.new()
 	lbl.text                = label
 	lbl.custom_minimum_size = Vector2(72, 0)
-	lbl.add_theme_font_override("font", _FONT)
 	lbl.add_theme_font_size_override("font_size", _FS_XS)
 	lbl.add_theme_color_override("font_color", Color(0.314, 0.235, 0.157))
 	lbl.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
@@ -194,7 +189,6 @@ func _row_passive(parent: Control, label: String, desc: String) -> void:
 	val.text                  = desc
 	val.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	val.autowrap_mode         = TextServer.AUTOWRAP_WORD_SMART
-	val.add_theme_font_override("font", _FONT)
 	val.add_theme_font_size_override("font_size", _FS_XS)
 	val.add_theme_color_override("font_color", Color(0.541, 0.408, 0.282))
 	hb.add_child(val)
@@ -220,7 +214,6 @@ func _style_begin_btn(btn: Button) -> void:
 func _lbl(parent: Control, text: String, sz: int, col: Color) -> Label:
 	var l := Label.new()
 	l.text = text
-	l.add_theme_font_override("font", _FONT)
 	l.add_theme_font_size_override("font_size", sz)
 	l.add_theme_color_override("font_color", col)
 	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER

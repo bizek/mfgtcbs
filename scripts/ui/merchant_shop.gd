@@ -149,9 +149,6 @@ func _build_ui(offers: Array[Dictionary]) -> void:
 	var title_lbl := Label.new()
 	title_lbl.text = "MERCHANT"
 	title_lbl.position = Vector2(8.0, 4.0)
-	if _pixel_font:
-		title_lbl.add_theme_font_override("font", _pixel_font)
-	title_lbl.add_theme_font_size_override("font_size", 16)
 	title_lbl.add_theme_color_override("font_color", Color(1.0, 0.85, 0.18))
 	panel.add_child(title_lbl)
 
@@ -162,9 +159,6 @@ func _build_ui(offers: Array[Dictionary]) -> void:
 	loot_lbl.position = Vector2(PANEL_W - 110.0, 5.0)
 	loot_lbl.size = Vector2(100.0, 14.0)
 	loot_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	if _pixel_font:
-		loot_lbl.add_theme_font_override("font", _pixel_font)
-	loot_lbl.add_theme_font_size_override("font_size", 16)
 	loot_lbl.add_theme_color_override("font_color", Color(0.90, 0.85, 0.50))
 	panel.add_child(loot_lbl)
 	_loot_counter = loot_lbl
@@ -172,9 +166,6 @@ func _build_ui(offers: Array[Dictionary]) -> void:
 	var sub_lbl := Label.new()
 	sub_lbl.text = "Spend haul for goods and passage."
 	sub_lbl.position = Vector2(8.0, 26.0)
-	if _pixel_font:
-		sub_lbl.add_theme_font_override("font", _pixel_font)
-	sub_lbl.add_theme_font_size_override("font_size", 16)
 	sub_lbl.add_theme_color_override("font_color", Color(0.58, 0.55, 0.38))
 	panel.add_child(sub_lbl)
 
@@ -210,9 +201,6 @@ func _build_ui(offers: Array[Dictionary]) -> void:
 	leave_btn.size = Vector2(PANEL_W - 16.0, 22.0)
 	leave_btn.position = Vector2(8.0, PANEL_H - 26.0)
 	leave_btn.process_mode = Node.PROCESS_MODE_ALWAYS
-	if _pixel_font:
-		leave_btn.add_theme_font_override("font", _pixel_font)
-	leave_btn.add_theme_font_size_override("font_size", 16)
 	leave_btn.add_theme_color_override("font_color", Color(0.58, 0.55, 0.40))
 	leave_btn.pressed.connect(func():
 		AudioManager.play_ui("sfx_ui_cancel")
@@ -235,9 +223,6 @@ func _build_offer_row(offer: Dictionary) -> HBoxContainer:
 	var name_lbl := Label.new()
 	name_lbl.text = str(offer.get("display", ""))
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	if _pixel_font:
-		name_lbl.add_theme_font_override("font", _pixel_font)
-	name_lbl.add_theme_font_size_override("font_size", 16)
 	name_lbl.add_theme_color_override("font_color", col)
 	row.add_child(name_lbl)
 
@@ -245,9 +230,6 @@ func _build_offer_row(offer: Dictionary) -> HBoxContainer:
 	var price_lbl := Label.new()
 	price_lbl.text = "%d HAUL" % price
 	price_lbl.custom_minimum_size = Vector2(56.0, 0.0)
-	if _pixel_font:
-		price_lbl.add_theme_font_override("font", _pixel_font)
-	price_lbl.add_theme_font_size_override("font_size", 16)
 	price_lbl.add_theme_color_override("font_color", Color(0.90, 0.85, 0.40))
 	row.add_child(price_lbl)
 
@@ -255,9 +237,6 @@ func _build_offer_row(offer: Dictionary) -> HBoxContainer:
 	buy_btn.text = "BUY"
 	buy_btn.custom_minimum_size = Vector2(44.0, 18.0)
 	buy_btn.process_mode = Node.PROCESS_MODE_ALWAYS
-	if _pixel_font:
-		buy_btn.add_theme_font_override("font", _pixel_font)
-	buy_btn.add_theme_font_size_override("font_size", 16)
 	buy_btn.add_theme_color_override("font_color", Color(0.95, 0.85, 0.20))
 
 	var cap_offer: Dictionary = offer.duplicate()

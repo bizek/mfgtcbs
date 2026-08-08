@@ -46,10 +46,7 @@ func _build_visuals() -> void:
 	name_lbl.size = Vector2(120.0, 0.0)
 	name_lbl.position = Vector2(-60.0, -28.0)
 	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_lbl.add_theme_font_size_override("font_size", 16)
 	name_lbl.add_theme_color_override("font_color", Color(1.0, 0.88, 0.22))
-	if _pixel_font:
-		name_lbl.add_theme_font_override("font", _pixel_font)
 	add_child(name_lbl)
 
 	## RichTextLabel so the bound input renders as the pack's keycap/button art.
