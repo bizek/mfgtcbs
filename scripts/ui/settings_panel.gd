@@ -12,6 +12,8 @@ extends Control
 signal close_requested
 
 const _PANEL_BASE_SCENE := preload("res://scenes/ui/hub_panel_base.tscn")
+## Preloaded under a local alias rather than the bare class_name — see hub_roster_panel.gd.
+const Icons := preload("res://scripts/ui/ui_icons.gd")
 
 ## ── Color palette (matches hub_research_panel.gd / hub_armory_panel.gd) ──────
 const C_CARD     := Color(0.082, 0.075, 0.063)
@@ -130,6 +132,20 @@ func _build_ui() -> void:
 	tabs.add_child(_build_display_tab())
 	tabs.add_child(_build_controls_tab())
 	tabs.add_child(_build_accessibility_tab())
+
+	## Pack icons on the tab row. Unlike a stat row, a tab has room for only a few characters, so
+	## the icon is doing real work here rather than decorating a word — speaker / monitor / gamepad
+	## / person are unambiguous even before the label is read.
+	##
+	## Untinted: `set_tab_icon` takes a Texture2D, so there is no per-tab modulate to apply without
+	## wrapping each in a Control the TabBar does not own. They read fine as-is — the general set
+	## is mostly greyscale but keeps small colour accents (the monitor's blue screen, the gamepad's
+	## coloured face buttons), and those accents are what make each tab identifiable at 8x8.
+	const TAB_ICONS: Array[Vector2i] = [Icons.SPEAKER, Icons.MONITOR, Icons.GAMEPAD, Icons.PERSON]
+	for i in mini(TAB_ICONS.size(), tabs.get_tab_count()):
+		var tex: AtlasTexture = Icons.general(TAB_ICONS[i])
+		if tex != null:
+			tabs.set_tab_icon(i, tex)
 
 	var footer_hbox := HBoxContainer.new()
 	footer_hbox.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)

@@ -7,6 +7,9 @@ extends Control
 
 signal close_requested
 
+## Preloaded under a local alias rather than the bare class_name — see hub_roster_panel.gd.
+const Icons := preload("res://scripts/ui/ui_icons.gd")
+
 @onready var _base:         HubPanelBase = $PanelBase
 @onready var _armory_view:  Control      = $ArmoryView
 @onready var _picker_view:  Control      = $ModPickerView
@@ -282,9 +285,9 @@ func _build_weapon_card(parent: Control, slot: int) -> void:
 			wdata.get("range", wdata.get("lifetime", 2.0) * wdata.get("projectile_speed", 300.0)) / 700.0,
 			0.0, 1.0)
 
-		_stat_bar(sr, "DMG", dmg_n, C_RED_HI)
-		_stat_bar(sr, "SPD", spd_n, C_AMBER)
-		_stat_bar(sr, "RNG", rng_n, C_GREEN_HI)
+		_stat_bar(sr, "DMG", dmg_n, C_RED_HI,   Icons.node(Icons.SWORDS))
+		_stat_bar(sr, "SPD", spd_n, C_AMBER,   Icons.node(Icons.BOLT))
+		_stat_bar(sr, "RNG", rng_n, C_GREEN_HI, Icons.general_node(Icons.ARROW_RIGHT, C_GREEN_HI))
 
 	## ── Row 3: mod slots
 	var mr := HBoxContainer.new()
@@ -331,12 +334,21 @@ func _build_weapon_card(parent: Control, slot: int) -> void:
 
 # ── Stat bar builder ──────────────────────────────────────────────────────────
 
-func _stat_bar(parent: Control, label: String, norm: float, col: Color) -> void:
+## `icon` is a ready TextureRect rather than a sheet coordinate, so a caller can draw from either
+## the pre-coloured character set or the greyscale general set without this function knowing which.
+## RNG is exactly why: the character set has no arrow, and a hammer would have been a lie.
+func _stat_bar(parent: Control, label: String, norm: float, col: Color,
+		icon: TextureRect = null) -> void:
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", 3)
 	hb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hb.custom_minimum_size   = Vector2(0, 12)
 	parent.add_child(hb)
+
+	## Same treatment as the roster's stat rows: pack icon for recognition, word kept for
+	## confirmation. DMG / SPD / RNG are not inferable from an 8x8 silhouette alone.
+	if icon != null:
+		hb.add_child(icon)
 
 	var lbl := Label.new()
 	lbl.text = label

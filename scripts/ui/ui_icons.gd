@@ -42,6 +42,39 @@ const ANVIL: int = 512
 const BACKPACK: int = 544
 const BOOK: int = 416
 
+## ── General set ───────────────────────────────────────────────────────────────
+## A different shape from the character set: a 10-wide x 6-tall block on a 16px lattice starting
+## at (16, 16), repeated across 8 tint blocks — 2 columns (x +168) x 4 rows (y +104).
+##
+## These are **mostly greyscale**, unlike the fully pre-coloured character icons, so they take a
+## modulate usefully — `general_node()` has a tint argument for that. "Mostly" is doing real work
+## in that sentence: several keep a small colour accent (the monitor's blue screen, the gamepad's
+## coloured face buttons, the red/green medical crosses), and a heavy modulate will flatten it.
+## Reaching for the sheet's darker tint blocks instead would work too, but modulating one source
+## keeps a caller from having to know the tint grid as well as the icon grid.
+const GEN_ORIGIN_X: int = 16
+const GEN_ORIGIN_Y: int = 16
+
+## (column, row) within that block, so callers never handle raw pixels.
+const GEAR: Vector2i = Vector2i(0, 0)
+const MONITOR: Vector2i = Vector2i(1, 0)
+const SPEAKER: Vector2i = Vector2i(8, 0)
+const SPEAKER_MUTE: Vector2i = Vector2i(9, 0)
+const MUSIC_NOTE: Vector2i = Vector2i(6, 0)
+const GAMEPAD: Vector2i = Vector2i(0, 1)
+const KEYBOARD: Vector2i = Vector2i(2, 1)
+const SAVE_DISK: Vector2i = Vector2i(3, 1)
+const PERSON: Vector2i = Vector2i(0, 2)
+const CHART: Vector2i = Vector2i(3, 2)
+const TROPHY: Vector2i = Vector2i(6, 2)
+const INFO: Vector2i = Vector2i(9, 2)
+const ARROW_RIGHT: Vector2i = Vector2i(0, 3)
+
+
+## An 8x8 icon from the general (greyscale) set, addressed by its cell.
+static func general(cell: Vector2i) -> AtlasTexture:
+	return _atlas(GEN_ORIGIN_X + cell.x * 16, GEN_ORIGIN_Y + cell.y * 16)
+
 ## Cache: an AtlasTexture per rect. Without this every stat row on every roster redraw allocates
 ## a fresh AtlasTexture over the same 8x8 region.
 static var _cache: Dictionary = {}
@@ -79,7 +112,15 @@ static func item(x: int) -> AtlasTexture:
 ## A ready-to-add TextureRect for an icon, sized and centred for a text row.
 ## Returns null when the sheet is missing, so callers can simply skip adding it.
 static func node(x: int, y: int = CHAR_ROW_Y) -> TextureRect:
-	var tex := _atlas(x, y)
+	return _wrap(_atlas(x, y), Color.WHITE)
+
+
+## Same, for a general-set cell, optionally tinted (the general set is greyscale).
+static func general_node(cell: Vector2i, tint: Color = Color.WHITE) -> TextureRect:
+	return _wrap(general(cell), tint)
+
+
+static func _wrap(tex: AtlasTexture, tint: Color) -> TextureRect:
 	if tex == null:
 		return null
 	var tr := TextureRect.new()
@@ -88,4 +129,5 @@ static func node(x: int, y: int = CHAR_ROW_Y) -> TextureRect:
 	tr.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
 	tr.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tr.modulate = tint
 	return tr

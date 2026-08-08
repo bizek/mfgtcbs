@@ -296,20 +296,44 @@ The designs are **not on an even vertical stride** — solid `y47`, brackets `y9
 Assuming a stride produced misaligned crops on the first attempt; the rects above are measured
 bounding boxes.
 
-### 9. Icons → stat rows, currencies, settings — **PARTIAL (2026-08-07)**
+### 9. Icons → stat rows, currencies, settings — **DONE (2026-08-07)**
 
-`scripts/ui/ui_icons.gd` (`UIIcons`) is the shared atlas helper, and the roster's HP / ARMOR /
-SPEED rows are wired to heart / shield / bolt. **Still open: the armory rows, the level-up cards,
-and the settings rows** — the helper exists so those are now small additions, not new plumbing.
+`scripts/ui/ui_icons.gd` (`UIIcons`) is the shared atlas helper. Wired at three sites:
 
-Measured layout, since it is not a plain lattice: the character set sits top-right in two rows on
-a 16px horizontal stride — `y=24` starting `x=384` (11 icons), and `y=40` starting `x=376`
-(12 icons). The second row is offset by 8, so a single lattice origin does **not** describe both.
-Icons are 8×8. Useful ones: heart `x=472`, shield `x=424`, crossed swords `x=392`, hammer `x=440`,
-bolt `x=504`, spark `x=488`, muscle `x=520` — all on `y=40`.
+| Site | Icons |
+|---|---|
+| Roster stat rows | heart (HP), shield (ARMOR), bolt (SPEED) |
+| Armory weapon bars | crossed swords (DMG), bolt (SPD), arrow (RNG) |
+| Settings tab row | speaker, monitor, gamepad, person |
 
-**The character set ships pre-coloured** (red heart, yellow bolt, cyan spark), unlike the general
-set which is greyscale in 8 tint bands. So it needs no modulate, and tinting one fights the art.
+Labels are kept beside the stat icons deliberately. At 8×8 a heart and a shield are
+distinguishable, but ARMOR vs SPEED is not something to make a player infer from a silhouette —
+icon for recognition, word for confirmation. The tab row is the exception and the icon does real
+work there, because a tab has room for only a few characters.
+
+**The level-up cards are deliberately NOT iconified.** Their leading marks are ASCII on purpose
+(`level_up_screen.gd` documents why: shape as a non-colour cue for colourblind players, with every
+mark verified present in m5x7 after ★/✦ silently fell back to a vector font). The character-set
+icons are pre-coloured, so they would fight the per-role accent colour that card carries — this is
+a design trade, not an oversight.
+
+The two stat-row helpers take a ready `TextureRect`, not a sheet coordinate, so a caller can draw
+from either set without the row knowing which. RNG is why: the character set has no arrow, and a
+hammer would have been a lie.
+
+Measured layout, since it is not a plain lattice. **Two sets with different geometry:**
+
+- **Character set** — top-right, two rows on a 16px horizontal stride: `y=24` from `x=384`
+  (11 icons) and `y=40` from `x=376` (12 icons). The second row is offset by 8, so a single
+  lattice origin does **not** describe both. Useful ones, all on `y=40`: heart `472`,
+  shield `424`, crossed swords `392`, hammer `440`, bolt `504`, spark `488`, muscle `520`.
+- **General set** — a 10 wide × 6 tall block on a 16px lattice from `(16, 16)`, repeated across
+  8 tint blocks: 2 columns (`x +168`) × 4 rows (`y +104`).
+
+**The character set ships fully pre-coloured** (red heart, yellow bolt, cyan spark), so it needs no
+modulate and tinting one fights the art. The general set is **mostly** greyscale — "mostly" matters,
+because several keep a colour accent (the monitor's blue screen, the gamepad's coloured face
+buttons) and those accents are exactly what make each tab identifiable at 8×8.
 
 Two traps this hit, both already documented elsewhere in the repo and both hit anyway:
 `AtlasTexture.filter_clip` is required (8px art on a 16px stride bleeds its neighbour otherwise),
