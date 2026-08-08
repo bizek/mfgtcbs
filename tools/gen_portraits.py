@@ -15,6 +15,7 @@ Usage:
     python tools/gen_portraits.py            # write any portrait that is missing
     python tools/gen_portraits.py --force    # rewrite all of them
     python tools/gen_portraits.py --check    # verify every layer path resolves, write nothing
+    python tools/gen_portraits.py --parity   # add the missing clothes layer to the bare originals
 
 Deliberately does NOT touch the original seven unless --force is passed: they are Ben's and
 they shipped.
@@ -56,7 +57,11 @@ PORTRAITS: dict[str, dict[str, str]] = {
         "ears": "normal", "nose": "straight", "mouth": "neutral", "eyes": "narrow_1",
         "brows": "brown_confident",
         "hair": "brown_short",
-        "clothes": "brown_leather_vest",
+        # Was brown_leather_vest, which is the right idea and invisible in practice: brown leather
+        # on brown skin at 32px has almost no contrast, so the Deadeye read bare-chested next to
+        # eleven clothed portraits even though its recipe already dressed it. The doublet is the
+        # same leather palette with enough value separation to register as a garment.
+        "clothes": "brown_leather_doublet",
         "hat": "black_leather_cowboy",
     },
     # Demonologist. Black hood, red robe, the hellfire palette (color_head 0.85,0.45,0.30).
@@ -107,6 +112,38 @@ PORTRAITS: dict[str, dict[str, str]] = {
 }
 
 
+# Parity pass (2026-08-07). Of the seven hand-composed originals, four were bare-shouldered while
+# all six generated portraits are clothed, so the roster read as two different sets sitting next
+# to each other -- and it is the first screen a new player sees.
+#
+# These are an OVERLAY, not a recipe, and that distinction is the whole point: the originals'
+# recipes were lost with the one-off editor script that made them, so re-deriving a face would
+# mean guessing at Ben's art and probably changing who the character looks like. Compositing the
+# one missing layer over the shipped PNG changes nothing above the shoulders.
+#
+# Safe to re-run. Every candidate clothes layer was checked for partial alpha and has exactly
+# zero semi-transparent pixels, so drawing the same layer twice is byte-identical -- there is no
+# accumulating darkening the way there would be with a translucent overlay.
+#
+# Colours follow each character's roster identity dot (hub_roster_panel.tscn), so the portrait
+# agrees with the swatch beside it: Scavenger green, Warden blue, Spark yellow, Shade purple.
+OVERLAY: dict[str, str] = {
+    "the_scavenger": "green_doublet",     # Ranger -- full green top, not the strap vest, so it
+                                          # reads as clothed at 32px rather than half-bare.
+    "the_shade": "purple_robe",           # Necromancer -- robe with a dark collar.
+    "the_spark": "yellow_robe",           # Wizard -- the most robe-like of the yellows.
+    # Paladin. A breastplate was the obvious pick and the wrong one: at 32px every *_breastplate
+    # layer draws a small plate on the chest and leaves both shoulders bare, so it reads as a bib
+    # rather than as armour and fails the exact test this pass exists for. The doublet covers the
+    # shoulders. Checked blue/silver/iron breastplate and blue_vest before settling.
+    "the_warden": "blue_doublet",
+}
+
+# the_herald.png is NOT in this list. It is an orphan left by the Herald -> Demon rename and is
+# referenced by nothing (checked: no `portrait` path in CharacterData points at it). Clothing it
+# would be polishing a file the game never loads. Deleting it is Ben's call, still unanswered.
+
+
 def layer_path(category: str, value: str, skin: str) -> Path:
     if category in COMMON:
         return GEN / "common" / f"common_{category}_{value}.png"
@@ -151,6 +188,8 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--force", action="store_true", help="rewrite portraits that already exist")
     ap.add_argument("--check", action="store_true", help="validate layer paths, write nothing")
+    ap.add_argument("--parity", action="store_true",
+                    help="composite the missing clothes layer onto the bare originals")
     args = ap.parse_args()
 
     if not GEN.is_dir():
@@ -181,6 +220,23 @@ def main() -> int:
             continue
         compose(paths).save(dest)
         print(f"  wrote  {name}.png  ({len(paths)} layers)")
+
+    if args.parity:
+        for name, clothes in OVERLAY.items():
+            dest = OUT / f"{name}.png"
+            layer = GEN / "common" / f"common_clothes_{clothes}.png"
+            if not dest.is_file():
+                print(f"  SKIP   {name}.png -- no shipped portrait to overlay", file=sys.stderr)
+                continue
+            if not layer.is_file():
+                print(f"  SKIP   {name}: missing {layer.relative_to(ROOT)}", file=sys.stderr)
+                continue
+            base = Image.open(dest).convert("RGBA")
+            if base.size != (32, 32):
+                raise SystemExit(f"{dest} is {base.size}, expected (32, 32)")
+            base.alpha_composite(Image.open(layer).convert("RGBA"))
+            base.save(dest)
+            print(f"  clothed {name}.png  (+{clothes})")
     return 0
 
 

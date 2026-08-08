@@ -186,6 +186,31 @@ Items 1–3 need nothing from you and I can start on any of them the moment you 
 
 ## Open threads, newest first (2026-08-02)
 
+**Portrait parity — DONE 2026-08-07.** The roster read as two different sets sitting next to each
+other, which matters because it is the first screen a new player sees. Five portraits changed.
+
+- **Four bare originals clothed by OVERLAY, not by recipe.** `gen_portraits.py --parity`
+  composites the one missing clothes layer onto the shipped PNG. The originals' full recipes were
+  lost with the one-off editor script that made them, so re-deriving a face would have meant
+  guessing at Ben's art and probably changing who the character looks like. Nothing above the
+  shoulders moves. Colours follow each character's roster identity dot, so the portrait agrees
+  with the swatch beside it: Scavenger green, Warden blue, Spark yellow, Shade purple.
+- **Safe to re-run.** Every candidate clothes layer has exactly zero semi-transparent pixels, so
+  compositing the same layer twice is byte-identical — verified by md5, not just by reasoning.
+- **A breastplate was the obvious pick for the Paladin and the wrong one.** At 32px every
+  `*_breastplate` layer draws a small plate on the chest and leaves both shoulders bare, so it
+  reads as a bib and fails the exact test this pass exists for. `blue_doublet` covers the
+  shoulders. Checked blue/silver/iron breastplate and blue_vest before settling.
+- **The Deadeye was already dressed and still read bare.** Its recipe carried
+  `brown_leather_vest`, which against brown skin at 32px has almost no contrast. Changed to
+  `brown_leather_doublet` — same leather palette, enough value separation to register as a
+  garment. This is the one judgement call here that touches a portrait Ben had already accepted;
+  reverting is a one-line edit plus `--force`.
+- **Godot serves a cached import.** Rewriting the PNGs changed nothing on screen until
+  `EditorInterface.get_resource_filesystem().reimport_files(...)` ran — the first verification
+  screenshot showed the old bare portraits and looked like the parity pass had silently failed.
+  Worth knowing before debugging a texture change that "did not apply".
+
 **Tier 2.1 — level-up depth. DONE 2026-08-07.** The kit pool went from 3 unique entries to 6
 (necromancer 7), and entries became rankable, so a run now has **14–19 class picks** instead of 3.
 The ability slot no longer runs dry — simulated 15 consecutive level-ups on the Demonologist and
@@ -426,10 +451,11 @@ the player the wrong thing.
 
 **Also worth Ben's eye, not blocking:**
 
-- The six new portraits all wear clothes; four of the original six are bare-shouldered. The new
-  ones look more finished. `tools/gen_portraits.py` makes parity a one-line change per character
-  plus `--force`.
-- `assets/characters/portraits/the_herald.png` is orphaned. Delete or keep.
+- ~~The six new portraits all wear clothes; four of the original six are bare-shouldered.~~
+  **DONE 2026-08-07** — see "Portrait parity" below.
+- `assets/characters/portraits/the_herald.png` is orphaned. Delete or keep. Confirmed
+  2026-08-07 that nothing references it: no `portrait` path in `CharacterData` names it, and a
+  repo-wide grep for `the_herald` outside `tools/` is empty. Left on disk; still Ben's call.
 - The Wizard is the one kit with no channel bed, correctly: its "channel" slot is a
   charge-and-release fireball, not a sustained hold, so the predicate excludes it. If it should
   hum while charging, that is a design call rather than a bug.
