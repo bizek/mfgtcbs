@@ -746,11 +746,15 @@ func _build_skill_slots() -> void:
 		## rather than folding art into `key` because `key` doubles as the
 		## cooldown countdown — keeping them separate means the countdown path
 		## stays a plain Label and only visibility swaps between the two.
+		##
+		## STRETCH_SCALE, not KEEP_CENTERED: the pack's keycaps are 7x8 source
+		## pixels, so drawing them 1:1 in a 22px slot left the letter inside about
+		## 3x4 and unreadable, while two thirds of the slot sat empty. _fit_glyph_icon
+		## sizes it to the largest INTEGER multiple that fits — a fractional scale
+		## would alias pixel art straight back into mush.
 		var icon := TextureRect.new()
-		icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
-		icon.set_anchors_preset(Control.PRESET_FULL_RECT)
-		icon.offset_right = SKILL_SLOT
-		icon.offset_bottom = SKILL_SLOT
+		icon.stretch_mode = TextureRect.STRETCH_SCALE
+		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		icon.visible = false
 		root.add_child(icon)
@@ -863,7 +867,31 @@ func _refresh_skill_slot_keys() -> void:
 		entry.key_text = glyph
 		entry.icon_tex = InputGlyphs.action_glyph_texture(slot)
 		entry.icon.texture = entry.icon_tex
+		_fit_glyph_icon(entry.icon, SKILL_SLOT)
 		_show_skill_key(entry, true)
+
+
+## Scale a glyph AtlasTexture up to fill `box`, centred, at an INTEGER factor.
+##
+## The pack's keycaps are tiny — 7x8 for a letter key, ~15x13 for a wide one — and
+## a TextureRect drawing them 1:1 in a 22px slot renders the letter at about 3x4px,
+## which is not readable at any window size. This is not a font-size problem: every
+## HUD label is already 16 on the m5x7 grid. It is art drawn at a third of its slot.
+##
+## Integer factors only. A fractional scale on pixel art drops or doubles rows
+## unevenly, which is the same failure m5x7 has off its 16px grid.
+func _fit_glyph_icon(icon: TextureRect, box: float, margin: float = 2.0) -> void:
+	if icon.texture == null:
+		return
+	var src: Vector2 = icon.texture.get_size()
+	if src.x <= 0.0 or src.y <= 0.0:
+		return
+	var usable: float = box - margin * 2.0
+	var factor: int = maxi(1, int(floor(minf(usable / src.x, usable / src.y))))
+	var drawn: Vector2 = src * float(factor)
+	icon.size = drawn
+	## Round the offset so the art still lands on whole pixels after centring.
+	icon.position = ((Vector2(box, box) - drawn) * 0.5).floor()
 
 
 ## Swaps a slot between its glyph (art if the pack has it, else text) and the
