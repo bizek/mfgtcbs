@@ -4,6 +4,13 @@ extends Node
 
 var entries: Dictionary = {}  # keyed by combo_id (StringName) → CodexEntry
 
+## Combos whose state changed since the player last had the codex open, so the panel can badge
+## them NEW. Session-scoped on purpose, and deliberately NOT in save_data(): that dictionary is
+## keyed by combo_id, so a top-level "unseen" key would collide with the combo namespace — and the
+## flow this badge exists for (finish a run, walk into the hub, open the codex) happens inside one
+## process anyway.
+var unseen: Dictionary = {}   # combo_id (StringName) → true
+
 signal combo_discovered(combo_id: StringName)
 signal combo_revealed(combo_id: StringName)
 signal combo_mastered(combo_id: StringName)
@@ -49,6 +56,7 @@ func discover_combo(combo_id: StringName) -> void:
 	var entry = entries[combo_id]
 	if not entry.discovered:
 		entry.discovered = true
+		unseen[combo_id] = true
 		combo_discovered.emit(combo_id)
 
 
@@ -61,6 +69,7 @@ func reveal_combo(combo_id: StringName) -> void:
 	var entry = entries[combo_id]
 	if not entry.revealed:
 		entry.revealed = true
+		unseen[combo_id] = true
 		combo_revealed.emit(combo_id)
 
 
@@ -77,7 +86,18 @@ func record_trigger(combo_id: StringName) -> void:
 
 	# If we just crossed the mastery threshold, emit signal
 	if not was_mastered and entry.is_mastered():
+		unseen[combo_id] = true
 		combo_mastered.emit(combo_id)
+
+
+func is_unseen(combo_id: StringName) -> bool:
+	"""True while a state change has not yet been shown to the player."""
+	return unseen.has(combo_id)
+
+
+func mark_all_seen() -> void:
+	"""Called when the codex closes — badges survive the whole browsing session, not one click."""
+	unseen.clear()
 
 
 func get_combos_for_mod_pair(mod_a: StringName, mod_b: StringName) -> Array[CodexEntry]:

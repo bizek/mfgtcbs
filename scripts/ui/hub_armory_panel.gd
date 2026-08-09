@@ -846,9 +846,12 @@ func _build_mod_picker() -> void:
 # ── Codex overlay ─────────────────────────────────────────────────────────────
 
 func _build_codex_overlay() -> void:
+	## Near full-screen (viewport is 640x360). The old 460x262 was sized around 9-14px labels; at
+	## the project font's real 16 a line box is 23px tall, and the detail column no longer fits in
+	## a 262px box without scrolling for every entry.
 	_codex_panel          = CodexGridPanel.new()
-	_codex_panel.position = Vector2(10.0, 4.0)
-	_codex_panel.size     = Vector2(460.0, 262.0)
+	_codex_panel.position = Vector2(10.0, 10.0)
+	_codex_panel.size     = Vector2(620.0, 340.0)
 	_codex_panel.visible  = false
 	_codex_panel.close_requested.connect(func(): _codex_panel.visible = false)
 	_codex_panel.entry_hovered.connect(func(_cid: StringName): pass)

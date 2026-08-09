@@ -14,8 +14,12 @@ At audit time (2026-07-31) **the entire project referenced one file from this pa
 scene, no other script, no `project.godot` setting — touched the pack.
 
 Since then: the controller and keycap sheets are wired through `InputGlyphs` (gap 1), the cursor
-sheet through `GameCursor` (gap 2), and **the Grim sheet now backs a project-wide `Theme`**
-(gap 3, done 2026-08-07). Gaps 4–11 are still open.
+sheet through `GameCursor` (gap 2), **the Grim sheet backs a project-wide `Theme`** (gap 3), and
+gaps 4 (slots + grids), 6 (tabs), 7 (labels & tags), 8 (selectors) and 9 (icons) are done.
+
+**Open as of 2026-08-08: gaps 2, 5, 10, 11** — the reticle cursor, the resource orbs, the window
+buttons/decoration, and the emotions/bubbles. `scripts/ui/ui_icons.gd` (`UIIcons`) is the shared
+atlas helper; new sheet rects belong there, next to the reasoning for them.
 
 ## Pack shape
 
@@ -111,7 +115,7 @@ want the hub to feel like a safe place by contrast. Mock_Up_3 shows the intended
 | `Controls/Keyboard_Mouse/_Keyboard_And_Mouse.png` | 568×400 | 8×8 | Full keyboard, **pressed + unpressed**, in 4 variants (light/dark × outlined/plain). Mouse bodies and hand icons at `y336–384` |
 | `Labels_And_Tags/_Labels_And_Tags.png` | 320×448 | 16×16 sliced | 2 designs (pill bookmark, ribbon banner) × **8 colours** × (plain / white-outlined) |
 | `Selectors/_Selectors.png` | 432×320 | — | Full box, corner brackets, dashed box, corner ticks, plus arrow/chevron/diamond pointer sets, each in **4 tints** (white/black/red/green) |
-| `Grids/Grids.png` | 1360×496 | 16×16 sliced | Separators, single boxes, 3×3 and 5×5 grid frames, in 5 tints × 5 line styles (solid/dashed/dotted/ticked/rounded) |
+| `Grids/Grids.png` | 1360×496 | 16×16 sliced | Separators, single boxes, 3×3 and 5×5 grid frames, in 5 tints × 5 line styles. Measured — see [gap 4](#4-slots--grids--done-2026-08-08) |
 | `Character_Emotions/_Emotions.png` | 152×104 | 8×8 | ~50 expression faces (happy, angry, shocked, crying, dead, love, music, ellipsis…) |
 | `Character_Emotions/_Bubble.png` | 280×72 | — | Speech bubbles, 8 tail directions × 4 sizes |
 
@@ -251,7 +255,7 @@ What is deliberately **kept**: `separation` and `margin_*` constants (layout, no
 `font_color` overrides (rarity, role, damage type), per-screen styleboxes, and any size that is not
 16. Those are design, not duplication. Roughly 539 calls remain and most of them should.
 
-### 4. Slots + grids — **SLOTS DONE (2026-08-07), GRIDS OPEN**
+### 4. Slots + grids — **DONE (2026-08-08)**
 
 The armory's mod and weapon slots now use the pack's real item slot, via a `SlotButton` theme
 variation. The two ornament tiers **are** the states: R0 `Rect2(109, 237, 22, 22)` idle,
@@ -270,8 +274,40 @@ split `hub_panel_base` uses for panel accents — lifted 55% toward white first,
 rarity colour drags the bone outline down to something that reads as dirt. A flat-box fallback
 remains for when no `SlotButton` is available, so the armory is never left unstyled.
 
-**Still open:** the codex's grid frames. `Grids.png` (1360×496, 16×16 sliced, 5 tints × 5 line
-styles) is not yet measured, and `codex_grid_panel.gd` still draws its own boxes.
+**Grids, 2026-08-08.** `Grids.png` is now measured and wired, and `codex_grid_panel.gd` no longer
+draws a single box of its own. The rects live in `UIIcons` beside the icon and tag rects — added
+there rather than in a new `UIGrids` class specifically to dodge the unresolvable-`class_name` trap
+that `RunReportView`, `GatewayExtraction` and `UIIcons` itself each hit.
+
+**Sheet geometry**, component-labelled off the alpha:
+
+| | `Grids.png` (1360×496) |
+|---|---|
+| Macro layout | 5 tint **columns**, stride 272 · 5 line-style **rows**, stride 96, first block at y=16 |
+| Verification | all 25 blocks compared pixel for pixel — the alpha layout is *identical* in every one, so one set of block-local offsets addresses the whole sheet |
+| Line styles, in row order | solid · short dash · dotted · long dash · woven double |
+| Tints, sampled off the solid box edge | 0 `#77431d` brown · 1 `#9a7357` tan · 2 `#494949` grey · 3 `#000000` black · 4 `#ffffff` white |
+| Block-local rects | box 28×28 `(26,10)` · box 12×12 `(114,34)` · quartered box `(74,42,28,28)` · h-rule `(80,23,16,1)` · v-rule `(88,0,1,16)` · 3×3 `(138,26,44,44)` · 5×5 `(196,20,56,56)` |
+
+Three findings worth keeping:
+
+- **The tints are LINE colours, not fills**, and only white is usable. On a near-black descent
+  panel the brown and black variants are invisible, and white is the only one that survives a
+  modulate to an arbitrary accent. The helpers all read tint 4 and tint it.
+- **The two grid blocks are built differently**, which is the whole hint for how to use them. The
+  3×3 is nine separate 12×12 cells on a 16px pitch (gaps between). The 5×5 is contiguous — 12×12
+  cells on an **11px** pitch, i.e. adjacent cells *share* their border column. The codex list
+  copies the second: cell frame per row, `VBoxContainer` separation **−1**, borders in common.
+- **Tiled, never stretched**, same as the slots above. The rules are one full 16px period of the
+  pattern, so `AXIS_STRETCH_MODE_TILE` reproduces a dashed line exactly at any length; stretching
+  one dash across a 600px panel is the failure mode.
+
+The codex's outer shell went to the theme's default `Panel` (R1 corner brackets) — not R0, even
+though R0 is the tier the pack labels "dense lists and inventory grids". The density here comes
+from the row cells, and the shell is a modal sitting on top of the armory's own R1 plate; dropping
+it to the plainest tier made the thing in front read as less important than the thing behind it.
+The vertical rule between the list and the detail card was then **removed**: both halves carry
+their own frame, and a third line 4px from both just reads as a smudge.
 
 ### 5. Resource orbs → HP / class resource
 
@@ -289,7 +325,7 @@ tab is taller and stands proud of the row. Using `TAB_SHORT` (48×15) for unsele
 (48×23) for selected gets that from the art instead of faking it with colour. The body below the
 row uses the standard R1 plate so the tab strip and its panel read as one object.
 
-### 7. Labels & tags → rarity — **DONE (2026-08-07)**
+### 7. Labels & tags → rarity + codex state — **DONE (2026-08-08)**
 
 `UIIcons.rarity_tag()` builds the pack's horizontal pill with the rarity name inside it, and the
 extraction results screen's haul manifest uses it — `Weapon: Thornstaff [UNCOMMON]` is now a green
@@ -310,8 +346,50 @@ unreadable at 16px. Nine-patch margins keep the rounded caps intact and stretch 
 middle, or the pill goes oval. `ReportView.tagged_line()` falls back to the exact previous bracket
 string when the sheet is unavailable, so a loot line can never lose its rarity entirely.
 
-**Still open:** the codex's discovered/mastered markers, and any "NEW" badge — the helper covers
-them, they are just not wired.
+**Codex state markers, 2026-08-08.** The generic builder is now `UIIcons.pill(colour, text, icon)`;
+`rarity_tag()` is a thin wrapper on it. The sheet's **second design** is wired too — `ribbon()`.
+
+Measured: the pill and the ribbon share one 8-colour ramp **in the same order**, so one index
+addresses both. Ribbon is 48×14 horizontal from y=305 (vertical 14×48 at y=240), pill 48×12 from
+y=82 (vertical 12×48 at y=16); both run x=16 plain / x=176 white-outlined on a 16px stride.
+
+Where each design goes is decided by SHAPE, not preference:
+
+| Surface | Art | Why |
+|---|---|---|
+| Codex detail pane, state line | pill + a separate hint label | `[ DISCOVERED — trigger in a run to reveal ]` had the state and its how-to inside one pair of brackets; the state is the half you scan for |
+| Codex list row, "new since you last looked" | **ribbon**, 48×14 | authored at a fixed height with a clipped label, so it fits a 16px row. A pill carrying the same word is **23** tall — m5x7's line box at 16 — and would collide with the rows either side |
+| Codex list row, mastered / not-yet-revealed | **icon** pills, 18×12 | all the room a row has. Gold + trophy, tan + question mark |
+
+State→colour climbs the sheet's own ramp with the state: cream (inert) → tan → blue → gold. The map
+lives in `codex_grid_panel.gd`, not in `UIIcons` — same split as the armory's rarity-coloured slots,
+because codex states are the codex's vocabulary and rarity is the game's.
+
+Two things measured on screen rather than assumed:
+
+- **An icon pill must have its height floored at the art's 12px.** Left to its content it is 8 tall
+  — the icon's height — and the two 5px rounded caps have nowhere to go, so they collide into a
+  bowtie with no flat middle. A word pill is 23 and unaffected.
+- **The ribbon's word centres on the band between the notched top row and the fringed bottom row**,
+  not on the art's full height (`offset_bottom = -4`); at −2 the baseline still sat on the fringe.
+
+The "NEW" state itself is new game state: `CodexManager.unseen`, populated on discover / reveal /
+mastery and cleared by `mark_all_seen()` when the panel hides — so badges last a whole browsing
+session rather than vanishing on the first click. It is deliberately **not** persisted:
+`CodexManager.save_data()` is keyed by `combo_id`, so a top-level `"unseen"` key would collide with
+the combo namespace, and the loop the badge exists for (finish a run → walk into the hub → open the
+codex) happens inside one process anyway.
+
+**Two font bugs surfaced and were fixed while in there** — both invisible in a diff and obvious on
+screen, both the exact failure mode CLAUDE.md's font section describes:
+
+- The whole detail column was sized **9–14**, below m5x7's 16px native grid, where glyphs *fuse*.
+  It is now 16 throughout, which forced the panel from hand-accumulated pixel offsets onto real
+  containers (a button is ~23 tall at 16, and the filter/sort rows were 15px apart). The overlay
+  also grew 460×262 → 620×340; the old size was drawn around 9px text.
+- Two decorative marks were rendering in Godot's **vector fallback**, because m5x7 has no glyph for
+  either: the mastery `★` (now the trophy pill) and the `►` in the hover hint. The `►` was the
+  worse of the two — its taller line box pushed that row's text down past its own bottom border.
 
 ### 8. Selectors → controller focus ring — **DONE (2026-08-07)**
 

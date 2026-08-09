@@ -10,6 +10,16 @@ signal close_requested
 ## Emitted when cursor enters a combo row — armory uses this for reactive preview.
 signal entry_hovered(combo_id: StringName)
 
+## Preloaded under a local alias rather than the bare class_name — see hub_roster_panel.gd.
+const Icons := preload("res://scripts/ui/ui_icons.gd")
+
+# ── Layout ────────────────────────────────────────────────────────────────────
+## The panel now wears the theme's R1 plate, whose frame art is 9px thick, so nothing may sit
+## flush against an edge any more.
+const PAD:      float = 10.0
+const ROW_H:    float = 16.0
+const LIST_W:   float = 178.0
+
 # ── Color palette ─────────────────────────────────────────────────────────────
 const COL_BG         := Color(0.04, 0.05, 0.08, 0.97)
 const COL_BORDER     := Color(0.45, 0.25, 0.80, 1.0)
@@ -20,6 +30,15 @@ const COL_UNKNOWN    := Color(0.28, 0.28, 0.32)
 const COL_DISCOVERED := Color(0.60, 0.60, 0.68)
 const COL_REVEALED   := Color(0.88, 0.88, 0.95)
 const COL_MASTERED   := Color(0.95, 0.78, 0.22)
+
+## Grid-frame line colours — the sheet's WHITE tint put through a modulate. Selection and the
+## armory's hover preview light the SAME frame up rather than swapping in a different look, which
+## is what makes a 69-row list read as one grid instead of three.
+const CELL_IDLE      := Color(0.60, 0.58, 0.66, 0.24)
+const CELL_SELECTED  := Color(0.72, 0.52, 0.98, 0.95)
+const CELL_HIGHLIGHT := Color(0.95, 0.78, 0.22, 0.85)
+const RULE_COL       := Color(0.55, 0.42, 0.78, 0.60)
+const FRAME_COL      := Color(0.52, 0.46, 0.64, 0.45)
 
 const TYPE_COLORS := {
 	ModCombo.ComboType.BEHAVIOR_BEHAVIOR:   Color(0.35, 0.75, 1.0),
@@ -56,10 +75,13 @@ var _counter_label:        Label
 var _list_vbox:            VBoxContainer
 var _detail_type_badge:    Label
 var _detail_name:          Label
-var _detail_state:         Label
+var _detail_new:           Control       # NEW ribbon beside the selected combo's name
+var _detail_state:         HBoxContainer # state tag + its one-line instruction
+var _detail_state_hint:    Label
 var _detail_mods:          Label
-var _detail_sep:           ColorRect
+var _detail_sep:           Control
 var _detail_desc:          Label
+var _detail_prog_row:      Control
 var _detail_prog_bg:       ColorRect
 var _detail_prog_fill:     ColorRect
 var _detail_prog_label:    Label
@@ -67,6 +89,8 @@ var _detail_mastery_bonus: Label
 var _filter_btns:          Dictionary = {}
 var _sort_btns:            Dictionary = {}
 var _entry_rows:           Dictionary = {}  # combo_id → Control
+## Guards the mark-seen-on-close hook against the hide that happens while the armory builds this.
+var _shown:                bool = false
 
 
 func _ready() -> void:
@@ -77,9 +101,15 @@ func _ready() -> void:
 	CodexManager.combo_discovered.connect(_on_codex_event)
 	CodexManager.combo_revealed.connect(_on_codex_event)
 	CodexManager.combo_mastered.connect(_on_codex_event)
+	## NEW badges last the whole browsing session, not one click: they clear when the codex closes,
+	## so a player who opens it to look at one row does not lose the marks on the other four.
 	visibility_changed.connect(func():
 		if visible:
+			_shown = true
+			_refresh()
 			UINav.focus_first(self)
+		elif _shown:
+			CodexManager.mark_all_seen()
 	)
 
 
@@ -100,59 +130,75 @@ func set_hover_highlight(combo_id: StringName) -> void:
 # ── UI Construction ───────────────────────────────────────────────────────────
 
 func _build_ui() -> void:
-	# Outer dark panel
+	## Opaque backing first \u2014 this is an overlay and has to occlude the armory behind it. The pack
+	## plate goes on top of it, so the frame art is what the player sees at the edges.
+	var backing := ColorRect.new()
+	backing.color = COL_BG
+	backing.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	backing.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(backing)
+
+	## The pack's R1 corner-bracket plate, straight off the project theme's default `Panel`. The
+	## hand-rolled purple StyleBoxFlat that used to be here was the last of this panel's own boxes.
+	##
+	## R1 not R0, even though R0 is the tier the pack labels "dense lists and inventory grids": the
+	## density here comes from the row cells, and the *shell* is a modal sitting on top of the
+	## armory's own R1 plate \u2014 dropping it to the plainest tier would make the thing in front read
+	## as less important than the thing behind it.
 	var panel := Panel.new()
 	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
-	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = COL_BG
-	panel_style.set_border_width_all(1)
-	panel_style.border_color = COL_BORDER
-	panel.add_theme_stylebox_override("panel", panel_style)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(panel)
 
-	# Title bar strip
-	var title_bar := ColorRect.new()
-	title_bar.color = Color(COL_BORDER.r * 0.28, COL_BORDER.g * 0.14, COL_BORDER.b * 0.38)
-	title_bar.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	title_bar.size.y = 22.0
-	add_child(title_bar)
+	## Everything from here down is laid out by CONTAINERS rather than hand-accumulated pixel
+	## offsets. The old fixed rows (filter at y=25, sort at y=40, 15px apart) only ever fitted
+	## because their labels were 9-14px; at m5x7's native 16 a button is ~23 tall and those two
+	## rows overlap each other.
+	var root := MarginContainer.new()
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	for name in ["left", "top", "right", "bottom"]:
+		root.add_theme_constant_override("margin_" + name, int(PAD))
+	add_child(root)
 
-	# "CODEX" heading
-	var title_lbl := _make_label("CODEX", 10, 4, COL_TITLE, 16)
-	add_child(title_lbl)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 3)
+	root.add_child(col)
 
-	# Completion counter (centered in title bar)
-	_counter_label = _make_label("", 0, 6, COL_DIM, 11)
-	_counter_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	# Header: title | completion counter | close
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 6)
+	col.add_child(header)
+
+	var title_lbl := _detail_label("CODEX", COL_TITLE)
+	title_lbl.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	header.add_child(title_lbl)
+
+	_counter_label = _detail_label("", COL_DIM)
 	_counter_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_counter_label.size.y = 14.0
-	add_child(_counter_label)
+	header.add_child(_counter_label)
 
-	# Close button
-	var close_btn := _make_button("\u00d7", -22, 3, 18, 16)
-	close_btn.set_anchor(SIDE_LEFT, 1.0)
-	close_btn.set_anchor(SIDE_RIGHT, 1.0)
-	close_btn.offset_left = -22.0
-	close_btn.offset_right = -2.0
-	close_btn.offset_top = 3.0
-	close_btn.offset_bottom = 19.0
+	var close_btn := Button.new()
+	close_btn.text = "X"
+	close_btn.focus_mode = Control.FOCUS_ALL
+	close_btn.custom_minimum_size = Vector2(20.0, 0.0)
 	close_btn.add_theme_color_override("font_color", COL_DIM)
 	_style_btn_flat(close_btn, Color.TRANSPARENT, Color(0.55, 0.08, 0.08, 0.55))
 	close_btn.pressed.connect(func(): close_requested.emit())
-	add_child(close_btn)
+	header.add_child(close_btn)
 
-	# ── Filter row ────────────────────────────────────────────────────────────
-	var filter_y: float = 25.0
+	# Filter row
 	var filter_defs: Array = [
 		["all",           "ALL"],
 		["discovered",    "FOUND"],
 		["undiscovered",  "UNKNOWN"],
 		["mastered",      "MASTERED"],
 	]
-	var fx: float = 4.0
+	var filter_row := HBoxContainer.new()
+	filter_row.add_theme_constant_override("separation", 2)
+	col.add_child(filter_row)
 	for def in filter_defs:
 		var key: String = def[0]
-		var btn := _make_button(def[1], fx, filter_y, 108, 14)
+		var btn := _row_button(def[1])
 		_style_btn_flat(btn, Color.TRANSPARENT, Color(0.28, 0.18, 0.48, 0.55))
 		btn.pressed.connect(func():
 			_filter = key
@@ -160,20 +206,20 @@ func _build_ui() -> void:
 			_refresh_list()
 		)
 		_filter_btns[key] = btn
-		add_child(btn)
-		fx += 110.0
+		filter_row.add_child(btn)
 
-	# ── Sort row ──────────────────────────────────────────────────────────────
-	var sort_y: float = 40.0
+	# Sort row
 	var sort_defs: Array = [
 		["type",   "BY TYPE"],
-		["alpha",  "A \u2013 Z"],
+		["alpha",  "A – Z"],
 		["mastery","MASTERY %"],
 	]
-	var sx: float = 4.0
+	var sort_row := HBoxContainer.new()
+	sort_row.add_theme_constant_override("separation", 2)
+	col.add_child(sort_row)
 	for def in sort_defs:
 		var key: String = def[0]
-		var btn := _make_button(def[1], sx, sort_y, 88, 12)
+		var btn := _row_button(def[1])
 		_style_btn_flat(btn, Color.TRANSPARENT, Color(0.20, 0.14, 0.32, 0.40))
 		btn.pressed.connect(func():
 			_sort = key
@@ -181,104 +227,133 @@ func _build_ui() -> void:
 			_refresh_list()
 		)
 		_sort_btns[key] = btn
-		add_child(btn)
-		sx += 90.0
+		sort_row.add_child(btn)
 
-	# Top-content divider
-	var hdiv := ColorRect.new()
-	hdiv.color = Color(COL_BORDER.r, COL_BORDER.g, COL_BORDER.b, 0.30)
-	hdiv.set_anchor(SIDE_LEFT,  0.0); hdiv.set_anchor(SIDE_RIGHT, 1.0)
-	hdiv.offset_top = 54.0; hdiv.offset_bottom = 55.0
-	add_child(hdiv)
+	## Top-content divider — the grid sheet's own rule, tiled, in place of a flat ColorRect.
+	var hdiv := _rule(true, RULE_COL)
+	hdiv.custom_minimum_size = Vector2(0.0, 1.0)
+	hdiv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.add_child(hdiv)
 
-	# ── Left: scrollable combo list ───────────────────────────────────────────
+	# Body: combo list | rule | detail card
+	var body := HBoxContainer.new()
+	body.add_theme_constant_override("separation", 4)
+	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	col.add_child(body)
+
 	var scroll := ScrollContainer.new()
-	scroll.position = Vector2(2, 56)
-	scroll.set_anchor(SIDE_BOTTOM, 1.0)
-	scroll.offset_bottom = -2.0
-	scroll.size.x = 182.0
+	scroll.custom_minimum_size = Vector2(LIST_W, 0.0)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	add_child(scroll)
+	body.add_child(scroll)
 
 	_list_vbox = VBoxContainer.new()
 	_list_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_list_vbox.add_theme_constant_override("separation", 1)
+	## -1, so each row's cell frame SHARES its border with the row above instead of drawing a
+	## second line 1px away. That is how the sheet's own 5x5 grid is built: 12px cells on an
+	## 11px pitch, borders in common.
+	_list_vbox.add_theme_constant_override("separation", -1)
 	scroll.add_child(_list_vbox)
 
-	# Vertical separator between list and detail
-	var vsep := ColorRect.new()
-	vsep.color = Color(COL_BORDER.r, COL_BORDER.g, COL_BORDER.b, 0.30)
-	vsep.position = Vector2(185.0, 56.0)
-	vsep.set_anchor(SIDE_BOTTOM, 1.0)
-	vsep.size.x = 1.0
-	vsep.offset_bottom = -2.0
-	add_child(vsep)
+	## No vertical rule between the halves: the row cells and the detail card each carry their own
+	## frame, and a third line 4px from both just reads as a smudge. The pack's vertical rule is
+	## still reachable via `_rule(false, …)` for anywhere that has no frames to lean on.
 
-	# ── Right: detail panel ───────────────────────────────────────────────────
-	var dx: float = 190.0
-	var dy: float = 60.0
-	var dw: float = 280.0
+	## The detail column gets the grid sheet's larger frame, so the two halves read as list-grid
+	## and detail-card rather than as text floating loose on a plate.
+	##
+	## It is a real container stack now instead of a hand-accumulated `dy`, and that is not
+	## tidying. Every label in this column was sized 9-14, which is below m5x7's 16px native grid
+	## \u2014 at those sizes the glyphs FUSE rather than merely soften (CLAUDE.md's font section). At 16
+	## the old fixed offsets overlap each other, and a long description had nowhere to go, so the
+	## column is a ScrollContainer on SHOW_AS_NEEDED.
+	var detail_frame := PanelContainer.new()
+	detail_frame.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	detail_frame.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_apply_grid_frame(detail_frame, FRAME_COL, false)
+	body.add_child(detail_frame)
 
-	_detail_type_badge = _make_label("", dx, dy, COL_DIM, 9)
-	_detail_type_badge.size.x = dw
-	add_child(_detail_type_badge)
-	dy += 13.0
+	var dscroll := ScrollContainer.new()
+	dscroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	detail_frame.add_child(dscroll)
 
-	_detail_name = _make_label("\u2014 select a combo \u2014", dx, dy, COL_DIM, 14)
-	_detail_name.size.x = dw
-	add_child(_detail_name)
-	dy += 20.0
+	var dbox := VBoxContainer.new()
+	dbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dbox.add_theme_constant_override("separation", 2)
+	dscroll.add_child(dbox)
 
-	_detail_state = _make_label("", dx, dy, COL_DIM, 10)
-	_detail_state.size.x = dw
-	add_child(_detail_state)
-	dy += 14.0
+	_detail_type_badge = _detail_label("", COL_DIM)
+	dbox.add_child(_detail_type_badge)
 
-	_detail_mods = _make_label("", dx, dy, COL_DIM, 10)
-	_detail_mods.size.x = dw
-	add_child(_detail_mods)
-	dy += 18.0
+	var name_row := HBoxContainer.new()
+	name_row.add_theme_constant_override("separation", 4)
+	name_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dbox.add_child(name_row)
 
-	_detail_sep = ColorRect.new()
-	_detail_sep.color = Color(0.28, 0.28, 0.35, 0.40)
-	_detail_sep.position = Vector2(dx, dy)
-	_detail_sep.size = Vector2(dw, 1.0)
-	add_child(_detail_sep)
-	dy += 6.0
+	_detail_name = _detail_label("\u2014 select a combo \u2014", COL_DIM)
+	_detail_name.clip_text = true
+	name_row.add_child(_detail_name)
 
-	_detail_desc = _make_label("", dx, dy, COL_BODY, 11)
-	_detail_desc.size = Vector2(dw, 90.0)
+	## The pack's other tag design, at its authored 48x14. Built once and toggled rather than
+	## rebuilt on every selection.
+	_detail_new = Icons.ribbon(Icons.Tag.RED, "NEW")
+	if _detail_new != null:
+		_detail_new.visible = false
+		name_row.add_child(_detail_new)
+
+	## State is now a tag plus the one line of instruction that goes with it. Splitting them is
+	## the point: "[ DISCOVERED \u2014 trigger in a run to reveal ]" put the state and its how-to
+	## inside one pair of brackets, and the state is the half a player scans for.
+	_detail_state = HBoxContainer.new()
+	_detail_state.add_theme_constant_override("separation", 5)
+	_detail_state.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_detail_state.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	dbox.add_child(_detail_state)
+
+	_detail_state_hint = _detail_label("", COL_DIM)
+	_detail_state_hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_detail_state_hint.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+
+	_detail_mods = _detail_label("", COL_DIM)
+	_detail_mods.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dbox.add_child(_detail_mods)
+
+	_detail_sep = _rule(true, Color(0.62, 0.60, 0.70, 0.45))
+	_detail_sep.custom_minimum_size = Vector2(0.0, 1.0)
+	_detail_sep.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dbox.add_child(_detail_sep)
+
+	_detail_desc = _detail_label("", COL_BODY)
 	_detail_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	add_child(_detail_desc)
-	dy += 96.0
+	dbox.add_child(_detail_desc)
 
 	# Mastery progress bar
+	_detail_prog_row = Control.new()
+	_detail_prog_row.custom_minimum_size = Vector2(0.0, 7.0)
+	_detail_prog_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_detail_prog_row.visible = false
+	dbox.add_child(_detail_prog_row)
+
 	_detail_prog_bg = ColorRect.new()
 	_detail_prog_bg.color = Color(0.14, 0.14, 0.18)
-	_detail_prog_bg.position = Vector2(dx, dy)
-	_detail_prog_bg.size = Vector2(dw, 7.0)
-	_detail_prog_bg.visible = false
-	add_child(_detail_prog_bg)
+	_detail_prog_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_detail_prog_row.add_child(_detail_prog_bg)
 
+	## Filled by anchor rather than by pixel width, so it tracks the column instead of a `dw` that
+	## was captured at build time.
 	_detail_prog_fill = ColorRect.new()
 	_detail_prog_fill.color = COL_MASTERED
-	_detail_prog_fill.position = Vector2(dx, dy)
-	_detail_prog_fill.size = Vector2(0.0, 7.0)
-	_detail_prog_fill.visible = false
-	add_child(_detail_prog_fill)
-	dy += 9.0
+	_detail_prog_fill.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_detail_prog_fill.anchor_right = 0.0
+	_detail_prog_row.add_child(_detail_prog_fill)
 
-	_detail_prog_label = _make_label("", dx, dy, COL_DIM, 9)
-	_detail_prog_label.size.x = dw
+	_detail_prog_label = _detail_label("", COL_DIM)
 	_detail_prog_label.visible = false
-	add_child(_detail_prog_label)
-	dy += 14.0
+	dbox.add_child(_detail_prog_label)
 
-	_detail_mastery_bonus = _make_label("", dx, dy, COL_MASTERED, 10)
-	_detail_mastery_bonus.size = Vector2(dw, 28.0)
+	_detail_mastery_bonus = _detail_label("", COL_MASTERED)
 	_detail_mastery_bonus.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_detail_mastery_bonus.visible = false
-	add_child(_detail_mastery_bonus)
+	dbox.add_child(_detail_mastery_bonus)
 
 	_refresh_filter_styles()
 	_refresh_sort_styles()
@@ -347,11 +422,17 @@ func _build_list_row(entry: CodexEntry) -> Control:
 	var type_col: Color = TYPE_COLORS.get(entry.combo.combo_type, COL_DIM)
 
 	var row := Control.new()
-	row.custom_minimum_size = Vector2(180.0, 16.0)
+	row.custom_minimum_size = Vector2(0.0, ROW_H)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	## m5x7's line box at 16 is 23px, taller than the row, so a label left to fill would spill out
+	## of the bottom border and into the next cell. Clipping is the backstop; the label is also
+	## SHRINK_CENTER below so the spill is symmetric and the text sits on the row's centre line.
+	row.clip_contents = true
 
-	# Row background
+	# Row fill — state colour, behind the frame
 	var bg := ColorRect.new()
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if is_sel:
 		bg.color = Color(0.22, 0.14, 0.38, 0.90)
 	elif is_hi:
@@ -360,23 +441,51 @@ func _build_list_row(entry: CodexEntry) -> Control:
 		bg.color = Color.TRANSPARENT
 	row.add_child(bg)
 
+	## Row frame — the grid sheet's 12x12 cell, tiled out to the row's width. This IS the "grid"
+	## in CodexGridPanel: 69 cells sharing borders down a column, which is what the sheet's own
+	## 5x5 block does and what a codex/journal grid is for.
+	var cell := Panel.new()
+	cell.set_anchors_preset(Control.PRESET_FULL_RECT)
+	cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var cell_col: Color = CELL_IDLE
+	if is_sel:
+		cell_col = CELL_SELECTED
+	elif is_hi:
+		cell_col = CELL_HIGHLIGHT
+	_apply_grid_frame(cell, cell_col, true)
+	row.add_child(cell)
+
+	## Pip, name and tags share one HBox, so the name simply takes whatever the tags leave rather
+	## than a fixed column being reserved for markers most rows do not have.
+	var line := HBoxContainer.new()
+	line.set_anchors_preset(Control.PRESET_FULL_RECT)
+	line.offset_left  = 3.0
+	line.offset_right = -3.0
+	line.add_theme_constant_override("separation", 3)
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(line)
+
 	# Type color pip
 	var pip := ColorRect.new()
-	pip.position = Vector2(2.0, 4.0)
-	pip.size     = Vector2(3.0, 8.0)
+	pip.custom_minimum_size = Vector2(3.0, 8.0)
+	pip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	pip.color    = type_col if entry.discovered else COL_UNKNOWN
-	row.add_child(pip)
+	pip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	line.add_child(pip)
 
-	# Combo name label
 	var name_lbl := Label.new()
-	name_lbl.position = Vector2(8.0, 2.0)
-	name_lbl.size     = Vector2(146.0, 13.0)
+	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	name_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	name_lbl.clip_text = true
+	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	if not entry.discovered:
 		if is_hi:
-			# Pulse hint: "there's something here"
-			name_lbl.text = "?  \u25ba discover"
+			## Pulse hint: "there's something here". The \u25ba that used to lead this line is not in
+			## m5x7 \u2014 it was pulling in a vector fallback whose taller line box pushed the whole
+			## row's text down past its own bottom border.
+			name_lbl.text = "?  discover"
 			name_lbl.add_theme_color_override("font_color",
 				Color(COL_MASTERED.r, COL_MASTERED.g * 0.7, 0.15, 0.85))
 		else:
@@ -392,25 +501,23 @@ func _build_list_row(entry: CodexEntry) -> Control:
 		name_lbl.text = entry.combo.combo_name
 		name_lbl.add_theme_color_override("font_color", COL_DISCOVERED)
 
-	row.add_child(name_lbl)
+	line.add_child(name_lbl)
 
-	# Mastery star badge
+	## State tags. Both designs earn their place by SHAPE here, not by preference:
+	##  \u00b7 NEW is the ribbon, because it is authored at a fixed 48x14 with a clipped label and so
+	##    fits a 16px row. A pill carrying the same word is 23 tall (m5x7 at 16 has a 23px line
+	##    box) and would collide with the rows above and below.
+	##  \u00b7 The state markers are ICON pills at 18x8, for the same reason plus a second one: m5x7
+	##    has no \u2605 glyph, so the old mastery star was silently rendering in Godot's vector font
+	##    (see level_up_screen.gd). A trophy is the pack's own answer.
+	if CodexManager.is_unseen(combo_id):
+		_add_mark(line, Icons.ribbon(Icons.Tag.RED, "NEW"), "NEW", COL_MASTERED)
 	if entry.is_mastered():
-		var star := Label.new()
-		star.text = "\u2605"
-		star.add_theme_color_override("font_color", COL_MASTERED)
-		star.position = Vector2(156.0, 2.0)
-		star.size     = Vector2(14.0, 13.0)
-		row.add_child(star)
-
-	# Discovered-not-revealed hint
-	if entry.discovered and not entry.revealed and not entry.is_mastered():
-		var hint := Label.new()
-		hint.text = "???"
-		hint.add_theme_color_override("font_color", COL_DIM)
-		hint.position = Vector2(156.0, 3.0)
-		hint.size     = Vector2(22.0, 12.0)
-		row.add_child(hint)
+		_add_mark(line, Icons.pill(Icons.Tag.GOLD, "", Icons.general(Icons.TROPHY)),
+			"MAX", COL_MASTERED)
+	elif entry.discovered and not entry.revealed:
+		_add_mark(line, Icons.pill(Icons.Tag.TAN, "", Icons.general(Icons.QUESTION)),
+			"?", COL_DIM)
 
 	# Invisible button overlay for click + hover
 	var btn := Button.new()
@@ -433,11 +540,12 @@ func _refresh_detail() -> void:
 		_detail_type_badge.text    = ""
 		_detail_name.text          = "\u2014 select a combo \u2014"
 		_detail_name.add_theme_color_override("font_color", COL_DIM)
-		_detail_state.text         = ""
+		_set_state_tag("", "", COL_DIM, Icons.Tag.CREAM)
+		if _detail_new != null:
+			_detail_new.visible = false
 		_detail_mods.text          = ""
 		_detail_desc.text          = ""
-		_detail_prog_bg.visible    = false
-		_detail_prog_fill.visible  = false
+		_detail_prog_row.visible   = false
 		_detail_prog_label.visible = false
 		_detail_mastery_bonus.visible = false
 		return
@@ -464,19 +572,20 @@ func _refresh_detail() -> void:
 		_detail_name.text = combo.combo_name
 		_detail_name.add_theme_color_override("font_color", COL_DISCOVERED)
 
-	# State label
+	if _detail_new != null:
+		_detail_new.visible = CodexManager.is_unseen(_selected_id)
+
+	## State tag. The colours are this panel's business, not the tag helper's \u2014 same split as the
+	## armory's rarity-coloured slots \u2014 and they climb the sheet's own ramp with the state:
+	## cream (inert) \u2192 tan \u2192 blue \u2192 gold.
 	if not entry.discovered:
-		_detail_state.text = "[ UNKNOWN \u2014 slot this mod pair in the armory ]"
-		_detail_state.add_theme_color_override("font_color", COL_UNKNOWN)
+		_set_state_tag("UNKNOWN", "slot this mod pair", COL_UNKNOWN, Icons.Tag.CREAM)
 	elif not entry.revealed:
-		_detail_state.text = "[ DISCOVERED \u2014 trigger in a run to reveal ]"
-		_detail_state.add_theme_color_override("font_color", COL_DISCOVERED)
+		_set_state_tag("DISCOVERED", "trigger it in a run", COL_DISCOVERED, Icons.Tag.TAN)
 	elif entry.is_mastered():
-		_detail_state.text = "[ MASTERED ]"
-		_detail_state.add_theme_color_override("font_color", COL_MASTERED)
+		_set_state_tag("MASTERED", "", COL_MASTERED, Icons.Tag.GOLD)
 	else:
-		_detail_state.text = "[ REVEALED ]"
-		_detail_state.add_theme_color_override("font_color", COL_REVEALED)
+		_set_state_tag("REVEALED", "", COL_REVEALED, Icons.Tag.BLUE)
 
 	# Required mods
 	var mod_names: Array[String] = []
@@ -496,14 +605,13 @@ func _refresh_detail() -> void:
 
 	# Progress bar
 	var show_progress := entry.discovered
-	_detail_prog_bg.visible    = show_progress
-	_detail_prog_fill.visible  = show_progress
+	_detail_prog_row.visible   = show_progress
 	_detail_prog_label.visible = show_progress
 
 	if show_progress:
 		var prog := entry.mastery_progress()
-		var bar_w: float = _detail_prog_bg.size.x
-		_detail_prog_fill.size.x = prog * bar_w
+		_detail_prog_fill.anchor_right = prog
+		_detail_prog_fill.offset_right = 0.0
 		_detail_prog_fill.color  = (
 			COL_MASTERED if entry.is_mastered()
 			else type_col.lerp(COL_MASTERED, prog * 0.6)
@@ -516,7 +624,9 @@ func _refresh_detail() -> void:
 	# Mastery bonus
 	_detail_mastery_bonus.visible = entry.is_mastered()
 	if entry.is_mastered():
-		_detail_mastery_bonus.text = "\u2605 MASTERY BONUS: " + entry.mastery_bonus_description
+		## No leading \u2605 \u2014 m5x7 has no glyph for it and it was falling back to a vector font. The
+		## gold does the work the star was there for.
+		_detail_mastery_bonus.text = "MASTERY BONUS: " + entry.mastery_bonus_description
 
 
 func _refresh_filter_styles() -> void:
@@ -559,23 +669,88 @@ func _flash_row(row: Control) -> void:
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-func _make_label(text: String, x: float, y: float,
-		col: Color, font_size: int) -> Label:
+## A 1px rule from the grid sheet, falling back to a flat ColorRect-alike when the pack is not
+## present (`assets/minifantasy/` is gitignored, so a fresh clone has no sheet).
+func _rule(horizontal: bool, col: Color) -> Control:
+	var np: NinePatchRect = Icons.grid_rule(horizontal, col)
+	if np != null:
+		return np
+	var flat := ColorRect.new()
+	flat.color = col
+	flat.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return flat
+
+
+## A detail-column label. No font size override: 16 is the project theme's default and the only
+## size m5x7 renders crisply below 32.
+func _detail_label(text: String, col: Color) -> Label:
 	var lbl := Label.new()
-	lbl.text     = text
-	lbl.position = Vector2(x, y)
-	lbl.add_theme_font_size_override("font_size", font_size)
+	lbl.text = text
 	lbl.add_theme_color_override("font_color", col)
+	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return lbl
 
 
-func _make_button(text: String, x: float, y: float,
-		w: float, h: float) -> Button:
+## Puts the grid sheet's box frame on a Panel/PanelContainer, or a 1px flat border if the sheet
+## is missing.
+func _apply_grid_frame(p: Control, col: Color, small: bool) -> void:
+	var sb: StyleBoxTexture = Icons.grid_box(col, small)
+	if sb != null:
+		p.add_theme_stylebox_override("panel", sb)
+		return
+	var flat := StyleBoxFlat.new()
+	flat.bg_color = Color.TRANSPARENT
+	flat.set_border_width_all(1)
+	flat.border_color = col
+	p.add_theme_stylebox_override("panel", flat)
+
+
+## Adds a tag to a row's marker column, or the plain-text marker it replaces if the sheet is
+## missing, so a row never loses its state entirely.
+func _add_mark(parent: HBoxContainer, tag: Control, fallback: String, col: Color) -> void:
+	if tag != null:
+		tag.size_flags_horizontal = Control.SIZE_SHRINK_END
+		parent.add_child(tag)
+		return
+	var lbl := Label.new()
+	lbl.text = fallback
+	lbl.add_theme_color_override("font_color", col)
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(lbl)
+
+
+## Rebuilds the detail pane's state row: a tag carrying the state word, then the instruction that
+## goes with it as plain text beside it.
+func _set_state_tag(state: String, hint: String, col: Color, tag_colour: int) -> void:
+	for child in _detail_state.get_children():
+		_detail_state.remove_child(child)
+		if child != _detail_state_hint:
+			child.queue_free()
+
+	if state != "":
+		var tag: Control = Icons.pill(tag_colour, state)
+		if tag == null:
+			var lbl := _detail_label("[ %s ]" % state, col)
+			lbl.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+			lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			tag = lbl
+		_detail_state.add_child(tag)
+
+	_detail_state_hint.text = hint
+	_detail_state_hint.add_theme_color_override("font_color", col)
+	_detail_state.add_child(_detail_state_hint)
+
+
+## A filter/sort button. Shares the row's width evenly instead of carrying a hardcoded one, so
+## the row cannot run off the panel when a caption changes length.
+func _row_button(text: String) -> Button:
 	var btn := Button.new()
-	btn.text     = text
-	btn.position = Vector2(x, y)
-	btn.size     = Vector2(w, h)
+	btn.text = text
 	btn.focus_mode = Control.FOCUS_ALL
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn.clip_text = true
 	return btn
 
 
