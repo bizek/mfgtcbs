@@ -219,13 +219,19 @@ All content follows the data factory pattern: `static func create() -> Resource`
   **PASS COMPLETE 2026-08-03. Inventory: 191 sites, 173 crisp, 18 off-grid — and all 18 are in
   debug tools** (anim lab, debug panel, entity inspector, passive-tree debug, ldtk test harness),
   which are deliberately left alone.
-  **Correction 2026-08-07: "zero player-facing off-grid sizes remain" was wrong — two survive.**
-  `glyph_bar.gd:45` sets `normal_font_size` to **14**, and `keystone_pickup.gd:62` sets
-  `LabelSettings.font_size = 14`. The second is why both were missed: it is a `LabelSettings`
-  property, not an `add_theme_font_size_override` call, so no grep for override sites could ever
-  have reached it. Both are genuinely player-facing (the panel hint bar; the keystone pickup
-  label). Not fixed yet because 14 → 16 grows the text and needs a layout re-check on both. m3x6 was never
-  needed; every sub-16 site went to 16 and reflowed instead.
+  **Correction 2026-08-07 said "two survive". It was FOUR. All four fixed 2026-08-08.**
+  `glyph_bar.gd` set `normal_font_size` to 14, `keystone_pickup.gd` set
+  `LabelSettings.font_size = 14`, and `merchant.gd` + `summon_altar.gd` both passed **11** to
+  `GlyphBar.rich_prompt(size, color)`. Each was invisible to a different search: the second is a
+  `LabelSettings` property rather than an `add_theme_font_size_override` call, and the last two
+  pass the size as a **plain function argument**, so no grep for override sites — the exact method
+  both previous audits used — could reach any of them. **When counting font sites, resolve shared
+  helpers that take a size parameter, not just override call sites.**
+  `GlyphBar.rich_prompt` now routes its argument through `Settings.snap_font_size()` and
+  `push_warning`s on a miss, so that seam cannot produce an off-grid prompt again. Widths were
+  measured before the change, not eyeballed: all four fit their fixed containers at 16 with room
+  (merchant 41/120, altar 94/140, keystone 48/120, settings hint bar 117px ending at x=580).
+  m3x6 was never needed; every sub-16 site went to 16 and reflowed instead.
   **The project `Theme` now supplies m5x7 @ 16 as the default font** (`assets/ui/grim_theme.tres`,
   wired via `project.godot [gui] theme/custom`, built by `tools/build_ui_theme.gd`). A new Control
   therefore renders in the pixel font *without* the script doing anything — the whole class of bug

@@ -54,7 +54,8 @@ func _build_visuals() -> void:
 
 	## RichTextLabel so the bound input renders as the pack's keycap/button art.
 	## The old "[E] Summon" brackets are gone — the keycap sprite is the bracket.
-	var prompt := GlyphBar.rich_prompt(11, Color(0.80, 0.60, 1.0))
+	## 16 is m5x7's native size — see merchant.gd, which carried the same 11.
+	var prompt := GlyphBar.rich_prompt(16, Color(0.80, 0.60, 1.0))
 	prompt.text = "%s Summon  (Risky)" % InputGlyphs.action_glyph_bb("interact")
 	prompt.size = Vector2(140.0, 0.0)
 	prompt.position = Vector2(-70.0, 14.0)

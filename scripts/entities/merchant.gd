@@ -51,7 +51,9 @@ func _build_visuals() -> void:
 
 	## RichTextLabel so the bound input renders as the pack's keycap/button art.
 	## The old "[Q] Trade" brackets are gone — the keycap sprite is the bracket.
-	var prompt := GlyphBar.rich_prompt(11, Color(0.85, 0.85, 0.70))
+	## 16 is m5x7's native size — the size argument is a font size like any other,
+	## which is why the 11 that lived here survived every grep for override sites.
+	var prompt := GlyphBar.rich_prompt(16, Color(0.85, 0.85, 0.70))
 	prompt.text = "%s Trade" % InputGlyphs.action_glyph_bb("interact")
 	prompt.size = Vector2(120.0, 0.0)
 	prompt.position = Vector2(-60.0, 14.0)

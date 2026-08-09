@@ -28,7 +28,21 @@ before touching anything below.
 
 ---
 
-## Tier 0 — Confirmed defects (cheap, no design decisions)
+## Tier 0 — Confirmed defects (cheap, no design decisions) — **DONE 2026-08-08**
+
+> All four items shipped. Two things came out differently than written below:
+>
+> * **0.2 was four sites, not two.** `merchant.gd` and `summon_altar.gd` both passed **11** to
+>   `GlyphBar.rich_prompt(size, color)`. Neither previous audit could have found them — they pass
+>   the size as a plain function argument, so a grep for `add_theme_font_size_override` sites (the
+>   method both audits used) never reaches them. `rich_prompt` now snaps through
+>   `Settings.snap_font_size()` and warns, closing the seam. CLAUDE.md's font note is corrected.
+> * **`flamggy` was preserved, not just deleted.** It is a 3D flame mascot for a *mobile* project,
+>   swept in accidentally by `9c98d68` (a combat commit). Copied to `E:/Projects/flame-mascot/`
+>   before removal, so nothing depends on git archaeology.
+>
+> Widths were measured in-engine before changing any size rather than eyeballed after. Credits
+> verified end-to-end by pressing the real button in a running main menu.
 
 ### 0.1 The main menu's CREDITS button can never work
 

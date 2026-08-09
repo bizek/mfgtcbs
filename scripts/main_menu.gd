@@ -265,11 +265,12 @@ func _on_settings_pressed() -> void:
 	else:
 		_show_toast("Settings — coming soon")
 
+## The scene lives under scenes/ui/, not scenes/ — this pointed at the latter until
+## 2026-08-08, and the ResourceLoader.exists guard that used to wrap it turned the
+## typo into a permanent "coming soon" toast instead of an error. Unguarded now, and
+## matching win_screen.gd:47, which is the other way into the roll.
 func _on_credits_pressed() -> void:
-	if ResourceLoader.exists("res://scenes/credits.tscn"):
-		get_tree().change_scene_to_file("res://scenes/credits.tscn")
-	else:
-		_show_toast("Credits — coming soon")
+	get_tree().change_scene_to_file("res://scenes/ui/credits.tscn")
 
 func _on_quit_pressed() -> void:
 	get_tree().quit()

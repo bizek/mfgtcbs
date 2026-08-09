@@ -59,7 +59,10 @@ func _build_visuals() -> void:
 	if ResourceLoader.exists(PIXEL_FONT_PATH):
 		var ls := LabelSettings.new()
 		ls.font = load(PIXEL_FONT_PATH)
-		ls.font_size = 14
+		## 16, not 14 — m5x7 is 16px-native and fuses below it. This is a
+		## LabelSettings property rather than a theme override, which is why the
+		## 2026-08-03 font pass missed it.
+		ls.font_size = 16
 		ls.outline_size = 1
 		ls.outline_color = Color(0.0, 0.0, 0.0, 0.9)
 		lbl.label_settings = ls

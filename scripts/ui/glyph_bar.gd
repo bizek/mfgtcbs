@@ -28,21 +28,33 @@ static func build(pairs: Array) -> GlyphBar:
 ## "font_color". Using the Label names here silently does nothing.
 ## Centre text by wrapping it in [center] — RichTextLabel aligns through BBCode,
 ## it has no horizontal_alignment property.
+##
+## `size` is snapped onto m5x7's 16px grid. It is a plain int argument rather than
+## a theme override, so no grep for override sites can audit it — and both callers
+## outside this file had been passing 11 since they were written. Snapping here is
+## what makes that class of miss impossible through this seam.
 static func rich_prompt(size: int, color: Color) -> RichTextLabel:
+	## Not named `snapped` — that shadows Godot's built-in snapped().
+	var on_grid: int = Settings.snap_font_size(float(size))
+	if on_grid != size:
+		push_warning("GlyphBar.rich_prompt: font size %d is off the m5x7 grid, using %d"
+			% [size, on_grid])
 	var rt := RichTextLabel.new()
 	rt.bbcode_enabled = true
 	rt.fit_content = true
 	rt.scroll_active = false
 	rt.autowrap_mode = TextServer.AUTOWRAP_OFF
 	rt.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	rt.add_theme_font_size_override("normal_font_size", size)
+	rt.add_theme_font_size_override("normal_font_size", on_grid)
 	rt.add_theme_color_override("default_color", color)
 	return rt
 
 
 func _ready() -> void:
-	var font: FontFile = load("res://assets/fonts/m5x7.ttf")
-	add_theme_font_size_override("normal_font_size", 14)
+	## No font or font_size override: the project theme supplies m5x7 @ 16 as
+	## RichTextLabel's normal_font/normal_font_size. This carried a hardcoded 14
+	## until 2026-08-08, which is below m5x7's 16px native grid — at 14 the 1px
+	## inter-letter gap disappears and glyphs fuse rather than merely soften.
 	add_theme_color_override("default_color", Color(0.60, 0.60, 0.66))
 	bbcode_enabled = true
 	## A hint bar is one line that sizes to its content — without these it
