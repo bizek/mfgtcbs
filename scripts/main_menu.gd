@@ -77,7 +77,11 @@ func _build_background() -> void:
 func _build_title() -> void:
 	var vbox := VBoxContainer.new()
 	vbox.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	vbox.position = Vector2(0, 44)
+	## 21, not 44. The flourish below adds 15px plus a 4px separation, so 25 would have kept the
+	## composition byte-identical to before it existed — including a 2px overlap the tagline had
+	## always had with the centre-anchored button panel (measured: tagline bottom 87, panel top
+	## 85, both before and after). The extra 4px lifts it clear instead of preserving the bug.
+	vbox.position = Vector2(0, 21)
 	vbox.add_theme_constant_override("separation", 4)
 	vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(vbox)
@@ -92,6 +96,15 @@ func _build_title() -> void:
 	title.add_theme_constant_override("shadow_offset_x", 2)
 	title.add_theme_constant_override("shadow_offset_y", 2)
 	vbox.add_child(title)
+
+	## Decorative rule between the title and the tagline — the Grim sheet's DECORATION banner,
+	## nine-patched from its flat centre so the filigree ends stay unstretched. It goes HERE
+	## rather than under the tagline because the button panel is centre-anchored and overlaps
+	## that band; below the subtitle it renders and is then covered. Null-safe: no sheet, no
+	## flourish, and no gap left behind.
+	var flourish: Control = UIIcons.title_flourish(48.0, Color(0.85, 0.66, 0.32, 0.9))
+	if flourish != null:
+		vbox.add_child(flourish)
 
 	var subtitle := Label.new()
 	subtitle.text = "descend. loot. extract."

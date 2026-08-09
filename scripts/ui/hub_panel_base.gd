@@ -7,6 +7,11 @@ extends Panel
 ## for building dynamic content. Each concrete panel instances this scene as a child,
 ## accesses ContentContainer to add rows, and forwards the close_requested signal.
 
+## Preloaded under a local alias rather than the bare class_name, matching codex_grid_panel.gd —
+## a class_name is unresolvable until the editor rescans, and this script is @tool so it is
+## parsed in the editor too.
+const Icons := preload("res://scripts/ui/ui_icons.gd")
+
 const FONT_TITLE  := 16
 ## Was 19 — off the m5x7 pixel grid, and the reason the font pass exists at all.
 ## It survived that pass because `add_row()` below has no callers, so a grep for
@@ -54,6 +59,11 @@ func _ready() -> void:
 	$TitleBar.offset_left = float(PLATE_INSET)
 	$TitleBar.offset_right = -float(PLATE_INSET)
 	$TitleBar.offset_top = float(PLATE_INSET)
+	## The pack's close glyph rather than a text character. Applied here at runtime rather
+	## than in the scene for the same reason as the plate and the title bar insets: the five
+	## hub panel scenes cannot be saved without dropping nodes (see _apply_accent_to_panel()).
+	## Falls back silently to whatever the scene already sets if the sheet is missing.
+	Icons.apply_window_button($TitleBar/CloseButton, Icons.WinBtn.CLOSE)
 	$TitleBar/CloseButton.pressed.connect(func():
 		AudioManager.play_ui("sfx_ui_panel_close")
 		close_requested.emit())

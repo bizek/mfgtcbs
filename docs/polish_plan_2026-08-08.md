@@ -122,8 +122,14 @@ nested `project.godot` inside a Godot project is a hazard on its own.
 >   landed (degenerate texture margins *and* a zero-sum content margin, either of which alone
 >   makes it invisible), so five scripts had shipped separators nobody ever saw. And the results
 >   screens drew their section rules as `"── … ──────"` text, where **U+2500 is not in m5x7** —
->   the `★`/`✦` bug again, on the two screens a player reads most. Window buttons and decoration
->   are still open.
+>   the `★`/`✦` bug again, on the two screens a player reads most.
+> * **1.5 (gap 10) — window buttons and the title flourish done 2026-08-09.** Every close button
+>   in the game (five hub panels, settings, the codex) now carries the pack's own close glyph,
+>   scaled 2× to 12px, with the artist's raised tint wired as hover. The decoration group turned
+>   out to be **nameplates, not rules** — stretching one to 120px smeared its fill, so
+>   `title_flourish()` uses it at native 48px under the main-menu title. The vertical plaques and
+>   medallions are recorded rather than wired: at 640×360 nothing has room, and forcing one in
+>   cost the tagline until the title block was lifted. **Tier 1.5 is now complete.**
 > * **1.3 remains blocked on a look decision** — bitmap digits vs m3x6. Nothing to implement until
 >   that is picked.
 

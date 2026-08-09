@@ -20,8 +20,10 @@ gaps 4 (slots + grids), 6 (tabs), 7 (labels & tags), 8 (selectors) and 9 (icons)
 **The HUD moved from Classic to Grim on 2026-08-08**, so the pack's oldest consumer is no longer
 the odd one out — see "Current utilization" below and gap 3.
 
-**Open as of 2026-08-08: the tail of gap 2, then 5, 10, 11** — the click-effect pop and the
-per-class reticle, the resource orbs, the window buttons/decoration, and the emotions/bubbles.
+**Open as of 2026-08-09: the tail of gap 2, then 5 and 11** — the click-effect pop and the
+per-class reticle, the resource orbs, and the emotions/bubbles. Gap 10 is done apart from its
+vertical plaques and medallions, which are recorded rather than wired (no screen at 640×360 has
+room for them).
 `scripts/ui/ui_icons.gd` (`UIIcons`) is the shared atlas helper; new sheet rects belong there,
 next to the reasoning for them.
 
@@ -114,7 +116,7 @@ want the hub to feel like a safe place by contrast. Mock_Up_3 shows the intended
 |---|---|---|---|
 | `Icons/_Icons.png` | 576×432 | 8×8 on an 8px lattice, **8 tints** | General (gear, screen, home, save/load, lock, bin, players, filters, achievements, shop, arrows, check/cross, maths, video controls), Character (map, compass, book, scroll, lens, quill, chest, anvil, blueprint, crossed swords, armor, shield, hammer, backpack, heart, magic spark, lightning, stamina, food, water), Social (10 platforms × 9 tints) |
 | `Cursors/_Cursors.png` | 440×72 | 16×16 grid, 27 cursors × **4 tints** (rows y 0/16/32/48; tints default/white/red/green) | 4 large arrows, 4 small arrows, **4 crosshairs**, hand, hand-clicking, **melee attack, ranged attack, magic attack**, hammer, pickaxe, axe, sickle, shovel, hoe, rod, gear, purse, conversation |
-| `Cursors/Click_Effects/Click_Effects.png` | 64×208 | 16×16 frames, **100ms native**, 4 colour columns | 2 effects (collapsing-in, expanding-out) × ~6 frames |
+| `Cursors/Click_Effects/Click_Effects.png` | 64×208 | 16×16 frames, **100ms native**, **4 columns × 13 rows** | 2 effects (rows 0–5 collapsing-in, row 6 blank, rows 7–12 expanding-out) × **4 frames** in 6 colours. Counted 2026-08-09 — this row said "~6 frames", which made the effect look 50% longer than it is |
 | `Controls/Controller/_Controllers.png` | 504×360 | 8×8 | **Xbox** `y16–120` · **PlayStation** `y128–224` · **Switch** `y248–352`. Sticks, D-pads, face buttons, shoulders and triggers. Every button has regular + **pressed** state; white-outline variants for highlight |
 | `Controls/Keyboard_Mouse/_Keyboard_And_Mouse.png` | 568×400 | 8×8 | Full keyboard, **pressed + unpressed**, in 4 variants (light/dark × outlined/plain). Mouse bodies and hand icons at `y336–384` |
 | `Labels_And_Tags/_Labels_And_Tags.png` | 320×448 | 16×16 sliced | 2 designs (pill bookmark, ribbon banner) × **8 colours** × (plain / white-outlined) |
@@ -507,7 +509,32 @@ check that caught `★` and `✦`), so those rules had been rendering outside th
 results screens. `•` and `━` are also absent; `·`, `×`, `»`, `^`, `&`, `#`, `*`, `+`, `-`, `=`, `_`
 are all present. **Run `has_char` before putting any non-ASCII glyph in a player-facing string.**
 
-Window buttons and the decoration group are still open.
+**Window buttons — DONE (2026-08-09).** WINDOW BUTTONS group, colour column 0: **6×6 cells on an
+8px stride**, three columns (minimise x=213 · restore x=221 · close x=229) over three tint rows
+(y=21 · 37 · 53). The rows are *not* labelled by the pack, so they are named in `UIIcons` for how
+they read once composited over the hub title bar's own brown: `DIM` (black frame, dim glyph),
+`RAISED` (raised brown frame, light glyph), `BRIGHT` (black frame, bright glyph). **BRIGHT is the
+only one legible at 12px on a dark plate**, so it is idle; RAISED is wired as hover/focus, which
+uses the artist's state rather than a modulate hack.
+
+`UIIcons.apply_window_button(btn, kind)` dresses any Button, scaling the 6px art by an **integer**
+factor (2× → 12px). It returns false and leaves the button's text alone when the sheet is missing,
+so a missing pack degrades to "X" rather than to a blank square. Applied at
+`hub_panel_base.gd` — which covers all five hub panels **and** the settings panel, since that
+delegates its close to the base — and `codex_grid_panel.gd`.
+
+**Decoration — title flourish DONE (2026-08-09), the rest deliberately unused.** The group is
+4 vertical plaques (20/17/16/15 × 48), 4 horizontal banners (48 × 20/17/16/15) and 3 medallions
+(40×32, 32×24, 22×16), at x=646–856 for ornament row R1.
+
+`UIIcons.title_flourish()` uses the flattest banner (`48×15 @ 672,952`) under the main-menu title.
+**Use it at or near its native 48px width.** These are *nameplates*, not rules: nine-patched out
+to 120px the solid fill stretches into a dark smear with a visible notch, which was tried first and
+looked worse than nothing. At native width it reads as the ornament the artist drew.
+
+The vertical plaques and medallions have no home yet — at 640×360 the screens that could carry them
+are already tight, and forcing one in cost the main menu's tagline until the title block was lifted
+to compensate. Recorded rather than wired.
 
 ### 11. Emotions + speech bubbles → hub NPCs
 

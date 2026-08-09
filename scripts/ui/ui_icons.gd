@@ -392,3 +392,122 @@ static func _wrap(tex: Texture2D, tint: Color) -> TextureRect:
 	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tr.modulate = tint
 	return tr
+
+
+## ── Grim sheet: window buttons + decoration (gap 10) ─────────────────────────
+##
+## A different file from the three above — these two groups live on the main Grim sheet, the same
+## one `tools/build_ui_theme.gd` reads. Kept here anyway because this is where sheet rects and the
+## reasoning for them belong.
+const GRIM_SHEET: String = "res://assets/minifantasy/Minifantasy_UI _Overhaul_v1.0/_Minifantasy_UI_Overhaul_Assets/Grim_Minifantasy_UI/_Grim_UI.png"
+
+static var _grim_sheet: Texture2D = null
+
+
+static func _grim() -> Texture2D:
+	if _grim_sheet == null and ResourceLoader.exists(GRIM_SHEET):
+		_grim_sheet = load(GRIM_SHEET)
+	return _grim_sheet
+
+
+## WINDOW BUTTONS group, colour column 0. Measured, not eyeballed: 6x6 cells on an 8px stride,
+## three columns — minimise (a dash), restore (a filled square), close (a cross) — over three tint
+## rows at y=21/37/53 running dark → mid → light. That is an idle/hover/pressed set rather than
+## three palettes, which is why the states below are named for interaction.
+enum WinBtn { MINIMISE, RESTORE, CLOSE }
+
+## The three tint rows, named for how they READ on a dark panel rather than for an assumed
+## interaction order — the pack does not say which is which. Composited all nine cells over the
+## hub title bar's own brown to decide: y=21 is a black recessed frame with a DIM glyph, y=37 a
+## raised brown frame with a light glyph, y=53 a black frame with a BRIGHT glyph.
+##
+## BRIGHT is the default because it is the only one that reads at 12px against a dark plate;
+## RAISED is the natural hover, since it is the one that looks lifted.
+enum WinBtnTint { DIM, RAISED, BRIGHT }
+
+const WIN_BTN_SIZE: int = 6
+const WIN_BTN_X: Array[int] = [213, 221, 229]
+const WIN_BTN_Y: Array[int] = [21, 37, 53]
+
+
+## One window button as an AtlasTexture. Null if the sheet is missing, so callers keep their text.
+static func window_button(kind: int = WinBtn.CLOSE, state: int = WinBtnTint.BRIGHT) -> AtlasTexture:
+	var sheet := _grim()
+	if sheet == null:
+		return null
+	var at := AtlasTexture.new()
+	at.atlas = sheet
+	at.region = Rect2(WIN_BTN_X[kind], WIN_BTN_Y[state], WIN_BTN_SIZE, WIN_BTN_SIZE)
+	## 6px art on an 8px stride bleeds its neighbour without this — the same trap the icon
+	## and tag helpers above hit.
+	at.filter_clip = true
+	return at
+
+
+## Dress a Button as a window button, replacing its text glyph with the pack's art.
+##
+## The art is 6x6 SOURCE pixels, so it is scaled to an integer multiple — 2x by default, giving
+## 12x12. Never a fractional scale: it aliases pixel art exactly the way m5x7 fails off its grid,
+## and the skill-slot keycaps shipped at 1:1 for months for want of this.
+##
+## Returns false and leaves the button untouched when the sheet is unavailable, so a missing pack
+## degrades to the existing "X" rather than to an unlabelled square.
+static func apply_window_button(btn: Button, kind: int = WinBtn.CLOSE, scale: int = 2) -> bool:
+	var idle := window_button(kind, WinBtnTint.BRIGHT)
+	if idle == null or btn == null:
+		return false
+	btn.text = ""
+	btn.icon = idle
+	btn.expand_icon = true
+	btn.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	var px: float = float(WIN_BTN_SIZE * maxi(1, scale))
+	btn.custom_minimum_size = Vector2(px, px)
+
+	## The pack ships the hover state as art; using it beats a modulate hack, and leaving two
+	## of three authored tints unused would be exactly the waste the coverage record exists to
+	## prevent. Guarded so repeat calls on the same button cannot stack connections.
+	## Guarded with a meta flag, NOT with is_connected(): the callables below are .bind()-ed, and
+	## a bound Callable never compares equal to the bare method, so is_connected would report
+	## false every time and stack a fresh set of connections on each call.
+	var hover := window_button(kind, WinBtnTint.RAISED)
+	if hover != null and not btn.has_meta("win_btn_wired"):
+		btn.set_meta("win_btn_wired", true)
+		btn.mouse_entered.connect(_win_btn_swap.bind(btn, hover))
+		btn.mouse_exited.connect(_win_btn_swap.bind(btn, idle))
+		btn.focus_entered.connect(_win_btn_swap.bind(btn, hover))
+		btn.focus_exited.connect(_win_btn_swap.bind(btn, idle))
+	return true
+
+
+static func _win_btn_swap(btn: Button, tex: Texture2D) -> void:
+	if is_instance_valid(btn):
+		btn.icon = tex
+
+
+## DECORATION group, colour column 0, ornament row R1 (the tier the project theme treats as
+## standard). The horizontal banners are left/right symmetric with a filigree waist, so they
+## nine-patch to any width from a centre band; the flattest one reads as a title rule rather than
+## a nameplate, which is what a screen heading wants.
+const DECO_BANNER: Rect2 = Rect2(672, 952, 48, 15)
+const DECO_BANNER_MARGIN: int = 20   ## the filigree ends; only the flat middle may stretch
+
+
+## A centred decorative rule for under a screen title. Null if the sheet is missing.
+static func title_flourish(width: float = 96.0, tint: Color = Color(1, 1, 1, 0.85)) -> Control:
+	var sheet := _grim()
+	if sheet == null:
+		return null
+	var np := NinePatchRect.new()
+	np.texture = sheet
+	np.region_rect = DECO_BANNER
+	np.patch_margin_left = DECO_BANNER_MARGIN
+	np.patch_margin_right = DECO_BANNER_MARGIN
+	np.patch_margin_top = 0
+	np.patch_margin_bottom = 0
+	np.custom_minimum_size = Vector2(width, DECO_BANNER.size.y)
+	np.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	np.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	np.modulate = tint
+	np.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return np

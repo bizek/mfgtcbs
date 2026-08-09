@@ -182,6 +182,9 @@ func _build_ui() -> void:
 	close_btn.focus_mode = Control.FOCUS_ALL
 	close_btn.custom_minimum_size = Vector2(20.0, 0.0)
 	close_btn.add_theme_color_override("font_color", COL_DIM)
+	## The pack's own close glyph instead of a capital X. Returns false and leaves the
+	## letter in place if the sheet is missing, so this can never produce a blank button.
+	Icons.apply_window_button(close_btn, Icons.WinBtn.CLOSE)
 	_style_btn_flat(close_btn, Color.TRANSPARENT, Color(0.55, 0.08, 0.08, 0.55))
 	close_btn.pressed.connect(func(): close_requested.emit())
 	header.add_child(close_btn)
