@@ -73,6 +73,9 @@ func _build_panel() -> void:
 	_panel = overlay
 	_panel.visible = false
 	add_child(_panel)
+	## Vector font for the subtree — FS_TAB (14) and FS_NODE (12) sit under m5x7's
+	## 16px grid, where glyphs fuse rather than soften. See DebugUI.
+	DebugUI.use_vector_font(_panel)
 
 	## Outer panel: 500×310 centered in the 640×360 design viewport
 	var outer := PanelContainer.new()

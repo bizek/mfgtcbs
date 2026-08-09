@@ -146,6 +146,9 @@ func _label_at(pos: Vector2, text: String) -> void:
 	lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	lbl.add_theme_constant_override("outline_size", 2)
 	lbl.add_theme_font_size_override("font_size", 10)
+	## Vector font — 10px is well under m5x7's 16px grid, where glyphs fuse. This
+	## harness is a Node2D, so there is no subtree theme to inherit from. See DebugUI.
+	DebugUI.use_vector_font_on(lbl)
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(lbl)
 

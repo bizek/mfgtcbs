@@ -60,6 +60,9 @@ func _build_panel() -> void:
 	pc.visible = false
 	_panel = pc
 	add_child(pc)
+	## Vector font for the subtree — 9px and 11px text here is well under m5x7's
+	## 16px grid, where glyphs fuse rather than soften. See DebugUI.
+	DebugUI.use_vector_font(pc)
 
 	var bg := StyleBoxFlat.new()
 	bg.bg_color = Color(0.04, 0.04, 0.08, 0.93)

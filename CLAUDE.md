@@ -219,6 +219,18 @@ All content follows the data factory pattern: `static func create() -> Resource`
   **PASS COMPLETE 2026-08-03. Inventory: 191 sites, 173 crisp, 18 off-grid — and all 18 are in
   debug tools** (anim lab, debug panel, entity inspector, passive-tree debug, ldtk test harness),
   which are deliberately left alone.
+  **That "leave them alone" rested on an assumption the project Theme silently broke, 2026-08-07.**
+  The debug panels are dense and size text at 9–14px, which worked because Godot's built-in
+  **vector** font was the default and a vector face stays readable that small; `training_panel.gd`
+  even carried a comment saying so. When `grim_theme.tres` became the project theme its default font
+  is **m5x7 @ 16**, so "the default theme font" silently started meaning the pixel font and all 18
+  sites became m5x7 below its native grid. Ben, 2026-08-09: *"PACK looks like FACh, HIT BACK looks
+  like KIT BACh, TRAINING ROOM looks almost like russian typescript."* Fixed by asking for the
+  vector font explicitly — `DebugUI.use_vector_font(panel_root)` (`scripts/debug/debug_ui.gd`)
+  assigns a Theme that sets **only** `default_font`, so every StyleBox, colour and constant still
+  falls through to the Grim theme and no layout moves. **The lesson generalises: a project-wide
+  default is not a no-op for code that was relying on the previous default.** When you change a
+  theme default, grep for who was depending on the old one.
   **Correction 2026-08-07 said "two survive". It was FOUR. All four fixed 2026-08-08.**
   `glyph_bar.gd` set `normal_font_size` to 14, `keystone_pickup.gd` set
   `LabelSettings.font_size = 14`, and `merchant.gd` + `summon_altar.gd` both passed **11** to

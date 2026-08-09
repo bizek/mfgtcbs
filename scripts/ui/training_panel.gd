@@ -133,6 +133,10 @@ func _build_panel() -> void:
 	pc.position = Vector2(5.0, 45.0)
 	_panel = pc
 	add_child(pc)
+	## Vector font for the whole subtree — see DebugUI for why this is now explicit.
+	## Without it the FS/FS_TITLE sizes below render in m5x7 under its 16px native
+	## grid, where glyphs fuse: "PACK" reads as "FACh".
+	DebugUI.use_vector_font(pc)
 
 	var bg := StyleBoxFlat.new()
 	bg.bg_color = Color(0.05, 0.07, 0.05, 0.93)
@@ -190,8 +194,11 @@ func _build_panel() -> void:
 	v.add_child(_label("F10 anim lab · F1 debug", FS, Color(0.55, 0.6, 0.65)))
 
 
-## Default theme font only — the m5x7 pixel font below its native size renders illegibly at
-## this viewport scale (Ben, 2026-07-20). Sizes match DebugPanel.
+## Godot's built-in VECTOR font, applied to the panel root by DebugUI.use_vector_font().
+## The m5x7 pixel font below its native 16px size renders illegibly at this viewport
+## scale (Ben, 2026-07-20). That used to happen for free because the engine default was
+## a vector face; since the project Theme landed (2026-08-07) the default is m5x7, so it
+## has to be asked for. Sizes match DebugPanel.
 func _label(text: String, size: int, color: Color) -> Label:
 	var l := Label.new()
 	l.text = text
