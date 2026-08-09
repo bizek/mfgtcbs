@@ -102,6 +102,24 @@ nested `project.godot` inside a Godot project is a hazard on its own.
 
 ## Tier 1 — Highest visible return, no design decisions needed
 
+> **Status 2026-08-08: 1.1 and 1.2 DONE. 1.3, 1.4 and 1.5 are open, and 1.3/1.4 turned out to be
+> design calls rather than wiring — see below.**
+>
+> * **1.2 (fades) shipped first** because it needed nothing from anyone. New `SceneTransition`
+>   autoload, all nine call sites converted.
+> * **1.1 (HUD → Grim) shipped**, and the before/after says it better than this document can: the
+>   Classic timer panel was a bright tan slab and the skill slots were tan squares over the play
+>   field. The Grim rects had to be measured — the theme builder never needed bar fills — and they
+>   are recorded in `ui_pack_inventory.md` "Current utilization".
+> * **1.4 shrank to two design calls.** Most of gap 2 was already done (the reticle, the arrow, the
+>   integer upscale, hostile tinting). What is left is the click pop and the per-class reticle, and
+>   the click sheet is **4 frames, not the 6 the inventory claimed** — 400ms at the pack's stated
+>   rate, which is clutter on a light chain that fires several times a second. It needs a trigger
+>   decision (every hit? skills only?) before it is worth wiring. Same for "cooldown reticle": with
+>   a cooldown-free light chain, *whose* cooldown it shows is the question.
+> * **1.3 remains blocked on a look decision** — bitmap digits vs m3x6. Nothing to implement until
+>   that is picked.
+
 ### 1.1 The HUD is the last surface still on the Classic sheet
 
 `scripts/ui/hud.gd:10` loads `_Classic_UI.png`. `assets/ui/grim_theme.tres` — wired as

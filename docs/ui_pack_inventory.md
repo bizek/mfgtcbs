@@ -17,9 +17,13 @@ Since then: the controller and keycap sheets are wired through `InputGlyphs` (ga
 sheet through `GameCursor` (gap 2), **the Grim sheet backs a project-wide `Theme`** (gap 3), and
 gaps 4 (slots + grids), 6 (tabs), 7 (labels & tags), 8 (selectors) and 9 (icons) are done.
 
-**Open as of 2026-08-08: gaps 2, 5, 10, 11** — the reticle cursor, the resource orbs, the window
-buttons/decoration, and the emotions/bubbles. `scripts/ui/ui_icons.gd` (`UIIcons`) is the shared
-atlas helper; new sheet rects belong there, next to the reasoning for them.
+**The HUD moved from Classic to Grim on 2026-08-08**, so the pack's oldest consumer is no longer
+the odd one out — see "Current utilization" below and gap 3.
+
+**Open as of 2026-08-08: the tail of gap 2, then 5, 10, 11** — the click-effect pop and the
+per-class reticle, the resource orbs, the window buttons/decoration, and the emotions/bubbles.
+`scripts/ui/ui_icons.gd` (`UIIcons`) is the shared atlas helper; new sheet rects belong there,
+next to the reasoning for them.
 
 ## Pack shape
 
@@ -123,14 +127,19 @@ want the hub to feel like a safe place by contrast. Mock_Up_3 shows the intended
 
 ## Current utilization
 
-`scripts/ui/hud.gd:10` — the pack's single consumer:
+`scripts/ui/hud.gd` — the pack's oldest consumer. **Moved from the Classic sheet to Grim on
+2026-08-08**; it was the last surface in the game still on Classic, which read as a different game
+next to the Grim-backed Theme. Rects measured off `_Grim_UI.png` with a connected-component pass:
 
 | Rect | Used for |
 |---|---|
-| 5× capsule fill `40×6 @ y709`, 256px column stride | HP (red), XP (blue), extraction (green); yellow/purple reachable via `_fill_region_for_color` for boss bars |
-| 2× end-cap nub `4×6` | HP and XP bar end gems |
-| `PANEL_PILL` `48×16 @ (64,352)` | nine-patch, 5px margins |
-| `PANEL_SQUARE` `48×48 @ (64,384)` | nine-patch, 6px margins |
+| 5× capsule fill `42×6 @ y1821`, **912px** column stride (red x=67, blue 979, yellow 1891, green 2803, purple 3715) | HP (red), XP (blue), extraction (green); yellow/purple reachable via `_fill_region_for_color` for boss bars |
+| 2× end-cap nub `4×6 @ x=120` (+stride) | HP and XP bar end gems |
+| `PANEL_SQUARE` / `PANEL_PILL` — both `48×48 @ (112,160)`, PANELS group column 0 row **R0**, 5px margins | Grim ships no dedicated 48×16 pill; a nine-patch takes its aspect from the target, so one rect serves both. R0 (plain plate) rather than R1/R2 because a HUD pill is the plainest thing in the game — the same rect and margin the theme's `PanelDense` uses. |
+
+Thinner fill variants exist at `y=1854` (40×3), `y=1887` (40×2) and `y=1919` (40×1) if a slimmer
+meter is ever wanted. The old Classic rects were `40×6 @ y709` on a 256 stride with `(64,384)` /
+`(64,352)` panels — recorded here only so the diff is legible.
 
 `scripts/managers/input_glyphs.gd` is the pack's second consumer as of 2026-07-31 — see gap 1.
 
@@ -195,14 +204,27 @@ One fidelity note: the Nintendo face buttons are dark grey with light letters in
 where Xbox and PlayStation are coloured. They read dimmer on dark panels. That is the pack's
 drawing, not a wrong region.
 
-### 2. Cursors → the manual-aim reticle
+### 2. Cursors → the manual-aim reticle — **mostly DONE (2026-08-02)**
 
-The game is built on cursor aim and ships the OS arrow. The sheet has 4 crosshair designs in
-4 tints — enough for real state feedback (neutral / hostile under cursor / ability on cooldown /
-out of range). The **melee / ranged / magic** attack cursors map cleanly onto kit archetype, so
-the reticle could read the equipped class. Click effects (100ms, 6 frames) give a fire-confirm
-pop at the aim point. Consider whether this competes with existing crosshair feedback before
-committing to the per-class variant.
+`GameCursor` (autoload) owns the pointer. Crosshair 1 (`COL_RETICLE = 8`, the open-centre bracket)
+while playing, the large arrow in menus, both nearest-neighbour upscaled to the viewport's integer
+factor because the hardware cursor is drawn in real screen pixels and is *not* upscaled with the
+game. Hostile tinting is live: `player.gd` calls `set_hostile()` each aiming frame and the reticle
+switches to the red tint row. Hotspot is (8,8) for both cells, measured off the sheet's alpha.
+
+**Still open, and both are design calls rather than wiring:**
+
+- **The click-effect pop.** `Cursors/Click_Effects/Click_Effects.png` is **64×208 = 4 columns ×
+  13 rows** of 16×16 cells: two variants (rows 0–5 *collapsing in*, row 6 blank, rows 7–12
+  *expanding out*) in 6 colours — red, gold, blue, orange, magenta, green. **That is 4 frames, not
+  the 6 this document claimed before 2026-08-08**; at the pack's stated 100ms that is a 400ms ring.
+  This is a combo game whose light chain fires several times a second, so a 400ms ring per swing is
+  clutter, not confirmation. It wants either a much shorter duration or a restriction to deliberate
+  actions (skills, dash) rather than every hit. Decide the trigger before wiring it.
+- **The per-class reticle.** The melee / ranged / magic attack cursors map onto kit archetype, but
+  the reticle already carries hostile state, and a cooldown state is ambiguous in a kit with a
+  cooldown-free light chain and two cooldown skills — "on cooldown" would have to mean a specific
+  ability. `ROW_GREEN` is defined and unused, reserved for whichever state wins.
 
 ### 3. A `Theme` resource off the Grim sheet — **DONE (2026-08-07)**
 
@@ -311,8 +333,14 @@ their own frame, and a third line 4px from both just reads as a smudge.
 
 ### 5. Resource orbs → HP / class resource
 
-Pre-animated globes in 5 colours × 3 sizes. Mock_Up_1 shows them as the anchor of a dark HUD. An
-option for the HP readout, or for a class-resource meter that currently has no distinct visual.
+Pre-animated globes in 5 colours × 3 sizes, sitting in the Grim meter band to the right of the bar
+fills (x≈415+ at y≈1740–1960 in column 0) with ~14 / ~10 / ~6 drain frames full→empty. Mock_Up_1
+shows them as the anchor of a dark HUD.
+
+**Half of this gap is moot: there is no class resource.** A grep across `hud.gd` and `player.gd`
+finds no mana/rage/energy pool — skills are purely cooldown-gated. So the only live option is the
+HP readout, which now competes with the Grim capsule bar wired in gap 3's wake (see "Current
+utilization"). Worth deciding alongside any further HUD work rather than on its own.
 
 ### 6. Tabs → settings / codex categories — **DONE (2026-08-07)**
 
