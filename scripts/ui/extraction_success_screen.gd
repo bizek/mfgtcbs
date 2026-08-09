@@ -190,5 +190,5 @@ func _get_player_level() -> int:
 
 func _on_return_to_hub() -> void:
 	visible = false
-	get_tree().paused = false
-	get_tree().change_scene_to_file("res://scenes/hub.tscn")
+	## SceneTransition unpauses as part of the swap — see game_over_screen.gd.
+	SceneTransition.change_scene("res://scenes/hub.tscn")

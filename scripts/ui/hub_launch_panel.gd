@@ -146,7 +146,9 @@ func populate(pm: Node) -> void:
 
 
 func _start_run() -> void:
-	get_tree().change_scene_to_file("res://scenes/main_arena.tscn")
+	## The descent is worth a beat longer than a menu hop — this and the results
+	## screen are the two transitions a player crosses on every single run.
+	SceneTransition.change_scene("res://scenes/main_arena.tscn", 0.35, 0.3)
 
 
 func _row(parent: Control, label: String, value: String, val_col: Color) -> void:

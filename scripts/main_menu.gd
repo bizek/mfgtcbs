@@ -241,7 +241,7 @@ func _show_toast(text: String) -> void:
 # ── Button handlers ─────────────────────────────────────────────────────────
 
 func _on_continue_pressed() -> void:
-	get_tree().change_scene_to_file("res://scenes/hub.tscn")
+	SceneTransition.change_scene("res://scenes/hub.tscn")
 
 func _on_new_game_pressed() -> void:
 	if ProgressionManager.has_save():
@@ -250,8 +250,11 @@ func _on_new_game_pressed() -> void:
 		_start_new_game()
 
 func _on_training_pressed() -> void:
+	## training_mode is set before the fade and nothing clears it on this path —
+	## there is no TrainingPanel in the main menu, so the _exit_tree footgun in
+	## CLAUDE.md does not apply here.
 	GameManager.training_mode = true
-	get_tree().change_scene_to_file("res://scenes/main_arena.tscn")
+	SceneTransition.change_scene("res://scenes/main_arena.tscn")
 
 func _on_settings_pressed() -> void:
 	if ResourceLoader.exists("res://scripts/ui/settings_panel.gd"):
@@ -270,14 +273,14 @@ func _on_settings_pressed() -> void:
 ## typo into a permanent "coming soon" toast instead of an error. Unguarded now, and
 ## matching win_screen.gd:47, which is the other way into the roll.
 func _on_credits_pressed() -> void:
-	get_tree().change_scene_to_file("res://scenes/ui/credits.tscn")
+	SceneTransition.change_scene("res://scenes/ui/credits.tscn")
 
 func _on_quit_pressed() -> void:
 	get_tree().quit()
 
 func _start_new_game() -> void:
 	ProgressionManager.reset_save()
-	get_tree().change_scene_to_file("res://scenes/main_arena.tscn")
+	SceneTransition.change_scene("res://scenes/main_arena.tscn", 0.35, 0.3)
 
 # ── New Game overwrite confirmation ─────────────────────────────────────────
 

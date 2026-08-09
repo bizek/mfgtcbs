@@ -38,4 +38,4 @@ func _return_to_hub() -> void:
 	if _returning:
 		return
 	_returning = true
-	get_tree().change_scene_to_file("res://scenes/hub.tscn")
+	SceneTransition.change_scene("res://scenes/hub.tscn")

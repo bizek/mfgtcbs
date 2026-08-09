@@ -43,5 +43,6 @@ func _get_player_level() -> int:
 
 func _on_continue() -> void:
 	visible = false
-	get_tree().paused = false
-	get_tree().change_scene_to_file("res://scenes/ui/credits.tscn")
+	## A slower fade than the default here: this is the hand-off from the win
+	## screen to the credits roll, and it is the one transition worth lingering on.
+	SceneTransition.change_scene("res://scenes/ui/credits.tscn", 0.6, 0.5)
