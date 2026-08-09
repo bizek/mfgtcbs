@@ -218,6 +218,11 @@ func _validate_content() -> void:
 	## upgrades — the Tier 0.1 rewrite renamed two entries and left ORDER_BY_KIT pointing at the
 	## old ids, which the anim validator cannot see because a missing id never becomes a target.
 	problems.append_array(AbilityUpgradeData.validate_kit_order())
+	## Fourth shape: the reachability check for the CLASS MOD layer, which had none. ORDER is the
+	## only route into loot/armory/merchant, so an entry missing from it is unobtainable while
+	## looking perfectly healthy to validate_anim_targets — its target resolves fine, the player
+	## simply can never own it. `ranger_split_quiver` had shipped this way (found 2026-08-08).
+	problems.append_array(ClassModData.validate_order())
 	var log_node: Node = get_node_or_null("/root/Logger")
 	if problems.is_empty():
 		print("[content] All class-mod / ability-upgrade anim targets and upgrade statuses resolve.")
@@ -358,21 +363,22 @@ func _settle_lost_run() -> void:
 	var has_insurance: bool = not _insured.is_empty() \
 			and ProgressionManager.has_upgrade("insurance_license")
 
-	## Rollback mid-run equipped mods — death loses everything except the insured item
-	for weapon_id in run_equipped_mods:
-		for slot in run_equipped_mods[weapon_id]:
-			var mid_mod: String = run_equipped_mods[weapon_id][slot]
+	## Rollback mid-run equipped mods — death loses everything except the insured item.
+	## Keyed by CHARACTER since 2026-08-08 (mod slots moved off weapons onto the character).
+	for char_id in run_equipped_mods:
+		for slot in run_equipped_mods[char_id]:
+			var mid_mod: String = run_equipped_mods[char_id][slot]
 			if has_insurance and mid_mod == _insured:
 				## Commit the insured slot so it survives death
-				if not ProgressionManager.weapon_mods.has(weapon_id):
-					ProgressionManager.weapon_mods[weapon_id] = []
-				while ProgressionManager.weapon_mods[weapon_id].size() <= slot:
-					ProgressionManager.weapon_mods[weapon_id].append("")
-				ProgressionManager.weapon_mods[weapon_id][slot] = mid_mod
+				if not ProgressionManager.character_mods.has(char_id):
+					ProgressionManager.character_mods[char_id] = []
+				while ProgressionManager.character_mods[char_id].size() <= slot:
+					ProgressionManager.character_mods[char_id].append("")
+				ProgressionManager.character_mods[char_id][slot] = mid_mod
 			else:
-				if ProgressionManager.weapon_mods.has(weapon_id):
-					if slot < ProgressionManager.weapon_mods[weapon_id].size():
-						ProgressionManager.weapon_mods[weapon_id][slot] = ""
+				if ProgressionManager.character_mods.has(char_id):
+					if slot < ProgressionManager.character_mods[char_id].size():
+						ProgressionManager.character_mods[char_id][slot] = ""
 
 	## Preserve insured collected weapon or mod
 	if has_insurance:
@@ -421,19 +427,22 @@ func on_extraction_complete() -> void:
 		ProgressionManager.add_weapon(weapon_id)
 	for mod_id in collected_mods:
 		ProgressionManager.add_mod(mod_id)
-	## Trinkets bank to the shared universal inventory; class weapons above route to the
-	## right character's stash automatically (armory filters by class_lock).
+	## Trinkets bank to the shared universal inventory. So do weapons — `unlocked_weapons` is one
+	## flat list for the whole roster, NOT a per-character stash. What keeps another class's gear
+	## out of your hands is the armory/level-up filter (WeaponData.equippable_for), added
+	## 2026-08-08; before that this comment claimed a filter that did not exist and every
+	## character could equip everything.
 	for trinket_id in collected_trinkets:
 		ProgressionManager.add_trinket(trinket_id)
-	## Commit mid-run equipped mods to permanent save
-	for weapon_id in run_equipped_mods:
-		for slot in run_equipped_mods[weapon_id]:
-			var mid_mod: String = run_equipped_mods[weapon_id][slot]
-			if not ProgressionManager.weapon_mods.has(weapon_id):
-				ProgressionManager.weapon_mods[weapon_id] = []
-			while ProgressionManager.weapon_mods[weapon_id].size() <= slot:
-				ProgressionManager.weapon_mods[weapon_id].append("")
-			ProgressionManager.weapon_mods[weapon_id][slot] = mid_mod
+	## Commit mid-run equipped mods to permanent save (keyed by character since 2026-08-08)
+	for char_id in run_equipped_mods:
+		for slot in run_equipped_mods[char_id]:
+			var mid_mod: String = run_equipped_mods[char_id][slot]
+			if not ProgressionManager.character_mods.has(char_id):
+				ProgressionManager.character_mods[char_id] = []
+			while ProgressionManager.character_mods[char_id].size() <= slot:
+				ProgressionManager.character_mods[char_id].append("")
+			ProgressionManager.character_mods[char_id][slot] = mid_mod
 	run_equipped_mods.clear()
 	ProgressionManager.save_data()
 	extraction_successful.emit()
@@ -457,10 +466,12 @@ func consume_town_portal() -> bool:
 	town_portal_changed.emit(false)
 	return true
 
-func equip_mod_mid_run(weapon_id: String, slot: int, mod_id: String) -> void:
-	if not run_equipped_mods.has(weapon_id):
-		run_equipped_mods[weapon_id] = {}
-	run_equipped_mods[weapon_id][slot] = mod_id
+## Track a mod equipped mid-run so it can be rolled back on death or committed on extraction.
+## Keyed by CHARACTER since 2026-08-08 — mod slots live on the character, not the weapon.
+func equip_mod_mid_run(char_id: String, slot: int, mod_id: String) -> void:
+	if not run_equipped_mods.has(char_id):
+		run_equipped_mods[char_id] = {}
+	run_equipped_mods[char_id][slot] = mod_id
 
 func add_loot(value: float) -> void:
 	loot_carried += value
@@ -496,7 +507,7 @@ func add_collected_mod(mod_id: String, rarity: String = "common") -> void:
 	collected_mods.append(mod_id)
 	var inst_cost: float = float(LootTables.RARITY_INSTABILITY.get(rarity, 5))
 	add_instability(inst_cost)
-	var mod_name: String = ModData.ALL[mod_id].get("name", mod_id) if ModData.ALL.has(mod_id) else mod_id
+	var mod_name: String = str(ModApplicability.get_mod(mod_id).get("name", mod_id))
 	run_loot_manifest.append({ "type": "mod", "name": mod_name, "value": inst_cost, "rarity": rarity })
 
 ## Called when the player picks up a weapon drop during a run.
@@ -611,7 +622,7 @@ func _find_manifest_instability(type: String, item_id: String) -> float:
 			if type == "weapon":
 				match_name = WeaponData.ALL[item_id].get("display_name", item_id) if WeaponData.ALL.has(item_id) else item_id
 			elif type == "mod":
-				match_name = ModData.ALL[item_id].get("name", item_id) if ModData.ALL.has(item_id) else item_id
+				match_name = str(ModApplicability.get_mod(item_id).get("name", item_id))
 			if entry.name == match_name:
 				var cost: float = entry.value
 				run_loot_manifest.remove_at(i)

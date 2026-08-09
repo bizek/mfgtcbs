@@ -191,8 +191,16 @@ func _cmd_power_up() -> void:
 	## Survivability — enough to tank hits without god mode
 	player_ref.apply_stat_upgrade({"id": "dbg_hp",    "stat": "max_hp",           "type": "flat",    "value": 200.0})
 	player_ref.apply_stat_upgrade({"id": "dbg_armor", "stat": "armor",            "type": "flat",    "value": 15.0})
-	## Equip all mods — activates every pairwise and triple combo simultaneously
-	player_ref.debug_reload_mods(ModData.ORDER.duplicate())
+	## Fill every mod slot from the current character's roster. Used to hand out ModData.ORDER —
+	## the whole generic layer at once — which stopped meaning anything when that layer retired
+	## (2026-08-08). Writes to in-memory state only; the save is untouched.
+	var dbg_char: String = ProgressionManager.selected_character
+	var dbg_roster: Array = ModApplicability.class_mod_ids_for(dbg_char)
+	var dbg_slots: int = ProgressionManager.class_mod_slots(dbg_char)
+	ProgressionManager.character_mods[dbg_char] = []
+	for i in range(mini(dbg_slots, dbg_roster.size())):
+		ProgressionManager.character_mods[dbg_char].append(dbg_roster[i])
+	player_ref.debug_reload_mods()
 
 func _cmd_give_resources() -> void:
 	ProgressionManager.resources += 10000

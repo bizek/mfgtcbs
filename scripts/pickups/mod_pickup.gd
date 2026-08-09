@@ -136,26 +136,28 @@ func _try_auto_equip() -> bool:
 	if not player.has_method("get_active_weapon_id"):
 		return false
 
-	var weapon_id: String = player.get_active_weapon_id()
-	if weapon_id.is_empty():
-		return false
+	## Slots are per-CHARACTER now, not per-weapon (2026-08-08). A mod belongs to the class, so
+	## picking one up mid-run fills the character's next free slot regardless of which of its three
+	## weapons is in hand — swapping weapons no longer silently changes your mod loadout.
+	var char_id: String = ProgressionManager.selected_character
+	if not ModApplicability.class_applies(mod_id, char_id):
+		return false   ## another class's mod — bag it, don't equip it
 
-	var weapon_data: Dictionary = WeaponData.ALL.get(weapon_id, {})
-	var max_slots: int = weapon_data.get("mod_slots", 1)
-	var current_mods: Array = ProgressionManager.get_weapon_mods(weapon_id)
+	var max_slots: int = ProgressionManager.class_mod_slots(char_id)
+	var current_mods: Array = ProgressionManager.get_character_mods(char_id)
 
 	## Find first empty slot
 	for i in range(max_slots):
-		var existing: String = current_mods[i] if i < current_mods.size() else ""
+		var existing: String = str(current_mods[i]) if i < current_mods.size() else ""
 		if existing.is_empty():
 			## Equip to in-memory state (so reload_mods() picks it up) but do NOT save to disk.
 			## GameManager tracks it for rollback on death / commit on extraction.
-			if not ProgressionManager.weapon_mods.has(weapon_id):
-				ProgressionManager.weapon_mods[weapon_id] = []
-			while ProgressionManager.weapon_mods[weapon_id].size() <= i:
-				ProgressionManager.weapon_mods[weapon_id].append("")
-			ProgressionManager.weapon_mods[weapon_id][i] = mod_id
-			GameManager.equip_mod_mid_run(weapon_id, i, mod_id)
+			if not ProgressionManager.character_mods.has(char_id):
+				ProgressionManager.character_mods[char_id] = []
+			while ProgressionManager.character_mods[char_id].size() <= i:
+				ProgressionManager.character_mods[char_id].append("")
+			ProgressionManager.character_mods[char_id][i] = mod_id
+			GameManager.equip_mod_mid_run(char_id, i, mod_id)
 
 			## Tell the player to reload its mod set immediately
 			if player.has_method("reload_mods"):

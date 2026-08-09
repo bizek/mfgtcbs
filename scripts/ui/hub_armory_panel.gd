@@ -63,10 +63,9 @@ const FS_XS  := 16
 ## ── State ────────────────────────────────────────────────────────────────────
 var _pm:              Node = null
 var _active_slot:     int  = 1
-var _mod_picking:     bool = false
-var _mod_target_slot: int  = 0
 var _weapon_picking:  bool = false
-## Class-mod picker (task 31) — inline like the weapon picker, edits the current character.
+## Mod picker — inline like the weapon picker, edits the current character. The separate
+## per-weapon mod picker retired 2026-08-08 along with the generic layer; this is the only one.
 var _class_mod_picking:     bool = false
 var _class_mod_target_slot: int  = 0
 
@@ -80,7 +79,7 @@ var _picker_scroll: ScrollContainer = null
 func _ready() -> void:
 	_base.close_requested.connect(func(): close_requested.emit())
 	_picker_cancel_btn.pressed.connect(func():
-		_mod_picking = false
+		_class_mod_picking = false
 		populate(_pm)
 	)
 	_style_picker_chrome()
@@ -93,14 +92,9 @@ func _ready() -> void:
 
 func populate(pm: Node) -> void:
 	_pm = pm
-	if _mod_picking:
-		_armory_view.visible = false
-		_picker_view.visible = true
-		_build_mod_picker()
-	else:
-		_armory_view.visible = true
-		_picker_view.visible = false
-		_build_armory()
+	_armory_view.visible = true
+	_picker_view.visible = false
+	_build_armory()
 	## Every populate() frees and rebuilds the visible view — controller focus
 	## dies with the freed nodes, so re-land it.
 	UINav.refocus_if_lost(self)
@@ -194,8 +188,6 @@ func _build_weapon_card(parent: Control, slot: int) -> void:
 	var wdata: Dictionary     = WeaponData.ALL.get(weapon_id, {})
 	var is_active: bool       = slot == _active_slot
 	var has_weapon: bool      = not weapon_id.is_empty()
-	var equipped: Array       = [] if Engine.is_editor_hint() else _pm.get_weapon_mods(weapon_id)
-	var max_mod_slots: int    = wdata.get("mod_slots", 1) if has_weapon else 3
 
 	## Card outer Panel
 	var card := Panel.new()
@@ -289,47 +281,9 @@ func _build_weapon_card(parent: Control, slot: int) -> void:
 		_stat_bar(sr, "SPD", spd_n, C_AMBER,   Icons.node(Icons.BOLT))
 		_stat_bar(sr, "RNG", rng_n, C_GREEN_HI, Icons.general_node(Icons.ARROW_RIGHT, C_GREEN_HI))
 
-	## ── Row 3: mod slots
-	var mr := HBoxContainer.new()
-	mr.add_theme_constant_override("separation", 3)
-	mr.custom_minimum_size = Vector2(0, 18)
-	content.add_child(mr)
-
-	for mi in range(3):
-		var in_range: bool    = mi < max_mod_slots
-		var mod_id: String    = equipped[mi] if mi < equipped.size() else ""
-		var has_mod: bool     = not mod_id.is_empty()
-		var mdata: Dictionary = ModData.ALL.get(mod_id, {}) if has_mod else {}
-		var mod_name: String  = mdata.get("name", mod_id) if has_mod else ""
-		var mod_col: Color    = mdata.get("color", C_T1) if has_mod else C_BORDER
-
-		var mb := Button.new()
-		mb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		mb.alignment             = HORIZONTAL_ALIGNMENT_LEFT
-		mb.focus_mode            = Control.FOCUS_ALL
-		mb.visible               = in_range
-		mb.add_theme_font_size_override("font_size", FS_XS)
-
-		if has_mod:
-			mb.text = "■ " + mod_name
-			mb.add_theme_color_override("font_color", mod_col)
-			mb.add_theme_color_override("font_hover_color", mod_col.lightened(0.3))
-		elif in_range:
-			mb.text = "+ SLOT"
-			mb.add_theme_color_override("font_color", C_T2)
-			mb.add_theme_color_override("font_hover_color", C_T1)
-		_style_btn_mod(mb, mod_col, has_mod)
-
-		if in_range and has_weapon:
-			var cs2 := cap_slot
-			var ci   := mi
-			mb.pressed.connect(func():
-				_active_slot     = cs2
-				_mod_picking     = true
-				_mod_target_slot = ci
-				populate(_pm)
-			)
-		mr.add_child(mb)
+	## Row 3 was the per-weapon mod slots. Mods moved onto the CHARACTER 2026-08-08 (one
+	## class-locked roster, three slots) — see _build_class_mod_card below, which is now the only
+	## place mods are equipped. Weapons keep their intrinsic modifiers and purple unique.
 
 
 # ── Stat bar builder ──────────────────────────────────────────────────────────
@@ -405,8 +359,12 @@ func _build_weapon_picker(parent: Control) -> void:
 	rule.color                 = C_B_ACT
 	parent.add_child(rule)
 
-	## Weapon list
-	var weapons: Array  = [] if Engine.is_editor_hint() else _pm.unlocked_weapons
+	## Weapon list — class-locked (2026-08-08). A character sees its own three weapons plus the
+	## six universal legacies; another class's gear is not listed even when unlocked, because the
+	## same stash is shared across the roster and unlocking a blue for one character used to make
+	## it equippable by all twelve.
+	var weapons: Array  = [] if Engine.is_editor_hint() \
+			else WeaponData.equippable_from(_pm.unlocked_weapons, _pm.selected_character)
 	var current_id: String = _get_weapon_for_slot(_active_slot)
 
 	if weapons.is_empty():
@@ -546,7 +504,7 @@ func _build_class_mod_picker(parent: Control) -> void:
 	var hdr_hbox := HBoxContainer.new()
 	hdr_hbox.add_theme_constant_override("separation", 5)
 	parent.add_child(hdr_hbox)
-	_lbl(hdr_hbox, "INSTALL CLASS MOD — SLOT %02d" % (_class_mod_target_slot + 1), FS_MD,
+	_lbl(hdr_hbox, "INSTALL MOD — SLOT %02d" % (_class_mod_target_slot + 1), FS_MD,
 		Color(0.62, 0.48, 0.85))
 
 	var rule := ColorRect.new()
@@ -615,6 +573,7 @@ func _build_class_mod_picker(parent: Control) -> void:
 			var cap_mid: String = mod_id
 			btn.pressed.connect(func():
 				_pm.set_character_mod(char_id, _class_mod_target_slot, cap_mid)
+				_discover_evolutions_for(char_id)
 				_class_mod_picking = false
 				populate(_pm)
 			)
@@ -658,17 +617,13 @@ func _build_footer(parent: Control) -> void:
 	var total_slots: int = 0
 	var synergies: int   = 0
 	if not Engine.is_editor_hint() and _pm != null:
-		var sc: int = _pm.starting_weapon_slots()
-		for s in range(1, sc + 1):
-			var wid := _get_weapon_for_slot(s)
-			if wid.is_empty():
-				continue
-			var ms: int = WeaponData.ALL.get(wid, {}).get("mod_slots", 1)
-			total_slots += ms
-			var eq: Array = _pm.get_weapon_mods(wid)
-			for mi in range(ms):
-				if mi < eq.size() and not (eq[mi] as String).is_empty():
-					total_mods += 1
+		## Mods are per-character since 2026-08-08, so this is one tally, not a per-weapon sum.
+		var mod_char: String = str(_pm.selected_character)
+		total_slots = _pm.class_mod_slots(mod_char)
+		var eq: Array = _pm.get_character_mods(mod_char)
+		for mi in range(total_slots):
+			if mi < eq.size() and not str(eq[mi]).is_empty():
+				total_mods += 1
 		synergies = CodexManager.entries.values().filter(
 			func(e: CodexEntry) -> bool: return e.discovered
 		).size()
@@ -719,131 +674,6 @@ func _footer_divider(parent: Control) -> void:
 
 
 # ── Mod picker sub-view ───────────────────────────────────────────────────────
-
-func _build_mod_picker() -> void:
-	var pm        := _pm
-	var weapon_id: String = pm.get_character_weapon(pm.selected_character, _active_slot)
-
-	# Hide the hardcoded static rows — replaced by dynamic scroll list below
-	for btn in _picker_mod_btns: btn.visible = false
-	for d   in _picker_mod_descs: d.visible  = false
-
-	# Free previous scroll container if it exists
-	if _picker_scroll != null and is_instance_valid(_picker_scroll):
-		_picker_scroll.free()
-		_picker_scroll = null
-
-	var max_slots: int = WeaponData.ALL.get(weapon_id, {}).get("mod_slots", 1)
-	if _mod_target_slot >= max_slots:
-		_picker_header.text         = "NO MOD SLOT  (%s)" % weapon_id
-		_picker_empty_label.visible = true
-		_picker_empty_label.text    = "This weapon has no more mod slots."
-		return
-
-	_picker_header.text = "INSTALL MOD  slot %d  /  %s" % [_mod_target_slot + 1, weapon_id]
-
-	## Only GENERIC mods belong in a weapon slot — class mods have their own per-character card.
-	var counts: Dictionary = {}
-	for mid in pm.owned_mods:
-		if ModApplicability.is_class_mod(mid):
-			continue
-		counts[mid] = counts.get(mid, 0) + 1
-
-	var mod_ids: Array = counts.keys()
-	mod_ids.sort()  # Stable alphabetical order so list never shifts unexpectedly
-	_picker_empty_label.visible = mod_ids.is_empty()
-
-	if mod_ids.is_empty():
-		return
-
-	# Build scrollable list
-	_picker_scroll = ScrollContainer.new()
-	_picker_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_picker_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_picker_scroll.mouse_filter = Control.MOUSE_FILTER_PASS
-
-	var scroll_vbox := VBoxContainer.new()
-	scroll_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll_vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	scroll_vbox.add_theme_constant_override("separation", 3)
-	_picker_scroll.add_child(scroll_vbox)
-
-	# Insert before the cancel button so it sits between header and cancel
-	_picker_vbox.add_child(_picker_scroll)
-	_picker_vbox.move_child(_picker_scroll, _picker_cancel_btn.get_index())
-
-	var cap_equipped: Array = _pm.get_weapon_mods(weapon_id).duplicate()
-
-	## Grey (but never hide/destroy) generic mods that do nothing for the current character's kit
-	## — the switch-character edge case (task 31). They stay equippable; they just don't bite.
-	var picker_char: String = str(_pm.selected_character)
-
-	for mod_id in mod_ids:
-		var mdata: Dictionary = ModData.ALL.get(mod_id, {})
-		var mod_name: String  = mdata.get("name", mod_id)
-		var mod_col: Color    = mdata.get("color", Color.WHITE)
-		var count: int        = counts[mod_id]
-		var desc: String      = mdata.get("desc", "")
-		var applicable: bool  = ModApplicability.generic_applies(mod_id, picker_char)
-		var shown_col: Color  = mod_col if applicable else mod_col.darkened(0.5)
-
-		var row := VBoxContainer.new()
-		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		scroll_vbox.add_child(row)
-
-		var btn := Button.new()
-		btn.text = ("■ %s  ×%d" % [mod_name, count]) if count > 1 else ("■ " + mod_name)
-		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		btn.add_theme_font_size_override("font_size", FS_MD)
-		btn.add_theme_color_override("font_color", shown_col)
-		btn.add_theme_color_override("font_hover_color", shown_col.lightened(0.25))
-		_style_btn_mod(btn, shown_col, true)
-		row.add_child(btn)
-
-		if not desc.is_empty() or not applicable:
-			var desc_lbl := Label.new()
-			desc_lbl.text = ("  " + desc) if applicable else "  (no effect for this class)"
-			desc_lbl.add_theme_font_size_override("font_size", FS_XS)
-			desc_lbl.add_theme_color_override("font_color", C_T2 if applicable else C_RED_LO.lightened(0.4))
-			desc_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			row.add_child(desc_lbl)
-
-		var cap_mid:  String = mod_id
-		var cap_wid  := weapon_id
-		var cap_slot := _mod_target_slot
-		btn.pressed.connect(func():
-			_pm.set_weapon_mod(cap_wid, cap_slot, cap_mid)
-			_discover_combos_for_weapon(cap_wid)
-			if _codex_panel != null:
-				_codex_panel.set_hover_highlight("")
-			_mod_picking = false
-			populate(_pm)
-		)
-
-		btn.mouse_entered.connect(func():
-			if _codex_panel == null or not _codex_panel.visible:
-				return
-			var highlight: StringName = ""
-			for eq_mod in cap_equipped:
-				if eq_mod == cap_mid:
-					continue
-				var pairs := CodexManager.get_combos_for_mod_pair(
-					StringName(cap_mid), StringName(eq_mod))
-				if not pairs.is_empty():
-					highlight = pairs[0].combo.combo_id
-					break
-			_codex_panel.set_hover_highlight(highlight)
-		)
-		btn.mouse_exited.connect(func():
-			if _codex_panel != null:
-				_codex_panel.set_hover_highlight("")
-		)
-
-	UINav.wire_scroll_follow(_picker_scroll)
-
-
-# ── Codex overlay ─────────────────────────────────────────────────────────────
 
 func _build_codex_overlay() -> void:
 	## Near full-screen (viewport is 640x360). The old 460x262 was sized around 9-14px labels; at
@@ -974,26 +804,14 @@ func _disconnect_all(sig: Signal) -> void:
 		sig.disconnect(conn.callable)
 
 
-func _discover_combos_for_weapon(weapon_id: String) -> void:
-	var equipped: Array = _pm.get_weapon_mods(weapon_id)
-	if equipped.size() < 2:
+## Mark every mod evolution this loadout now satisfies as DISCOVERED, so the codex shows what the
+## player has assembled the moment they assemble it. REVEALED still requires actually using it in
+## a run (ComboEffectResolver). Replaces _discover_combos_for_weapon, which walked per-weapon mod
+## pairs against the retired generic interaction matrix.
+func _discover_evolutions_for(char_id: String) -> void:
+	var kit_id: String = ModApplicability.kit_of(char_id)
+	if kit_id.is_empty():
 		return
-	for i in equipped.size():
-		for j in range(i + 1, equipped.size()):
-			var pairs := CodexManager.get_combos_for_mod_pair(
-				StringName(equipped[i]), StringName(equipped[j]))
-			for entry: CodexEntry in pairs:
-				CodexManager.discover_combo(entry.combo.combo_id)
-	if equipped.size() >= 3:
-		var equipped_set: Array[StringName] = []
-		for m in equipped:
-			equipped_set.append(StringName(m))
-		for entry: CodexEntry in CodexManager.entries.values():
-			if entry.combo.required_mods.size() != 3:
-				continue
-			var hits := 0
-			for req: StringName in entry.combo.required_mods:
-				if req in equipped_set:
-					hits += 1
-			if hits == 3:
-				CodexManager.discover_combo(entry.combo.combo_id)
+	var equipped: Array = _pm.get_active_class_mods(char_id)
+	for evo_id: String in ClassModData.active_evolutions(kit_id, equipped):
+		CodexManager.discover_combo(StringName(evo_id))

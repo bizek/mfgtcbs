@@ -67,14 +67,17 @@ func _generate_offers() -> Array[Dictionary]:
 		})
 		weapons_added += 1
 
-	## 2 random mods
-	var mod_ids: Array = ModData.ALL.keys()
+	## 2 random mods from the CURRENT character's roster (2026-08-08). The merchant used to draw
+	## from ModData.ALL, which meant most of its stock was either inapplicable or — as it turned
+	## out — inert. Drawing from droppable_pool means everything on the shelf is usable by the
+	## character standing in front of it.
+	var mod_ids: Array = ModApplicability.droppable_pool(ProgressionManager.selected_character)
 	mod_ids.shuffle()
 	var mods_added: int = 0
 	for mid: String in mod_ids:
 		if mods_added >= 2:
 			break
-		var md: Dictionary = ModData.ALL[mid]
+		var md: Dictionary = ModApplicability.get_mod(mid)
 		result.append({
 			"type": "mod",
 			"id": mid,

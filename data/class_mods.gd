@@ -81,6 +81,46 @@ const ALL: Dictionary = {
 		"params": { "status": "chilled", "stacks": 1 },
 	},
 
+	"fighter_blood_wages": {
+		"id": "fighter_blood_wages",
+		"name": "BLOOD WAGES",
+		"kit": "fighter",
+		"desc": "The Sellsword takes payment in blood — a share of all damage dealt returns as health.",
+		"color": Color(0.85, 0.20, 0.50),
+		"op": "modifier",
+		"params": { "stat": "leech", "op": "bonus", "value": 0.06 },
+	},
+	"fighter_opening_cut": {
+		"id": "fighter_opening_cut",
+		"name": "OPENING CUT",
+		"kit": "fighter",
+		"desc": "The chain's first swing opens a wound that keeps bleeding through the rest of it.",
+		"color": Color(0.85, 0.15, 0.15),
+		"target": { "graph": "light", "anim": "attack" },
+		"op": "add_status",
+		"params": { "status": "bleed", "stacks": 1 },
+	},
+	"fighter_shattering_uppercut": {
+		"id": "fighter_shattering_uppercut",
+		"name": "SHATTERING UPPERCUT",
+		"kit": "fighter",
+		"desc": "The launch hits 25% harder across a 40% wider arc — the whole ring goes up, not one enemy.",
+		"color": Color(1.0, 0.75, 0.30),
+		"target": { "anim": "uppercut" },
+		"op": "scale_aoe",
+		"params": { "radius_mult": 1.4, "damage_mult": 1.25 },
+	},
+	"fighter_grappling_rush": {
+		"id": "fighter_grappling_rush",
+		"name": "GRAPPLING RUSH",
+		"kit": "fighter",
+		"desc": "Rush drags everything it clips along with it, dumping the pack where you stop.",
+		"color": Color(0.55, 0.75, 1.0),
+		"target": { "graph": "skill_e", "anim": "rush" },
+		"op": "add_pull",
+		"params": { "distance": 220.0, "duration": 0.18, "arc_height": 5.0 },
+	},
+
 	## ── Paladin (The Warden) ──────────────────────────────────────────────────────────────────
 
 	"paladin_thunderous_bash": {
@@ -122,6 +162,45 @@ const ALL: Dictionary = {
 		"target": { "graph": "channel", "anim": "dome" },
 		"op": "add_status",
 		"params": { "status": "burning", "stacks": 1 },
+	},
+
+	"paladin_aegis_plating": {
+		"id": "paladin_aegis_plating",
+		"name": "AEGIS PLATING",
+		"kit": "paladin",
+		"desc": "Layered plate over the Warden's chest. Physical blows glance off.",
+		"color": Color(0.80, 0.82, 0.90),
+		"op": "modifier",
+		## Armor is NOT a get_stat tag — player.get_armor() reads ("Physical", "resist").
+		"params": { "stat": "Physical", "op": "resist", "value": 20.0 },
+	},
+	"paladin_shield_wall": {
+		"id": "paladin_shield_wall",
+		"name": "SHIELD WALL",
+		"kit": "paladin",
+		"desc": "The shield is always up. Far more incoming hits are turned aside outright.",
+		"color": Color(1.0, 0.85, 0.35),
+		"op": "modifier",
+		"params": { "stat": "block_chance", "op": "add", "value": 0.15 },
+	},
+	"paladin_sworn_thorns": {
+		"id": "paladin_sworn_thorns",
+		"name": "SWORN THORNS",
+		"kit": "paladin",
+		"desc": "The Vow answers for you — everything that strikes the Warden is struck back.",
+		"color": Color(0.95, 0.95, 0.70),
+		"target": { "graph": "skill_q", "anim": "vow" },
+		"op": "add_status",
+		"params": { "status": "thorns_passive", "stacks": 1, "apply_to_self": true },
+	},
+	"paladin_relentless_vow": {
+		"id": "paladin_relentless_vow",
+		"name": "RELENTLESS VOW",
+		"kit": "paladin",
+		"desc": "Oaths come round faster. Every cooldown the Warden carries is shortened.",
+		"color": Color(1.0, 1.0, 0.55),
+		"op": "modifier",
+		"params": { "stat": "All", "op": "cooldown_reduce", "value": 0.12 },
 	},
 
 	## ── Ninja (The Whisper) ───────────────────────────────────────────────────────────────────
@@ -172,6 +251,46 @@ const ALL: Dictionary = {
 		"params": { "stat": "All", "op": "damage_taken", "value": -0.12 },
 	},
 
+	"ninja_deep_cut": {
+		"id": "ninja_deep_cut",
+		"name": "DEEP CUT",
+		"kit": "ninja",
+		"desc": "The Whisper knows where to put the blade. Critical hits land far harder.",
+		"color": Color(0.90, 0.25, 0.35),
+		"op": "modifier",
+		"params": { "stat": "crit_multiplier", "op": "add", "value": 0.40 },
+	},
+	"ninja_blinding_smoke": {
+		"id": "ninja_blinding_smoke",
+		"name": "BLINDING SMOKE",
+		"kit": "ninja",
+		"desc": "The smoke bites. Anything left standing in it is chilled to a crawl.",
+		"color": Color(0.55, 0.85, 1.0),
+		"target": { "graph": "skill_e", "anim": "smoke" },
+		"op": "add_status",
+		"params": { "status": "chilled", "stacks": 1 },
+	},
+	"ninja_finishing_flourish": {
+		"id": "ninja_finishing_flourish",
+		"name": "FINISHING FLOURISH",
+		"kit": "ninja",
+		"desc": "The storm's last turn hits 30% harder across a 35% wider circle.",
+		"color": Color(0.85, 0.90, 1.0),
+		"target": { "anim": "blades_end" },
+		"op": "scale_aoe",
+		"params": { "radius_mult": 1.35, "damage_mult": 1.30 },
+	},
+	"ninja_whetstone_ritual": {
+		"id": "ninja_whetstone_ritual",
+		"name": "WHETSTONE RITUAL",
+		"kit": "ninja",
+		"desc": "Sharpen leaves a serrated edge behind — every cut afterwards bleeds.",
+		"color": Color(0.80, 0.20, 0.20),
+		"target": { "graph": "skill_q", "anim": "sharpen" },
+		"op": "add_status",
+		"params": { "status": "serrated_strikes", "stacks": 1, "apply_to_self": true },
+	},
+
 	## ── Cleric (The Devout) ───────────────────────────────────────────────────────────────────
 
 	"cleric_purifying_fire": {
@@ -213,6 +332,45 @@ const ALL: Dictionary = {
 		"op": "modifier",
 		## ("All", "damage_taken") — the ("damage_taken", "bonus") pair is never read. See above.
 		"params": { "stat": "All", "op": "damage_taken", "value": -0.15 },
+	},
+
+	"cleric_censer_embers": {
+		"id": "cleric_censer_embers",
+		"name": "CENSER EMBERS",
+		"kit": "cleric",
+		"desc": "The divine fire clings. Everything it touches goes on burning.",
+		"color": Color(1.0, 0.60, 0.20),
+		"target": { "anim": "divine_fire" },
+		"op": "add_projectile_status",
+		"params": { "status": "burning", "stacks": 1 },
+	},
+	"cleric_guardians_wrath": {
+		"id": "cleric_guardians_wrath",
+		"name": "GUARDIAN'S WRATH",
+		"kit": "cleric",
+		"desc": "The guardian answers with force — 25% harder across a 40% wider circle.",
+		"color": Color(1.0, 0.95, 0.65),
+		"target": { "graph": "skill_e", "anim": "pray_guardian" },
+		"op": "scale_aoe",
+		"params": { "radius_mult": 1.40, "damage_mult": 1.25 },
+	},
+	"cleric_lingering_grace": {
+		"id": "cleric_lingering_grace",
+		"name": "LINGERING GRACE",
+		"kit": "cleric",
+		"desc": "Blessings and afflictions alike hold 25% longer.",
+		"color": Color(0.90, 0.90, 1.0),
+		"op": "modifier",
+		"params": { "stat": "status_duration", "op": "bonus", "value": 0.25 },
+	},
+	"cleric_fervent_prayer": {
+		"id": "cleric_fervent_prayer",
+		"name": "FERVENT PRAYER",
+		"kit": "cleric",
+		"desc": "Every prayer mends more. All healing the Devout performs is 35% stronger.",
+		"color": Color(0.70, 1.0, 0.75),
+		"op": "modifier",
+		"params": { "stat": "Heal", "op": "bonus", "value": 0.35 },
 	},
 
 	## ── Druid (The Verdant) ───────────────────────────────────────────────────────────────────
@@ -270,6 +428,46 @@ const ALL: Dictionary = {
 		"params": { "damage_mult": 1.2 },
 	},
 
+	"druid_thorned_seeds": {
+		"id": "druid_thorned_seeds",
+		"name": "THORNED SEEDS",
+		"kit": "druid",
+		"desc": "Barbed seed pods. Everything the Verdant looses draws blood that keeps running.",
+		"color": Color(0.55, 0.80, 0.35),
+		"target": { "graph": "light" },
+		"op": "add_projectile_status",
+		"params": { "status": "bleed", "stacks": 1 },
+	},
+	"druid_ursine_fury": {
+		"id": "druid_ursine_fury",
+		"name": "URSINE FURY",
+		"kit": "druid",
+		"desc": "The bear arrives angry — its opening maul lands 35% harder.",
+		"color": Color(0.70, 0.50, 0.30),
+		"target": { "graph": "skill_q", "anim": "summon_bear" },
+		"op": "scale_aoe",
+		"params": { "damage_mult": 1.35 },
+	},
+	"druid_pack_hunter": {
+		"id": "druid_pack_hunter",
+		"name": "PACK HUNTER",
+		"kit": "druid",
+		"desc": "The hounds break wide, hitting 20% harder across a 40% broader sweep.",
+		"color": Color(0.75, 0.70, 0.55),
+		"target": { "graph": "skill_e", "anim": "summon_hounds" },
+		"op": "scale_aoe",
+		"params": { "radius_mult": 1.40, "damage_mult": 1.20 },
+	},
+	"druid_barkskin": {
+		"id": "druid_barkskin",
+		"name": "BARKSKIN",
+		"kit": "druid",
+		"desc": "Bark closes over skin. Physical blows bite far less deep.",
+		"color": Color(0.50, 0.40, 0.25),
+		"op": "modifier",
+		"params": { "stat": "Physical", "op": "resist", "value": 18.0 },
+	},
+
 	## ── Necromancer (The Shade) ──────────────────────────────────────────────────────────────
 
 	"necro_splintering_swirl": {
@@ -308,6 +506,50 @@ const ALL: Dictionary = {
 		"color": Color(0.55, 0.1, 0.5),
 		"op": "modifier",
 		"params": { "stat": "leech", "op": "bonus", "value": 0.05 },
+	},
+
+	"necro_marrow_shards": {
+		"id": "necro_marrow_shards",
+		"name": "MARROW SHARDS",
+		"kit": "necromancer",
+		"desc": "The bones splinter on impact and stay in the wound.",
+		"color": Color(0.85, 0.80, 0.70),
+		"target": { "anim": "bone_cast" },
+		"op": "add_projectile_status",
+		"params": { "status": "bleed", "stacks": 1 },
+	},
+	"necro_endless_bones": {
+		"id": "necro_endless_bones",
+		"name": "ENDLESS BONES",
+		"kit": "necromancer",
+		"desc": "Two more missiles in every cast. The ossuary does not run dry.",
+		"color": Color(0.90, 0.88, 0.80),
+		"target": { "anim": "bone_cast" },
+		"op": "add_projectiles",
+		"params": { "count": 2 },
+	},
+	"necro_grave_legion": {
+		"id": "necro_grave_legion",
+		"name": "GRAVE LEGION",
+		"kit": "necromancer",
+		"desc": "The legion rises wider and hits 25% harder.",
+		"color": Color(0.60, 0.45, 0.75),
+		"target": { "graph": "skill_e", "anim": "bone_legion" },
+		"op": "scale_aoe",
+		"params": { "radius_mult": 1.40, "damage_mult": 1.25 },
+	},
+	## The new home for the retired generic INSTABILITY SIPHON (2026-08-08). It was a universal
+	## weapon mod; with the generic layer gone it needed one owner, and soul-harvest is the Shade's
+	## whole thesis. `kit_flag` because the effect is "the entity behaves differently on kill" —
+	## no per-phase op can express that. player._load_combo reads the equipped id directly.
+	"necro_soul_tithe": {
+		"id": "necro_soul_tithe",
+		"name": "SOUL TITHE",
+		"kit": "necromancer",
+		"desc": "Every soul the Shade takes is paid to the dark. Kills bleed off Instability — manage haul risk through aggression.",
+		"color": Color(0.40, 1.0, 0.55),
+		"op": "kit_flag",
+		"params": {},
 	},
 
 	## ── Ranger (The Scavenger) ───────────────────────────────────────────────────────────────
@@ -373,6 +615,36 @@ const ALL: Dictionary = {
 		"params": {},
 	},
 
+	"ranger_hunters_focus": {
+		"id": "ranger_hunters_focus",
+		"name": "HUNTER'S FOCUS",
+		"kit": "ranger",
+		"desc": "Breath held, gap found. The Scavenger crits far more often.",
+		"color": Color(1.0, 0.85, 0.40),
+		"op": "modifier",
+		"params": { "stat": "crit_chance", "op": "add", "value": 0.10 },
+	},
+	"ranger_pinning_shot": {
+		"id": "ranger_pinning_shot",
+		"name": "PINNING SHOT",
+		"kit": "ranger",
+		"desc": "The paired arrows pin what they hit — chilled, and easy to keep at range.",
+		"color": Color(0.55, 0.85, 1.0),
+		"target": { "anim": "double_shot" },
+		"op": "add_projectile_status",
+		"params": { "status": "chilled", "stacks": 1 },
+	},
+	"ranger_close_quarters": {
+		"id": "ranger_close_quarters",
+		"name": "CLOSE QUARTERS",
+		"kit": "ranger",
+		"desc": "When they get inside the bow, the answer hits 30% harder over a 35% wider swing.",
+		"color": Color(0.80, 0.75, 0.60),
+		"target": { "graph": "heavy", "anim": "melee" },
+		"op": "scale_aoe",
+		"params": { "radius_mult": 1.35, "damage_mult": 1.30 },
+	},
+
 	## ── Wizard (The Spark) ───────────────────────────────────────────────────────────────────
 
 	"wizard_fireball_scorched_earth": {
@@ -415,6 +687,46 @@ const ALL: Dictionary = {
 		"params": { "stat": "damage", "op": "bonus", "value": 0.15 },
 	},
 
+	"wizard_arcane_multiplicity": {
+		"id": "wizard_arcane_multiplicity",
+		"name": "ARCANE MULTIPLICITY",
+		"kit": "wizard",
+		"desc": "One more bolt on every opening cast.",
+		"color": Color(0.55, 0.70, 1.0),
+		"target": { "graph": "light", "anim": "attack" },
+		"op": "add_projectiles",
+		"params": { "count": 1 },
+	},
+	"wizard_deep_freeze": {
+		"id": "wizard_deep_freeze",
+		"name": "DEEP FREEZE",
+		"kit": "wizard",
+		"desc": "The ice cast no longer slows — it stops. Everything caught is frozen solid.",
+		"color": Color(0.45, 0.85, 1.0),
+		"target": { "graph": "skill_q", "anim": "ice_cast" },
+		"op": "add_status",
+		"params": { "status": "frozen", "stacks": 1 },
+	},
+	"wizard_tempest_call": {
+		"id": "wizard_tempest_call",
+		"name": "TEMPEST CALL",
+		"kit": "wizard",
+		"desc": "The storm answers wider — 45% broader, 20% harder.",
+		"color": Color(0.85, 0.90, 1.0),
+		"target": { "graph": "skill_e", "anim": "storm_cast" },
+		"op": "scale_aoe",
+		"params": { "radius_mult": 1.45, "damage_mult": 1.20 },
+	},
+	"wizard_manaburn": {
+		"id": "wizard_manaburn",
+		"name": "MANABURN",
+		"kit": "wizard",
+		"desc": "The Spark burns through reserves recklessly. Every cooldown comes back 15% sooner.",
+		"color": Color(0.70, 0.55, 1.0),
+		"op": "modifier",
+		"params": { "stat": "All", "op": "cooldown_reduce", "value": 0.15 },
+	},
+
 	## ── Blood Mage (The Cursed) ──────────────────────────────────────────────────────────────
 
 	"blood_mage_hemorrhage_shards": {
@@ -454,6 +766,46 @@ const ALL: Dictionary = {
 		"color": Color(0.6, 0.0, 0.2),
 		"op": "modifier",
 		"params": { "stat": "damage", "op": "bonus", "value": 0.18 },
+	},
+
+	"blood_mage_crimson_feast": {
+		"id": "blood_mage_crimson_feast",
+		"name": "CRIMSON FEAST",
+		"kit": "blood_mage",
+		"desc": "The Cursed drinks from every wound she opens.",
+		"color": Color(0.80, 0.10, 0.25),
+		"op": "modifier",
+		"params": { "stat": "leech", "op": "bonus", "value": 0.08 },
+	},
+	"blood_mage_rupture": {
+		"id": "blood_mage_rupture",
+		"name": "RUPTURE",
+		"kit": "blood_mage",
+		"desc": "The slam ruptures the ground — 30% harder across a 40% wider break.",
+		"color": Color(0.75, 0.15, 0.30),
+		"target": { "graph": "heavy", "anim": "slam" },
+		"op": "scale_aoe",
+		"params": { "radius_mult": 1.40, "damage_mult": 1.30 },
+	},
+	"blood_mage_thirsting_vortex": {
+		"id": "blood_mage_thirsting_vortex",
+		"name": "THIRSTING VORTEX",
+		"kit": "blood_mage",
+		"desc": "The drain reaches half again as far while held.",
+		"color": Color(0.65, 0.10, 0.40),
+		"target": { "graph": "channel", "anim": "vampirize" },
+		"op": "scale_aoe",
+		"params": { "radius_mult": 1.50 },
+	},
+	"blood_mage_hemoplague": {
+		"id": "blood_mage_hemoplague",
+		"name": "HEMOPLAGUE",
+		"kit": "blood_mage",
+		"desc": "Two more shards in every volley.",
+		"color": Color(0.85, 0.20, 0.35),
+		"target": { "anim": "shards" },
+		"op": "add_projectiles",
+		"params": { "count": 2 },
 	},
 
 	## ── Demonologist (The Demon) ─────────────────────────────────────────────────────────────
@@ -498,6 +850,46 @@ const ALL: Dictionary = {
 		"params": { "stat": "damage", "op": "bonus", "value": 0.15 },
 	},
 
+	"demon_breach_wake": {
+		"id": "demon_breach_wake",
+		"name": "BREACH WAKE",
+		"kit": "demonologist",
+		"desc": "The tear left by Hell Breach is 40% wider and bites 20% deeper.",
+		"color": Color(0.85, 0.25, 0.55),
+		"target": { "anim": "hell_breach" },
+		"op": "scale_aoe",
+		"params": { "radius_mult": 1.40, "damage_mult": 1.20 },
+	},
+	"demon_sustained_torment": {
+		"id": "demon_sustained_torment",
+		"name": "SUSTAINED TORMENT",
+		"kit": "demonologist",
+		"desc": "The held hellfire sears wounds that will not close.",
+		"color": Color(1.0, 0.35, 0.10),
+		"target": { "graph": "channel", "anim": "hellfire_ch" },
+		"op": "add_status",
+		"params": { "status": "searing_wound", "stacks": 1 },
+	},
+	"demon_archdemons_toll": {
+		"id": "demon_archdemons_toll",
+		"name": "ARCHDEMON'S TOLL",
+		"kit": "demonologist",
+		"desc": "What answers the call arrives larger and hungrier — 45% wider, 25% harder.",
+		"color": Color(0.70, 0.15, 0.20),
+		"target": { "graph": "skill_e", "anim": "archdemon_call" },
+		"op": "scale_aoe",
+		"params": { "radius_mult": 1.45, "damage_mult": 1.25 },
+	},
+	"demon_blood_pact": {
+		"id": "demon_blood_pact",
+		"name": "BLOOD PACT",
+		"kit": "demonologist",
+		"desc": "The pact is written in vitality. The Demon carries 15% more of it.",
+		"color": Color(0.80, 0.20, 0.30),
+		"op": "modifier",
+		"params": { "stat": "max_hp", "op": "bonus", "value": 0.15 },
+	},
+
 	## ── Barbarian (The Ravager) ───────────────────────────────────────────────────────────────
 
 	"barbarian_earthsplitter": {
@@ -538,6 +930,46 @@ const ALL: Dictionary = {
 		"color": Color(1.0, 0.3, 0.05),
 		"op": "modifier",
 		"params": { "stat": "damage", "op": "bonus", "value": 0.15 },
+	},
+
+	"barbarian_storm_volley": {
+		"id": "barbarian_storm_volley",
+		"name": "STORM VOLLEY",
+		"kit": "barbarian",
+		"desc": "Two more bolts leave the blade on every thunder strike.",
+		"color": Color(1.0, 0.90, 0.35),
+		"target": { "anim": "thunder" },
+		"op": "add_projectiles",
+		"params": { "count": 2 },
+	},
+	"barbarian_hurled_ruin": {
+		"id": "barbarian_hurled_ruin",
+		"name": "HURLED RUIN",
+		"kit": "barbarian",
+		"desc": "Whatever the Ravager throws lands 30% harder across a 40% wider crater.",
+		"color": Color(0.80, 0.60, 0.35),
+		"target": { "graph": "skill_e", "anim": "throw" },
+		"op": "scale_aoe",
+		"params": { "radius_mult": 1.40, "damage_mult": 1.30 },
+	},
+	"barbarian_bloodrage": {
+		"id": "barbarian_bloodrage",
+		"name": "BLOODRAGE",
+		"kit": "barbarian",
+		"desc": "The fight feeds him. A share of all damage dealt comes back as health.",
+		"color": Color(0.80, 0.15, 0.15),
+		"op": "modifier",
+		"params": { "stat": "leech", "op": "bonus", "value": 0.06 },
+	},
+	"barbarian_terrifying_roar": {
+		"id": "barbarian_terrifying_roar",
+		"name": "TERRIFYING ROAR",
+		"kit": "barbarian",
+		"desc": "The war cry freezes the blood of everything that hears it.",
+		"color": Color(0.60, 0.85, 1.0),
+		"target": { "graph": "skill_q", "anim": "cry" },
+		"op": "add_status",
+		"params": { "status": "chilled", "stacks": 1 },
 	},
 
 	## ── Gunslinger (The Deadeye) ─────────────────────────────────────────────────────────────
@@ -582,73 +1014,398 @@ const ALL: Dictionary = {
 		## "add", not "bonus" — see ninja_honed_edge above.
 		"params": { "stat": "crit_chance", "op": "add", "value": 0.10 },
 	},
+	"gunslinger_incendiary_rounds": {
+		"id": "gunslinger_incendiary_rounds",
+		"name": "INCENDIARY ROUNDS",
+		"kit": "gunslinger",
+		"desc": "Every round out of the chain sets what it hits alight.",
+		"color": Color(1.0, 0.45, 0.10),
+		"target": { "graph": "light" },
+		"op": "add_projectile_status",
+		"params": { "status": "burning", "stacks": 1 },
+	},
+	"gunslinger_hot_loads": {
+		"id": "gunslinger_hot_loads",
+		"name": "HOT LOADS",
+		"kit": "gunslinger",
+		"desc": "Two more rounds per beat while the storm is held down.",
+		"color": Color(1.0, 0.75, 0.25),
+		"target": { "graph": "channel", "anim": "storm" },
+		"op": "add_projectiles",
+		"params": { "count": 2 },
+	},
+	"gunslinger_lash_and_draw": {
+		"id": "gunslinger_lash_and_draw",
+		"name": "LASH AND DRAW",
+		"kit": "gunslinger",
+		"desc": "The whip cracks 30% harder over a 40% wider reach before the guns come up.",
+		"color": Color(0.80, 0.65, 0.45),
+		"target": { "graph": "skill_e", "anim": "whip" },
+		"op": "scale_aoe",
+		"params": { "radius_mult": 1.40, "damage_mult": 1.30 },
+	},
+	"gunslinger_dead_aim": {
+		"id": "gunslinger_dead_aim",
+		"name": "DEAD AIM",
+		"kit": "gunslinger",
+		"desc": "When the Deadeye connects clean, it ends things. Critical hits land far harder.",
+		"color": Color(1.0, 0.80, 0.15),
+		"op": "modifier",
+		"params": { "stat": "crit_multiplier", "op": "add", "value": 0.35 },
+	},
 }
 
 
-## Stable display order per kit (armory / pickers). Only ids present here appear in the class-mod
-## drop pool and armory list — mirrors ModData.ORDER excluding hidden/unique entries.
+## Display / draw order. THE only route into loot, armory and merchant — `ids_for_kit` walks this,
+## not ALL, so anything missing here is unobtainable. `validate_order()` guards both directions.
+##
+## Eight per character as of 2026-08-08 (was four). The roster grew when the generic mod layer was
+## retired: 13 of its 18 entries were dead — baked into a weapon auto-attack that no combo
+## character fires — so folding the two layers into one class-locked roster cost almost nothing
+## real and gave every character a build space of C(8,3) = 56 loadouts against 3 equip slots.
 const ORDER: Array = [
 	## Fighter
 	"fighter_overcharged_cataclysm",
 	"fighter_tempest_vortex",
 	"fighter_sustained_whirlwind",
 	"fighter_concussive_taunt",
+	"fighter_blood_wages",
+	"fighter_opening_cut",
+	"fighter_shattering_uppercut",
+	"fighter_grappling_rush",
 	## Paladin
 	"paladin_thunderous_bash",
 	"paladin_blessed_hammer_storm",
 	"paladin_dictums_reach",
 	"paladin_retribution_dome",
+	"paladin_aegis_plating",
+	"paladin_shield_wall",
+	"paladin_sworn_thorns",
+	"paladin_relentless_vow",
 	## Ninja
 	"ninja_bleeding_blades",
 	"ninja_endless_storm",
 	"ninja_honed_edge",
 	"ninja_choking_smoke",
+	"ninja_deep_cut",
+	"ninja_blinding_smoke",
+	"ninja_finishing_flourish",
+	"ninja_whetstone_ritual",
 	## Cleric
 	"cleric_purifying_fire",
 	"cleric_words_of_agony",
 	"cleric_radiant_smite",
 	"cleric_greater_sanctuary",
+	"cleric_censer_embers",
+	"cleric_guardians_wrath",
+	"cleric_lingering_grace",
+	"cleric_fervent_prayer",
 	## Druid
 	"druid_savage_maul",
 	"druid_diving_owl",
 	"druid_strangling_roots",
 	"druid_pack_leader",
+	"druid_thorned_seeds",
+	"druid_ursine_fury",
+	"druid_pack_hunter",
+	"druid_barkskin",
 	## Necromancer
 	"necro_splintering_swirl",
 	"necro_grave_bond",
 	"necro_dark_haste",
 	"necro_soul_leech",
+	"necro_marrow_shards",
+	"necro_endless_bones",
+	"necro_grave_legion",
+	"necro_soul_tithe",
 	## Ranger
 	"ranger_barbed_arrows",
 	"ranger_impaling_knife",
 	"ranger_explosive_tips",
 	"ranger_ghost_step",
+	"ranger_split_quiver",
+	"ranger_hunters_focus",
+	"ranger_pinning_shot",
+	"ranger_close_quarters",
 	## Wizard
 	"wizard_fireball_scorched_earth",
 	"wizard_overload_bolts",
 	"wizard_torrent_surge",
 	"wizard_ember_familiar",
+	"wizard_arcane_multiplicity",
+	"wizard_deep_freeze",
+	"wizard_tempest_call",
+	"wizard_manaburn",
 	## Blood Mage
 	"blood_mage_hemorrhage_shards",
 	"blood_mage_deeper_pact",
 	"blood_mage_bloodquake",
 	"blood_mage_sanguine_drain",
+	"blood_mage_crimson_feast",
+	"blood_mage_rupture",
+	"blood_mage_thirsting_vortex",
+	"blood_mage_hemoplague",
 	## Demonologist
 	"demon_searing_hellfire",
 	"demon_ninefold_circle",
 	"demon_infernal_hide",
 	"demon_greater_pact",
+	"demon_breach_wake",
+	"demon_sustained_torment",
+	"demon_archdemons_toll",
+	"demon_blood_pact",
 	## Barbarian
 	"barbarian_earthsplitter",
 	"barbarian_chained_lightning",
 	"barbarian_iron_wall",
 	"barbarian_deafening_cry",
+	"barbarian_storm_volley",
+	"barbarian_hurled_ruin",
+	"barbarian_bloodrage",
+	"barbarian_terrifying_roar",
 	## Gunslinger
 	"gunslinger_fan_the_hammer_plus2",
 	"gunslinger_hollow_points",
 	"gunslinger_suppressing_storm",
 	"gunslinger_quickdraw",
+	"gunslinger_incendiary_rounds",
+	"gunslinger_hot_loads",
+	"gunslinger_lash_and_draw",
+	"gunslinger_dead_aim",
 ]
+
+
+## ── Mod evolutions ────────────────────────────────────────────────────────────────────────────
+## The replacement for the 69-pair generic interaction matrix (retired 2026-08-08).
+##
+## An evolution is a capstone that fires when BOTH of its required mods are equipped together. Two
+## per class, drawn from that class's own roster — 24 authored pairs instead of 69 combinatorial
+## ones, and every one of them is reachable, testable and belongs to a character. The pattern is
+## deliberately the one already in the game: UpgradeManager.EVOLUTION_RECIPES, which does the same
+## thing one layer up for level-up picks.
+##
+## Shape is a class mod's, plus `requires`. ClassModFactory applies it exactly like any other entry
+## once the requirement is met, so no new op vocabulary was needed. `codex_id` is the CodexManager
+## entry it unlocks; ComboRegistry builds the whole codex from this table.
+##
+## Why pairs and not a synergy table: the old matrix's problem was not that pairs are bad, it is
+## that 69 of them could not be authored honestly or tested. Three equip slots over eight mods is
+## 56 loadouts per class; picking two of those to be special is a design act, not combinatorics.
+const EVOLUTIONS: Dictionary = {
+	"evo_fighter_bloodstorm": {
+		"id": "evo_fighter_bloodstorm", "name": "BLOODSTORM", "kit": "fighter",
+		"requires": ["fighter_sustained_whirlwind", "fighter_blood_wages"],
+		"desc": "The wider spin drinks from everything it clips — the whirlwind sustains itself.",
+		"color": Color(0.85, 0.25, 0.35),
+		"target": { "graph": "light", "anim": "swirl" },
+		"op": "add_status", "params": { "status": "bleed", "stacks": 1 },
+	},
+	"evo_fighter_earthbreaker": {
+		"id": "evo_fighter_earthbreaker", "name": "EARTHBREAKER", "kit": "fighter",
+		"requires": ["fighter_overcharged_cataclysm", "fighter_shattering_uppercut"],
+		"desc": "Launch into crater. The full sequence lands with the weight of a siege engine.",
+		"color": Color(1.0, 0.60, 0.20),
+		"target": { "anim": "cataclysm" },
+		"op": "scale_aoe", "params": { "radius_mult": 1.25, "damage_mult": 1.30 },
+	},
+	"evo_paladin_bulwark_of_dawn": {
+		"id": "evo_paladin_bulwark_of_dawn", "name": "BULWARK OF DAWN", "kit": "paladin",
+		"requires": ["paladin_aegis_plating", "paladin_shield_wall"],
+		"desc": "Plate and shield as one doctrine. What the Warden turns aside, it turns back.",
+		"color": Color(1.0, 0.90, 0.50),
+		"op": "modifier", "params": { "stat": "All", "op": "damage_taken", "value": -0.15 },
+	},
+	"evo_paladin_hammer_of_judgement": {
+		"id": "evo_paladin_hammer_of_judgement", "name": "HAMMER OF JUDGEMENT", "kit": "paladin",
+		"requires": ["paladin_blessed_hammer_storm", "paladin_relentless_vow"],
+		"desc": "The hammer falls, and falls again. Judgement stops waiting its turn.",
+		"color": Color(1.0, 1.0, 0.70),
+		"target": { "anim": "hammer" },
+		"op": "scale_aoe", "params": { "radius_mult": 1.35 },
+	},
+	"evo_ninja_thousand_cuts": {
+		"id": "evo_ninja_thousand_cuts", "name": "THOUSAND CUTS", "kit": "ninja",
+		"requires": ["ninja_bleeding_blades", "ninja_whetstone_ritual"],
+		"desc": "Serrated steel on an endless chain. Nothing the Whisper touches stops bleeding.",
+		"color": Color(0.80, 0.15, 0.20),
+		"target": { "anim": "blades" },
+		"op": "add_status", "params": { "status": "bleed", "stacks": 2 },
+	},
+	"evo_ninja_shadowkill": {
+		"id": "evo_ninja_shadowkill", "name": "SHADOWKILL", "kit": "ninja",
+		"requires": ["ninja_honed_edge", "ninja_deep_cut"],
+		"desc": "Finds the gap, and puts everything through it.",
+		"color": Color(0.90, 0.30, 0.40),
+		"op": "modifier", "params": { "stat": "crit_multiplier", "op": "add", "value": 0.35 },
+	},
+	"evo_cleric_pyre_of_faith": {
+		"id": "evo_cleric_pyre_of_faith", "name": "PYRE OF FAITH", "kit": "cleric",
+		"requires": ["cleric_censer_embers", "cleric_purifying_fire"],
+		"desc": "The censer's fire no longer goes out. It spreads.",
+		"color": Color(1.0, 0.70, 0.25),
+		"target": { "anim": "divine_fire" },
+		"op": "add_projectile_status", "params": { "status": "searing_wound", "stacks": 1 },
+	},
+	"evo_cleric_unending_vigil": {
+		"id": "evo_cleric_unending_vigil", "name": "UNENDING VIGIL", "kit": "cleric",
+		"requires": ["cleric_fervent_prayer", "cleric_lingering_grace"],
+		"desc": "Stronger mending that holds far longer. The Devout simply does not fall.",
+		"color": Color(0.75, 1.0, 0.85),
+		"op": "modifier", "params": { "stat": "Heal", "op": "bonus", "value": 0.25 },
+	},
+	"evo_druid_wild_hunt": {
+		"id": "evo_druid_wild_hunt", "name": "WILD HUNT", "kit": "druid",
+		"requires": ["druid_ursine_fury", "druid_pack_hunter"],
+		"desc": "Bear and hounds hunt as one. The whole wood answers the Verdant.",
+		"color": Color(0.60, 0.75, 0.35),
+		"target": { "graph": "skill_e", "anim": "summon_hounds" },
+		"op": "scale_aoe", "params": { "radius_mult": 1.25, "damage_mult": 1.30 },
+	},
+	"evo_druid_bramble_tide": {
+		"id": "evo_druid_bramble_tide", "name": "BRAMBLE TIDE", "kit": "druid",
+		"requires": ["druid_thorned_seeds", "druid_diving_owl"],
+		"desc": "More seeds, every one of them barbed. The volley becomes a thicket.",
+		"color": Color(0.50, 0.70, 0.30),
+		"target": { "graph": "light", "anim": "attack_2" },
+		"op": "add_projectiles", "params": { "count": 2 },
+	},
+	"evo_necro_ossuary": {
+		"id": "evo_necro_ossuary", "name": "THE OSSUARY", "kit": "necromancer",
+		"requires": ["necro_endless_bones", "necro_marrow_shards"],
+		"desc": "A storm of splintering bone. The Shade never runs out and never stops the bleeding.",
+		"color": Color(0.90, 0.85, 0.75),
+		"target": { "anim": "bone_cast" },
+		"op": "add_projectiles", "params": { "count": 2 },
+	},
+	"evo_necro_soul_engine": {
+		"id": "evo_necro_soul_engine", "name": "SOUL ENGINE", "kit": "necromancer",
+		"requires": ["necro_soul_tithe", "necro_soul_leech"],
+		"desc": "Every soul taken pays twice — once to the dark, once to the Shade.",
+		"color": Color(0.45, 0.95, 0.60),
+		"op": "modifier", "params": { "stat": "leech", "op": "bonus", "value": 0.06 },
+	},
+	"evo_ranger_deadfall": {
+		"id": "evo_ranger_deadfall", "name": "DEADFALL", "kit": "ranger",
+		"requires": ["ranger_barbed_arrows", "ranger_pinning_shot"],
+		"desc": "Pinned, then bled. Nothing the Scavenger marks gets back out of range.",
+		"color": Color(0.70, 0.80, 0.95),
+		"target": { "graph": "light" },
+		"op": "add_projectile_status", "params": { "status": "chilled", "stacks": 1 },
+	},
+	"evo_ranger_perfect_shot": {
+		"id": "evo_ranger_perfect_shot", "name": "PERFECT SHOT", "kit": "ranger",
+		"requires": ["ranger_hunters_focus", "ranger_impaling_knife"],
+		"desc": "Held breath, thrown steel. The knife finds the same gap the arrow does.",
+		"color": Color(1.0, 0.90, 0.50),
+		"target": { "anim": "knife" },
+		"op": "scale_aoe", "params": { "damage_mult": 1.35 },
+	},
+	"evo_wizard_conflagration": {
+		"id": "evo_wizard_conflagration", "name": "CONFLAGRATION", "kit": "wizard",
+		"requires": ["wizard_fireball_scorched_earth", "wizard_torrent_surge"],
+		"desc": "The burst feeds the fireball's wake. The Spark leaves a field on fire.",
+		"color": Color(1.0, 0.50, 0.15),
+		"target": { "graph": "light", "anim": "fireburst" },
+		"op": "add_status", "params": { "status": "burning", "stacks": 2 },
+	},
+	"evo_wizard_absolute_zero": {
+		"id": "evo_wizard_absolute_zero", "name": "ABSOLUTE ZERO", "kit": "wizard",
+		"requires": ["wizard_deep_freeze", "wizard_manaburn"],
+		"desc": "The freeze comes back before the last one has thawed.",
+		"color": Color(0.55, 0.90, 1.0),
+		"op": "modifier", "params": { "stat": "All", "op": "cooldown_reduce", "value": 0.10 },
+	},
+	"evo_blood_mage_exsanguinate": {
+		"id": "evo_blood_mage_exsanguinate", "name": "EXSANGUINATE", "kit": "blood_mage",
+		"requires": ["blood_mage_hemorrhage_shards", "blood_mage_hemoplague"],
+		"desc": "A wall of shards, every one of them opening a vein.",
+		"color": Color(0.85, 0.15, 0.30),
+		"target": { "anim": "shards" },
+		"op": "add_projectiles", "params": { "count": 2 },
+	},
+	"evo_blood_mage_red_harvest": {
+		"id": "evo_blood_mage_red_harvest", "name": "RED HARVEST", "kit": "blood_mage",
+		"requires": ["blood_mage_crimson_feast", "blood_mage_thirsting_vortex"],
+		"desc": "The vortex reaches further and the Cursed drinks deeper from all of it.",
+		"color": Color(0.70, 0.10, 0.35),
+		"target": { "graph": "channel", "anim": "vampirize" },
+		"op": "scale_aoe", "params": { "radius_mult": 1.25, "damage_mult": 1.25 },
+	},
+	"evo_demon_infernal_engine": {
+		"id": "evo_demon_infernal_engine", "name": "INFERNAL ENGINE", "kit": "demonologist",
+		"requires": ["demon_searing_hellfire", "demon_sustained_torment"],
+		"desc": "Held hellfire that never lets a wound close.",
+		"color": Color(1.0, 0.30, 0.10),
+		"target": { "graph": "channel", "anim": "hellfire_ch" },
+		"op": "scale_aoe", "params": { "radius_mult": 1.30, "damage_mult": 1.25 },
+	},
+	"evo_demon_the_ninth_gate": {
+		"id": "evo_demon_the_ninth_gate", "name": "THE NINTH GATE", "kit": "demonologist",
+		"requires": ["demon_ninefold_circle", "demon_breach_wake"],
+		"desc": "Circle and breach align. What comes through does not close behind it.",
+		"color": Color(0.80, 0.20, 0.45),
+		"target": { "anim": "brimstone" },
+		"op": "add_status", "params": { "status": "burning", "stacks": 2 },
+	},
+	"evo_barbarian_ragnarok": {
+		"id": "evo_barbarian_ragnarok", "name": "RAGNAROK", "kit": "barbarian",
+		"requires": ["barbarian_earthsplitter", "barbarian_hurled_ruin"],
+		"desc": "Everything the Ravager swings or throws breaks the ground it lands on.",
+		"color": Color(0.90, 0.55, 0.25),
+		"target": { "anim": "sunder" },
+		"op": "scale_aoe", "params": { "radius_mult": 1.25, "damage_mult": 1.30 },
+	},
+	"evo_barbarian_stormheart": {
+		"id": "evo_barbarian_stormheart", "name": "STORMHEART", "kit": "barbarian",
+		"requires": ["barbarian_chained_lightning", "barbarian_storm_volley"],
+		"desc": "More bolts, each one heavier. The blade becomes weather.",
+		"color": Color(1.0, 0.95, 0.45),
+		"target": { "anim": "thunder" },
+		"op": "add_projectiles", "params": { "count": 2 },
+	},
+	"evo_gunslinger_hellfire_iron": {
+		"id": "evo_gunslinger_hellfire_iron", "name": "HELLFIRE IRON", "kit": "gunslinger",
+		"requires": ["gunslinger_incendiary_rounds", "gunslinger_hollow_points"],
+		"desc": "Rounds that open a wound and light it. The Deadeye stops needing a second shot.",
+		"color": Color(1.0, 0.55, 0.15),
+		"target": { "graph": "light" },
+		"op": "add_projectile_status", "params": { "status": "searing_wound", "stacks": 1 },
+	},
+	"evo_gunslinger_leadstorm": {
+		"id": "evo_gunslinger_leadstorm", "name": "LEADSTORM", "kit": "gunslinger",
+		"requires": ["gunslinger_fan_the_hammer_plus2", "gunslinger_hot_loads"],
+		"desc": "The fan and the storm feed each other. Both hammers, all the way down.",
+		"color": Color(1.0, 0.80, 0.30),
+		"target": { "anim": "fan" },
+		"op": "add_projectiles", "params": { "count": 2 },
+	},
+}
+
+
+## Evolutions whose requirements are ALL satisfied by `active_ids`.
+static func active_evolutions(kit_id: String, active_ids: Array) -> Array:
+	var out: Array = []
+	for evo_id: String in EVOLUTIONS:
+		var evo: Dictionary = EVOLUTIONS[evo_id]
+		if evo.get("kit", "") != kit_id:
+			continue
+		var have_all: bool = true
+		for req: String in evo.get("requires", []):
+			if req not in active_ids:
+				have_all = false
+				break
+		if have_all:
+			out.append(evo_id)
+	return out
+
+
+## Evolution ids belonging to a kit, in table order.
+static func evolutions_for_kit(kit_id: String) -> Array:
+	var out: Array = []
+	for evo_id: String in EVOLUTIONS:
+		if EVOLUTIONS[evo_id].get("kit", "") == kit_id:
+			out.append(evo_id)
+	return out
 
 
 ## All class-mod ids bound to a kit, in ORDER.
@@ -658,3 +1415,53 @@ static func ids_for_kit(kit_id: String) -> Array:
 		if ALL.get(mod_id, {}).get("kit", "") == kit_id:
 			out.append(mod_id)
 	return out
+
+
+## Startup check: ORDER is the ONLY route into the game. `ids_for_kit` walks it, and every
+## consumer — ModApplicability.droppable_pool (loot), the armory picker, the merchant — goes
+## through `ids_for_kit`. An entry in ALL but not in ORDER is therefore fully authored, wired,
+## and unobtainable, with no error anywhere.
+##
+## This had already shipped: `ranger_split_quiver` (read by player._load_combo:1497) was in ALL
+## and absent from ORDER, so SPLIT QUIVER could never drop and never appeared in the armory.
+## Found 2026-08-08. Same failure shape as AbilityUpgradeData.validate_kit_order(), one layer
+## down — which is exactly why this needs its own check rather than trusting the other one.
+static func validate_order() -> Array[String]:
+	var problems: Array[String] = []
+	var listed: Dictionary = {}
+	for mod_id: String in ORDER:
+		if listed.has(mod_id):
+			problems.append("class mod '%s' is listed twice in ORDER" % mod_id)
+		listed[mod_id] = true
+		if not ALL.has(mod_id):
+			problems.append("ORDER lists class mod '%s', which is not in ALL" % mod_id)
+	for mod_id: String in ALL:
+		if not listed.has(mod_id):
+			problems.append("class mod '%s' is in ALL but not in ORDER — it can never drop "
+					% mod_id + "or be equipped")
+		if ALL[mod_id].get("kit", "") == "":
+			problems.append("class mod '%s' declares no kit — it belongs to no character" % mod_id)
+	## Evolutions: an unreachable requirement is the same silent failure one level up. A recipe
+	## naming an id that is not in ALL, or is bound to a different kit, can never be assembled and
+	## leaves a permanently-UNKNOWN codex entry with no way to earn it.
+	for evo_id: String in EVOLUTIONS:
+		var evo: Dictionary = EVOLUTIONS[evo_id]
+		var kit: String = evo.get("kit", "")
+		if kit == "":
+			problems.append("evolution '%s' declares no kit" % evo_id)
+		var reqs: Array = evo.get("requires", [])
+		if reqs.size() < 2:
+			problems.append("evolution '%s' has %d requirement(s) — needs at least 2"
+					% [evo_id, reqs.size()])
+		for req: String in reqs:
+			if not ALL.has(req):
+				problems.append("evolution '%s' requires '%s', which is not a class mod"
+						% [evo_id, req])
+			elif ALL[req].get("kit", "") != kit:
+				problems.append("evolution '%s' (kit '%s') requires '%s', which belongs to kit '%s'"
+						% [evo_id, kit, req, ALL[req].get("kit", "")])
+		## Three equip slots: a recipe needing more than three mods can never be satisfied.
+		if reqs.size() > 3:
+			problems.append("evolution '%s' requires %d mods but a character has 3 slots"
+					% [evo_id, reqs.size()])
+	return problems

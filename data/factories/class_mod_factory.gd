@@ -55,7 +55,7 @@ static func validate_anim_targets(weapon_data: Dictionary = {}) -> Array[String]
 	## Kit ids come from the content itself rather than a hardcoded list, so a kit added later
 	## is covered without touching this function.
 	var kit_ids: Dictionary = {}
-	for src: Dictionary in [ClassModData.ALL, AbilityUpgradeData.ALL]:
+	for src: Dictionary in [ClassModData.ALL, ClassModData.EVOLUTIONS, AbilityUpgradeData.ALL]:
 		for entry_id: String in src:
 			var kit: String = (src[entry_id] as Dictionary).get("kit", "")
 			if kit != "":
@@ -72,7 +72,7 @@ static func validate_anim_targets(weapon_data: Dictionary = {}) -> Array[String]
 		for slot: String in skills:
 			abilities[slot] = skills[slot]
 
-		for src: Dictionary in [ClassModData.ALL, AbilityUpgradeData.ALL]:
+		for src: Dictionary in [ClassModData.ALL, ClassModData.EVOLUTIONS, AbilityUpgradeData.ALL]:
 			for entry_id: String in src:
 				var entry: Dictionary = src[entry_id]
 				if entry.get("kit", "") != kit_id:
@@ -96,8 +96,15 @@ static func validate_anim_targets(weapon_data: Dictionary = {}) -> Array[String]
 ## equipped). source_name prefixed "classmod_" so player.reload/switch can remove them cleanly.
 static func build_modifiers(kit_id: String, active_ids: Array) -> Array[ModifierDefinition]:
 	var result: Array[ModifierDefinition] = []
+	var sources: Array = []                      ## [id, entry] so source_name stays traceable
 	for mod_id: String in active_ids:
-		var mod: Dictionary = ClassModData.ALL.get(mod_id, {})
+		sources.append([mod_id, ClassModData.ALL.get(mod_id, {})])
+	for evo_id: String in ClassModData.active_evolutions(kit_id, active_ids):
+		sources.append([evo_id, ClassModData.EVOLUTIONS[evo_id]])
+
+	for pair: Array in sources:
+		var src_id: String = pair[0]
+		var mod: Dictionary = pair[1]
 		if mod.get("kit", "") != kit_id or mod.get("op", "") != "modifier":
 			continue
 		var params: Dictionary = mod.get("params", {})
@@ -105,7 +112,7 @@ static func build_modifiers(kit_id: String, active_ids: Array) -> Array[Modifier
 		m.target_tag  = params.get("stat", "damage")
 		m.operation   = params.get("op", "bonus")
 		m.value       = params.get("value", 0.0)
-		m.source_name = "classmod_" + mod_id
+		m.source_name = "classmod_" + src_id
 		result.append(m)
 	return result
 
@@ -129,8 +136,16 @@ static func _apply_dicts_to_abilities(kit_id: String, abilities: Dictionary, dic
 ## ({ graph_key: AbilityDefinition }). A mod applies to an ability when its target.graph matches
 ## the key (or graph is omitted → any key), scanning phases for target.anim.
 static func _apply_to_abilities(kit_id: String, abilities: Dictionary, active_ids: Array) -> void:
+	## Equipped mods, then any EVOLUTION whose requirements they satisfy. Evolutions are ordinary
+	## entries with a `requires` gate, so they run through the same op switch — the capstone layer
+	## needed no new machinery, which is the point (see ClassModData.EVOLUTIONS).
+	var entries: Array = []
 	for mod_id: String in active_ids:
-		var mod: Dictionary = ClassModData.ALL.get(mod_id, {})
+		entries.append(ClassModData.ALL.get(mod_id, {}))
+	for evo_id: String in ClassModData.active_evolutions(kit_id, active_ids):
+		entries.append(ClassModData.EVOLUTIONS[evo_id])
+
+	for mod: Dictionary in entries:
 		if mod.get("kit", "") != kit_id:
 			continue
 		var op: String = mod.get("op", "")

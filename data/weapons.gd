@@ -545,6 +545,31 @@ static func get_weapon_tier(weapon_id: String) -> String:
 static func get_weapon_class(weapon_id: String) -> String:
 	return str(ALL.get(weapon_id, {}).get("class_lock", ""))
 
+## True if any character may equip this weapon — i.e. it carries no `class_lock`.
+## The six legacy starters (Hurled Steel, Frost Scattergun, Ember Beam, Lightning Orb,
+## Arcane Blade, Spark's Pistol) are the whole universal set; the other 36 are class gear,
+## three per character. Ben's call 2026-08-08: enforce the lock, keep the legacies shared.
+static func is_universal(weapon_id: String) -> bool:
+	return get_weapon_class(weapon_id) == ""
+
+## THE class-lock gate. Every place that offers a weapon to a character routes through this —
+## armory picker, and anything added later. Until 2026-08-08 nothing did: `class_lock` had been
+## authored on all 36 class weapons and read by exactly one roster badge, so the armory listed
+## `unlocked_weapons` raw and any character could equip any weapon.
+static func equippable_for(weapon_id: String, char_id: String) -> bool:
+	if not ALL.has(weapon_id):
+		return false
+	var lock: String = get_weapon_class(weapon_id)
+	return lock == "" or lock == char_id
+
+## `unlocked` filtered to what `char_id` may actually equip, order preserved.
+static func equippable_from(unlocked: Array, char_id: String) -> Array:
+	var out: Array = []
+	for wid: String in unlocked:
+		if equippable_for(wid, char_id):
+			out.append(wid)
+	return out
+
 ## Intrinsic stat-line modifiers on a weapon (Array of {tag, op, value}); [] if none.
 static func get_weapon_modifiers(weapon_id: String) -> Array:
 	return ALL.get(weapon_id, {}).get("modifiers", [])

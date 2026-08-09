@@ -205,7 +205,7 @@ func _build_panel() -> Control:
 
 	## Mods
 	for mod_id in GameManager.collected_mods:
-		var mod_name: String = ModData.ALL.get(mod_id, {}).get("name", mod_id)
+		var mod_name: String = ModApplicability.get_mod(mod_id).get("name", mod_id)
 		var row := _build_row(mod_name + " (mod)", "mod_" + mod_id)
 		vbox.add_child(row)
 

@@ -975,14 +975,12 @@ func _spawn_loot_drop(pos: Vector2, phase: int) -> void:
 	add_child(drop)
 
 func _spawn_mod_drop(pos: Vector2, rarity: String = "common") -> void:
-	## Two-layer mod model (task 31): only roll mods that DO something for the character the
-	## player is currently running — applicable generic mods + this class's own class mods. An
-	## unusable mod can never drop mid-run. Falls back to the full generic order if the pool is
-	## somehow empty (e.g. an unknown character id).
+	## One class-locked roster per character (2026-08-08). The generic layer retired, so the
+	## droppable pool IS this character's eight class mods — there is nothing left that could roll
+	## and then do nothing. No fallback: an unknown character id yields an empty pool and no drop,
+	## which is correct, because there is no longer a universal mod to hand out instead.
 	var char_id: String = ProgressionManager.selected_character
 	var mod_ids: Array = ModApplicability.droppable_pool(char_id)
-	if mod_ids.is_empty():
-		mod_ids = ModData.ORDER
 	if mod_ids.is_empty():
 		return
 	var mod_id: String = mod_ids[randi() % mod_ids.size()]
@@ -1048,7 +1046,6 @@ func _random_other_character(exclude: String) -> String:
 
 ## ── Final boss reward payout ─────────────────────────────────────────────────
 
-const FINAL_BOSS_UNIQUE_MOD: String = "abyssal_pull"
 const FINAL_BOSS_SPRAY_COUNT: int = 4
 const FINAL_BOSS_CURRENCY_MIN: int = 500
 const FINAL_BOSS_CURRENCY_MAX: int = 900
@@ -1057,8 +1054,14 @@ func _award_final_boss_rewards(pos: Vector2) -> void:
 	## Signature loot explosion for The Heart of the Deep. Everything is carry-out —
 	## the player must survive to the portal and extract to keep any of it.
 	##  • A 4-item spray of weapons/mods, rarity scaled by current Instability (risk).
-	##  • First clear (unique not yet owned) → guaranteed boss-exclusive unique mod.
-	##  • Repeat clears (already own it) → a hefty resource drop instead.
+	##  • A guaranteed mod from your class's roster that you do not own yet.
+	##  • Nothing left to give (roster complete) → a hefty resource drop instead.
+	##
+	## The guaranteed slot used to be one fixed boss-exclusive generic mod ("abyssal_pull", The
+	## Deep's Pull). That mod baked into a weapon ProjectileConfig no character fires, so the
+	## game's single rarest reward did literally nothing. Retired 2026-08-08 with the rest of the
+	## generic layer; the slot now completes your own roster, which is a reward that works and
+	## reads better on a repeat clear with a different character.
 	var inst: float = GameManager.instability
 
 	for i in range(FINAL_BOSS_SPRAY_COUNT):
@@ -1070,26 +1073,30 @@ func _award_final_boss_rewards(pos: Vector2) -> void:
 		else:
 			_spawn_mod_drop(pos + offset, rarity)
 
-	if _player_owns_mod(FINAL_BOSS_UNIQUE_MOD):
+	var unowned: Array = []
+	for mod_id: String in ModApplicability.class_mod_ids_for(ProgressionManager.selected_character):
+		if not _player_owns_mod(mod_id):
+			unowned.append(mod_id)
+	if unowned.is_empty():
 		var amount: int = randi_range(FINAL_BOSS_CURRENCY_MIN, FINAL_BOSS_CURRENCY_MAX)
 		_spawn_resource_reward(pos, float(amount))
 	else:
-		_spawn_specific_mod_drop(pos, FINAL_BOSS_UNIQUE_MOD, "legendary")
+		_spawn_specific_mod_drop(pos, unowned[randi() % unowned.size()], "legendary")
 
 
 func _player_owns_mod(mod_id: String) -> bool:
-	## "Owns" = banked in inventory OR currently equipped on a weapon. Equipping moves
-	## a mod out of owned_mods into weapon_mods, so both must be checked.
+	## "Owns" = banked in inventory OR currently equipped. Equipping moves a mod out of owned_mods
+	## into the character's slots, so both must be checked.
 	if ProgressionManager.owned_mods.has(mod_id):
 		return true
-	for equipped: Variant in ProgressionManager.weapon_mods.values():
+	for equipped: Variant in ProgressionManager.character_mods.values():
 		if equipped is Array and (equipped as Array).has(mod_id):
 			return true
 	return false
 
 
 func _spawn_specific_mod_drop(pos: Vector2, mod_id: String, rarity: String) -> void:
-	if not ModData.ALL.has(mod_id):
+	if ModApplicability.get_mod(mod_id).is_empty():
 		return
 	var pickup: Area2D = ModPickupScript.new()
 	pickup.mod_id          = mod_id

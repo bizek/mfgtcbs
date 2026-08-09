@@ -58,9 +58,9 @@ var _weapon_data: Dictionary = {}
 var _gear_unique_status_ids: Array = []
 var _weapon_ability: AbilityDefinition = null
 
-## Mod system
-var _active_mods: Array = []
-var _has_instability_siphon: bool = false
+## Mod system. `_active_mods` (the generic weapon-mod list) retired 2026-08-08 — mods are class
+## mods now and are read from ProgressionManager.get_active_class_mods in _load_combo.
+var _has_instability_siphon: bool = false   ## necro_soul_tithe; set by _load_combo
 
 ## Cached base projectile stats (read from built ProjectileConfig, used for live stat sync)
 var _base_proj_pierce: int = 0
@@ -459,7 +459,7 @@ func _ready() -> void:
 	_load_equipped_weapon()
 	_apply_passive_mods()
 	_apply_passive_tree()
-	_load_weapon_mods()
+	_load_weapon_ability()
 	_load_combo()
 	_update_pickup_radius()
 	_reset_dash_state()
@@ -839,7 +839,7 @@ func _load_equipped_weapon() -> void:
 
 ## Applies the equipped weapon's intrinsic `modifiers` + purple `unique`, and every
 ## equipped trinket's modifiers + unique. Mirrors the weapon-mod wiring in
-## _load_weapon_mods: stat lines → ModifierComponent, uniques → StatusEffectComponent.
+## _load_weapon_ability: stat lines → ModifierComponent, uniques → StatusEffectComponent.
 ## Idempotent — strips prior gear modifiers/statuses first so a re-apply doesn't stack.
 func _apply_gear_bonuses() -> void:
 	modifier_component.remove_by_source_prefix("gear_")
@@ -960,27 +960,13 @@ func _update_calm_hands() -> void:
 
 # --- Mod loading ---
 
-func _load_weapon_mods() -> void:
-	_active_mods = ProgressionManager.get_weapon_mods(_weapon_id)
-	_has_instability_siphon = "instability_siphon" in _active_mods
-
-	# Stat mods (crit, lifesteal) as ModifierDefinitions
-	var stat_mods: Array[ModifierDefinition] = WeaponFactory.build_mod_modifiers(_active_mods)
-	for mod in stat_mods:
-		modifier_component.add_modifier(mod)
-
-	# Combo modifier bonuses (Size+Crit, Crit+Ricochet, etc.)
-	var combo_mods: Array[ModifierDefinition] = WeaponFactory.build_combo_modifiers(_active_mods)
-	for mod in combo_mods:
-		modifier_component.add_modifier(mod)
-
-	# Build weapon ability with mods baked into ProjectileConfig/effects
-	_weapon_ability = WeaponFactory.build_weapon_ability(_weapon_id, _weapon_data, _active_mods)
-
-	# Runtime combo passives (Static Strike, etc.) applied as permanent player statuses
-	var combo_passives: Array[StatusEffectDefinition] = WeaponFactory.build_combo_passives(_active_mods)
-	for passive_def in combo_passives:
-		status_effect_component.apply_status(passive_def, self, 1)
+## Builds the weapon's own ability. NO mods are baked in any more — the generic weapon-mod layer
+## was retired 2026-08-08 because it could not reach a combo character: `set_combo_ability` drops
+## the auto-attack hookup, and all twelve characters have a kit, so the ProjectileConfig this
+## builds is only ever fired by orbit weapons and the F1 debug auto-fire toggle. Mods now live
+## entirely on the class layer (ClassModData → ClassModFactory → _load_combo).
+func _load_weapon_ability() -> void:
+	_weapon_ability = WeaponFactory.build_weapon_ability(_weapon_id, _weapon_data)
 
 	# Wire as auto-attack through engine components
 	# Orbit weapons are passive — orbs handle their own hits, no auto-attack signal needed
@@ -992,19 +978,16 @@ func _load_weapon_mods() -> void:
 	_cache_projectile_base_stats()
 
 
+## Re-read the mod loadout and rebuild. Called by the armory/merchant/pickup flows after a mod
+## changes. `_load_combo` is what actually applies class mods, so this is now thin.
 func reload_mods() -> void:
-	# Remove old mod modifiers (sources starting with "mod_" or "combo_")
-	modifier_component.remove_by_source_prefix("mod_")
-	modifier_component.remove_by_source_prefix("combo_")
-	# Remove old combo passive statuses
-	for passive_id in ["combo_static_strike"]:
-		if status_effect_component.has_status(passive_id):
-			status_effect_component.force_remove_status(passive_id, self)
-	_load_weapon_mods()
+	_load_weapon_ability()
 	_load_combo()   ## re-assert the combo (and re-drop weapon auto-fire) after a mod rebuild
 	if _has_instability_siphon:
 		if not EventBus.on_kill.is_connected(_on_kill_siphon):
 			EventBus.on_kill.connect(_on_kill_siphon)
+	elif EventBus.on_kill.is_connected(_on_kill_siphon):
+		EventBus.on_kill.disconnect(_on_kill_siphon)
 
 
 func get_active_weapon_id() -> String:
@@ -1036,12 +1019,11 @@ func switch_weapon(weapon_id: String) -> void:
 	_set_base_stat("attack_speed",   0.0)
 	_set_base_stat("projectile_count", 0.0)
 
-	## Remove mod modifiers from old weapon
+	## Remove mod modifiers from old weapon. "combo_" was the ModComboFactory pair-bonus prefix;
+	## that layer retired 2026-08-08 but the strip is kept so a save carrying old modifiers cleans
+	## itself on the first weapon switch.
 	modifier_component.remove_by_source_prefix("mod_")
 	modifier_component.remove_by_source_prefix("combo_")
-	for passive_id in ["combo_static_strike"]:
-		if status_effect_component.has_status(passive_id):
-			status_effect_component.force_remove_status(passive_id, self)
 
 	## Load new weapon data
 	_weapon_id   = weapon_id
@@ -1050,9 +1032,8 @@ func switch_weapon(weapon_id: String) -> void:
 	_set_base_stat("attack_speed",    _weapon_data.get("attack_speed", 1.0))
 	_set_base_stat("projectile_count", _weapon_data.get("projectile_count", 1))
 
-	## Build new weapon ability (no mods — the player didn't bring a loadout for this weapon)
-	_active_mods   = []
-	_weapon_ability = WeaponFactory.build_weapon_ability(_weapon_id, _weapon_data, _active_mods)
+	## Build new weapon ability. Never takes mods — see _load_weapon_ability.
+	_weapon_ability = WeaponFactory.build_weapon_ability(_weapon_id, _weapon_data)
 
 	## Re-wire behavior and ability components
 	var attack_interval: float = _weapon_ability.cooldown_base
@@ -1163,16 +1144,12 @@ func _fire_pending_shot() -> void:
 			var endpoint: Vector2 = global_position + _pending_aim_dir * beam_range
 			PlayerVfxHelper.spawn_beam_flash(self, scene_root, global_position, endpoint, tint, _pending_ability.ability_id, 0)
 			PlayerVfxHelper.cleanup_stale_beam_containers(self, 1)
-			if "napalm" in _active_mods:
-				_spawn_scorched_earth_patches(global_position, endpoint, scene_root)
 		else:
 			var active_beams: int = 0
 			for i in valid_targets.size():
 				if is_instance_valid(valid_targets[i]):
 					PlayerVfxHelper.spawn_beam_flash(self, scene_root, global_position, valid_targets[i].global_position, tint, _pending_ability.ability_id, i)
 					active_beams += 1
-					if "napalm" in _active_mods:
-						_spawn_scorched_earth_patches(global_position, valid_targets[i].global_position, scene_root)
 			PlayerVfxHelper.cleanup_stale_beam_containers(self, active_beams)
 	elif _pending_ability.tags.has("Melee"):
 		var swing_dir: Vector2
@@ -1182,13 +1159,9 @@ func _fire_pending_shot() -> void:
 			swing_dir = (valid_targets[0].global_position - global_position).normalized()
 		else:
 			swing_dir = Vector2.RIGHT
-		## Range: read from the processed ability so size mod scaling is included.
 		var range_px: float = _pending_ability.targeting.max_range
-		## Arc: scale with size mod (same mult the factory applies to range).
 		var arc_deg: float = _weapon_data.get("arc_degrees", 200.0)
-		if "size" in _active_mods:
-			arc_deg *= ModData.ALL["size"]["params"].get("size_mult", 1.5)
-		PlayerVfxHelper.spawn_melee_arc(self, scene_root, global_position, swing_dir.angle(), range_px, deg_to_rad(arc_deg * 0.5), tint, _active_mods)
+		PlayerVfxHelper.spawn_melee_arc(self, scene_root, global_position, swing_dir.angle(), range_px, deg_to_rad(arc_deg * 0.5), tint, [])
 	elif _pending_ability.tags.has("Artillery") and not valid_targets.is_empty() and is_instance_valid(valid_targets[0]):
 		var scatter    := Vector2(randf_range(-22.0, 22.0), randf_range(-22.0, 22.0))
 		var target_pos: Vector2 = valid_targets[0].global_position + scatter
@@ -1411,8 +1384,6 @@ func _resolve_melee_targets(ability: AbilityDefinition, aim_dir: Vector2) -> Arr
 		return []
 	var max_range: float = ability.targeting.max_range
 	var arc_deg: float = _weapon_data.get("arc_degrees", 170.0)
-	if "size" in _active_mods:
-		arc_deg *= ModData.ALL["size"]["params"].get("size_mult", 1.5)
 	var half_arc: float = deg_to_rad(arc_deg * 0.5)
 	var candidates: Array = spatial_grid.get_nearby_in_range(global_position, 1, max_range * max_range)
 	var hits: Array = []
@@ -1495,6 +1466,14 @@ func _load_combo() -> void:
 	## stance is run state, not save state — it never persists across a rebuild, so a swap can't
 	## leave a marker status stranded on a kit that no longer has a quiver.
 	_quiver_all_chains = class_mods.has("ranger_split_quiver")
+	## Soul Tithe (necromancer): the new home of the retired generic INSTABILITY SIPHON. Set here
+	## rather than at weapon load because it is a class mod now — it follows the character, not the
+	## weapon. The EventBus hookup itself is (re)asserted by reload_mods / _ready.
+	_has_instability_siphon = class_mods.has("necro_soul_tithe")
+	## The codex tracker caches which mod evolutions this loadout satisfies; a mid-run pickup can
+	## complete one, so the cache has to be dropped wherever the loadout is rebuilt.
+	if combat_manager != null and combat_manager.combo_effect_resolver != null:
+		combat_manager.combo_effect_resolver.invalidate_active()
 	_set_quiver("")
 	## RMB specials are combo abilities; Q/E skills load from SkillFactory per kit.
 	if skill_component:
@@ -3876,6 +3855,17 @@ func apply_stat_upgrade(upgrade: Dictionary) -> void:
 			status_effect_component.apply_status(status_def, self)
 		return
 
+	## Multi-stat upgrades (2026-08-08): the generic pool's seven rankable lines each move two or
+	## three stats, so they carry an `effects` array instead of one stat/type/value triple. Applied
+	## by re-entering per effect, which keeps every per-stat side effect below (max_hp resync,
+	## pickup radius, dash charges) working without duplicating any of it.
+	if upgrade.has("effects"):
+		for eff: Dictionary in upgrade["effects"]:
+			var one: Dictionary = eff.duplicate()
+			one["id"] = upgrade.get("id", "")
+			apply_stat_upgrade(one)
+		return
+
 	var stat_name: String = upgrade.stat
 	var value: float      = upgrade.value
 	var mod := ModifierDefinition.new()
@@ -3908,6 +3898,10 @@ func remove_stat_upgrade(upgrade: Dictionary) -> void:
 	if upgrade.get("type") == "status":
 		if status_effect_component:
 			status_effect_component.remove_status(upgrade["status_id"])
+		return
+	if upgrade.has("effects"):
+		for eff: Dictionary in upgrade["effects"]:
+			remove_stat_upgrade(eff)
 		return
 	## Finds and removes the first matching modifier.
 	var stat_name: String = upgrade.stat
@@ -4022,13 +4016,9 @@ func _setup_orbit_orbs() -> void:
 	var spd: float = _weapon_data.get("orbit_speed", 1.8)
 	var tint: Color = _weapon_data.get("tint", Color.WHITE)
 
-	## Read size multiplier from active mods
+	## Orb size followed the generic SIZE mod, which retired 2026-08-08. Kept as a named local so
+	## the orb-scaling seam stays obvious if a class mod ever wants it back.
 	var size_mult: float = 1.0
-	for mod_id in _active_mods:
-		var mod_data: Dictionary = ModData.ALL.get(mod_id, {})
-		if mod_data.get("effect_type", "") == "size":
-			size_mult = mod_data.get("params", {}).get("size_mult", 1.5)
-			break
 
 	var orb_effects: Array = _weapon_ability.effects.duplicate() if _weapon_ability else []
 
@@ -4093,7 +4083,6 @@ func reset_stats() -> void:
 	modifier_component.remove_by_source_prefix("mod_")
 	xp = 0.0
 	level = 1
-	_active_mods.clear()
 	is_alive = true
 	_is_dying = false
 	_attack_anim_active = false
@@ -4175,35 +4164,13 @@ func _add_modifier(tag: String, op: String, value: float, source: String) -> voi
 	modifier_component.add_modifier(mod)
 
 
-## Debug: swap in a new mod list and rebuild the weapon ability in place.
-## Removes old mod/combo modifiers, applies the new set, rebuilds _weapon_ability.
+## Debug: swap in a new class-mod loadout and rebuild in place. Used by the F1 debug panel.
+## Writes to the RUN's equipped set only via _load_combo — does NOT touch the save.
 ## Does NOT touch stat upgrades, health, or the behavior signal connection.
-func debug_reload_mods(mod_ids: Array) -> void:
-	modifier_component.remove_by_source_prefix("mod_")
-	modifier_component.remove_by_source_prefix("combo_")
-	_active_mods = mod_ids
-	_has_instability_siphon = "instability_siphon" in _active_mods
-	for m in WeaponFactory.build_mod_modifiers(_active_mods):
-		modifier_component.add_modifier(m)
-	for m in WeaponFactory.build_combo_modifiers(_active_mods):
-		modifier_component.add_modifier(m)
-	_weapon_ability = WeaponFactory.build_weapon_ability(_weapon_id, _weapon_data, _active_mods)
-	var combo_passives: Array[StatusEffectDefinition] = WeaponFactory.build_combo_passives(_active_mods)
-	for passive_def in combo_passives:
-		status_effect_component.apply_status(passive_def, self, 1)
-	behavior_component.setup(modifier_component, _weapon_ability.cooldown_base)
-
-
-func _spawn_scorched_earth_patches(from: Vector2, to: Vector2, scene_root: Node) -> void:
-	var mod_params: Dictionary = ModData.ALL.get("napalm", {}).get("params", {})
-	var patch_count: int  = int(mod_params.get("patch_count",   5))
-	var patch_dmg: float  = mod_params.get("patch_damage",   5.0)
-	var patch_dur: float  = mod_params.get("patch_duration", 10.0)
-	var patch_rad: float  = mod_params.get("patch_radius",   30.0)
-	for p in patch_count:
-		var t: float     = (float(p) + 0.5) / float(patch_count)
-		var pos: Vector2 = from.lerp(to, t)
-		_spawn_burn_patch(pos, patch_dmg, patch_rad, patch_dur, scene_root)
+func debug_reload_mods(_mod_ids: Array = []) -> void:
+	_load_combo()
+	if _weapon_ability != null:
+		behavior_component.setup(modifier_component, _weapon_ability.cooldown_base)
 
 
 func _spawn_burn_patch(pos: Vector2, dmg_per_sec: float, radius: float, duration: float, scene_root: Node) -> void:

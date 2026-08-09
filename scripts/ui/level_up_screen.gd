@@ -209,6 +209,11 @@ func _build_weapon_cache(pixel_font: FontFile) -> void:
 	for weapon_id in ProgressionManager.unlocked_weapons:
 		if weapon_id == current_weapon:
 			continue
+		## Class-lock (2026-08-08). Blue/purple class gear carries an `unlock_id`, so without this
+		## the mid-run cache happily offered the Warden's hammer to the Shade — the one weapon
+		## offer in the game that could hand you gear your kit is not built around.
+		if not WeaponData.equippable_for(weapon_id, ProgressionManager.selected_character):
+			continue
 		var wdata: Dictionary = WeaponData.ALL.get(weapon_id, {})
 		if wdata.get("unlock_id", "").is_empty():
 			continue  ## Skip starters — they're always available, not a mid-run prize

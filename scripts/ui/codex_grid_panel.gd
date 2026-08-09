@@ -579,7 +579,7 @@ func _refresh_detail() -> void:
 	## armory's rarity-coloured slots \u2014 and they climb the sheet's own ramp with the state:
 	## cream (inert) \u2192 tan \u2192 blue \u2192 gold.
 	if not entry.discovered:
-		_set_state_tag("UNKNOWN", "slot this mod pair", COL_UNKNOWN, Icons.Tag.CREAM)
+		_set_state_tag("UNKNOWN", "equip both mods", COL_UNKNOWN, Icons.Tag.CREAM)
 	elif not entry.revealed:
 		_set_state_tag("DISCOVERED", "trigger it in a run", COL_DISCOVERED, Icons.Tag.TAN)
 	elif entry.is_mastered():
@@ -590,7 +590,7 @@ func _refresh_detail() -> void:
 	# Required mods
 	var mod_names: Array[String] = []
 	for mod_id: StringName in combo.required_mods:
-		var mod_data: Dictionary = ModData.ALL.get(str(mod_id), {})
+		var mod_data: Dictionary = ModApplicability.get_mod(str(mod_id))
 		mod_names.append(mod_data.get("name", str(mod_id)))
 	_detail_mods.text = "Requires: " + " + ".join(mod_names)
 	_detail_mods.add_theme_color_override("font_color", COL_DIM)

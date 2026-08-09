@@ -52,6 +52,18 @@ var player_upgrades: Array[Dictionary] = []
 ## modifier entries add a ModifierDefinition with source "ability_upgrade".
 var ability_upgrades: Array[Dictionary] = []
 
+## Evolution recipes. `requires` names GENERIC POOL ids; listing one TWICE means "take that line
+## to rank 2", because _get_available_evolution counts owned copies.
+##
+## Five of these named ids that stopped existing on 2026-08-08, when the sixteen one-off stat
+## sticks collapsed into seven rankable lines (glass_cannon/juggernaut/velocity/assassin wanted
+## damage_up, crit_chance_up, max_hp_up, armor_up, move_speed_up, attack_speed_up, crit_damage_up;
+## phase_runner wanted fleetfoot). Rewritten onto the surviving lines. The rank requirement is also
+## a better gate than the original: Glass Cannon used to unlock the moment you took one damage pick
+## and one crit pick, which was usually by level 3.
+##
+## validate_status_ids() checks every `requires` against the live pool, so the next rename reports
+## itself instead of quietly making a capstone unbuildable.
 var EVOLUTION_RECIPES: Array[Dictionary] = [
 	## Pruned per D2: removed fortress (duplicate recipe of juggernaut), bullet_storm, titan_rounds,
 	## magnetar (all three required projectile-gated ingredients and were dead picks for melee kits),
@@ -61,7 +73,7 @@ var EVOLUTION_RECIPES: Array[Dictionary] = [
 		"id": "glass_cannon",
 		"name": "GLASS CANNON",
 		"description": "+40% Damage, +10% Crit Chance, -15 Max HP",
-		"requires": ["damage_up", "crit_chance_up"],
+		"requires": ["might", "might", "precision"],
 		"is_evolution": true,
 		"effects": [
 			{"stat": "damage", "type": "percent", "value": 0.40},
@@ -73,7 +85,7 @@ var EVOLUTION_RECIPES: Array[Dictionary] = [
 		"id": "juggernaut",
 		"name": "JUGGERNAUT",
 		"description": "+40 Max HP, +5 Armor",
-		"requires": ["max_hp_up", "armor_up"],
+		"requires": ["vitality", "vitality"],
 		"is_evolution": true,
 		"effects": [
 			{"stat": "max_hp", "type": "flat", "value": 40.0},
@@ -84,7 +96,7 @@ var EVOLUTION_RECIPES: Array[Dictionary] = [
 		"id": "velocity",
 		"name": "VELOCITY",
 		"description": "+25% Move Speed, +20% Attack Speed",
-		"requires": ["move_speed_up", "attack_speed_up"],
+		"requires": ["swiftness", "might"],
 		"is_evolution": true,
 		"effects": [
 			{"stat": "move_speed", "type": "percent", "value": 0.25},
@@ -95,7 +107,7 @@ var EVOLUTION_RECIPES: Array[Dictionary] = [
 		"id": "assassin",
 		"name": "ASSASSIN",
 		"description": "+10% Crit Chance, +50% Crit Damage, +15% Move Speed",
-		"requires": ["crit_chance_up", "crit_damage_up"],
+		"requires": ["precision", "precision"],
 		"is_evolution": true,
 		"effects": [
 			{"stat": "crit_chance", "type": "flat", "value": 0.10},
@@ -117,7 +129,7 @@ var EVOLUTION_RECIPES: Array[Dictionary] = [
 		"id": "phase_runner",
 		"name": "PHASE RUNNER",
 		"description": "+1 Dash Charge, +30% Dash Dist, +15% Speed",
-		"requires": ["fleetfoot", "dash_charge_up"],
+		"requires": ["swiftness", "dash_charge_up"],
 		"is_evolution": true,
 		"effects": [
 			{"stat": "dash_charges", "type": "flat", "value": 1.0},
@@ -167,26 +179,66 @@ func _ready() -> void:
 
 func _build_upgrade_pool() -> void:
 	upgrade_pool = [
-		{"id": "damage_up",          "name": "Damage Up",        "description": "+20% Damage",         "role": ROLE_POWER,   "stat": "damage",         "type": "percent", "value": 0.20},
-		{"id": "attack_speed_up",    "name": "Attack Speed Up",  "description": "+15% Attack Speed",   "role": ROLE_POWER,   "stat": "attack_speed",   "type": "percent", "value": 0.15},
-		{"id": "max_hp_up",          "name": "Max HP Up",        "description": "+20 Max HP",          "role": ROLE_SURVIVE, "stat": "max_hp",         "type": "flat",    "value": 20.0},
-		{"id": "move_speed_up",      "name": "Speed Up",         "description": "+15% Move Speed",     "role": ROLE_SPACE,   "stat": "move_speed",     "type": "percent", "value": 0.15},
-		{"id": "fleetfoot",          "name": "Fleetfoot",        "description": "+12 Move Speed",      "role": ROLE_SPACE,   "stat": "move_speed",     "type": "flat",    "value": 12.0},
-		{"id": "crit_chance_up",     "name": "Critical Strike",  "description": "+5% Crit Chance",     "role": ROLE_POWER,   "stat": "crit_chance",    "type": "flat",    "value": 0.05},
-		{"id": "crit_damage_up",     "name": "Critical Power",   "description": "+25% Crit Damage",    "role": ROLE_POWER,   "stat": "crit_multiplier","type": "flat",    "value": 0.25},
-		{"id": "pickup_radius_up",   "name": "Magnetism",        "description": "+30% Pickup Radius",  "role": ROLE_POWER,   "stat": "pickup_radius",  "type": "percent", "value": 0.30},
-		{"id": "armor_up",           "name": "Armor Up",         "description": "+3 Armor",            "role": ROLE_SURVIVE, "stat": "armor",          "type": "flat",    "value": 3.0},
+		## ── The stat picks. SEVEN rankable entries, collapsed from sixteen one-offs 2026-08-08.
+		##
+		## The old sixteen were the plan's §2.1 problem: "+20% Damage" next to "+15% Attack Speed"
+		## next to "+5% Crit Chance" is not three decisions, it is one decision presented three
+		## times, and it crowded the textured picks (the status procs below) out of the menu. Worse,
+		## they ran out — sixteen one-time entries meant a long run eventually offered nothing but
+		## leftovers nobody wanted.
+		##
+		## Each of these is now REPEATABLE (see max_rank / _generic_rank), so the menu never runs
+		## dry and taking the same line twice is a real build choice rather than a dead end. Roles
+		## are carried over unchanged from the 2026-08-03 pass — the reservation and weighting logic
+		## above depends on the crowd/space/survive/power spread, so the collapse deliberately kept
+		## two power, one survive, two space and two crowd.
+		##
+		## `merges` records which retired ids each one absorbed. It is not read by anything; it is
+		## here because the evolution recipes below name these lines and the mapping is the only way
+		## to check a recipe still means what it used to.
+		{"id": "might",     "name": "Might",     "description": "+15% Damage, +10% Attack Speed", "role": ROLE_POWER,
+			"max_rank": 5, "effects": [
+				{"stat": "damage",          "type": "percent", "value": 0.15},
+				{"stat": "attack_speed",    "type": "percent", "value": 0.10}],
+			"merges": ["damage_up", "attack_speed_up"]},
+		{"id": "precision", "name": "Precision", "description": "+5% Crit Chance, +25% Crit Damage", "role": ROLE_POWER,
+			"max_rank": 5, "effects": [
+				{"stat": "crit_chance",     "type": "flat",    "value": 0.05},
+				{"stat": "crit_multiplier", "type": "flat",    "value": 0.25}],
+			"merges": ["crit_chance_up", "crit_damage_up"]},
+		{"id": "vitality",  "name": "Vitality",  "description": "+20 Max HP, +3 Armor", "role": ROLE_SURVIVE,
+			"max_rank": 5, "effects": [
+				{"stat": "max_hp",          "type": "flat",    "value": 20.0},
+				{"stat": "armor",           "type": "flat",    "value": 3.0}],
+			"merges": ["max_hp_up", "armor_up"]},
+		{"id": "swiftness", "name": "Swiftness", "description": "+15% Move Speed, +30% Pickup Radius", "role": ROLE_SPACE,
+			"max_rank": 5, "effects": [
+				{"stat": "move_speed",      "type": "percent", "value": 0.15},
+				{"stat": "pickup_radius",   "type": "percent", "value": 0.30}],
+			"merges": ["move_speed_up", "fleetfoot", "pickup_radius_up"]},
+		{"id": "momentum",  "name": "Momentum",  "description": "+20% Dash Distance, -15% Dash Cooldown", "role": ROLE_SPACE,
+			"max_rank": 4, "effects": [
+				{"stat": "dash_speed",      "type": "percent", "value": 0.20},
+				{"stat": "dash_cooldown",   "type": "percent", "value": -0.15}],
+			"merges": ["dash_distance_up", "dash_cooldown_down"]},
+		## Reach is CROWD, not space: melee_range multiplies the combo's AoE hit radius (player.gd),
+		## so it widens the circle. Universal — every kit lands melee hits.
+		{"id": "reach",     "name": "Reach",     "description": "+25% Melee Range", "role": ROLE_CROWD,
+			"max_rank": 4, "effects": [
+				{"stat": "melee_range",     "type": "percent", "value": 0.25}],
+			"merges": ["reach_up"]},
 		## Projectile-only — filtered out for kits without the "projectile" capability tag.
-		## All three are crowd picks: more shots, shots that pass THROUGH a line, fatter shots.
-		{"id": "projectile_count_up","name": "Multi Shot",       "description": "+1 Projectile",       "role": ROLE_CROWD,   "stat": "projectile_count","type": "flat",   "value": 1.0,  "requires_cap": "projectile"},
-		{"id": "pierce_up",          "name": "Pierce",           "description": "+1 Pierce",           "role": ROLE_CROWD,   "stat": "pierce",         "type": "flat",    "value": 1.0,  "requires_cap": "projectile"},
-		{"id": "projectile_size_up", "name": "Bigger Shots",     "description": "+25% Projectile Size","role": ROLE_CROWD,   "stat": "projectile_size","type": "percent", "value": 0.25, "requires_cap": "projectile"},
-		## Universal — all kits land melee hits so Reach always applies. Reach is CROWD, not space:
-		## melee_range multiplies the combo's AoE hit radius (player.gd), so it widens the circle.
-		{"id": "reach_up",           "name": "Reach",            "description": "+25% Melee Range",    "role": ROLE_CROWD,   "stat": "melee_range",    "type": "percent", "value": 0.25},
-		{"id": "dash_distance_up",   "name": "Dash Distance",    "description": "+20% Dash Distance",  "role": ROLE_SPACE,   "stat": "dash_speed",     "type": "percent", "value": 0.20},
-		{"id": "dash_charge_up",     "name": "Extra Dash Charge","description": "+1 Dash Charge",      "role": ROLE_SPACE,   "stat": "dash_charges",   "type": "flat",    "value": 1.0},
-		{"id": "dash_cooldown_down",  "name": "Quick Recovery",  "description": "-15% Dash Cooldown",  "role": ROLE_SPACE,   "stat": "dash_cooldown",  "type": "percent", "value": -0.15},
+		{"id": "volley",    "name": "Volley",    "description": "+1 Projectile, +1 Pierce, +25% Projectile Size",
+			"role": ROLE_CROWD, "requires_cap": "projectile",
+			"max_rank": 4, "effects": [
+				{"stat": "projectile_count","type": "flat",    "value": 1.0},
+				{"stat": "pierce",          "type": "flat",    "value": 1.0},
+				{"stat": "projectile_size", "type": "percent", "value": 0.25}],
+			"merges": ["projectile_count_up", "pierce_up", "projectile_size_up"]},
+		## Dash charges stayed its own pick: +1 charge is a discrete capability change, not a
+		## number going up, and folding it into Momentum would have made that line wildly uneven
+		## between rank 1 and rank 2.
+		{"id": "dash_charge_up",     "name": "Extra Dash Charge","description": "+1 Dash Charge",      "role": ROLE_SPACE,   "stat": "dash_charges",   "type": "flat",    "value": 1.0, "max_rank": 2},
 		{"id": "bloodthirst",        "name": "Bloodthirst",      "description": "On Kill: Heal 5% Max HP",        "role": ROLE_SURVIVE, "type": "status", "status_id": "bloodthirst"},
 		{"id": "static_discharge",   "name": "Static Discharge", "description": "On Crit: Lightning AOE",         "role": ROLE_CROWD,   "type": "status", "status_id": "static_discharge"},
 		{"id": "serrated_strikes",   "name": "Serrated Strikes", "description": "Hits apply Bleed",               "role": ROLE_POWER,   "type": "status", "status_id": "serrated_strikes"},
@@ -214,14 +266,25 @@ func generate_choices(count: int = 3) -> Array[Dictionary]:
 	for u: Dictionary in ability_upgrades:
 		owned_ids.append(u["id"])
 
-	## Generic pool: filter out one-time status upgrades already owned and projectile-only
-	## entries for kits that emit no projectiles (capability-tag resolver from task 31).
+	## Generic pool: filter out one-time status upgrades already owned, stat lines whose ranks are
+	## spent, and projectile-only entries for kits that emit no projectiles.
+	##
+	## Ranks on the stat lines are new (2026-08-08) and are why the sixteen one-off sticks could
+	## collapse to seven: a line stays on the menu until its `max_rank` is reached, so the pool
+	## never runs dry the way sixteen single-take entries did. `_apply_evolution` strips its
+	## prerequisites from player_upgrades, which correctly frees those ranks up again.
 	var generic_pool: Array[Dictionary] = []
 	for entry: Dictionary in upgrade_pool:
 		if entry.get("type") == "status" and entry["id"] in owned_ids:
 			continue
 		var req_cap: String = entry.get("requires_cap", "")
 		if req_cap != "" and req_cap not in char_caps:
+			continue
+		if entry.get("type", "") != "status":
+			var g_rank: int = _generic_rank(entry["id"])
+			if g_rank >= int(entry.get("max_rank", 1)):
+				continue
+			generic_pool.append(_with_rank_label(entry, g_rank + 1))
 			continue
 		generic_pool.append(entry)
 
@@ -296,6 +359,16 @@ func generate_choices(count: int = 3) -> Array[Dictionary]:
 func _ability_rank(upgrade_id: String) -> int:
 	var n: int = 0
 	for u: Dictionary in ability_upgrades:
+		if u.get("id", "") == upgrade_id:
+			n += 1
+	return n
+
+
+## Same, for the generic stat lines. Evolutions live in player_upgrades too but carry their own
+## ids, so they never collide with a stat line's count.
+func _generic_rank(upgrade_id: String) -> int:
+	var n: int = 0
+	for u: Dictionary in player_upgrades:
 		if u.get("id", "") == upgrade_id:
 			n += 1
 	return n
@@ -381,13 +454,23 @@ func _get_available_evolution() -> Dictionary:
 	for u: Dictionary in player_upgrades:
 		owned_ids.append(u["id"])
 
+	## Requirements are counted, not just membership-tested: a recipe may name the same stat line
+	## twice to mean "at rank 2" (see the note on EVOLUTION_RECIPES). A plain `in` check would have
+	## let ["might", "might"] pass on a single copy, handing out the capstone at half its cost.
+	var owned_counts: Dictionary = {}
+	for oid: String in owned_ids:
+		owned_counts[oid] = int(owned_counts.get(oid, 0)) + 1
+
 	var eligible: Array[Dictionary] = []
 	for recipe: Dictionary in EVOLUTION_RECIPES:
 		if recipe["id"] in earned_evolutions:
 			continue
-		var has_all: bool = true
+		var need: Dictionary = {}
 		for req: String in recipe["requires"]:
-			if req not in owned_ids:
+			need[req] = int(need.get(req, 0)) + 1
+		var has_all: bool = true
+		for req: String in need:
+			if int(owned_counts.get(req, 0)) < int(need[req]):
 				has_all = false
 				break
 		if has_all:

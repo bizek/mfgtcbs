@@ -118,14 +118,15 @@ func _rebuild_rows() -> void:
 		var m_name: String = ModApplicability.get_mod(m).get("name", m)
 		items.append({"id": m, "type": "mod", "display": "[Mod] " + m_name})
 
-	for weapon_id in GameManager.run_equipped_mods:
-		for slot in GameManager.run_equipped_mods[weapon_id]:
-			var mod_id: String = GameManager.run_equipped_mods[weapon_id][slot]
-			var w_display: String = WeaponData.ALL.get(weapon_id, {}).get("display_name", weapon_id)
+	## run_equipped_mods is keyed by CHARACTER since 2026-08-08 (mod slots moved off weapons).
+	for char_id in GameManager.run_equipped_mods:
+		for slot in GameManager.run_equipped_mods[char_id]:
+			var mod_id: String = GameManager.run_equipped_mods[char_id][slot]
+			var m_display: String = ModApplicability.get_mod(mod_id).get("name", mod_id)
 			items.append({
 				"id": mod_id,
 				"type": "equipped_mod",
-				"display": "[Mod] %s on %s" % [mod_id, w_display]
+				"display": "[Mod] %s (slot %d)" % [m_display, int(slot) + 1]
 			})
 
 	if items.is_empty():

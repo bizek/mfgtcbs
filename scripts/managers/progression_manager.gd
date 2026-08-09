@@ -21,7 +21,7 @@ const SAVE_PATH := "user://progression.json"
 ## catches those. Field-level defaults still live in load_data() as a second safety
 ## net; migrations are for STRUCTURAL changes (renames, reshapes, splits) that a
 ## simple `.get(key, default)` cannot express.
-const SAVE_VERSION: int = 1
+const SAVE_VERSION: int = 2
 
 ## Set true by load_data() when the save on disk is from a newer game version than
 ## this build supports. The save is NOT loaded (defaults remain); the main menu reads
@@ -61,9 +61,6 @@ var total_resources_spent: int = 0         ## Drives hub visual tier
 
 ## Mod inventory — all mod IDs the player has collected through successful extractions
 var owned_mods: Array = []
-## Equipped mods per weapon — { "weapon_id": ["mod_id_slot0", "mod_id_slot1"] }
-## Empty string "" means the slot is empty.
-var weapon_mods: Dictionary = {}
 ## Equipped CLASS mods per character — { "char_id": ["classmod_slot0", …] } (task 31).
 ## Class mods belong to a CLASS, not a weapon, so they equip per-character; loadouts stay
 ## isolated when the player switches character. owned_mods (above) still holds every mod
@@ -132,7 +129,6 @@ func save_data() -> void:
 		"selected_character":     selected_character,
 		"unlocked_characters":    unlocked_characters,
 		"owned_mods":             owned_mods,
-		"weapon_mods":            weapon_mods,
 		"character_mods":         character_mods,
 		"owned_trinkets":         owned_trinkets,
 		"character_trinkets":     character_trinkets,
@@ -207,7 +203,6 @@ func load_data() -> void:
 	if "The Drifter" not in unlocked_characters:
 		unlocked_characters.append("The Drifter")
 	owned_mods   = result.get("owned_mods",  [])
-	weapon_mods  = result.get("weapon_mods", {})
 	character_mods = result.get("character_mods", {})   ## defensive: absent in pre-task-31 saves
 	owned_trinkets = result.get("owned_trinkets", [])     ## defensive: absent in pre-task-34 saves
 	character_trinkets = result.get("character_trinkets", {})
@@ -228,6 +223,8 @@ func _migrate_save(data: Dictionary, from_version: int) -> Dictionary:
 		match v:
 			0:
 				data = _migrate_v0_to_v1(data)
+			1:
+				data = _migrate_v1_to_v2(data)
 			_:
 				## Unknown gap — refuse to guess. Stamp current and let the
 				## field-level defaults in load_data() fill anything absent.
@@ -243,6 +240,34 @@ func _migrate_save(data: Dictionary, from_version: int) -> Dictionary:
 ## inline there. This step exists to (a) formally accept every legacy dev save as v1
 ## and (b) be the worked example for the next author. When v2 arrives, copy this shape.
 func _migrate_v0_to_v1(data: Dictionary) -> Dictionary:
+	return data
+
+## v1 → v2 (2026-08-08): the generic weapon-mod layer retired. Every id in ModData is now unknown,
+## and `weapon_mods` (the per-weapon slot storage) no longer exists.
+##
+## Both places a generic id can be sitting in an existing save are cleaned here rather than left to
+## fail softly, because "fail softly" means an armory listing a mod that resolves to {} and shows a
+## blank row, and an inventory count that never goes down:
+##   • weapon_mods — dropped wholesale. Anything equipped there was a generic mod (class mods have
+##     always lived in character_mods), so there is nothing worth migrating into a slot.
+##   • owned_mods  — filtered to ids that still resolve. Unknown ids are dropped, not converted:
+##     there is no honest mapping from "you owned PIERCE" to a class mod, and 13 of the 18 did
+##     nothing anyway, so the player is losing inventory that was never doing work.
+##
+## Class mods and the rest of the save are untouched.
+func _migrate_v1_to_v2(data: Dictionary) -> Dictionary:
+	data.erase("weapon_mods")
+	var kept: Array = []
+	var dropped: int = 0
+	for mid: Variant in data.get("owned_mods", []):
+		if ModApplicability.get_mod(str(mid)).is_empty():
+			dropped += 1
+		else:
+			kept.append(mid)
+	data["owned_mods"] = kept
+	if dropped > 0:
+		push_warning("ProgressionManager: save v1→v2 dropped %d retired generic mod(s) from "
+				% dropped + "owned_mods, and cleared per-weapon mod slots.")
 	return data
 
 ## Copy a corrupt save aside before it gets overwritten, so a player (or we) can
@@ -279,7 +304,6 @@ func reset_save() -> void:
 	hub_upgrades           = []
 	total_resources_spent  = 0
 	owned_mods             = []
-	weapon_mods            = {}
 	character_mods         = {}
 	owned_trinkets         = []
 	character_trinkets     = {}
@@ -455,7 +479,22 @@ func get_character_loadout(char_id: String) -> Array:
 	if not character_loadouts.has(char_id):
 		var sig: String = CharacterData.ALL.get(char_id, {}).get("starting_weapon", "Hurled Steel")
 		character_loadouts[char_id] = [sig, "", ""]
-	return character_loadouts[char_id]
+	return _sanitize_loadout(char_id, character_loadouts[char_id])
+
+
+## Strip weapons the class-lock no longer allows (enforced 2026-08-08). Saves made before the
+## lock can hold any character's gear in any slot, and hiding those from the armory picker would
+## not have unequipped them — the character would keep running another class's weapon with no way
+## to see or change it. Self-heals on read, so no save migration step is needed.
+## Slot 1 can never be left empty: it is what fires in-run, so it falls back to the signature.
+func _sanitize_loadout(char_id: String, loadout: Array) -> Array:
+	for i: int in range(loadout.size()):
+		var wid: String = str(loadout[i])
+		if wid.is_empty() or WeaponData.equippable_for(wid, char_id):
+			continue
+		loadout[i] = "" if i > 0 else \
+				str(CharacterData.ALL.get(char_id, {}).get("starting_weapon", "Hurled Steel"))
+	return loadout
 
 ## Weapon equipped in the given 1-based slot for a character ("" if the slot is empty).
 func get_character_weapon(char_id: String, slot: int = 1) -> String:
@@ -474,43 +513,19 @@ func set_character_weapon(char_id: String, slot: int, weapon_id: String) -> void
 	character_loadouts[char_id] = loadout
 
 
-## Returns the equipped mod IDs for a weapon as an Array (may include "" for empty slots).
-func get_weapon_mods(weapon_id: String) -> Array:
-	return weapon_mods.get(weapon_id, [])
+## ── Mod loadout ──────────────────────────────────────────────────────────────
+## Mods equip per-character: an array of slot strings per char_id, "" for empty. owned_mods is the
+## shared unequipped inventory. This was the CLASS-mod half of a two-layer model (task 31); the
+## generic half (per-weapon `weapon_mods` + ModData) retired 2026-08-08 and this is now the whole
+## system — see docs/mod_levelup_rework_plan.md.
 
-## Equip a mod into a specific slot (0-indexed) on a weapon. Saves immediately.
-func set_weapon_mod(weapon_id: String, slot: int, mod_id: String) -> void:
-	if not weapon_mods.has(weapon_id):
-		weapon_mods[weapon_id] = []
-	## Grow the array to accommodate this slot
-	while weapon_mods[weapon_id].size() <= slot:
-		weapon_mods[weapon_id].append("")
-	weapon_mods[weapon_id][slot] = mod_id
-	## Remove one copy from owned_mods inventory (it's now slotted)
-	var idx: int = owned_mods.find(mod_id)
-	if idx >= 0:
-		owned_mods.remove_at(idx)
-	save_data()
-
-## Remove the mod from a weapon slot (0-indexed) and return it to owned_mods.
-func remove_weapon_mod(weapon_id: String, slot: int) -> void:
-	if not weapon_mods.has(weapon_id):
-		return
-	if slot >= weapon_mods[weapon_id].size():
-		return
-	var existing: String = weapon_mods[weapon_id][slot]
-	if not existing.is_empty():
-		owned_mods.append(existing)
-	weapon_mods[weapon_id][slot] = ""
-	save_data()
-
-## ── Class-mod loadout (task 31) ──────────────────────────────────────────────
-## Class mods equip per-character (not per-weapon). Storage mirrors weapon_mods: an array of
-## slot strings per char_id, "" for empty. owned_mods is the shared inventory for both layers.
-
-## How many class-mod slots a character has. Flat for now; task 34's class gear rarity is slated
+## How many mod slots a character has. Flat for now; task 34's class gear rarity is slated
 ## to drive this later (see docs/class_mod_system.md). Kept as a func so callers don't hardcode.
-const CLASS_MOD_SLOTS: int = 2
+##
+## 3 as of 2026-08-08 (was 2). These are now the ONLY mod slots in the game — the per-weapon
+## generic slots retired with the generic layer, so a character's whole mod build is these three
+## drawn from its own roster of 8 (C(8,3) = 56 loadouts).
+const CLASS_MOD_SLOTS: int = 3
 
 func class_mod_slots(_char_id: String = "") -> int:
 	return CLASS_MOD_SLOTS
