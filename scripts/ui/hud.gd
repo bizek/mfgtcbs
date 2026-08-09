@@ -3,20 +3,39 @@ extends CanvasLayer
 ## HUD — Health bar, XP bar, level display, haul counter, instability vignette,
 ## extraction window countdown, HAUL AT RISK warning, and combo discovery popups.
 
-## ── Minifantasy UI theme (Classic set) ───────────────────────────────────────
-## Bars/panels are sourced from the Minifantasy UI Overhaul "Classic" sheet.
-## The five 40x6 capsule fills sit on a 256px column stride; panels are
-## nine-patch regions. To retheme, only these rects + UI_SHEET_PATH change.
-const UI_SHEET_PATH: String = "res://assets/minifantasy/Minifantasy_UI _Overhaul_v1.0/_Minifantasy_UI_Overhaul_Assets/Classic_Minifantasy_UI/_Classic_UI.png"
-const FILL_RED: Rect2 = Rect2(340.0, 709.0, 40.0, 6.0)
-const FILL_BLUE: Rect2 = Rect2(596.0, 709.0, 40.0, 6.0)
-const FILL_YELLOW: Rect2 = Rect2(852.0, 709.0, 40.0, 6.0)
-const FILL_GREEN: Rect2 = Rect2(1108.0, 709.0, 40.0, 6.0)
-const FILL_PURPLE: Rect2 = Rect2(1364.0, 709.0, 40.0, 6.0)
-const PANEL_SQUARE: Rect2 = Rect2(64.0, 384.0, 48.0, 48.0)  ## nine-patch, 6px borders
-const PANEL_PILL: Rect2 = Rect2(64.0, 352.0, 48.0, 16.0)    ## nine-patch, 5px borders
-const NUB_RED: Rect2 = Rect2(392.0, 709.0, 4.0, 6.0)        ## capsule end-cap gems
-const NUB_BLUE: Rect2 = Rect2(648.0, 709.0, 4.0, 6.0)
+## ── Minifantasy UI theme (Grim set) ──────────────────────────────────────────
+## Bars/panels are sourced from the Minifantasy UI Overhaul "Grim" sheet — the
+## same sheet that backs the project-wide Theme (assets/ui/grim_theme.tres, built
+## by tools/build_ui_theme.gd).
+##
+## This was the CLASSIC sheet until 2026-08-08, and it was the last surface in the
+## game still on it. The gap-3 theme pass did not cause that split, it made it
+## visible: every menu, panel, button, tab and focus ring came from Grim while the
+## one surface a player stares at for a whole run came from a different art set.
+## Classic's plates are opaque tan slabs; Grim's are near-black with a rivet-dot
+## edge, which is what a HUD over a dark cave wants.
+##
+## The five capsule fills are 42x6 on a 912px colour column stride (Classic's were
+## 40x6 on 256). Measured off the sheet, not eyeballed — the four thinner variants
+## at y=1854/1887/1919 are the same bar at 3/2/1px if a slimmer meter is ever
+## wanted. To retheme again, only these rects + UI_SHEET_PATH change.
+const UI_SHEET_PATH: String = "res://assets/minifantasy/Minifantasy_UI _Overhaul_v1.0/_Minifantasy_UI_Overhaul_Assets/Grim_Minifantasy_UI/_Grim_UI.png"
+const FILL_RED: Rect2 = Rect2(67.0, 1821.0, 42.0, 6.0)
+const FILL_BLUE: Rect2 = Rect2(979.0, 1821.0, 42.0, 6.0)
+const FILL_YELLOW: Rect2 = Rect2(1891.0, 1821.0, 42.0, 6.0)
+const FILL_GREEN: Rect2 = Rect2(2803.0, 1821.0, 42.0, 6.0)
+const FILL_PURPLE: Rect2 = Rect2(3715.0, 1821.0, 42.0, 6.0)
+## PANELS group, colour column 0, ornament row R0 — the plain plate with a rivet-dot
+## edge. R0 rather than R1/R2 on purpose: the ornament rows are a hierarchy, and a
+## HUD pill is the plainest thing in the game, not a hero panel. Same rect and 5px
+## margin the theme's "PanelDense" variation uses, so the HUD agrees with the menus.
+## One rect serves both the square and the pill — it is a nine-patch, so the aspect
+## ratio comes from the target size, and Grim has no dedicated 48x16 pill.
+const PANEL_SQUARE: Rect2 = Rect2(112.0, 160.0, 48.0, 48.0)
+const PANEL_PILL: Rect2 = Rect2(112.0, 160.0, 48.0, 48.0)
+const PANEL_MARGIN: int = 5
+const NUB_RED: Rect2 = Rect2(120.0, 1821.0, 4.0, 6.0)       ## capsule end-cap gems
+const NUB_BLUE: Rect2 = Rect2(1032.0, 1821.0, 4.0, 6.0)
 const BOSS_BAR_W: float = 192.0
 var _ui_sheet: Texture2D = null
 
@@ -307,13 +326,16 @@ func _add_ui_panel(rect: Rect2, after: CanvasItem) -> NinePatchRect:
 	var p := NinePatchRect.new()
 	p.texture = _sheet()
 	p.region_rect = PANEL_SQUARE
-	p.patch_margin_left = 6
-	p.patch_margin_top = 6
-	p.patch_margin_right = 6
-	p.patch_margin_bottom = 6
+	p.patch_margin_left = PANEL_MARGIN
+	p.patch_margin_top = PANEL_MARGIN
+	p.patch_margin_right = PANEL_MARGIN
+	p.patch_margin_bottom = PANEL_MARGIN
 	p.position = rect.position
 	p.size = rect.size
-	p.modulate = Color(0.72, 0.66, 0.58, 0.94)  ## dim the bronze toward the cave palette
+	## No colour correction. The old value here dimmed Classic's bronze toward the
+	## cave palette; Grim's plate is already near-black, so tinting it only muddies
+	## the rivet edge. Alpha alone, to keep the play field readable through it.
+	p.modulate = Color(1.0, 1.0, 1.0, 0.94)
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(p)
 	if after != null:
@@ -405,12 +427,12 @@ func _build_keystone_indicator() -> void:
 	var bg := NinePatchRect.new()
 	bg.texture = _sheet()
 	bg.region_rect = PANEL_PILL
-	bg.patch_margin_left = 5
-	bg.patch_margin_top = 5
-	bg.patch_margin_right = 5
-	bg.patch_margin_bottom = 5
+	bg.patch_margin_left = PANEL_MARGIN
+	bg.patch_margin_top = PANEL_MARGIN
+	bg.patch_margin_right = PANEL_MARGIN
+	bg.patch_margin_bottom = PANEL_MARGIN
 	bg.size = Vector2(78.0, 16.0)
-	bg.modulate = Color(0.72, 0.66, 0.58, 0.94)
+	bg.modulate = Color(1.0, 1.0, 1.0, 0.94)
 	root.add_child(bg)
 
 	var gem := ColorRect.new()
@@ -454,12 +476,12 @@ func _build_town_portal_indicator() -> void:
 	var bg := NinePatchRect.new()
 	bg.texture = _sheet()
 	bg.region_rect = PANEL_PILL
-	bg.patch_margin_left = 5
-	bg.patch_margin_top = 5
-	bg.patch_margin_right = 5
-	bg.patch_margin_bottom = 5
+	bg.patch_margin_left = PANEL_MARGIN
+	bg.patch_margin_top = PANEL_MARGIN
+	bg.patch_margin_right = PANEL_MARGIN
+	bg.patch_margin_bottom = PANEL_MARGIN
 	bg.size = Vector2(78.0, 16.0)
-	bg.modulate = Color(0.72, 0.66, 0.58, 0.94)
+	bg.modulate = Color(1.0, 1.0, 1.0, 0.94)
 	root.add_child(bg)
 
 	var rune := ColorRect.new()
@@ -689,12 +711,12 @@ func _build_skill_slots() -> void:
 		var bg := NinePatchRect.new()
 		bg.texture = _sheet()
 		bg.region_rect = PANEL_SQUARE
-		bg.patch_margin_left = 6
-		bg.patch_margin_top = 6
-		bg.patch_margin_right = 6
-		bg.patch_margin_bottom = 6
+		bg.patch_margin_left = PANEL_MARGIN
+		bg.patch_margin_top = PANEL_MARGIN
+		bg.patch_margin_right = PANEL_MARGIN
+		bg.patch_margin_bottom = PANEL_MARGIN
 		bg.size = Vector2(SKILL_SLOT, SKILL_SLOT)
-		bg.modulate = Color(0.72, 0.66, 0.58, 0.94)
+		bg.modulate = Color(1.0, 1.0, 1.0, 0.94)
 		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		root.add_child(bg)
 
@@ -757,10 +779,10 @@ func _build_buff_chips() -> void:
 		var bg := NinePatchRect.new()
 		bg.texture = _sheet()
 		bg.region_rect = PANEL_PILL
-		bg.patch_margin_left = 5
-		bg.patch_margin_top = 5
-		bg.patch_margin_right = 5
-		bg.patch_margin_bottom = 5
+		bg.patch_margin_left = PANEL_MARGIN
+		bg.patch_margin_top = PANEL_MARGIN
+		bg.patch_margin_right = PANEL_MARGIN
+		bg.patch_margin_bottom = PANEL_MARGIN
 		bg.size = Vector2(BUFF_CHIP_W, BUFF_CHIP_H)
 		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		root.add_child(bg)
