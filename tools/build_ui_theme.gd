@@ -370,9 +370,35 @@ func _build_sliders_and_bars(theme: Theme) -> void:
 
 
 func _build_separators(theme: Theme) -> void:
-	## The divider art has arrow tips at both ends, so the margin has to cover
-	## them or a stretched separator smears the tip across the whole rule.
-	var h := _nine(DIVIDER, 6, 0)
+	## The divider art has arrow tips at both ends, so the HORIZONTAL margin has to
+	## cover them or a stretched separator smears the tip across the whole rule.
+	##
+	## The vertical margin must be ZERO, and getting that wrong made every HSeparator
+	## in the game invisible from 2026-08-07 until 2026-08-09. DIVIDER is 42x3 — a 3px
+	## tall strip. `_nine(DIVIDER, 6, 0)` set all four texture margins to 6, so top +
+	## bottom claimed 12px of a 3px source and the nine-patch's centre row came out
+	## with negative height: the control laid out at its full width and drew nothing.
+	## Nothing errored, which is why five scripts (pause menu, level-up, insurance,
+	## debug panel, passive-tree debug) shipped separators that were never once seen.
+	## There is no detail to protect vertically on a 3px strip, so top/bottom stay 0
+	## and the middle row stretches — which is exactly what a rule wants.
+	var h := StyleBoxTexture.new()
+	h.texture = _sheet
+	h.region_rect = DIVIDER
+	h.set_texture_margin(SIDE_LEFT, 6.0)
+	h.set_texture_margin(SIDE_RIGHT, 6.0)
+	h.set_texture_margin(SIDE_TOP, 0.0)
+	h.set_texture_margin(SIDE_BOTTOM, 0.0)
+	h.set_content_margin(SIDE_LEFT, 0.0)
+	h.set_content_margin(SIDE_RIGHT, 0.0)
+	## The CONTENT margins are what make it visible at all, which is not obvious.
+	## Godot's Separator draws its stylebox into a rect whose height is
+	## `style.get_minimum_size().y` — i.e. content_margin_top + content_margin_bottom —
+	## and centres that in the control. With both at 0 the draw height is 0, so the
+	## separator lays out at full width and paints nothing. Their SUM is the rule's
+	## thickness; 3 matches the source strip so the art is drawn 1:1 vertically.
+	h.set_content_margin(SIDE_TOP, 3.0)
+	h.set_content_margin(SIDE_BOTTOM, 0.0)
 	theme.set_stylebox("separator", "HSeparator", h)
 	theme.set_constant("separation", "HSeparator", 4)
 

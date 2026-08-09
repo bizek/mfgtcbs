@@ -158,7 +158,9 @@ func _build_haul_section(lv: VBoxContainer, loot_value: int) -> void:
 		var display: String = WeaponData.ALL.get(insured, {}).get("display_name", insured)
 		ReportView.line(lv, "[*] Insured: %s kept" % display, Color(1.0, 0.88, 0.22))
 
-	ReportView.line(lv, "── SALVAGED TO VAULT:  +%s" % ReportView.fmt(salvaged),
+	## A real divider, not a "──" prefix — U+2500 is not in m5x7. See ReportView.rule.
+	ReportView.rule(lv)
+	ReportView.line(lv, "SALVAGED TO VAULT:  +%s" % ReportView.fmt(salvaged),
 		Color(1.0, 0.92, 0.4))
 
 

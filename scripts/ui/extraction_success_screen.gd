@@ -162,7 +162,10 @@ func _build_loot_section(lv: VBoxContainer, resources_earned: int) -> void:
 		ReportView.line(lv, "Depth Bonus:  x%.2f  (%s)" % [mult, _payout_label()],
 			Color(0.55, 0.95, 0.65))
 
-	ReportView.line(lv, "── BANKED TO VAULT:  +%s" % ReportView.fmt(resources_earned), Color(1.0, 0.92, 0.4))
+	## A real divider, not a "──" prefix: U+2500 is not in m5x7, so the old marker rendered
+	## outside the pixel font on the screen that closes a winning run. See ReportView.rule.
+	ReportView.rule(lv)
+	ReportView.line(lv, "BANKED TO VAULT:  +%s" % ReportView.fmt(resources_earned), Color(1.0, 0.92, 0.4))
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────────────────────

@@ -176,8 +176,31 @@ static func stat(parent: VBoxContainer, text: String, value: String, col: Color)
 	parent.add_child(row)
 
 
+## Section heading: the label, then the pack's divider art running to the right margin.
+##
+## This drew the rule as TEXT until 2026-08-09 — "── %s ──────────────────" — and the box-drawing
+## character U+2500 is **not in m5x7** (verified with FontFile.has_char, the same check that caught
+## ★ and ✦). So on the two screens a player reads most, every section rule was silently rendering
+## outside the pixel font. A real HSeparator picks up the Grim divider stylebox from the project
+## theme, which is also gap 10 of docs/ui_pack_inventory.md done properly rather than imitated in
+## punctuation. Before adding any glyph to a string here, run has_char on it.
 static func heading(parent: VBoxContainer, text: String) -> void:
-	line(parent, "── %s ──────────────────" % text, COL_HEADING)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(label(text, COL_HEADING))
+	var rule := HSeparator.new()
+	rule.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rule.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(rule)
+	parent.add_child(row)
+
+
+## Full-width divider on its own row, for the "this is the total" line at the foot of a report.
+static func rule(parent: VBoxContainer) -> void:
+	var sep := HSeparator.new()
+	sep.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	parent.add_child(sep)
 
 
 static func line(parent: VBoxContainer, text: String, col: Color) -> void:

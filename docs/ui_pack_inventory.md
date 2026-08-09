@@ -481,9 +481,33 @@ Two traps this hit, both already documented elsewhere in the repo and both hit a
 and a brand-new `class_name` is unresolvable until the editor rescans — consumers reach it as
 `const Icons := preload(...)` under a different local name, the same fix `RunReportView` uses.
 
-### 10. Window buttons · dividers · decoration
+### 10. Window buttons · dividers · decoration — **dividers DONE (2026-08-09)**
 
 Smaller wins that make panels look authored rather than generated.
+
+**Dividers.** The theme had carried an `HSeparator` stylebox since gap 3, and **it drew nothing
+from 2026-08-07 until 2026-08-09**. Two independent mistakes, both silent:
+
+1. `_nine(DIVIDER, 6, 0)` set all four *texture* margins to 6 on a source strip that is `42×3`.
+   Top + bottom claimed 12px of a 3px region, so the nine-patch centre row had negative height.
+2. The *content* margins were 0, and Godot's `Separator` draws its stylebox into a rect whose
+   height is `style.get_minimum_size().y` — the sum of the top and bottom content margins. Zero
+   sum means a zero-height draw, so even with (1) fixed it stayed invisible.
+
+Fixed in `tools/build_ui_theme.gd` (horizontal texture margin 6 to protect the arrow tips,
+vertical 0, content margin summing to 3) and the theme regenerated — the diff against the
+committed `.tres` is exactly those margin lines and nothing else. Five scripts had shipped
+separators nobody had ever seen: `pause_menu`, `level_up_screen`, `insurance_panel`, `debug_panel`,
+`passive_tree_debug_panel`. `VSeparator` was never affected; it uses a `StyleBoxFlat` with a 1px
+content margin, which is why it always drew.
+
+`RunReportView.heading()` and the new `RunReportView.rule()` now use real separators instead of
+drawing rules as `"── … ──────"` text. **U+2500 is not in m5x7** (`FontFile.has_char` — the same
+check that caught `★` and `✦`), so those rules had been rendering outside the pixel font on both
+results screens. `•` and `━` are also absent; `·`, `×`, `»`, `^`, `&`, `#`, `*`, `+`, `-`, `=`, `_`
+are all present. **Run `has_char` before putting any non-ASCII glyph in a player-facing string.**
+
+Window buttons and the decoration group are still open.
 
 ### 11. Emotions + speech bubbles → hub NPCs
 

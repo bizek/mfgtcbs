@@ -117,6 +117,13 @@ nested `project.godot` inside a Godot project is a hazard on its own.
 >   rate, which is clutter on a light chain that fires several times a second. It needs a trigger
 >   decision (every hit? skills only?) before it is worth wiring. Same for "cooldown reticle": with
 >   a cooldown-free light chain, *whose* cooldown it shows is the question.
+> * **1.5 (gap 10) — dividers done 2026-08-09**, and doing them uncovered two silent bugs worth
+>   more than the feature. The theme's `HSeparator` stylebox had drawn **nothing** since gap 3
+>   landed (degenerate texture margins *and* a zero-sum content margin, either of which alone
+>   makes it invisible), so five scripts had shipped separators nobody ever saw. And the results
+>   screens drew their section rules as `"── … ──────"` text, where **U+2500 is not in m5x7** —
+>   the `★`/`✦` bug again, on the two screens a player reads most. Window buttons and decoration
+>   are still open.
 > * **1.3 remains blocked on a look decision** — bitmap digits vs m3x6. Nothing to implement until
 >   that is picked.
 
