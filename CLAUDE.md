@@ -260,8 +260,13 @@ All content follows the data factory pattern: `static func create() -> Resource`
   `ThemeDB.fallback_font`. Because that is a *vector* font it does not fuse at 7px — so this is a
   style inconsistency (vector type in a pixel game), not the crispness bug, and the earlier note
   claiming "9/10/14, needs m3x6" was wrong on both counts. Left alone on purpose: forcing m5x7 at
-  16 would nearly double the size of every damage number over the play field. Decide the look
-  first; it needs a bitmap digit set or m3x6, not a size change.
+  16 would nearly double the size of every damage number over the play field.
+  **DECIDED 2026-08-09 — keep them exactly as they are** (Ben: *"honestly the damage numbers never
+  gave me issue"*). Four candidates were rendered in-engine at true scale over the play field
+  before asking: the current vector @ 7, m5x7 @ 16, and the packs' TCG bitmap digits at 16x16 and
+  8x8 (`All_Exclusives_20260409/Addons/User_Interface/TCG_UI/Numbers_*`). This is a settled choice
+  now, not an open question — **do not "fix" it**. If it is ever reopened: 8x8 is already ruled out
+  (its glyphs fuse into blobs) and m3x6 is not on disk.
   **`Settings.TEXT_SIZE_SCALE` — resolved, with a caveat.** Scaled sizes now go through
   `Settings.scaled_font_size()` → `snap_font_size()`, which returns the nearest multiple of 16 and
   never less than 16, so no setting can produce an off-grid size. Consequence stated plainly: at

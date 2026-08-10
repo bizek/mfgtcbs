@@ -102,8 +102,10 @@ nested `project.godot` inside a Godot project is a hazard on its own.
 
 ## Tier 1 — Highest visible return, no design decisions needed
 
-> **Status 2026-08-08: 1.1 and 1.2 DONE. 1.3, 1.4 and 1.5 are open, and 1.3/1.4 turned out to be
-> design calls rather than wiring — see below.**
+> **Status 2026-08-09: TIER 1 IS CLOSED.** 1.1, 1.2, 1.4 and 1.5 shipped; 1.3 was decided as a
+> deliberate no-change. Two of the five turned out to be design calls rather than wiring, and both
+> were settled by rendering the candidates in-engine and asking, rather than by arguing from the
+> doc — which is the pattern worth repeating.
 >
 > * **1.2 (fades) shipped first** because it needed nothing from anyone. New `SceneTransition`
 >   autoload, all nine call sites converted.
@@ -111,12 +113,14 @@ nested `project.godot` inside a Godot project is a hazard on its own.
 >   Classic timer panel was a bright tan slab and the skill slots were tan squares over the play
 >   field. The Grim rects had to be measured — the theme builder never needed bar fills — and they
 >   are recorded in `ui_pack_inventory.md` "Current utilization".
-> * **1.4 shrank to two design calls.** Most of gap 2 was already done (the reticle, the arrow, the
->   integer upscale, hostile tinting). What is left is the click pop and the per-class reticle, and
->   the click sheet is **4 frames, not the 6 the inventory claimed** — 400ms at the pack's stated
->   rate, which is clutter on a light chain that fires several times a second. It needs a trigger
->   decision (every hit? skills only?) before it is worth wiring. Same for "cooldown reticle": with
->   a cooldown-free light chain, *whose* cooldown it shows is the question.
+> * **1.4 shrank to two design calls, and one of them shipped.** Most of gap 2 was already done
+>   (the reticle, the arrow, the integer upscale, hostile tinting). The click sheet is **4 frames,
+>   not the 6 the inventory claimed** — 400ms at the pack's rate, which is clutter on a light chain
+>   firing several times a second. **Ben's call: menus only.** Done 2026-08-09, gated on
+>   `Mode.POINTER`, which *is* the menus — gating on the mode rather than per-button means no
+>   screen has to opt in and gameplay cannot accidentally opt in. The **per-class reticle stays
+>   unbuilt**: the reticle already carries hostile state, and with a cooldown-free light chain
+>   "cooldown reticle" has no unambiguous meaning.
 > * **1.5 (gap 10) — dividers done 2026-08-09**, and doing them uncovered two silent bugs worth
 >   more than the feature. The theme's `HSeparator` stylebox had drawn **nothing** since gap 3
 >   landed (degenerate texture margins *and* a zero-sum content margin, either of which alone
@@ -130,8 +134,9 @@ nested `project.godot` inside a Godot project is a hazard on its own.
 >   `title_flourish()` uses it at native 48px under the main-menu title. The vertical plaques and
 >   medallions are recorded rather than wired: at 640×360 nothing has room, and forcing one in
 >   cost the tagline until the title block was lifted. **Tier 1.5 is now complete.**
-> * **1.3 remains blocked on a look decision** — bitmap digits vs m3x6. Nothing to implement until
->   that is picked.
+> * **1.3 — DECIDED 2026-08-09: no change.** Ben, after seeing four candidates rendered in-engine
+>   at true scale: *"honestly the damage numbers never gave me issue."* The vector face at 7px
+>   stays. **Tier 1 is now closed** — every item is either shipped or deliberately declined.
 
 ### 1.1 The HUD is the last surface still on the Classic sheet
 
@@ -170,9 +175,15 @@ alone in the 2026-08-03 font pass pending a look decision.
 
 It is now the last one. Everything else in the game is m5x7 at 16 or 32.
 
-**Needs a look decision, not a size change:** either a bitmap digit set (best — damage numbers want
-their own weight anyway) or m3x6. Forcing m5x7 @ 16 would nearly double every number over the play
-field and is not the answer.
+**DECIDED 2026-08-09 — keep them as they are.** Four candidates were rendered in-engine at true
+scale over the play field and put side by side: the current vector @ 7, m5x7 @ 16, and the packs'
+TCG bitmap digits at 16x16 and 8x8 (`All_Exclusives_20260409/.../TCG_UI/Numbers_*` — a set nobody
+had noticed the project already owns). Ben: *"honestly the damage numbers never gave me issue."*
+
+So the "last vector-font element" is a deliberate exception rather than debt. Recorded in CLAUDE.md
+so it does not get re-raised. If it is ever reopened, two findings survive: **8x8 is ruled out** —
+its glyphs fuse into blobs at that size — and **m3x6 is not on disk**, so comparing it needs the
+.ttf dropped into `assets/fonts/` first.
 
 ### 1.4 Cursor states — the small remainder of UI gap 2
 
