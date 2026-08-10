@@ -322,7 +322,7 @@ const ALL: Dictionary = {
 	},
 	"Tome of the Restless": {
 		"id": "Tome of the Restless", "display_name": "Tome of the Restless",
-		"description": "Its pages whisper names the grave forgot — the dead answer faster.",
+		"description": "Its pages whisper names the grave forgot - the dead answer faster.",
 		"damage_type": "void", "damage": 34.0, "tint": Color(0.72, 0.62, 0.88),
 		"drop_weight": 0, "mod_slots": 2, "unlock_id": "gear_necro_blue",
 		"class_lock": "The Shade", "kit": "necromancer", "rarity": "rare", "tier": "blue",

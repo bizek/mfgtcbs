@@ -434,7 +434,7 @@ func _build_detail_pane(parent: HBoxContainer) -> void:
 	_lbl(pass_hdr, "PASSIVE", FS_XS, C_T2)
 
 	var passive_name: String = ddata.get("passive_name", "")
-	if passive_name != "" and passive_name != "—":
+	if passive_name != "" and passive_name != "-":
 		_lbl(pass_hdr, passive_name, FS_XS, char_col if is_owned else C_T2)
 
 	var p_lbl := Label.new()

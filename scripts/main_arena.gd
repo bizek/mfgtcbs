@@ -563,7 +563,7 @@ func _boss_intro_beat(boss_id: String, spawn_pos: Vector2) -> void:
 	var def: EnemyDefinition = EnemyRegistry.get_def(boss_id)
 	var display_name: String = def.enemy_name if def and def.enemy_name != "" else boss_id.capitalize()
 	if hud and hud.has_method("flash_text"):
-		hud.flash_text("BOSS INCOMING — %s" % display_name.to_upper(), Color(1.0, 0.3, 0.25), 1.8)
+		hud.flash_text("BOSS INCOMING - %s" % display_name.to_upper(), Color(1.0, 0.3, 0.25), 1.8)
 	if _camera != null and is_instance_valid(_camera) and is_instance_valid(player):
 		var dir: Vector2 = spawn_pos - player.global_position
 		dir = dir.normalized() if dir.length() > 1.0 else Vector2.ZERO

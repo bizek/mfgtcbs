@@ -224,7 +224,7 @@ func _build_controls_tab() -> Control:
 	## reaches for, and it changes what half these bindings even require.
 	_checkbox_row(vbox, "Auto Aim", Settings.auto_aim,
 		func(v: bool): Settings.set_auto_aim(v))
-	var aim_hint := _lbl(vbox, "* Attacks and skills lock onto the nearest enemy — no aiming needed. Movement picks the target.", FS_XS, C_T2)
+	var aim_hint := _lbl(vbox, "* Attacks and skills lock onto the nearest enemy - no aiming needed. Movement picks the target.", FS_XS, C_T2)
 	aim_hint.custom_minimum_size = Vector2(380, 0)
 	aim_hint.autowrap_mode = TextServer.AUTOWRAP_WORD
 
@@ -428,7 +428,7 @@ func _refresh_bind_buttons() -> void:
 func _binding_text(action: String, cls: String) -> String:
 	var events := Settings.get_action_events_for_class(action, cls)
 	if events.is_empty():
-		return "—"
+		return "-"
 	var parts: Array[String] = []
 	for e in events:
 		parts.append(_event_text(e))

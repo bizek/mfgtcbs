@@ -141,7 +141,7 @@ func _build_armory() -> void:
 	var loadout_label: String = "EQUIPPED LOADOUT"
 	if not Engine.is_editor_hint() and _pm != null:
 		var cid: String = str(_pm.selected_character)
-		loadout_label = "LOADOUT — %s" % str(CharacterData.ALL.get(cid, {}).get("display_name", cid))
+		loadout_label = "LOADOUT - %s" % str(CharacterData.ALL.get(cid, {}).get("display_name", cid))
 	_lbl(hdr, loadout_label, FS_SM, C_T2)
 
 	var sep_line := ColorRect.new()
@@ -241,7 +241,7 @@ func _build_weapon_card(parent: Control, slot: int) -> void:
 	_lbl(name_row, "S%02d" % slot, FS_XS, C_T2)
 
 	var name_btn := Button.new()
-	name_btn.text                = weapon_id.to_upper() if has_weapon else "[ NO WEAPON — CLICK TO ASSIGN ]"
+	name_btn.text                = weapon_id.to_upper() if has_weapon else "[ NO WEAPON - CLICK TO ASSIGN ]"
 	name_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_btn.alignment           = HORIZONTAL_ALIGNMENT_LEFT
 	name_btn.focus_mode          = Control.FOCUS_ALL
@@ -351,7 +351,7 @@ func _build_weapon_picker(parent: Control) -> void:
 	var hdr_hbox := HBoxContainer.new()
 	hdr_hbox.add_theme_constant_override("separation", 5)
 	parent.add_child(hdr_hbox)
-	_lbl(hdr_hbox, "SELECT WEAPON — SLOT %02d" % _active_slot, FS_MD, C_AMBER)
+	_lbl(hdr_hbox, "SELECT WEAPON - SLOT %02d" % _active_slot, FS_MD, C_AMBER)
 
 	var rule := ColorRect.new()
 	rule.custom_minimum_size   = Vector2(0, 1)
@@ -504,7 +504,7 @@ func _build_class_mod_picker(parent: Control) -> void:
 	var hdr_hbox := HBoxContainer.new()
 	hdr_hbox.add_theme_constant_override("separation", 5)
 	parent.add_child(hdr_hbox)
-	_lbl(hdr_hbox, "INSTALL MOD — SLOT %02d" % (_class_mod_target_slot + 1), FS_MD,
+	_lbl(hdr_hbox, "INSTALL MOD - SLOT %02d" % (_class_mod_target_slot + 1), FS_MD,
 		Color(0.62, 0.48, 0.85))
 
 	var rule := ColorRect.new()

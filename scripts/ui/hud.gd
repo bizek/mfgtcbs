@@ -188,7 +188,7 @@ func _process(delta: float) -> void:
 		var time_remaining: float = GameManager.phase_duration - GameManager.phase_timer
 		if GameManager.phase_number >= GameManager.MAX_PHASES:
 			## Phase 5: no timed exit — show a permanent notice
-			_extraction_warning_label.text = "THE CORE — NO TIMED EXIT"
+			_extraction_warning_label.text = "THE CORE - NO TIMED EXIT"
 			_extraction_warning_label.add_theme_color_override("font_color", Color(0.9, 0.3, 0.3))
 			_extraction_warning_label.visible = true
 			_extraction_warning_label.modulate.a = 1.0
@@ -663,7 +663,7 @@ func flash_text(text: String, color: Color = Color(1.0, 0.9, 0.7),
 	tween.tween_property(_phase_flash_label, "modulate:a", 0.0, duration)
 
 func _on_final_boss_spawned(display_name: String) -> void:
-	flash_text("BOSS INCOMING — %s" % display_name.to_upper(),
+	flash_text("BOSS INCOMING - %s" % display_name.to_upper(),
 			Color(1.0, 0.3, 0.25), 1.8)
 
 func _on_final_boss_defeated() -> void:

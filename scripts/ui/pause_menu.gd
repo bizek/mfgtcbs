@@ -160,7 +160,7 @@ func _on_abandon_pressed() -> void:
 	if not _abandon_armed:
 		_abandon_armed = true
 		AudioManager.play_ui("sfx_ui_click")
-		_abandon_btn.text = "Confirm — lose your haul?"
+		_abandon_btn.text = "Confirm - lose your haul?"
 		return
 	_disarm_abandon()
 	_panel.visible = false

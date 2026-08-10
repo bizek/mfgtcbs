@@ -66,7 +66,7 @@ func setup(player: Node2D) -> void:
 	## pointing a new player at UI that is not on their screen.
 	if GameManager.use_descent_mode:
 		_queue_cue("depth_meter",
-			"The depth meter (left edge) tracks your descent — find the portal below.",
+			"The depth meter (left edge) tracks your descent - find the portal below.",
 			"corner")
 
 func _process(delta: float) -> void:
@@ -104,22 +104,22 @@ func _on_combat_signal(source, target, _hit_data = null) -> void:
 
 func _on_kill(killer, _victim) -> void:
 	if killer == player_ref:
-		_queue_cue("first_kill_xp", "Enemies drop XP — walk over it to collect and level up.", "corner")
+		_queue_cue("first_kill_xp", "Enemies drop XP - walk over it to collect and level up.", "corner")
 
 func _on_pickup(entity, pickup_type: String) -> void:
 	if entity != player_ref:
 		return
 	if pickup_type == "weapon":
-		_queue_cue("pickup_item", "New weapon picked up — it replaces your active one.", "corner")
+		_queue_cue("pickup_item", "New weapon picked up - it replaces your active one.", "corner")
 	else:
-		_queue_cue("pickup_item", "Mod picked up — slot it in at the hub for a permanent bonus.", "corner")
+		_queue_cue("pickup_item", "Mod picked up - slot it in at the hub for a permanent bonus.", "corner")
 
 func _on_leveled_up(_new_level: int) -> void:
 	_queue_cue("level_up", "Level up! Pick an upgrade.", "corner")
 
 func _on_instability_changed(new_value: float) -> void:
 	if new_value > 0.0:
-		_queue_cue("instability", "Instability is rising (top meter) — push too far and your haul gets risky.", "corner")
+		_queue_cue("instability", "Instability is rising (top meter) - push too far and your haul gets risky.", "corner")
 
 ## The old text — "channel at the portal to extract" — described the FLAT ARENA, where you stand
 ## in a zone and hold still while a bar fills. Descent is the default path and works nothing like
@@ -128,11 +128,11 @@ func _on_instability_changed(new_value: float) -> void:
 func _on_extraction_window_opened() -> void:
 	if GameManager.use_descent_mode:
 		_queue_cue("extraction_window",
-			"A gateway has opened — reach it to escape with your haul. Deeper pays more.",
+			"A gateway has opened - reach it to escape with your haul. Deeper pays more.",
 			"corner")
 	else:
 		_queue_cue("extraction_window",
-			"Extraction window open — channel at the portal to extract.", "corner")
+			"Extraction window open - channel at the portal to extract.", "corner")
 
 
 ## Fires the moment one is bought. Nothing anywhere told the player this key exists, and an
@@ -186,18 +186,18 @@ func _cue_text(id: String) -> String:
 		"spawn":
 			var move: String = "Left stick moves, right stick aims." if pad \
 					else "WASD to move, aim with your mouse."
-			return "%s\n%s chains your combo — tap to chain, hold to channel." \
+			return "%s\n%s chains your combo - tap to chain, hold to channel." \
 					% [move, InputGlyphs.action_glyph_bb("light_attack")]
 		"rmb_special":
 			return "Try your %s special attack." % InputGlyphs.action_glyph_bb("heavy_attack")
 		"skills_qe":
-			return "Your %s/%s class skills hit hard — try them out." \
+			return "Your %s/%s class skills hit hard - try them out." \
 					% [InputGlyphs.action_glyph_bb("skill_q"), InputGlyphs.action_glyph_bb("skill_e")]
 		"dash":
 			return "Getting hit? %s dashes you clear (brief i-frames)." \
 					% InputGlyphs.action_glyph_bb("dash")
 		"town_portal":
-			return "Town portal ready — %s opens a way out wherever you stand." \
+			return "Town portal ready - %s opens a way out wherever you stand." \
 					% InputGlyphs.action_glyph_bb("town_portal")
 	return ""
 

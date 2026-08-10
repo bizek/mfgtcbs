@@ -214,7 +214,7 @@ func _build_ui() -> void:
 	# Sort row
 	var sort_defs: Array = [
 		["type",   "BY TYPE"],
-		["alpha",  "A – Z"],
+		["alpha",  "A - Z"],
 		["mastery","MASTERY %"],
 	]
 	var sort_row := HBoxContainer.new()

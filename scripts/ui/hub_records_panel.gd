@@ -152,7 +152,7 @@ func _build_stats_page(pm: Node) -> VBoxContainer:
 	var extractions: int = 0 if pm == null else pm.successful_extractions
 	var rate_str: String
 	if pm == null or total_runs == 0:
-		rate_str = "—"
+		rate_str = "-"
 	else:
 		rate_str = "%d%%" % int(float(extractions) / float(total_runs) * 100.0)
 

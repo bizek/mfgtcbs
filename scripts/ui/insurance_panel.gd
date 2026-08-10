@@ -87,7 +87,7 @@ func _build_ui() -> void:
 	outer.add_child(sep)
 
 	var sub_lbl := Label.new()
-	sub_lbl.text = "Insure one item — it survives on death."
+	sub_lbl.text = "Insure one item - it survives on death."
 	sub_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub_lbl.modulate = Color(0.65, 0.65, 0.72)
 	outer.add_child(sub_lbl)

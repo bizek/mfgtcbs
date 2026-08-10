@@ -279,7 +279,7 @@ func _on_settings_pressed() -> void:
 		add_child(panel)
 		UINav.focus_first(panel)
 	else:
-		_show_toast("Settings — coming soon")
+		_show_toast("Settings - coming soon")
 
 ## The scene lives under scenes/ui/, not scenes/ — this pointed at the latter until
 ## 2026-08-08, and the ResourceLoader.exists guard that used to wrap it turned the

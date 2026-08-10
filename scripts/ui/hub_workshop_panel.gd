@@ -104,11 +104,11 @@ func _get_all_upgrades() -> Array[Dictionary]:
 
 	if Engine.is_editor_hint() or _pm == null:
 		for entry: Array in [
-			["INSURANCE LICENSE",   "SINGLE PURCHASE", "—"],
-			["ARMORY EXPANSION",    "TIER 0 / 2",      "—"],
-			["CHANNEL ACCELERATOR", "TIER 0 / 3",      "—"],
-			["REROLL CAPACITY",     "TIER 0 / 2",      "—"],
-			["EXTRACTION INTEL I",  "SINGLE PURCHASE", "—"],
+			["INSURANCE LICENSE",   "SINGLE PURCHASE", "-"],
+			["ARMORY EXPANSION",    "TIER 0 / 2",      "-"],
+			["CHANNEL ACCELERATOR", "TIER 0 / 3",      "-"],
+			["REROLL CAPACITY",     "TIER 0 / 2",      "-"],
+			["EXTRACTION INTEL I",  "SINGLE PURCHASE", "-"],
 		]:
 			result.append({"name": entry[0], "tier_text": entry[1],
 				"cost_text": entry[2], "upgrade_id": "", "is_maxed": false, "is_affordable": false})
@@ -296,8 +296,8 @@ func _build_footer(parent: Control) -> void:
 	hbox.custom_minimum_size = Vector2(0, 18)
 	parent.add_child(hbox)
 
-	var res_text  := "—"
-	var tier_text := "—"
+	var res_text  := "-"
+	var tier_text := "-"
 	if not Engine.is_editor_hint() and _pm != null:
 		res_text = "%d VAULT REMAINING" % _pm.resources
 		var tier_labels: Array[String] = ["BARE", "TORCHES LIT", "RESTORED"]

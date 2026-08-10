@@ -88,7 +88,7 @@ func _build_ui() -> void:
 	amber_rule.color                 = Color(C_AMBER.r, C_AMBER.g, C_AMBER.b, 0.60)
 	hdr.add_child(amber_rule)
 
-	_res_label = _lbl(hdr, "VAULT: —", FS_XS, C_T2)
+	_res_label = _lbl(hdr, "VAULT: -", FS_XS, C_T2)
 
 	## ── ScrollContainer fills remaining height
 	var scroll := ScrollContainer.new()

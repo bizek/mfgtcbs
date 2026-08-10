@@ -258,7 +258,7 @@ const ALL: Dictionary = {
 	"necro_bone_choir": {
 		"id": "necro_bone_choir",
 		"name": "Bone Choir",
-		"description": "Bone Swirl carries +1 bone — it orbits, then it flies",
+		"description": "Bone Swirl carries +1 bone - it orbits, then it flies",
 		"kit": "necromancer",
 		"is_ability_upgrade": true,
 		"op": "add_projectiles",

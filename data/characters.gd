@@ -13,12 +13,12 @@ const ALL: Dictionary = {
 		"id":              "The Drifter",
 		"display_name":    "THE SELLSWORD",
 		"char_class":      "Fighter",
-		"description":     "A nameless blade-for-hire. No magic, no tricks — just steel.",
+		"description":     "A nameless blade-for-hire. No magic, no tricks - just steel.",
 		"starting_weapon": "Mercenary's Edge",   ## Fighter GREEN (task 34 class gear)
 		"melee_kit":       "fighter",        ## drives the combo-chain moveset (ChainFactory/SkillFactory)
 		"passive_id":      "none",
-		"passive_name":    "—",
-		"passive_desc":    "None — a plain blade and a steady hand.",
+		"passive_name":    "-",
+		"passive_desc":    "None - a plain blade and a steady hand.",
 		"portrait":        "res://assets/characters/portraits/the_drifter.png",
 		"unlock_cost":     0,
 		"base_hp":         100.0,
@@ -183,7 +183,7 @@ const ALL: Dictionary = {
 		"id":              "The Spark",
 		"display_name":    "THE SPARK",
 		"char_class":      "Wizard",
-		"description":     "A reckless arcanist who overcharges every spell — devastating, one misstep from ash.",
+		"description":     "A reckless arcanist who overcharges every spell - devastating, one misstep from ash.",
 		"starting_weapon": "Apprentice Flame",   ## Wizard GREEN (task 34 class gear)
 		"melee_kit":       "wizard",         ## drives the combo-chain moveset (ChainFactory)
 		"dash_style":      "teleport",       ## Space = blink (class-flavored dash, player.gd)
@@ -252,12 +252,12 @@ const ALL: Dictionary = {
 		"id":              "The Shade",
 		"display_name":    "THE SHADE",
 		"char_class":      "Necromancer",
-		"description":     "A shrouded reaper who empties graves against the horde — bone, void, and the risen dead answer the call.",
+		"description":     "A shrouded reaper who empties graves against the horde - bone, void, and the risen dead answer the call.",
 		"starting_weapon": "Boneculler Staff",   ## Necromancer GREEN (task 34 class gear)
 		"melee_kit":       "necromancer",         ## drives the combo-chain moveset (ChainFactory/SkillFactory)
 		"passive_id":      "necro_soul_harvest",
 		"passive_name":    "Soul Harvest",
-		"passive_desc":    "Kills reap souls — a little life each, and every 3rd empowers your next summon.",
+		"passive_desc":    "Kills reap souls - a little life each, and every 3rd empowers your next summon.",
 		"dash_style":      "planeshift",          ## Plane Shift: dematerialize to the invulnerable Soul form
 		"portrait":        "res://assets/characters/portraits/the_shade.png",
 		"unlock_cost":     2000,
@@ -306,12 +306,12 @@ const ALL: Dictionary = {
 		"id":              "The Demon",
 		"display_name":    "THE DEMON",
 		"char_class":      "Demonologist",
-		"description":     "A pact-scarred binder who calls the pit up through the floor — hellfire, brimstone, and something with horns.",
+		"description":     "A pact-scarred binder who calls the pit up through the floor - hellfire, brimstone, and something with horns.",
 		"starting_weapon": "Pact-Brand Stave",   ## Demonologist GREEN (task 34 class gear)
 		"melee_kit":       "demonologist",       ## drives the combo-chain moveset (ChainFactory/SkillFactory)
 		"passive_id":      "demon_hellborn",
 		"passive_name":    "Hellborn",
-		"passive_desc":    "+25% Fire Damage. +30 Fire Resist — hell does not burn its own.",
+		"passive_desc":    "+25% Fire Damage. +30 Fire Resist - hell does not burn its own.",
 		"dash_style":      "ashenstep",          ## Ashen Step: hop clear and leave the ground burning
 		"portrait":        "res://assets/characters/portraits/the_demon.png",
 		"unlock_cost":     2500,
@@ -590,7 +590,7 @@ const ALL: Dictionary = {
 		"id":              "The Verdant",
 		"display_name":    "THE VERDANT",
 		"char_class":      "Druid",
-		"description":     "A wilds-keeper who wears the shapes of the forest — claw, fang, and wing.",
+		"description":     "A wilds-keeper who wears the shapes of the forest - claw, fang, and wing.",
 		"starting_weapon": "Thornstaff",    ## Druid GREEN (task 34 class gear)
 		"melee_kit":       "druid",           ## drives the combo-chain moveset (ChainFactory/SkillFactory)
 		"passive_id":      "verdant_passive",

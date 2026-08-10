@@ -295,7 +295,7 @@ func _build_weapon_cache(pixel_font: FontFile) -> void:
 	choices_container.add_child(sep)
 
 	var header := Label.new()
-	header.text = "— WEAPON CACHE  [%.0f / %.0f haul] —" % [GameManager.loot_carried, WEAPON_SWAP_COST]
+	header.text = "- WEAPON CACHE  [%.0f / %.0f haul] -" % [GameManager.loot_carried, WEAPON_SWAP_COST]
 	header.add_theme_color_override("font_color", Color(0.55, 0.85, 1.0))
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	choices_container.add_child(header)
@@ -303,7 +303,7 @@ func _build_weapon_cache(pixel_font: FontFile) -> void:
 	var display: String = wdata.get("display_name", offered)
 	var desc: String    = wdata.get("description", "")
 	var btn := Button.new()
-	btn.text = "%s\n%s\n[Cost: 30 haul — drops current weapon]" % [display, desc]
+	btn.text = "%s\n%s\n[Cost: 30 haul - drops current weapon]" % [display, desc]
 	btn.custom_minimum_size = Vector2(210, 52)
 	btn.disabled = GameManager.loot_carried < WEAPON_SWAP_COST
 	btn.add_theme_color_override("font_color", Color(0.55, 0.85, 1.0))

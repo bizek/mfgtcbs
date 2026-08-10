@@ -130,7 +130,7 @@ func _build_killed_by(lv: VBoxContainer, summary: Dictionary) -> void:
 	var who: String = str(blow.get("name", "something in the dark"))
 	var move: String = str(blow.get("ability", ""))
 	if move != "":
-		who += "  —  %s" % move
+		who += "  -  %s" % move
 	ReportView.line(lv, who, ReportView.COL_BAD)
 	var amount: String = ReportView.fmt(float(blow.get("amount", 0.0)))
 	if bool(blow.get("crit", false)):

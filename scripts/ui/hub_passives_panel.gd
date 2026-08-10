@@ -533,7 +533,7 @@ func _on_node_refund(node_id: String) -> void:
 	AudioManager.play_ui("sfx_ui_error")
 	var reason: String = _pm.refund_block_reason(node_id)
 	if _refund_hint:
-		_refund_hint.text = "CAN'T REFUND — %s" % reason if reason != "" else "CAN'T REFUND"
+		_refund_hint.text = "CAN'T REFUND - %s" % reason if reason != "" else "CAN'T REFUND"
 		_refund_hint.add_theme_color_override("font_color", C_WARN)
 		_hint_timer = HINT_HOLD_SEC
 	## Flash the node itself so the refusal is attached to what you clicked (merchant_shop pattern).
