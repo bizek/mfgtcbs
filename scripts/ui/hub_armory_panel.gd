@@ -560,7 +560,29 @@ func _build_class_mod_picker(parent: Control) -> void:
 			btn.add_theme_color_override("font_color", mod_col if not already else mod_col.darkened(0.35))
 			btn.add_theme_color_override("font_hover_color", mod_col.lightened(0.25))
 			_style_btn_mod(btn, mod_col, true)
-			row.add_child(btn)
+
+			## Rarity rides in a PILL beside the name, not in the name's colour — the mod's own
+			## colour is its identity (fire orange, void purple) and overloading it with rarity
+			## would lose one of the two. Same tag art the haul manifest uses, so the two screens
+			## say "rare" the same way. Falls back to the bare button when the sheet is missing.
+			var tag: Control = Icons.rarity_tag(ClassModData.rarity_of(mod_id))
+			if tag != null:
+				var name_row := HBoxContainer.new()
+				name_row.add_theme_constant_override("separation", 4)
+				## The row must be told to fill, and the button must be allowed to SHRINK.
+				## Without both, the HBox sizes to the button's full text width and pushes the
+				## pill past the panel edge — measured at x=665 in a 640px viewport before this
+				## line existed. clip_text lowers the button's minimum so the pill always lands
+				## inside, whatever a future mod is called.
+				name_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				btn.clip_text = true
+				name_row.add_child(btn)
+				tag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+				name_row.add_child(tag)
+				row.add_child(name_row)
+			else:
+				row.add_child(btn)
 
 			var desc: String = mdata.get("desc", "")
 			if not desc.is_empty():
@@ -568,6 +590,14 @@ func _build_class_mod_picker(parent: Control) -> void:
 				dl.text = "  " + desc + ("   [equipped elsewhere]" if already else "")
 				dl.add_theme_font_size_override("font_size", FS_XS)
 				dl.add_theme_color_override("font_color", C_T2)
+				## WRAP. Without this the label's minimum width is the whole sentence, and a
+				## Container must honour its children's minimums — so one long description
+				## dragged this VBox, its MarginContainer and every row inside it past the
+				## panel's right edge. Measured at 655 against a panel ending at 580, and it
+				## predates the rarity pill: the pill was simply the first thing far enough
+				## right to make the overflow visible.
+				dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				dl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				row.add_child(dl)
 
 			var cap_mid: String = mod_id

@@ -14,7 +14,15 @@ const VW: float = 640.0
 const VH: float = 360.0
 
 const WEAPON_PRICE: int = 12
-const MOD_PRICE: int = 8
+## Mods are priced by rarity as of 2026-08-10. This was a flat 8 for all 96, which made the
+## shelf a coin-flip rather than a choice — an epic and a +10% modifier cost the same.
+## Anchored so the mean sits near the old flat 8, and so an epic mod reads as roughly a
+## weapon-and-a-half without touching the town portal's 25 (the run's biggest decision).
+const MOD_PRICE_BY_RARITY: Dictionary = { "uncommon": 6, "rare": 10, "epic": 16 }
+const MOD_PRICE: int = 8   ## fallback only, for an id with no rarity
+
+static func mod_price(mod_id: String) -> int:
+	return int(MOD_PRICE_BY_RARITY.get(ClassModData.rarity_of(mod_id), MOD_PRICE))
 const KEYSTONE_PRICE: int = 20
 const STABILITY_PRICE: int = 15
 const STABILITY_REDUCTION: int = 20
@@ -78,12 +86,15 @@ func _generate_offers() -> Array[Dictionary]:
 		if mods_added >= 2:
 			break
 		var md: Dictionary = ModApplicability.get_mod(mid)
+		var mrar: String = ClassModData.rarity_of(mid)
 		result.append({
 			"type": "mod",
 			"id": mid,
 			"display": str(md.get("name", mid)),
-			"price": MOD_PRICE,
-			"color": Color(0.55, 0.80, 0.90),
+			"price": mod_price(mid),
+			## Rarity colour, so the shelf reads at a glance instead of every mod being the
+			## same blue. Same palette the pickups and the haul manifest use.
+			"color": LootTables.RARITY_COLORS.get(mrar, Color(0.55, 0.80, 0.90)),
 			"sold": false,
 		})
 		mods_added += 1

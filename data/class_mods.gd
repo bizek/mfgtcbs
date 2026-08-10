@@ -43,6 +43,7 @@ const ALL: Dictionary = {
 		"id": "fighter_overcharged_cataclysm",
 		"name": "OVERCHARGED CATACLYSM",
 		"kit": "fighter",
+		"rarity": "uncommon",
 		"desc": "Cataclysm lands 35% harder across a 40% wider crater.",
 		"color": Color(1.0, 0.55, 0.15),
 		"target": { "anim": "cataclysm" },
@@ -53,6 +54,7 @@ const ALL: Dictionary = {
 		"id": "fighter_tempest_vortex",
 		"name": "TEMPEST VORTEX",
 		"kit": "fighter",
+		"rarity": "epic",
 		"desc": "Tempest becomes a vortex - enemies are dragged into the blade before it hits.",
 		"color": Color(0.55, 0.75, 1.0),
 		"target": { "graph": "light", "anim": "tempest" },
@@ -63,6 +65,7 @@ const ALL: Dictionary = {
 		"id": "fighter_sustained_whirlwind",
 		"name": "SUSTAINED WHIRLWIND",
 		"kit": "fighter",
+		"rarity": "uncommon",
 		"desc": "Whirlwind spins 40% wider - the spin-to-win option.",
 		"color": Color(0.9, 0.7, 0.2),
 		## targets both the Swirl step and the Whirlwind loop (same anim name "swirl")
@@ -74,6 +77,7 @@ const ALL: Dictionary = {
 		"id": "fighter_concussive_taunt",
 		"name": "CONCUSSIVE TAUNT",
 		"kit": "fighter",
+		"rarity": "rare",
 		"desc": "Taunt shockwave ticks chill the ring, slowing enemies caught in its pulse.",
 		"color": Color(0.55, 0.85, 1.0),
 		"target": { "graph": "channel", "anim": "taunt" },
@@ -85,6 +89,7 @@ const ALL: Dictionary = {
 		"id": "fighter_blood_wages",
 		"name": "BLOOD WAGES",
 		"kit": "fighter",
+		"rarity": "uncommon",
 		"desc": "The Sellsword takes payment in blood - a share of all damage dealt returns as health.",
 		"color": Color(0.85, 0.20, 0.50),
 		"op": "modifier",
@@ -94,6 +99,7 @@ const ALL: Dictionary = {
 		"id": "fighter_opening_cut",
 		"name": "OPENING CUT",
 		"kit": "fighter",
+		"rarity": "rare",
 		"desc": "The chain's first swing opens a wound that keeps bleeding through the rest of it.",
 		"color": Color(0.85, 0.15, 0.15),
 		"target": { "graph": "light", "anim": "attack" },
@@ -104,6 +110,7 @@ const ALL: Dictionary = {
 		"id": "fighter_shattering_uppercut",
 		"name": "SHATTERING UPPERCUT",
 		"kit": "fighter",
+		"rarity": "uncommon",
 		"desc": "The launch hits 25% harder across a 40% wider arc - the whole ring goes up, not one enemy.",
 		"color": Color(1.0, 0.75, 0.30),
 		"target": { "anim": "uppercut" },
@@ -114,6 +121,7 @@ const ALL: Dictionary = {
 		"id": "fighter_grappling_rush",
 		"name": "GRAPPLING RUSH",
 		"kit": "fighter",
+		"rarity": "rare",
 		"desc": "Rush drags everything it clips along with it, dumping the pack where you stop.",
 		"color": Color(0.55, 0.75, 1.0),
 		"target": { "graph": "skill_e", "anim": "rush" },
@@ -127,6 +135,7 @@ const ALL: Dictionary = {
 		"id": "paladin_thunderous_bash",
 		"name": "THUNDEROUS BASH",
 		"kit": "paladin",
+		"rarity": "rare",
 		"desc": "Shield Bash hits 25% harder across a 35% wider shockwave.",
 		"color": Color(1.0, 0.85, 0.2),
 		"target": { "anim": "bash" },
@@ -137,6 +146,7 @@ const ALL: Dictionary = {
 		"id": "paladin_blessed_hammer_storm",
 		"name": "BLESSED HAMMER STORM",
 		"kit": "paladin",
+		"rarity": "rare",
 		"desc": "Holy Hammer descends 40% harder - the hammerdin moment magnified.",
 		"color": Color(1.0, 1.0, 0.55),
 		"target": { "anim": "hammer" },
@@ -147,6 +157,7 @@ const ALL: Dictionary = {
 		"id": "paladin_dictums_reach",
 		"name": "DICTUM'S REACH",
 		"kit": "paladin",
+		"rarity": "uncommon",
 		"desc": "Blades of Justice orbit 45% further from the Warden's body.",
 		"color": Color(0.85, 0.95, 1.0),
 		"target": { "anim": "dictum" },
@@ -157,6 +168,7 @@ const ALL: Dictionary = {
 		"id": "paladin_retribution_dome",
 		"name": "RETRIBUTION DOME",
 		"kit": "paladin",
+		"rarity": "epic",
 		"desc": "Reckoning's dome Ignites everything that presses against it while held.",
 		"color": Color(1.0, 0.45, 0.15),
 		"target": { "graph": "channel", "anim": "dome" },
@@ -168,6 +180,7 @@ const ALL: Dictionary = {
 		"id": "paladin_aegis_plating",
 		"name": "AEGIS PLATING",
 		"kit": "paladin",
+		"rarity": "uncommon",
 		"desc": "Layered plate over the Warden's chest. Physical blows glance off.",
 		"color": Color(0.80, 0.82, 0.90),
 		"op": "modifier",
@@ -178,6 +191,7 @@ const ALL: Dictionary = {
 		"id": "paladin_shield_wall",
 		"name": "SHIELD WALL",
 		"kit": "paladin",
+		"rarity": "uncommon",
 		"desc": "The shield is always up. Far more incoming hits are turned aside outright.",
 		"color": Color(1.0, 0.85, 0.35),
 		"op": "modifier",
@@ -187,6 +201,7 @@ const ALL: Dictionary = {
 		"id": "paladin_sworn_thorns",
 		"name": "SWORN THORNS",
 		"kit": "paladin",
+		"rarity": "rare",
 		"desc": "The Vow answers for you - everything that strikes the Warden is struck back.",
 		"color": Color(0.95, 0.95, 0.70),
 		"target": { "graph": "skill_q", "anim": "vow" },
@@ -197,6 +212,7 @@ const ALL: Dictionary = {
 		"id": "paladin_relentless_vow",
 		"name": "RELENTLESS VOW",
 		"kit": "paladin",
+		"rarity": "uncommon",
 		"desc": "Oaths come round faster. Every cooldown the Warden carries is shortened.",
 		"color": Color(1.0, 1.0, 0.55),
 		"op": "modifier",
@@ -209,6 +225,7 @@ const ALL: Dictionary = {
 		"id": "ninja_bleeding_blades",
 		"name": "BLEEDING BLADES",
 		"kit": "ninja",
+		"rarity": "epic",
 		"desc": "Every cut in the light chain applies Bleed - even the blade storm.",
 		"color": Color(0.85, 0.15, 0.15),
 		"target": { "graph": "light" },
@@ -219,6 +236,7 @@ const ALL: Dictionary = {
 		"id": "ninja_endless_storm",
 		"name": "ENDLESS STORM",
 		"kit": "ninja",
+		"rarity": "rare",
 		"desc": "Thousand Blades Storm expands 50% - the blade nova fills the room.",
 		"color": Color(0.35, 0.85, 0.75),
 		"target": { "graph": "channel", "anim": "blades" },
@@ -229,6 +247,7 @@ const ALL: Dictionary = {
 		"id": "ninja_honed_edge",
 		"name": "HONED EDGE",
 		"kit": "ninja",
+		"rarity": "uncommon",
 		"desc": "The whetstone carries a keener edge - +12% crit chance while equipped.",
 		"color": Color(0.7, 0.9, 0.7),
 		"op": "modifier",
@@ -242,6 +261,7 @@ const ALL: Dictionary = {
 		"id": "ninja_choking_smoke",
 		"name": "CHOKING SMOKE",
 		"kit": "ninja",
+		"rarity": "uncommon",
 		"desc": "The Whisper's smoky aura weakens enemies - take 12% less damage while equipped.",
 		"color": Color(0.5, 0.5, 0.55),
 		"op": "modifier",
@@ -255,6 +275,7 @@ const ALL: Dictionary = {
 		"id": "ninja_deep_cut",
 		"name": "DEEP CUT",
 		"kit": "ninja",
+		"rarity": "uncommon",
 		"desc": "The Whisper knows where to put the blade. Critical hits land far harder.",
 		"color": Color(0.90, 0.25, 0.35),
 		"op": "modifier",
@@ -264,6 +285,7 @@ const ALL: Dictionary = {
 		"id": "ninja_blinding_smoke",
 		"name": "BLINDING SMOKE",
 		"kit": "ninja",
+		"rarity": "rare",
 		"desc": "The smoke bites. Anything left standing in it is chilled to a crawl.",
 		"color": Color(0.55, 0.85, 1.0),
 		"target": { "graph": "skill_e", "anim": "smoke" },
@@ -274,6 +296,7 @@ const ALL: Dictionary = {
 		"id": "ninja_finishing_flourish",
 		"name": "FINISHING FLOURISH",
 		"kit": "ninja",
+		"rarity": "uncommon",
 		"desc": "The storm's last turn hits 30% harder across a 35% wider circle.",
 		"color": Color(0.85, 0.90, 1.0),
 		"target": { "anim": "blades_end" },
@@ -284,6 +307,7 @@ const ALL: Dictionary = {
 		"id": "ninja_whetstone_ritual",
 		"name": "WHETSTONE RITUAL",
 		"kit": "ninja",
+		"rarity": "rare",
 		"desc": "Sharpen leaves a serrated edge behind - every cut afterwards bleeds.",
 		"color": Color(0.80, 0.20, 0.20),
 		"target": { "graph": "skill_q", "anim": "sharpen" },
@@ -297,6 +321,7 @@ const ALL: Dictionary = {
 		"id": "cleric_purifying_fire",
 		"name": "PURIFYING FIRE",
 		"kit": "cleric",
+		"rarity": "rare",
 		"desc": "Divine Fire strikes 35% harder and sets the impure ablaze.",
 		"color": Color(1.0, 0.75, 0.3),
 		"target": { "anim": "divine_fire" },
@@ -307,6 +332,7 @@ const ALL: Dictionary = {
 		"id": "cleric_words_of_agony",
 		"name": "WORDS OF AGONY",
 		"kit": "cleric",
+		"rarity": "rare",
 		"desc": "Word of Pain's curse zone spreads 50% wider - fewer escape the Devout's judgment.",
 		"color": Color(0.6, 0.2, 0.8),
 		"target": { "anim": "pray_pain" },
@@ -317,6 +343,7 @@ const ALL: Dictionary = {
 		"id": "cleric_radiant_smite",
 		"name": "RADIANT SMITE",
 		"kit": "cleric",
+		"rarity": "rare",
 		"desc": "Opening Smite lands 25% harder - the first strike always stings most.",
 		"color": Color(1.0, 1.0, 0.7),
 		"target": { "anim": "attack" },
@@ -327,6 +354,7 @@ const ALL: Dictionary = {
 		"id": "cleric_greater_sanctuary",
 		"name": "GREATER SANCTUARY",
 		"kit": "cleric",
+		"rarity": "uncommon",
 		"desc": "Sanctuary's blessing runs deeper - take 15% less damage while equipped.",
 		"color": Color(0.75, 0.95, 1.0),
 		"op": "modifier",
@@ -338,6 +366,7 @@ const ALL: Dictionary = {
 		"id": "cleric_censer_embers",
 		"name": "CENSER EMBERS",
 		"kit": "cleric",
+		"rarity": "epic",
 		"desc": "The divine fire clings. Everything it touches goes on burning.",
 		"color": Color(1.0, 0.60, 0.20),
 		"target": { "anim": "divine_fire" },
@@ -348,6 +377,7 @@ const ALL: Dictionary = {
 		"id": "cleric_guardians_wrath",
 		"name": "GUARDIAN'S WRATH",
 		"kit": "cleric",
+		"rarity": "uncommon",
 		"desc": "The guardian answers with force - 25% harder across a 40% wider circle.",
 		"color": Color(1.0, 0.95, 0.65),
 		"target": { "graph": "skill_e", "anim": "pray_guardian" },
@@ -358,6 +388,7 @@ const ALL: Dictionary = {
 		"id": "cleric_lingering_grace",
 		"name": "LINGERING GRACE",
 		"kit": "cleric",
+		"rarity": "uncommon",
 		"desc": "Blessings and afflictions alike hold 25% longer.",
 		"color": Color(0.90, 0.90, 1.0),
 		"op": "modifier",
@@ -367,6 +398,7 @@ const ALL: Dictionary = {
 		"id": "cleric_fervent_prayer",
 		"name": "FERVENT PRAYER",
 		"kit": "cleric",
+		"rarity": "uncommon",
 		"desc": "Every prayer mends more. All healing the Devout performs is 35% stronger.",
 		"color": Color(0.70, 1.0, 0.75),
 		"op": "modifier",
@@ -385,6 +417,7 @@ const ALL: Dictionary = {
 		"id": "druid_savage_maul",
 		"name": "SAVAGE THORNS",
 		"kit": "druid",
+		"rarity": "rare",
 		"desc": "The opening Thorn bites 25% harder - the first seed carries the most spite.",
 		"color": Color(0.55, 0.85, 0.25),
 		"target": { "graph": "light", "anim": "attack" },
@@ -397,6 +430,7 @@ const ALL: Dictionary = {
 		"id": "druid_diving_owl",
 		"name": "BRISTLING VOLLEY",
 		"kit": "druid",
+		"rarity": "rare",
 		"desc": "Thorn II and Bramble Volley each carry one more thorn.",
 		"color": Color(0.8, 0.95, 0.5),
 		## "attack_2" is BOTH light phases 1 and 2 — the mod hits both, which is what the
@@ -409,6 +443,7 @@ const ALL: Dictionary = {
 		"id": "druid_strangling_roots",
 		"name": "STRANGLING ROOTS",
 		"kit": "druid",
+		"rarity": "rare",
 		"desc": "Root Summoning zone spreads 50% further - the forest claims more ground.",
 		"color": Color(0.25, 0.6, 0.15),
 		"target": { "graph": "heavy", "anim": "root_cast" },
@@ -419,6 +454,7 @@ const ALL: Dictionary = {
 		"id": "druid_pack_leader",
 		"name": "ENDLESS BRAMBLE",
 		"kit": "druid",
+		"rarity": "uncommon",
 		"desc": "Bramble Barrage beats 20% harder for as long as you hold it.",
 		"color": Color(0.7, 0.5, 0.2),
 		## Was the Hound Frenzy channel; the channel is Bramble Barrage now and its beat
@@ -432,6 +468,7 @@ const ALL: Dictionary = {
 		"id": "druid_thorned_seeds",
 		"name": "THORNED SEEDS",
 		"kit": "druid",
+		"rarity": "epic",
 		"desc": "Barbed seed pods. Everything the Verdant looses draws blood that keeps running.",
 		"color": Color(0.55, 0.80, 0.35),
 		"target": { "graph": "light" },
@@ -442,6 +479,7 @@ const ALL: Dictionary = {
 		"id": "druid_ursine_fury",
 		"name": "URSINE FURY",
 		"kit": "druid",
+		"rarity": "uncommon",
 		"desc": "The bear arrives angry - its opening maul lands 35% harder.",
 		"color": Color(0.70, 0.50, 0.30),
 		"target": { "graph": "skill_q", "anim": "summon_bear" },
@@ -452,6 +490,7 @@ const ALL: Dictionary = {
 		"id": "druid_pack_hunter",
 		"name": "PACK HUNTER",
 		"kit": "druid",
+		"rarity": "uncommon",
 		"desc": "The hounds break wide, hitting 20% harder across a 40% broader sweep.",
 		"color": Color(0.75, 0.70, 0.55),
 		"target": { "graph": "skill_e", "anim": "summon_hounds" },
@@ -462,6 +501,7 @@ const ALL: Dictionary = {
 		"id": "druid_barkskin",
 		"name": "BARKSKIN",
 		"kit": "druid",
+		"rarity": "uncommon",
 		"desc": "Bark closes over skin. Physical blows bite far less deep.",
 		"color": Color(0.50, 0.40, 0.25),
 		"op": "modifier",
@@ -474,6 +514,7 @@ const ALL: Dictionary = {
 		"id": "necro_splintering_swirl",
 		"name": "SPLINTERING SWIRL",
 		"kit": "necromancer",
+		"rarity": "rare",
 		"desc": "Bone Swirl scatters 40% wider and bites 25% harder.",
 		"color": Color(0.7, 0.15, 0.7),
 		"target": { "anim": "bone_swirl" },
@@ -484,6 +525,7 @@ const ALL: Dictionary = {
 		"id": "necro_grave_bond",
 		"name": "GRAVE BOND",
 		"kit": "necromancer",
+		"rarity": "uncommon",
 		"desc": "The dead lend their vigor - +12% Max HP while equipped.",
 		"color": Color(0.5, 0.2, 0.55),
 		"op": "modifier",
@@ -493,6 +535,7 @@ const ALL: Dictionary = {
 		"id": "necro_dark_haste",
 		"name": "DARK HASTE",
 		"kit": "necromancer",
+		"rarity": "uncommon",
 		"desc": "The grave answers quicker - 12% Cooldown Reduction on all abilities.",
 		"color": Color(0.4, 0.25, 0.7),
 		"op": "modifier",
@@ -502,6 +545,7 @@ const ALL: Dictionary = {
 		"id": "necro_soul_leech",
 		"name": "SOUL LEECH",
 		"kit": "necromancer",
+		"rarity": "uncommon",
 		"desc": "Every wound drinks a little life back - +5% Lifesteal.",
 		"color": Color(0.55, 0.1, 0.5),
 		"op": "modifier",
@@ -512,6 +556,7 @@ const ALL: Dictionary = {
 		"id": "necro_marrow_shards",
 		"name": "MARROW SHARDS",
 		"kit": "necromancer",
+		"rarity": "rare",
 		"desc": "The bones splinter on impact and stay in the wound.",
 		"color": Color(0.85, 0.80, 0.70),
 		"target": { "anim": "bone_cast" },
@@ -522,6 +567,7 @@ const ALL: Dictionary = {
 		"id": "necro_endless_bones",
 		"name": "ENDLESS BONES",
 		"kit": "necromancer",
+		"rarity": "rare",
 		"desc": "Two more missiles in every cast. The ossuary does not run dry.",
 		"color": Color(0.90, 0.88, 0.80),
 		"target": { "anim": "bone_cast" },
@@ -532,6 +578,7 @@ const ALL: Dictionary = {
 		"id": "necro_grave_legion",
 		"name": "GRAVE LEGION",
 		"kit": "necromancer",
+		"rarity": "uncommon",
 		"desc": "The legion rises wider and hits 25% harder.",
 		"color": Color(0.60, 0.45, 0.75),
 		"target": { "graph": "skill_e", "anim": "bone_legion" },
@@ -546,6 +593,7 @@ const ALL: Dictionary = {
 		"id": "necro_soul_tithe",
 		"name": "SOUL TITHE",
 		"kit": "necromancer",
+		"rarity": "epic",
 		"desc": "Every soul the Shade takes is paid to the dark. Kills bleed off Instability - manage haul risk through aggression.",
 		"color": Color(0.40, 1.0, 0.55),
 		"op": "kit_flag",
@@ -558,6 +606,7 @@ const ALL: Dictionary = {
 		"id": "ranger_barbed_arrows",
 		"name": "BARBED ARROWS",
 		"kit": "ranger",
+		"rarity": "rare",
 		"desc": "Arrows are barbed - every shot in the volley chain applies Bleed.",
 		"color": Color(0.8, 0.4, 0.15),
 		"target": { "graph": "light" },
@@ -568,6 +617,7 @@ const ALL: Dictionary = {
 		"id": "ranger_impaling_knife",
 		"name": "IMPALING KNIFE",
 		"kit": "ranger",
+		"rarity": "uncommon",
 		"desc": "Throwing Knife skewers 50% deeper - a heavier, more decisive puncture.",
 		"color": Color(0.6, 0.55, 0.3),
 		"target": { "anim": "knife" },
@@ -578,6 +628,7 @@ const ALL: Dictionary = {
 		"id": "ranger_explosive_tips",
 		"name": "EXPLOSIVE TIPS",
 		"kit": "ranger",
+		"rarity": "rare",
 		"desc": "Triple Shot arrows burst on impact - each hit Ignites the target.",
 		"color": Color(1.0, 0.55, 0.1),
 		"target": { "anim": "triple_shot" },
@@ -588,6 +639,7 @@ const ALL: Dictionary = {
 		"id": "ranger_ghost_step",
 		"name": "GHOST STEP",
 		"kit": "ranger",
+		"rarity": "uncommon",
 		## Re-flavoured 2026-07-31: Conceal is gone (the E slot is Quiver Swap now), so the mod
 		## stands on the Scavenger's own footwork instead of naming a skill that no longer exists.
 		## The number is unchanged.
@@ -609,6 +661,7 @@ const ALL: Dictionary = {
 		"id": "ranger_split_quiver",
 		"name": "SPLIT QUIVER",
 		"kit": "ranger",
+		"rarity": "epic",
 		"desc": "Both heads on every shaft. The loaded element rides your whole chain, and each arrow carries the other element under it - fire detonates its own frost.",
 		"color": Color(0.85, 0.55, 0.95),
 		"op": "kit_flag",
@@ -619,6 +672,7 @@ const ALL: Dictionary = {
 		"id": "ranger_hunters_focus",
 		"name": "HUNTER'S FOCUS",
 		"kit": "ranger",
+		"rarity": "uncommon",
 		"desc": "Breath held, gap found. The Scavenger crits far more often.",
 		"color": Color(1.0, 0.85, 0.40),
 		"op": "modifier",
@@ -628,6 +682,7 @@ const ALL: Dictionary = {
 		"id": "ranger_pinning_shot",
 		"name": "PINNING SHOT",
 		"kit": "ranger",
+		"rarity": "rare",
 		"desc": "The paired arrows pin what they hit - chilled, and easy to keep at range.",
 		"color": Color(0.55, 0.85, 1.0),
 		"target": { "anim": "double_shot" },
@@ -638,6 +693,7 @@ const ALL: Dictionary = {
 		"id": "ranger_close_quarters",
 		"name": "CLOSE QUARTERS",
 		"kit": "ranger",
+		"rarity": "uncommon",
 		"desc": "When they get inside the bow, the answer hits 30% harder over a 35% wider swing.",
 		"color": Color(0.80, 0.75, 0.60),
 		"target": { "graph": "heavy", "anim": "melee" },
@@ -651,6 +707,7 @@ const ALL: Dictionary = {
 		"id": "wizard_fireball_scorched_earth",
 		"name": "FIREBALL: SCORCHED EARTH",
 		"kit": "wizard",
+		"rarity": "rare",
 		"desc": "Fireball Ignites every target it touches - scorched earth in its wake.",
 		"color": Color(1.0, 0.35, 0.05),
 		"target": { "anim": "fireball_2" },
@@ -661,6 +718,7 @@ const ALL: Dictionary = {
 		"id": "wizard_overload_bolts",
 		"name": "OVERLOAD BOLTS",
 		"kit": "wizard",
+		"rarity": "rare",
 		"desc": "Staff bolts and the Fireball hit 30% harder - the Spark overloads every cast.",
 		"color": Color(1.0, 0.8, 0.2),
 		"target": { "graph": "light" },
@@ -671,6 +729,7 @@ const ALL: Dictionary = {
 		"id": "wizard_torrent_surge",
 		"name": "BURST SURGE",
 		"kit": "wizard",
+		"rarity": "uncommon",
 		"desc": "The Fire Burst finisher blooms 50% wider - the nova fills the room.",
 		"color": Color(1.0, 0.55, 0.15),
 		"target": { "graph": "light", "anim": "fireburst" },
@@ -681,6 +740,7 @@ const ALL: Dictionary = {
 		"id": "wizard_ember_familiar",
 		"name": "EMBER FAMILIAR",
 		"kit": "wizard",
+		"rarity": "uncommon",
 		"desc": "The familiar burns hotter - +15% damage while equipped.",
 		"color": Color(0.9, 0.4, 0.1),
 		"op": "modifier",
@@ -691,6 +751,7 @@ const ALL: Dictionary = {
 		"id": "wizard_arcane_multiplicity",
 		"name": "ARCANE MULTIPLICITY",
 		"kit": "wizard",
+		"rarity": "rare",
 		"desc": "One more bolt on every opening cast.",
 		"color": Color(0.55, 0.70, 1.0),
 		"target": { "graph": "light", "anim": "attack" },
@@ -701,6 +762,7 @@ const ALL: Dictionary = {
 		"id": "wizard_deep_freeze",
 		"name": "DEEP FREEZE",
 		"kit": "wizard",
+		"rarity": "epic",
 		"desc": "The ice cast no longer slows - it stops. Everything caught is frozen solid.",
 		"color": Color(0.45, 0.85, 1.0),
 		"target": { "graph": "skill_q", "anim": "ice_cast" },
@@ -711,6 +773,7 @@ const ALL: Dictionary = {
 		"id": "wizard_tempest_call",
 		"name": "TEMPEST CALL",
 		"kit": "wizard",
+		"rarity": "uncommon",
 		"desc": "The storm answers wider - 45% broader, 20% harder.",
 		"color": Color(0.85, 0.90, 1.0),
 		"target": { "graph": "skill_e", "anim": "storm_cast" },
@@ -721,6 +784,7 @@ const ALL: Dictionary = {
 		"id": "wizard_manaburn",
 		"name": "MANABURN",
 		"kit": "wizard",
+		"rarity": "uncommon",
 		"desc": "The Spark burns through reserves recklessly. Every cooldown comes back 15% sooner.",
 		"color": Color(0.70, 0.55, 1.0),
 		"op": "modifier",
@@ -733,6 +797,7 @@ const ALL: Dictionary = {
 		"id": "blood_mage_hemorrhage_shards",
 		"name": "HEMORRHAGE SHARDS",
 		"kit": "blood_mage",
+		"rarity": "epic",
 		"desc": "Blood Shards carry a hemorrhaging edge - every shard applies Bleed.",
 		"color": Color(0.75, 0.05, 0.05),
 		"target": { "anim": "shards" },
@@ -743,6 +808,7 @@ const ALL: Dictionary = {
 		"id": "blood_mage_deeper_pact",
 		"name": "DEEPER PACT",
 		"kit": "blood_mage",
+		"rarity": "uncommon",
 		"desc": "The blood pact runs deeper - +20% damage while equipped.",
 		"color": Color(0.85, 0.1, 0.1),
 		"op": "modifier",
@@ -752,6 +818,7 @@ const ALL: Dictionary = {
 		"id": "blood_mage_bloodquake",
 		"name": "BLOODQUAKE",
 		"kit": "blood_mage",
+		"rarity": "rare",
 		"desc": "Blood Spikes erupt 20% harder across a 45% wider crimson field.",
 		"color": Color(0.9, 0.2, 0.15),
 		"target": { "anim": "spikes" },
@@ -762,6 +829,7 @@ const ALL: Dictionary = {
 		"id": "blood_mage_sanguine_drain",
 		"name": "SANGUINE DRAIN",
 		"kit": "blood_mage",
+		"rarity": "uncommon",
 		"desc": "The drain draws more deeply - +18% damage increases each Vampirize beat's yield.",
 		"color": Color(0.6, 0.0, 0.2),
 		"op": "modifier",
@@ -772,6 +840,7 @@ const ALL: Dictionary = {
 		"id": "blood_mage_crimson_feast",
 		"name": "CRIMSON FEAST",
 		"kit": "blood_mage",
+		"rarity": "uncommon",
 		"desc": "The Cursed drinks from every wound she opens.",
 		"color": Color(0.80, 0.10, 0.25),
 		"op": "modifier",
@@ -781,6 +850,7 @@ const ALL: Dictionary = {
 		"id": "blood_mage_rupture",
 		"name": "RUPTURE",
 		"kit": "blood_mage",
+		"rarity": "rare",
 		"desc": "The slam ruptures the ground - 30% harder across a 40% wider break.",
 		"color": Color(0.75, 0.15, 0.30),
 		"target": { "graph": "heavy", "anim": "slam" },
@@ -791,6 +861,7 @@ const ALL: Dictionary = {
 		"id": "blood_mage_thirsting_vortex",
 		"name": "THIRSTING VORTEX",
 		"kit": "blood_mage",
+		"rarity": "uncommon",
 		"desc": "The drain reaches half again as far while held.",
 		"color": Color(0.65, 0.10, 0.40),
 		"target": { "graph": "channel", "anim": "vampirize" },
@@ -801,6 +872,7 @@ const ALL: Dictionary = {
 		"id": "blood_mage_hemoplague",
 		"name": "HEMOPLAGUE",
 		"kit": "blood_mage",
+		"rarity": "rare",
 		"desc": "Two more shards in every volley.",
 		"color": Color(0.85, 0.20, 0.35),
 		"target": { "anim": "shards" },
@@ -814,6 +886,7 @@ const ALL: Dictionary = {
 		"id": "demon_searing_hellfire",
 		"name": "SEARING HELLFIRE",
 		"kit": "demonologist",
+		"rarity": "rare",
 		"desc": "Hellfire sprays 35% wider and sears 20% harder.",
 		"color": Color(1.0, 0.45, 0.15),
 		## See ability_upgrades.demon_conflagration: the phase name is "hellfire_2", not "hellfire".
@@ -825,6 +898,7 @@ const ALL: Dictionary = {
 		"id": "demon_ninefold_circle",
 		"name": "NINEFOLD CIRCLE",
 		"kit": "demonologist",
+		"rarity": "rare",
 		"desc": "The Brimstone Circle is drawn 40% wider and burns 25% hotter.",
 		"color": Color(0.95, 0.25, 0.20),
 		"target": { "anim": "brimstone" },
@@ -835,6 +909,7 @@ const ALL: Dictionary = {
 		"id": "demon_infernal_hide",
 		"name": "INFERNAL HIDE",
 		"kit": "demonologist",
+		"rarity": "uncommon",
 		"desc": "Pact-scarred skin drinks the heat - +25 Fire Resist.",
 		"color": Color(0.75, 0.30, 0.15),
 		"op": "modifier",
@@ -844,6 +919,7 @@ const ALL: Dictionary = {
 		"id": "demon_greater_pact",
 		"name": "GREATER PACT",
 		"kit": "demonologist",
+		"rarity": "uncommon",
 		"desc": "He signs for more than he can pay - +15% damage while equipped.",
 		"color": Color(0.85, 0.20, 0.35),
 		"op": "modifier",
@@ -854,6 +930,7 @@ const ALL: Dictionary = {
 		"id": "demon_breach_wake",
 		"name": "BREACH WAKE",
 		"kit": "demonologist",
+		"rarity": "rare",
 		"desc": "The tear left by Hell Breach is 40% wider and bites 20% deeper.",
 		"color": Color(0.85, 0.25, 0.55),
 		"target": { "anim": "hell_breach" },
@@ -864,6 +941,7 @@ const ALL: Dictionary = {
 		"id": "demon_sustained_torment",
 		"name": "SUSTAINED TORMENT",
 		"kit": "demonologist",
+		"rarity": "epic",
 		"desc": "The held hellfire sears wounds that will not close.",
 		"color": Color(1.0, 0.35, 0.10),
 		"target": { "graph": "channel", "anim": "hellfire_ch" },
@@ -874,6 +952,7 @@ const ALL: Dictionary = {
 		"id": "demon_archdemons_toll",
 		"name": "ARCHDEMON'S TOLL",
 		"kit": "demonologist",
+		"rarity": "uncommon",
 		"desc": "What answers the call arrives larger and hungrier - 45% wider, 25% harder.",
 		"color": Color(0.70, 0.15, 0.20),
 		"target": { "graph": "skill_e", "anim": "archdemon_call" },
@@ -884,6 +963,7 @@ const ALL: Dictionary = {
 		"id": "demon_blood_pact",
 		"name": "BLOOD PACT",
 		"kit": "demonologist",
+		"rarity": "uncommon",
 		"desc": "The pact is written in vitality. The Demon carries 15% more of it.",
 		"color": Color(0.80, 0.20, 0.30),
 		"op": "modifier",
@@ -896,6 +976,7 @@ const ALL: Dictionary = {
 		"id": "barbarian_earthsplitter",
 		"name": "EARTHSPLITTER",
 		"kit": "barbarian",
+		"rarity": "rare",
 		"desc": "Sunder fractures the ground 25% harder across a 45% wider break.",
 		"color": Color(0.85, 0.4, 0.05),
 		"target": { "anim": "sunder" },
@@ -906,6 +987,7 @@ const ALL: Dictionary = {
 		"id": "barbarian_chained_lightning",
 		"name": "CHAINED LIGHTNING",
 		"kit": "barbarian",
+		"rarity": "rare",
 		"desc": "Thunder Blade crackles 40% harder - the lightning jumps further.",
 		"color": Color(0.6, 0.7, 1.0),
 		"target": { "anim": "thunder" },
@@ -916,6 +998,7 @@ const ALL: Dictionary = {
 		"id": "barbarian_iron_wall",
 		"name": "IRON WALL",
 		"kit": "barbarian",
+		"rarity": "uncommon",
 		"desc": "The Ravager's guard is iron - take 18% less damage while equipped.",
 		"color": Color(0.65, 0.65, 0.75),
 		"op": "modifier",
@@ -926,6 +1009,7 @@ const ALL: Dictionary = {
 		"id": "barbarian_deafening_cry",
 		"name": "DEAFENING CRY",
 		"kit": "barbarian",
+		"rarity": "uncommon",
 		"desc": "Battle Cry echoes with pure fury - +15% damage while equipped.",
 		"color": Color(1.0, 0.3, 0.05),
 		"op": "modifier",
@@ -936,6 +1020,7 @@ const ALL: Dictionary = {
 		"id": "barbarian_storm_volley",
 		"name": "STORM VOLLEY",
 		"kit": "barbarian",
+		"rarity": "rare",
 		"desc": "Two more bolts leave the blade on every thunder strike.",
 		"color": Color(1.0, 0.90, 0.35),
 		"target": { "anim": "thunder" },
@@ -946,6 +1031,7 @@ const ALL: Dictionary = {
 		"id": "barbarian_hurled_ruin",
 		"name": "HURLED RUIN",
 		"kit": "barbarian",
+		"rarity": "uncommon",
 		"desc": "Whatever the Ravager throws lands 30% harder across a 40% wider crater.",
 		"color": Color(0.80, 0.60, 0.35),
 		"target": { "graph": "skill_e", "anim": "throw" },
@@ -956,6 +1042,7 @@ const ALL: Dictionary = {
 		"id": "barbarian_bloodrage",
 		"name": "BLOODRAGE",
 		"kit": "barbarian",
+		"rarity": "uncommon",
 		"desc": "The fight feeds him. A share of all damage dealt comes back as health.",
 		"color": Color(0.80, 0.15, 0.15),
 		"op": "modifier",
@@ -965,6 +1052,7 @@ const ALL: Dictionary = {
 		"id": "barbarian_terrifying_roar",
 		"name": "TERRIFYING ROAR",
 		"kit": "barbarian",
+		"rarity": "epic",
 		"desc": "The war cry freezes the blood of everything that hears it.",
 		"color": Color(0.60, 0.85, 1.0),
 		"target": { "graph": "skill_q", "anim": "cry" },
@@ -978,6 +1066,7 @@ const ALL: Dictionary = {
 		"id": "gunslinger_fan_the_hammer_plus2",
 		"name": "FAN THE HAMMER +2",
 		"kit": "gunslinger",
+		"rarity": "rare",
 		"desc": "Fan the Hammer fires 2 extra bullets - 7 shots, all at once.",
 		"color": Color(0.85, 0.85, 0.95),
 		"target": { "anim": "fan" },
@@ -988,6 +1077,7 @@ const ALL: Dictionary = {
 		"id": "gunslinger_hollow_points",
 		"name": "HOLLOW POINTS",
 		"kit": "gunslinger",
+		"rarity": "epic",
 		"desc": "Hollow-point rounds tear through flesh - every shot in the light chain applies Bleed.",
 		"color": Color(0.7, 0.15, 0.15),
 		"target": { "graph": "light" },
@@ -998,6 +1088,7 @@ const ALL: Dictionary = {
 		"id": "gunslinger_suppressing_storm",
 		"name": "SUPPRESSING STORM",
 		"kit": "gunslinger",
+		"rarity": "uncommon",
 		"desc": "Desert Storm volley hits 30% harder - the storm suppresses everything.",
 		"color": Color(0.5, 0.6, 0.8),
 		"target": { "graph": "channel", "anim": "storm" },
@@ -1008,6 +1099,7 @@ const ALL: Dictionary = {
 		"id": "gunslinger_quickdraw",
 		"name": "QUICKDRAW",
 		"kit": "gunslinger",
+		"rarity": "uncommon",
 		"desc": "Loaded chambers keep the edge sharp - +10% crit chance while equipped.",
 		"color": Color(0.9, 0.8, 0.55),
 		"op": "modifier",
@@ -1018,6 +1110,7 @@ const ALL: Dictionary = {
 		"id": "gunslinger_incendiary_rounds",
 		"name": "INCENDIARY ROUNDS",
 		"kit": "gunslinger",
+		"rarity": "rare",
 		"desc": "Every round out of the chain sets what it hits alight.",
 		"color": Color(1.0, 0.45, 0.10),
 		"target": { "graph": "light" },
@@ -1028,6 +1121,7 @@ const ALL: Dictionary = {
 		"id": "gunslinger_hot_loads",
 		"name": "HOT LOADS",
 		"kit": "gunslinger",
+		"rarity": "rare",
 		"desc": "Two more rounds per beat while the storm is held down.",
 		"color": Color(1.0, 0.75, 0.25),
 		"target": { "graph": "channel", "anim": "storm" },
@@ -1038,6 +1132,7 @@ const ALL: Dictionary = {
 		"id": "gunslinger_lash_and_draw",
 		"name": "LASH AND DRAW",
 		"kit": "gunslinger",
+		"rarity": "uncommon",
 		"desc": "The whip cracks 30% harder over a 40% wider reach before the guns come up.",
 		"color": Color(0.80, 0.65, 0.45),
 		"target": { "graph": "skill_e", "anim": "whip" },
@@ -1048,6 +1143,7 @@ const ALL: Dictionary = {
 		"id": "gunslinger_dead_aim",
 		"name": "DEAD AIM",
 		"kit": "gunslinger",
+		"rarity": "uncommon",
 		"desc": "When the Deadeye connects clean, it ends things. Critical hits land far harder.",
 		"color": Color(1.0, 0.80, 0.15),
 		"op": "modifier",
@@ -1417,6 +1513,42 @@ static func ids_for_kit(kit_id: String) -> Array:
 	return out
 
 
+## ── Rarity ───────────────────────────────────────────────────────────────────
+## Every class mod carries a rarity, and every kit carries the SAME shape:
+## 1 epic / 3 rare / 4 uncommon. Symmetry is deliberate — the roster is already
+## 8-per-character with 3 slots and 2 evolutions each, and a character whose mods
+## happened to be numeric would otherwise have no chase item at all.
+##
+## The initial tiering ranks each kit's eight by how much the op TRANSFORMS the
+## move rather than by how big its numbers are: kit_flag > add_pull > add_status >
+## add_projectile_status > add_projectiles > scale_aoe / modifier, ties broken by
+## ORDER position. That is why every epic is the characterful one — SPLIT QUIVER,
+## SOUL TITHE, TEMPEST VORTEX — and never a flat +damage.
+##
+## It is stored per entry rather than computed so it can be argued with: move a
+## line and the drop tables, the pickup colour and the merchant price all follow.
+##
+## Three tiers, not five, matching `LootTables.gear_rarity_from()` — mods and class
+## weapons speak the same vocabulary rather than two parallel ones.
+const RARITY_TIERS: Array[String] = ["uncommon", "rare", "epic"]
+const RARITY_SHAPE: Dictionary = { "epic": 1, "rare": 3, "uncommon": 4 }
+
+
+static func rarity_of(mod_id: String) -> String:
+	return str(ALL.get(mod_id, {}).get("rarity", "uncommon"))
+
+
+## This kit's mods at one tier, in ORDER. Empty if the kit has none at that tier —
+## callers must handle that rather than assume, which is why the drop path below
+## walks outward to neighbouring tiers instead of indexing blind.
+static func ids_for_kit_of_rarity(kit_id: String, rarity: String) -> Array:
+	var out: Array = []
+	for mod_id: String in ids_for_kit(kit_id):
+		if rarity_of(mod_id) == rarity:
+			out.append(mod_id)
+	return out
+
+
 ## Startup check: ORDER is the ONLY route into the game. `ids_for_kit` walks it, and every
 ## consumer — ModApplicability.droppable_pool (loot), the armory picker, the merchant — goes
 ## through `ids_for_kit`. An entry in ALL but not in ORDER is therefore fully authored, wired,
@@ -1441,6 +1573,33 @@ static func validate_order() -> Array[String]:
 					% mod_id + "or be equipped")
 		if ALL[mod_id].get("kit", "") == "":
 			problems.append("class mod '%s' declares no kit — it belongs to no character" % mod_id)
+		var rar: String = str(ALL[mod_id].get("rarity", ""))
+		if rar == "":
+			problems.append("class mod '%s' has no rarity — it would price and drop as the "
+					% mod_id + "cheapest tier by default")
+		elif not RARITY_TIERS.has(rar):
+			problems.append("class mod '%s' has rarity '%s', which is not one of %s"
+					% [mod_id, rar, str(RARITY_TIERS)])
+
+	## Every kit must carry the SAME rarity shape. Without this a kit could quietly end up with
+	## no epic — meaning that character has no chase mod and its high-rarity drops silently
+	## degrade to rare forever, which is exactly the kind of asymmetry nothing else would report.
+	var per_kit: Dictionary = {}
+	for mod_id: String in ALL:
+		var kit_id: String = str(ALL[mod_id].get("kit", ""))
+		if kit_id == "":
+			continue
+		if not per_kit.has(kit_id):
+			per_kit[kit_id] = {}
+		var r: String = str(ALL[mod_id].get("rarity", "?"))
+		per_kit[kit_id][r] = int(per_kit[kit_id].get(r, 0)) + 1
+	for kit_id: String in per_kit:
+		for tier: String in RARITY_SHAPE:
+			var want: int = int(RARITY_SHAPE[tier])
+			var got: int = int(per_kit[kit_id].get(tier, 0))
+			if got != want:
+				problems.append("kit '%s' has %d %s mod(s), expected %d — the rarity shape "
+						% [kit_id, got, tier, want] + "must match across every kit")
 	## Evolutions: an unreachable requirement is the same silent failure one level up. A recipe
 	## naming an id that is not in ALL, or is bound to a different kit, can never be assembled and
 	## leaves a permanently-UNKNOWN codex entry with no way to earn it.

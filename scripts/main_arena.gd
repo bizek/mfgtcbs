@@ -984,14 +984,20 @@ func _spawn_mod_drop(pos: Vector2, rarity: String = "common") -> void:
 	## droppable pool IS this character's eight class mods — there is nothing left that could roll
 	## and then do nothing. No fallback: an unknown character id yields an empty pool and no drop,
 	## which is correct, because there is no longer a universal mod to hand out instead.
+	##
+	## The rolled `rarity` now decides WHICH mod, not just what colour the pickup is. It used to
+	## be a uniform pick out of all eight, so a phase-1 common and a phase-5 legendary handed out
+	## the same thing and the roll was decoration.
 	var char_id: String = ProgressionManager.selected_character
-	var mod_ids: Array = ModApplicability.droppable_pool(char_id)
+	var mod_ids: Array = ModApplicability.droppable_pool_of_rarity(char_id, rarity)
 	if mod_ids.is_empty():
 		return
 	var mod_id: String = mod_ids[randi() % mod_ids.size()]
 	var pickup: Area2D = ModPickupScript.new()
 	pickup.mod_id          = mod_id
-	pickup.rarity          = rarity
+	## The MOD's own tier, not the roll that selected it — those differ whenever the sweep had to
+	## walk outward, and the pickup must show what the player is actually picking up.
+	pickup.rarity          = ClassModData.rarity_of(mod_id)
 	pickup.global_position = pos
 	add_child(pickup)
 

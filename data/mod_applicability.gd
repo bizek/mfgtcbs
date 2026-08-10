@@ -86,3 +86,34 @@ static func class_mod_ids_for(char_id: String) -> Array:
 ## the boss reward all draw from this, so an unusable mod can never drop mid-run.
 static func droppable_pool(char_id: String) -> Array:
 	return class_mod_ids_for(char_id)
+
+
+## The pool at a given rarity, walking OUTWARD to neighbouring tiers if that tier is empty.
+##
+## The caller passes a rarity rolled off the phase weights, which is a 5-tier vocabulary
+## (common…legendary) while mods use 3 (uncommon/rare/epic). `LootTables.gear_rarity_from()`
+## does that mapping — the same one class weapons use — so a phase-1 "common" roll lands on
+## uncommon and a phase-5 "legendary" lands on epic without a second roll.
+##
+## Walking outward rather than returning empty is the important part: a drop that rolled a
+## tier the kit cannot fill must still produce a mod, or the pickup silently vanishes. It
+## searches nearer tiers first, so an epic roll degrades to rare before uncommon.
+static func droppable_pool_of_rarity(char_id: String, rarity: String) -> Array:
+	var kit_id: String = kit_of(char_id)
+	if kit_id.is_empty():
+		return []
+	var want: String = LootTables.gear_rarity_from(rarity)
+	var tiers: Array[String] = ClassModData.RARITY_TIERS
+	var idx: int = tiers.find(want)
+	if idx < 0:
+		idx = 0
+	## Distance-ordered sweep out from the rolled tier.
+	for step in range(tiers.size()):
+		for dir in ([0] if step == 0 else [-step, step]):
+			var i: int = idx + dir
+			if i < 0 or i >= tiers.size():
+				continue
+			var pool: Array = ClassModData.ids_for_kit_of_rarity(kit_id, tiers[i])
+			if not pool.is_empty():
+				return pool
+	return class_mod_ids_for(char_id)
