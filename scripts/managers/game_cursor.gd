@@ -47,6 +47,25 @@ const HOTSPOT: float = 8.0
 
 enum Mode { POINTER, AIM }
 
+## ── Click pop (UI pack gap 2, tail) ──────────────────────────────────────────
+## `Cursors/Click_Effects/Click_Effects.png` is 64x208 — 4 columns x 13 rows of 16x16. Rows 0-5
+## are a "collapsing in" effect, row 6 is blank, rows 7-12 are "expanding out", each in six
+## colours (red, gold, blue, orange, magenta, green). Expanding-out reads as "something went out
+## from here", which is what a click confirm wants; gold matches the menus' amber accent.
+##
+## MENUS ONLY, deliberately (Ben, 2026-08-09). The pack's own timing is 100ms/frame, so a full
+## play is 400ms — fine for a button press, and clutter on a light chain that fires several times
+## a second. Pointer mode IS the menus: main_menu, hub and every panel call use_pointer(), while
+## main_arena calls use_aim(). Gating on the mode rather than on button signals means no screen
+## has to remember to opt in, and gameplay can never accidentally opt in.
+const CLICK_SHEET: String = "res://assets/minifantasy/Minifantasy_UI _Overhaul_v1.0/_Minifantasy_UI_Overhaul_Assets/_General_UI_Resources/Cursors/Click_Effects/Click_Effects.png"
+const CLICK_CELL: int = 16
+const CLICK_FRAMES: int = 4
+const CLICK_ROW_GOLD: int = 8        ## expanding-out block starts at row 7; +1 = gold
+const CLICK_FRAME_TIME: float = 0.1  ## the pack's native rate
+## Under SceneTransition (128) so a scene fade covers the pop rather than letting it sit on top.
+const CLICK_LAYER: int = 127
+
 var _mode: int = Mode.POINTER
 var _hostile: bool = false
 var _scale: int = 0                  ## 0 = nothing built yet
@@ -54,11 +73,79 @@ var _sheet_image: Image = null
 var _cache: Dictionary = {}          ## "col,row,scale" -> ImageTexture
 var _applied_key: String = ""        ## last texture actually handed to the OS
 
+var _click_layer: CanvasLayer = null
+var _click_rect: TextureRect = null
+var _click_frames: Array[AtlasTexture] = []
+var _click_frame: int = -1           ## -1 = idle
+var _click_timer: float = 0.0
+
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	get_tree().root.size_changed.connect(_on_window_resized)
 	_refresh()
+	_build_click_pop()
+
+
+## Drawn INSIDE the viewport, not scaled like the cursor art above: a CanvasLayer lives in the
+## 640x360 design space and is upscaled with the rest of the game for free. The hardware cursor
+## is the only thing that needs the manual integer scale.
+func _build_click_pop() -> void:
+	if not ResourceLoader.exists(CLICK_SHEET):
+		return
+	var sheet: Texture2D = load(CLICK_SHEET)
+	if sheet == null:
+		return
+	for i in range(CLICK_FRAMES):
+		var at := AtlasTexture.new()
+		at.atlas = sheet
+		at.region = Rect2(i * CLICK_CELL, CLICK_ROW_GOLD * CLICK_CELL, CLICK_CELL, CLICK_CELL)
+		at.filter_clip = true
+		_click_frames.append(at)
+
+	_click_layer = CanvasLayer.new()
+	_click_layer.layer = CLICK_LAYER
+	add_child(_click_layer)
+
+	_click_rect = TextureRect.new()
+	_click_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_click_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_click_rect.visible = false
+	_click_layer.add_child(_click_rect)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if _mode != Mode.POINTER or _click_rect == null:
+		return
+	if event is InputEventMouseButton and event.pressed \
+			and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
+		_play_click_pop()
+
+
+func _play_click_pop() -> void:
+	if _click_frames.is_empty():
+		return
+	## Restart rather than queue: a second click means the first pop is stale.
+	_click_frame = 0
+	_click_timer = 0.0
+	_click_rect.texture = _click_frames[0]
+	_click_rect.position = get_viewport().get_mouse_position() - Vector2(CLICK_CELL, CLICK_CELL) * 0.5
+	_click_rect.visible = true
+
+
+func _process(delta: float) -> void:
+	if _click_frame < 0:
+		return
+	_click_timer += delta
+	if _click_timer < CLICK_FRAME_TIME:
+		return
+	_click_timer -= CLICK_FRAME_TIME
+	_click_frame += 1
+	if _click_frame >= CLICK_FRAMES:
+		_click_frame = -1
+		_click_rect.visible = false
+		return
+	_click_rect.texture = _click_frames[_click_frame]
 
 
 ## Menus, hub, anything you point and click at.
