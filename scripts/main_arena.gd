@@ -413,38 +413,43 @@ func _setup_ldtk_level() -> void:
 
 func _setup_ldtk_descent() -> void:
 	## Build a block-based vertical descent for the current level.
-	## Sequence: [Entry] + [8 shuffled inner] + [Portal] = 10 total.
-	## Entry and Portal are fixed; inner slots shuffle from the normal pool.
+	## Sequence: [Entry] + [N shuffled inner] + [Portal]. Entry and Portal are fixed;
+	## inner slots shuffle from the pool, with the Merchant placed at merchant_depth.
+	##
+	## The block list lives in LevelData beside the biome's waves, NOT here. It was
+	## hardcoded in this function until 2026-08-09, which is the reason 21 finished
+	## blocks for two other biomes were unreachable: they are registered in the same
+	## LDtk project and nothing could name them.
 	const LDTK_PATH: String = "res://assets/Maps/Levels/Level 1 - Caves.ldtk"
-	const BLOCK_COUNT: int = 10  ## Entry + 8 shuffled inner (Merchant at ~50%) + Portal
 
-	## Fixed bookend blocks — never shuffled
-	const ENTRY_BLOCK_ID: String = "Block_Caves_00_Entry"
-	const PORTAL_BLOCK_ID: String = "Block_Caves_09_Portal"
+	var level_id: int = GameManager.current_level
+	if not LevelData.has_blocks(level_id):
+		## No authored blocks for this biome. Fall back rather than building a stack of
+		## bookends with nothing between them — an empty pool is not an error the
+		## BlockManager can see, so it has to be caught here.
+		push_warning("[MainArena] Level %d (%s) has no descent blocks — falling back to the flat arena."
+			% [level_id, LevelData.get_level_name(level_id)])
+		_using_descent = false
+		_using_ldtk = false
+		_setup_floor()
+		arena_generator = ArenaGenerator.new()
+		add_child(arena_generator)
+		arena_generator.generate(2025)
+		return
 
-	## Inner shuffled pool (add more variants here as they're authored;
-	## 10+ are compiled from blocks/caves/*.block — see docs/block_sketch_workflow.md)
-	var normal_block_ids: Array[String] = [
-		"Block_Caves_01_Open",
-		"Block_Caves_02_Pillars",
-		"Block_Caves_03_Choke",
-		"Block_Caves_04_Split",
-		"Block_Caves_10_ChokeA",
-		"Block_Caves_11_ChokeB",
-		"Block_Caves_12_PillarsB",
-		"Block_Caves_13_SplitB",
-		"Block_Caves_14_OpenB",
-		"Block_Caves_15_Gauntlet",
-	]
-	const MERCHANT_BLOCK_ID: String = "Block_Caves_05_Merchant"
+	var cfg: Dictionary = LevelData.get_blocks(level_id)
+	var normal_block_ids: Array[String] = []
+	for id: String in cfg.get("pool", []):
+		normal_block_ids.append(id)
 
 	_block_manager = BlockManager.new()
 	_block_manager.name = "BlockManager"
 	add_child(_block_manager)
 
 	var result: Dictionary = await _block_manager.build_descent(
-		LDTK_PATH, BLOCK_COUNT, normal_block_ids,
-		ENTRY_BLOCK_ID, PORTAL_BLOCK_ID, MERCHANT_BLOCK_ID, 0.5)
+		LDTK_PATH, int(cfg.get("count", 10)), normal_block_ids,
+		str(cfg.get("entry", "")), str(cfg.get("portal", "")),
+		str(cfg.get("merchant", "")), float(cfg.get("merchant_depth", 0.5)))
 
 	if not result.ok:
 		push_error("[MainArena] Descent build failed: %s" % str(result.errors))

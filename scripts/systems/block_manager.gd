@@ -14,7 +14,10 @@ extends Node
 
 signal block_entered(block_index: int)
 
-const BLOCK_PREFIX: String = "Block_Caves_"
+## No BLOCK_PREFIX const here any more. It was `"Block_Caves_"`, it had zero readers, and
+## alongside the hardcoded list in main_arena it made this look biome-locked when it is not:
+## build_descent() takes whatever ids it is handed. Blocks are declared per biome in
+## LevelData now (see LevelData.get_blocks).
 
 var block_bounds: Array[Rect2] = []
 var block_count: int = 0

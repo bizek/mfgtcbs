@@ -301,9 +301,16 @@ block list inside `main_arena` is the reason 60% of the authored level content i
 
 **Recommended split:**
 
-1. **3.1a — the plumbing alone** (small, Tier-1-sized). Move the block pool + prefix into
-   `LevelData`, so a biome's blocks are declared beside its waves. Nothing changes for the player;
-   biome 2 stops being blocked on a refactor.
+1. ~~**3.1a — the plumbing alone**~~ — **DONE 2026-08-09.** `LevelData.LEVELS[n].blocks` now
+   carries `count` / `entry` / `portal` / `merchant` / `merchant_depth` / `pool`, read by
+   `main_arena._setup_ldtk_descent()`, with `LevelData.has_blocks()` gating it. A biome with no
+   authored blocks falls back to the flat arena and warns, because an empty pool is not an error
+   `BlockManager` can see — it would have built a stack of bookends with nothing between them.
+   `BlockManager.BLOCK_PREFIX` (`"Block_Caves_"`, zero readers) is gone; it made the class look
+   biome-locked when `build_descent()` has always taken whatever ids it is handed.
+   Verified the ids are byte-identical to the old hardcoded list and that the sequence still
+   builds Entry → 7 shuffled + Merchant at 50% → Portal. **Biome 2 is no longer blocked on a
+   refactor** — adding it is now a data edit plus enemies.
 2. **3.1b — The Catacombs** (the real job). Undead enemy set, wave table, floor, bosses, and a Crypt
    portal + merchant block via `/blockgen`.
 3. **3.1c — level selection**, which `level_selection_plan.md` correctly says needs two real biomes

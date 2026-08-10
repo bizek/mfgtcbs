@@ -40,6 +40,34 @@ const LEVELS: Dictionary = {
 		## packs) instead of the tinted Colossus/Heart stand-ins.
 		"miniboss_id": "ancient_troll",
 		"final_boss_id": "goblin_king",
+		## ── Descent blocks ───────────────────────────────────────────────────
+		## Which .ldtkl blocks this biome's descent is assembled from. Lived as
+		## hardcoded string literals inside main_arena.gd's _setup_ldtk_descent()
+		## until 2026-08-09, which is why 21 finished blocks for two OTHER biomes
+		## (11 Block_Crypt_*, 10 Block_NMRealm_*) sat on disk unreachable — they
+		## are registered in the same LDtk project and there was simply no code
+		## path that could name them. A biome's blocks belong beside its waves.
+		"blocks": {
+			"count": 10,                                  ## Entry + 8 inner + Portal
+			"entry": "Block_Caves_00_Entry",              ## fixed bookends, never shuffled
+			"portal": "Block_Caves_09_Portal",
+			"merchant": "Block_Caves_05_Merchant",        ## placed at merchant_depth
+			"merchant_depth": 0.5,                        ## fraction of the way down
+			## Inner shuffled pool. Add variants here as they are authored —
+			## `blocks/caves/*.block` compiles into these (docs/block_sketch_workflow.md).
+			"pool": [
+				"Block_Caves_01_Open",
+				"Block_Caves_02_Pillars",
+				"Block_Caves_03_Choke",
+				"Block_Caves_04_Split",
+				"Block_Caves_10_ChokeA",
+				"Block_Caves_11_ChokeB",
+				"Block_Caves_12_PillarsB",
+				"Block_Caves_13_SplitB",
+				"Block_Caves_14_OpenB",
+				"Block_Caves_15_Gauntlet",
+			],
+		},
 		## Maps level-specific enemy IDs to their .tscn paths.
 		## IDs not listed here fall back to EnemySpawnManager's base scene lookup.
 		"scene_map": {
@@ -120,6 +148,20 @@ static func get_miniboss_id(level_id: int) -> String:
 
 static func get_final_boss_id(level_id: int) -> String:
 	return get_level(level_id).get("final_boss_id", "heart_of_the_deep")
+
+
+## Descent block config for a level: count, entry/portal/merchant bookends and the shuffled
+## inner pool. Empty for a biome whose blocks are not authored yet — callers must check
+## has_blocks() first, because building a descent from an empty pool produces a stack of
+## bookends with nothing between them rather than an error.
+static func get_blocks(level_id: int) -> Dictionary:
+	return get_level(level_id).get("blocks", {})
+
+
+## Returns true if this level can build a block descent at all.
+static func has_blocks(level_id: int) -> bool:
+	var b: Dictionary = get_blocks(level_id)
+	return not b.is_empty() and not (b.get("pool", []) as Array).is_empty()
 
 
 ## Returns true if the level has a defined wave_composition (not just stubs).
