@@ -52,10 +52,31 @@ var player_ref: Node2D = null
 var _choices: Array[Dictionary] = []
 var _rerolls_remaining: int = 0
 
+## ── Select-then-confirm ──────────────────────────────────────────────────────
+## Picking used to apply the moment a card was pressed. The screen opens mid-combat while the
+## player is holding or mashing attack, so a click already in flight landed on whatever card
+## happened to be under the cursor and the upgrade was spent before it had been read (Ben,
+## 2026-08-09: "you'll be kinda mashing attack, its easy to accidentally select something and
+## not even know what you selected").
+##
+## Two independent guards, because either alone leaves a hole:
+##   • a card press now SELECTS; only the CONFIRM button applies, and it sits apart from the
+##     cards so a mash at the cursor's position cannot reach it;
+##   • presses are ignored for INPUT_LOCK after the screen opens, which catches the click that
+##     was already travelling when it appeared. Without this, the first mash still selects —
+##     harmless now, but it would make the highlight jump for no reason the player can see.
+const INPUT_LOCK: float = 0.25
+
+var _selected: int = -1
+var _confirm_btn: Button = null
+var _cards: Array[Button] = []
+var _lock_timer: float = 0.0
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
-	_glyph_bar = GlyphBar.build([["confirm", "Pick"]])
+	## "Select", not "Pick" — the button no longer commits the choice on its own.
+	_glyph_bar = GlyphBar.build([["confirm", "Select"]])
 	$Panel/VBox.add_child(_glyph_bar)
 
 func setup(player: Node2D) -> void:
@@ -65,6 +86,8 @@ func setup(player: Node2D) -> void:
 func _on_player_leveled_up(new_level: int) -> void:
 	title_label.text = "LEVEL %d!" % new_level
 	_rerolls_remaining = ProgressionManager.get_max_rerolls()
+	_selected = -1
+	_lock_timer = INPUT_LOCK
 	_choices = UpgradeManager.generate_choices(3)
 	## Visible BEFORE building: _show_choices ends with UINav.focus_first,
 	## which only considers visible controls — grabbing while the layer is
@@ -82,12 +105,14 @@ func _show_choices() -> void:
 	var pixel_font: FontFile = load("res://assets/fonts/m5x7.ttf")
 
 	## Create a button for each choice. All three share one height so the row reads as a row.
+	_cards.clear()
 	var card_h: float = _card_height_for(_choices, pixel_font)
 	for i in range(_choices.size()):
 		var btn := _build_choice_card(_choices[i], pixel_font, card_h)
 		btn.pressed.connect(_on_choice_pressed.bind(i))
 		UINav.apply_focus_ring(btn)
 		choices_container.add_child(btn)
+		_cards.append(btn)
 
 	## Reroll button
 	var reroll_btn := Button.new()
@@ -98,8 +123,48 @@ func _show_choices() -> void:
 	UINav.apply_focus_ring(reroll_btn)
 	choices_container.add_child(reroll_btn)
 
+	## The commit. Separate control, below the cards, disabled until something is chosen —
+	## so nothing can be spent by a click that lands where a card happens to be.
+	_confirm_btn = Button.new()
+	_confirm_btn.custom_minimum_size = Vector2(210, 30)
+	_confirm_btn.disabled = true
+	_confirm_btn.text = "CONFIRM"
+	_confirm_btn.pressed.connect(_on_confirm_pressed)
+	UINav.apply_focus_ring(_confirm_btn)
+	choices_container.add_child(_confirm_btn)
+
 	_build_weapon_cache(pixel_font)
+	_refresh_selection()
 	UINav.focus_first(choices_container)
+
+
+func _process(delta: float) -> void:
+	if _lock_timer > 0.0:
+		_lock_timer -= delta
+
+
+## Repaint the cards so the chosen one is obvious, and enable the commit.
+##
+## Dimming alone is not enough of a signal here: the cards are ALREADY colour-coded by role, so
+## "the brighter one" competes with four accent colours and the focus ring, which sits on
+## whichever card the keyboard/controller last moved to and is often a different card entirely.
+## So the button says what it is about to spend. That is the literal complaint this change
+## exists to answer — "easy to accidentally select something and not even know what you
+## selected" — and a name is unambiguous where a brightness step is not.
+func _refresh_selection() -> void:
+	for i in range(_cards.size()):
+		var chosen: bool = (i == _selected)
+		_cards[i].modulate = Color(1, 1, 1) if chosen else Color(0.55, 0.55, 0.60)
+	if _confirm_btn == null:
+		return
+	_confirm_btn.disabled = _selected < 0
+	if _selected < 0:
+		_confirm_btn.text = "PICK ONE"
+		return
+	## Measured: the longest name sampled puts this at 170px against a 210px button, but
+	## clip_text guarantees a future longer one can never push the card row wider.
+	_confirm_btn.clip_text = true
+	_confirm_btn.text = "CONFIRM:  %s" % str(_choices[_selected].get("name", ""))
 
 ## One choice card. A Button holding its own layout rather than a two-line `text` string, because
 ## the name and the description want different colours and Button.text can only be one.
@@ -260,13 +325,32 @@ func _on_reroll_pressed() -> void:
 		return
 	AudioManager.play_ui("sfx_ui_click")
 	_rerolls_remaining -= 1
+	## A reroll replaces every card, so any existing selection refers to an upgrade that is no
+	## longer on offer. Clearing it also re-disables CONFIRM, which is the behaviour you want:
+	## a fresh set has to be chosen from again.
+	_selected = -1
 	_choices = UpgradeManager.generate_choices(3)
 	_show_choices()
 
+## Pressing a card SELECTS it. Nothing is spent here — see the note on INPUT_LOCK.
 func _on_choice_pressed(index: int) -> void:
-	var upgrade: Dictionary = _choices[index]
+	if _lock_timer > 0.0:
+		return
+	if _selected == index:
+		return
+	_selected = index
+	AudioManager.play_ui("sfx_ui_click")
+	_refresh_selection()
+
+
+## The only path that actually spends the level-up.
+func _on_confirm_pressed() -> void:
+	if _lock_timer > 0.0 or _selected < 0 or _selected >= _choices.size():
+		return
+	var upgrade: Dictionary = _choices[_selected]
 	AudioManager.play_ui("sfx_upgrade_select")
 	UpgradeManager.apply_upgrade(upgrade, player_ref)
 	upgrade_selected.emit(upgrade)
+	_selected = -1
 	visible = false
 	GameManager.exit_level_up()
