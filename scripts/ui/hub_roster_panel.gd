@@ -244,7 +244,7 @@ func _build_char_card(parent: VBoxContainer, char_id: String) -> void:
 
 	if is_active:
 		var act_lbl := Label.new()
-		act_lbl.text = "▶"
+		act_lbl.text = ">"
 		act_lbl.add_theme_font_size_override("font_size", FS_XS)
 		act_lbl.add_theme_color_override("font_color", char_col)
 		act_lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -480,7 +480,7 @@ func _build_detail_pane(parent: HBoxContainer) -> void:
 	btn.add_theme_font_size_override("font_size", FS_MD)
 
 	if is_active:
-		btn.text     = "◆ ACTIVE"
+		btn.text     = "+ ACTIVE"
 		btn.disabled = true
 		btn.add_theme_color_override("font_color", C_GREEN_HI)
 		_style_btn_flat(btn,

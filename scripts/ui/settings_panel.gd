@@ -437,7 +437,7 @@ func _binding_text(action: String, cls: String) -> String:
 
 func _event_text(event: InputEvent) -> String:
 	var glyph: String = InputGlyphs.event_glyph(event, Settings.device_class(event) == "pad")
-	if glyph != "" and glyph != "●":
+	if glyph != "" and glyph != InputGlyphs.UNKNOWN_GLYPH:
 		return glyph
 	return event.as_text().trim_suffix(" (Physical)")
 

@@ -24,6 +24,17 @@ const AXIS_DEADZONE := 0.35
 var using_joypad: bool = false
 var _family: String = "xbox"
 
+## Returned by event_glyph() when a pad button or axis has no entry in the active family's table.
+##
+## It is a SENTINEL as well as a display string — settings_panel.gd compares against it to decide
+## whether to fall back to `event.as_text()`. That comparison lived as a duplicated literal in the
+## other file, so changing the glyph in one place silently broke the check in the other. Named
+## here so the two cannot drift.
+##
+## "?" rather than the old "●": the bullet is not in m5x7 and dropped to a vector fallback, and a
+## question mark says "unmapped" more plainly than a dot does anyway.
+const UNKNOWN_GLYPH: String = "?"
+
 
 ## One entry per controller family. Each set carries:
 ##   buttons  — JoyButton index → glyph
@@ -33,7 +44,7 @@ var _family: String = "xbox"
 const _GLYPH_SETS := {
 	"xbox": {
 		"buttons": {
-			JOY_BUTTON_A: "Ⓐ", JOY_BUTTON_B: "Ⓑ", JOY_BUTTON_X: "Ⓧ", JOY_BUTTON_Y: "Ⓨ",
+			JOY_BUTTON_A: "A", JOY_BUTTON_B: "B", JOY_BUTTON_X: "X", JOY_BUTTON_Y: "Y",
 			JOY_BUTTON_LEFT_SHOULDER: "LB", JOY_BUTTON_RIGHT_SHOULDER: "RB",
 			JOY_BUTTON_LEFT_STICK: "L3", JOY_BUTTON_RIGHT_STICK: "R3",
 			JOY_BUTTON_START: "Start", JOY_BUTTON_BACK: "Back",
@@ -45,8 +56,8 @@ const _GLYPH_SETS := {
 			"0:-": "LS←", "0:+": "LS→", "1:-": "LS↑", "1:+": "LS↓",
 			"2:-": "RS←", "2:+": "RS→", "3:-": "RS↑", "3:+": "RS↓",
 		},
-		"confirm": "Ⓐ",
-		"back": "Ⓑ",
+		"confirm": "A",
+		"back": "B",
 		"switch": "LB/RB",
 	},
 	"playstation": {
@@ -475,10 +486,10 @@ func switch_glyph() -> String:
 func event_glyph(event: InputEvent, joypad: bool) -> String:
 	if joypad:
 		if event is InputEventJoypadButton:
-			return _glyphs()["buttons"].get(event.button_index, "●")
+			return _glyphs()["buttons"].get(event.button_index, UNKNOWN_GLYPH)
 		if event is InputEventJoypadMotion:
 			var key := "%d:%s" % [event.axis, "-" if event.axis_value < 0.0 else "+"]
-			return _glyphs()["motions"].get(key, "●")
+			return _glyphs()["motions"].get(key, UNKNOWN_GLYPH)
 		return ""
 	if event is InputEventKey:
 		return _key_label(event)

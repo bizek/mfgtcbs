@@ -373,7 +373,7 @@ func _build_weapon_picker(parent: Control) -> void:
 		for w_id: String in weapons:
 			var is_sel: bool = w_id == current_id
 			var btn := Button.new()
-			btn.text               = ("%s  %s" % [("▶ " if is_sel else "  "), w_id.to_upper()])
+			btn.text               = ("%s  %s" % [("> " if is_sel else "  "), w_id.to_upper()])
 			btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			btn.alignment          = HORIZONTAL_ALIGNMENT_LEFT
 			btn.focus_mode         = Control.FOCUS_ALL
@@ -406,7 +406,7 @@ func _build_weapon_picker(parent: Control) -> void:
 	parent.add_child(back_rule)
 
 	var back := Button.new()
-	back.text                = "← BACK"
+	back.text                = "< BACK"
 	back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	back.alignment           = HORIZONTAL_ALIGNMENT_LEFT
 	back.focus_mode          = Control.FOCUS_ALL
@@ -472,7 +472,7 @@ func _build_class_mod_card(parent: Control) -> void:
 		mb.focus_mode            = Control.FOCUS_ALL
 		mb.add_theme_font_size_override("font_size", FS_XS)
 		if has_mod:
-			mb.text = "◈ " + mod_name
+			mb.text = "* " + mod_name
 			mb.add_theme_color_override("font_color", mod_col)
 			mb.add_theme_color_override("font_hover_color", mod_col.lightened(0.3))
 		else:
@@ -518,7 +518,7 @@ func _build_class_mod_picker(parent: Control) -> void:
 	var cur: String = str(equipped[_class_mod_target_slot]) if _class_mod_target_slot < equipped.size() else ""
 	if not cur.is_empty():
 		var clear_btn := Button.new()
-		clear_btn.text = "✕ CLEAR SLOT"
+		clear_btn.text = "X CLEAR SLOT"
 		clear_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		clear_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		clear_btn.add_theme_font_size_override("font_size", FS_SM)
@@ -553,7 +553,7 @@ func _build_class_mod_picker(parent: Control) -> void:
 
 			var btn := Button.new()
 			var name_txt: String = mdata.get("name", mod_id)
-			btn.text = ("◈ %s  ×%d" % [name_txt, count]) if count > 1 else ("◈ " + name_txt)
+			btn.text = ("* %s  ×%d" % [name_txt, count]) if count > 1 else ("* " + name_txt)
 			btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 			btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			btn.add_theme_font_size_override("font_size", FS_MD)
@@ -614,7 +614,7 @@ func _build_class_mod_picker(parent: Control) -> void:
 	parent.add_child(spc)
 
 	var back := Button.new()
-	back.text = "← BACK"
+	back.text = "< BACK"
 	back.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	back.add_theme_font_size_override("font_size", FS_MD)
@@ -670,7 +670,7 @@ func _build_footer(parent: Control) -> void:
 
 	if _codex_panel != null:
 		var cb := Button.new()
-		cb.text = "◆ CODEX"
+		cb.text = "+ CODEX"
 		cb.add_theme_font_size_override("font_size", FS_XS)
 		cb.add_theme_color_override("font_color", Color(0.60, 0.42, 0.88))
 		cb.add_theme_color_override("font_hover_color", Color(0.82, 0.62, 1.0))
@@ -793,7 +793,7 @@ func _style_picker_chrome() -> void:
 	_picker_empty_label.add_theme_font_size_override("font_size", FS_MD)
 	_picker_empty_label.add_theme_color_override("font_color", C_T2)
 
-	_picker_cancel_btn.text = "← CANCEL"
+	_picker_cancel_btn.text = "< CANCEL"
 	_picker_cancel_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_picker_cancel_btn.add_theme_font_size_override("font_size", FS_MD)
 	_picker_cancel_btn.add_theme_color_override("font_color", C_T1)

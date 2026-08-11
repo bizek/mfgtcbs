@@ -58,7 +58,7 @@ func _build_label() -> void:
 	## Off-class cargo reads as "for THE WARDEN" so the player knows it banks elsewhere.
 	var cargo_tag: String = ""
 	if not target_char_id.is_empty():
-		cargo_tag = " → " + CharacterData.ALL.get(target_char_id, {}).get("display_name", target_char_id)
+		cargo_tag = " > " + CharacterData.ALL.get(target_char_id, {}).get("display_name", target_char_id)
 	lbl.text = "[" + rarity.to_upper() + "] " + display + cargo_tag
 	## Self-centring: a fixed negative x offset assumes a text width, so it drifts the moment
 	## the font size or the item name changes. Width + CENTER holds at any size.

@@ -353,9 +353,9 @@ func _build_node(parent: Control, node_id: String, accent: Color, width: int) ->
 
 	var display_name: String = node.get("name", node_id)
 	if is_keystone:
-		display_name = "★ " + display_name
+		display_name = "* " + display_name
 	elif is_notable:
-		display_name = "◆ " + display_name
+		display_name = "+ " + display_name
 	var name_clip := _marquee_lbl(top, display_name, FS_TINY, name_col)
 
 	var rank_lbl := _lbl(top, "%d/%d" % [ranks, max_r], FS_TINY, st["rank_col"])
@@ -431,7 +431,7 @@ func _card_state(node_id: String, accent: Color) -> Dictionary:
 		state_text = _pm.node_gate_text(node_id)
 		state_col  = C_DIM
 	elif is_avail:
-		state_text = "◆ %d PT" % cost
+		state_text = "+ %d PT" % cost
 		state_col  = accent
 	else:
 		state_text = "%d PT" % cost

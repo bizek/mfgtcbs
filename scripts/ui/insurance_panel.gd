@@ -167,7 +167,7 @@ func _refresh_rows() -> void:
 		var is_insured: bool = (item["id"] == insured)
 
 		if is_insured:
-			lbl.text = "[★] " + item["display"]
+			lbl.text = "[*] " + item["display"]
 			lbl.modulate = Color(1.0, 0.88, 0.22)
 			btn.text = "INSURED"
 			btn.disabled = true

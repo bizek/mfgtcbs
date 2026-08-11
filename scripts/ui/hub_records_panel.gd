@@ -5,6 +5,9 @@ extends Control
 
 signal close_requested
 
+## Preloaded under a local alias rather than the bare class_name — see hub_roster_panel.gd.
+const Icons := preload("res://scripts/ui/ui_icons.gd")
+
 @onready var _base:    HubPanelBase = $PanelBase
 @onready var _content: Control      = $PanelBase/ContentContainer
 
@@ -230,7 +233,10 @@ func _add_achievement_row(parent: Control, id: String) -> void:
 	parent.add_child(row)
 
 	var icon_col: Color = def.get("color", C_T0) if unlocked else C_LOCKED
-	var icon_lbl := _lbl(row, str(def.get("icon", "?")), 18, icon_col)
+	## 16, not 18. Off the m5x7 grid, and missed by three previous font audits because the
+	## size arrives as a POSITIONAL ARGUMENT to _lbl rather than as an override call — the same
+	## seam that hid GlyphBar.rich_prompt's 11.
+	var icon_lbl := _lbl(row, str(def.get("icon", "?")), 16, icon_col)
 	icon_lbl.custom_minimum_size = Vector2(22, 0)
 	icon_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	icon_lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -244,15 +250,22 @@ func _add_achievement_row(parent: Control, id: String) -> void:
 	_lbl(text_col, title_text, FS_XS, C_T0 if unlocked else C_T2)
 
 	var desc_text: String = "???" if secret else str(def.get("description", ""))
-	var desc_lbl := _lbl(text_col, desc_text, 12, C_DESC)
+	var desc_lbl := _lbl(text_col, desc_text, 16, C_DESC)
 	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
 	if unlocked:
-		var check := _lbl(row, "✓", FS_XS, Color(0.4, 0.85, 0.55))
+		## The pack ships a real check glyph, so use it rather than U+2713 (absent from m5x7)
+		## or an ASCII stand-in. general_node() returns a TextureRect; general() returns the
+		## bare AtlasTexture. Falls back to a letter if the sheet is missing.
+		var check: Control = Icons.general_node(Icons.CHECK, Color(0.4, 0.85, 0.55))
+		if check == null:
+			check = _lbl(row, "v", FS_XS, Color(0.4, 0.85, 0.55))
+		else:
+			row.add_child(check)
 		check.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	elif def.get("kind", "") == "threshold":
 		var progress: Vector2 = AchievementManager.get_progress(id)
-		var prog_lbl := _lbl(row, "%d/%d" % [int(progress.x), int(progress.y)], 12, C_LOCKED)
+		var prog_lbl := _lbl(row, "%d/%d" % [int(progress.x), int(progress.y)], 16, C_LOCKED)
 		prog_lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
 
