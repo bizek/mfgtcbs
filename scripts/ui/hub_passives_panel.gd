@@ -82,6 +82,9 @@ func _ready() -> void:
 	_base.title_text   = "PASSIVE TREE"
 	_base.accent_color = C_ARCANA
 	add_child(_base)
+	## Script-built panels have no scene root to carry the centring offsets the five
+	## .tscn panels bake in, so without this the panel renders at (0, 0).
+	_base.center_in_viewport()
 	_base.close_requested.connect(func(): close_requested.emit())
 	if Engine.is_editor_hint():
 		return

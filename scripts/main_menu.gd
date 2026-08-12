@@ -30,6 +30,9 @@ var _menu_buttons: Array[Button] = []
 var _confirm_overlay: Control = null
 var _toast_label: Label = null
 var _toast_timer: float = 0.0
+## Hidden while the settings overlay is up — the panel stamps its own version in its
+## footer, so both were on screen at once. See _on_settings_pressed().
+var _version_label: Label = null
 
 func _ready() -> void:
 	anchor_left = 0.0
@@ -232,8 +235,14 @@ func _build_version_label() -> void:
 	lbl.position = Vector2(-40, -16)
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(lbl)
+	_version_label = lbl
 
-# ── Toast (stub notices for unbuilt panels) ─────────────────────────────────
+# ── Toast ───────────────────────────────────────────────────────────────────
+## Currently has NO CALLERS. It existed for "coming soon" notices on unbuilt panels,
+## and as of 2026-08-11 there are none left: CREDITS was a wrong path (fixed 2026-08-08)
+## and SETTINGS was a dead guard around a path that has always resolved. Kept because a
+## transient bottom-of-screen message is the only such affordance this screen has and it
+## costs ~20 lines — but do not read its presence as evidence that something is stubbed.
 
 func _build_toast() -> void:
 	_toast_label = Label.new()
@@ -269,17 +278,28 @@ func _on_training_pressed() -> void:
 	GameManager.training_mode = true
 	SceneTransition.change_scene("res://scenes/main_arena.tscn")
 
+## Unguarded, for the reason spelled out on _on_credits_pressed below: a
+## ResourceLoader.exists check around a hardcoded path cannot fail *usefully*. If the
+## path is right the branch is dead; if it is ever wrong the button silently claims the
+## feature is unbuilt instead of erroring, which is exactly how CREDITS stayed broken.
+## Path confirmed against disk 2026-08-11 (repo-wide res:// audit, 584 literals).
 func _on_settings_pressed() -> void:
-	if ResourceLoader.exists("res://scripts/ui/settings_panel.gd"):
-		var panel: Control = (load("res://scripts/ui/settings_panel.gd") as GDScript).new()
-		panel.close_requested.connect(func():
-			panel.queue_free()
-			_menu_buttons[0].grab_focus.call_deferred()
-		)
-		add_child(panel)
-		UINav.focus_first(panel)
-	else:
-		_show_toast("Settings - coming soon")
+	var panel: Control = (load("res://scripts/ui/settings_panel.gd") as GDScript).new()
+	## The panel stamps the build version in its own footer (settings_panel.gd:157), which is
+	## right when it is opened from the hub or the pause menu but put TWO "v0.0.4" stamps on
+	## screen here — the panel's at bottom-left and this screen's showing through at bottom-right,
+	## where it also collided with the panel's "Esc Close" hint bar. Hidden for the panel's
+	## lifetime rather than deleted from either site, since each is correct on its own.
+	if _version_label != null:
+		_version_label.visible = false
+	panel.close_requested.connect(func():
+		panel.queue_free()
+		if _version_label != null:
+			_version_label.visible = true
+		_menu_buttons[0].grab_focus.call_deferred()
+	)
+	add_child(panel)
+	UINav.focus_first(panel)
 
 ## The scene lives under scenes/ui/, not scenes/ — this pointed at the latter until
 ## 2026-08-08, and the ResourceLoader.exists guard that used to wrap it turned the

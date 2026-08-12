@@ -159,6 +159,32 @@ func get_content() -> Control:
 	return $ContentContainer
 
 
+## Centres this panel in the viewport.
+##
+## The five .tscn panels bake their position into their own root node (`offset_left = 120`
+## for a 400-wide panel, `offset_top` set so the panel is vertically centred for its height:
+## 47 at 267 tall, 27 at 307). The two script-built panels — research and passives — have no
+## scene to carry those offsets, so from the day they were written they rendered pinned to the
+## top-left corner while every other panel sat centred. Switching panels with LB/RB made the
+## window jump across the screen. Found 2026-08-11 by screenshotting all seven stations.
+##
+## The base is positioned rather than its parent because the concrete panel's root is a bare
+## 0x0 Control: that is exactly the arrangement the scene panels use (root at 120,47 with the
+## base at 0,0 inside it), so this reproduces their geometry instead of inventing a second one.
+## Anchors are not used — they resolve against that 0x0 parent and would centre on nothing.
+func center_in_viewport() -> void:
+	var vp: Vector2 = get_viewport_rect().size
+	var s: Vector2 = size
+	## size is authored on the instanced scene, but read defensively: a caller that
+	## centres before the first layout pass would otherwise centre a 0x0 rect.
+	if s.x <= 0.0 or s.y <= 0.0:
+		s = Vector2(PANEL_W, PANEL_H)
+	## round(), not floor() — at 400x267 in a 640x360 viewport the exact centre is
+	## y=46.5, and the scene panels round it up to 47. Matching them keeps the two
+	## panel families pixel-identical rather than one off by a row.
+	position = ((vp - s) * 0.5).round()
+
+
 ## Ⓑ / Esc always closes the panel, regardless of what has focus — the
 ## controller-nav safety net so a bad focus_neighbor chain can never trap a
 ## player inside a panel with no way back out.

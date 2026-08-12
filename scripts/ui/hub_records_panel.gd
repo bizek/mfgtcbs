@@ -22,6 +22,9 @@ const FS_MD := 16
 const FS_SM := 16
 const FS_XS := 16
 
+## Unlocked-tick size. 2x the sheet's 8px cell — integer multiples only, see _add_achievement_row.
+const CHECK_PX := 16
+
 var _stats_btn:  Button
 var _achv_btn:   Button
 var _stats_page: VBoxContainer
@@ -261,6 +264,14 @@ func _add_achievement_row(parent: Control, id: String) -> void:
 		if check == null:
 			check = _lbl(row, "v", FS_XS, Color(0.4, 0.85, 0.55))
 		else:
+			## The sheet cell is 8x8 and _wrap centres it at native size, which reads as a
+			## faint speck beside 16px text in a 36px row. Doubled to 16 so it matches the
+			## text — 2x exactly, with NEAREST filtering, because any non-integer scale on
+			## pixel art lands stems on fractional pixels before the 3x viewport upscale.
+			var tr := check as TextureRect
+			tr.custom_minimum_size = Vector2(CHECK_PX, CHECK_PX)
+			tr.stretch_mode        = TextureRect.STRETCH_SCALE
+			tr.texture_filter      = CanvasItem.TEXTURE_FILTER_NEAREST
 			row.add_child(check)
 		check.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	elif def.get("kind", "") == "threshold":
