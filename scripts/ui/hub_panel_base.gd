@@ -182,7 +182,13 @@ func center_in_viewport() -> void:
 	## round(), not floor() — at 400x267 in a 640x360 viewport the exact centre is
 	## y=46.5, and the scene panels round it up to 47. Matching them keeps the two
 	## panel families pixel-identical rather than one off by a row.
-	position = ((vp - s) * 0.5).round()
+	var target: Vector2 = ((vp - s) * 0.5).round()
+	## `position` is PARENT-relative, so assigning the target directly is only correct
+	## while the concrete panel's root sits at the origin — true for the two script-built
+	## panels, but it would double the offset on any panel whose root is already placed
+	## (a scene panel's root is at 120,47, so a direct assignment would land it at 240,94).
+	## Going through global_position makes this safe to call from anywhere.
+	position += target - global_position
 
 
 ## Ⓑ / Esc always closes the panel, regardless of what has focus — the

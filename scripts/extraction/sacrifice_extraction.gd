@@ -230,7 +230,7 @@ func _build_panel() -> Control:
 	panel.add_child(sep)
 
 	var cancel_btn := Button.new()
-	cancel_btn.text = "CANCEL \u2014 walk away"
+	cancel_btn.text = "CANCEL - walk away"
 	cancel_btn.size = Vector2(PANEL_W - 16.0, 20.0)
 	cancel_btn.position = Vector2(8.0, PANEL_H - 26.0)
 	cancel_btn.process_mode = Node.PROCESS_MODE_ALWAYS

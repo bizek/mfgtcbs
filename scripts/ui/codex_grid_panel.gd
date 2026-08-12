@@ -292,7 +292,7 @@ func _build_ui() -> void:
 	name_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	dbox.add_child(name_row)
 
-	_detail_name = _detail_label("\u2014 select a combo \u2014", COL_DIM)
+	_detail_name = _detail_label("- select a combo -", COL_DIM)
 	_detail_name.clip_text = true
 	name_row.add_child(_detail_name)
 
@@ -541,7 +541,7 @@ func _build_list_row(entry: CodexEntry) -> Control:
 func _refresh_detail() -> void:
 	if _selected_id.is_empty() or _selected_id not in CodexManager.entries:
 		_detail_type_badge.text    = ""
-		_detail_name.text          = "\u2014 select a combo \u2014"
+		_detail_name.text          = "- select a combo -"
 		_detail_name.add_theme_color_override("font_color", COL_DIM)
 		_set_state_tag("", "", COL_DIM, Icons.Tag.CREAM)
 		if _detail_new != null:
