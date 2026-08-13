@@ -101,11 +101,9 @@ func populate(pm: Node) -> void:
 
 	var body := VBoxContainer.new()
 	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	## Fills the scroll's height when the content is shorter than the panel. Without this the
-	## body hugs its content and the leftover height shows as raw black above the readiness
-	## line — the same dead space this whole change exists to remove, just moved down a bit.
-	## The class-mod card takes the slack (see _build_class_mods), so it lands inside a border.
-	body.size_flags_vertical   = Control.SIZE_EXPAND_FILL
+	## Deliberately NOT SIZE_EXPAND_FILL vertically: the cards hug their content and every card
+	## border sits tight against its own rows. _fit_to_content() takes the panel down to the
+	## content instead, so there is no leftover height for anything to absorb. (Ben, flush.)
 	body.add_theme_constant_override("separation", 6)
 	scroll.add_child(body)
 	_body = body
@@ -176,8 +174,11 @@ func populate(pm: Node) -> void:
 ## one character per line — The Shade's 79-character passive measured 1205px tall, which is how
 ## this was caught rather than shipped.
 ##
-## get_combined_minimum_size() is the content height, NOT _body.size.y: the body carries
-## SIZE_EXPAND_FILL so it always matches the scroll's height and would report zero slack.
+## get_combined_minimum_size() rather than _body.size.y because it is the height the content
+## WANTS, which is what the panel should be sized to. A ScrollContainer clamps its child's
+## actual size to the visible area once the content overflows, so _body.size.y can never
+## report how much too tall the content is — it saturates at the view height and the panel
+## would stop growing exactly when it most needs to.
 func _fit_to_content() -> void:
 	await get_tree().process_frame
 	if not is_instance_valid(_base) or not is_instance_valid(_scroll) or not is_instance_valid(_body):
@@ -197,13 +198,9 @@ func _fit_to_content() -> void:
 ## autowrapped PASSIVE line wrapped to a ~90px ribbon with half the card empty beside it.
 ## Latent since this panel was written; only became visible when the body font dropped to 16
 ## and the content minimum got narrower with it.
-func _card(parent: Control, title: String, trailing: String = "", grow: bool = false) -> VBoxContainer:
+func _card(parent: Control, title: String, trailing: String = "") -> VBoxContainer:
 	var card := PanelContainer.new()
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	## `grow` marks the card that absorbs whatever height is left over, so a short loadout
-	## leaves its slack inside a bordered section instead of as a black gap above the button.
-	if grow:
-		card.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var cs := StyleBoxFlat.new()
 	cs.bg_color            = Color(0.082, 0.075, 0.063)
 	cs.border_color        = _C_RULE
@@ -262,10 +259,8 @@ func _build_class_mods(parent: Control, pm: Node, char_id: String) -> void:
 		if not mid.is_empty():
 			filled += 1
 
-	var inner := _card(parent, "CLASS MODS", "%d / %d" % [filled, slots], true)
+	var inner := _card(parent, "CLASS MODS", "%d / %d" % [filled, slots])
 	inner.add_theme_constant_override("separation", 3)
-	## Rows stay pinned to the top of the card; the growth goes below them, not between them.
-	inner.alignment = BoxContainer.ALIGNMENT_BEGIN
 
 	## Nothing equipped at all is one statement, not three identical empty rows — it reads
 	## better and it is what keeps the tallest character (a two-line passive plus this card)
