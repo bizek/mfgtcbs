@@ -192,8 +192,15 @@ func _ready() -> void:
 	# Level setup — LDtk descent, LDtk single-level, or procedural
 	## Training room always uses the plain generated arena — a flat, open, predictable box
 	## is the point (no descent blocks, no LDtk chokepoints).
+	## Gated on "does this biome HAVE authored blocks", not on a level number. This read
+	## `GameManager.current_level == 1` until 2026-08-12 — the same level-1 assumption that kept
+	## 21 authored blocks unreachable, surviving one layer ABOVE the block pool that 3.1a moved
+	## into LevelData. The Catacombs shipped complete and silently fell through to the flat arena
+	## because of it: correct blocks, correct waves, correct enemies, wrong branch. Found by
+	## actually launching a run rather than by checking the data.
 	_using_ldtk = GameManager.debug_mode and GameManager.use_ldtk_level_1 \
-			and GameManager.current_level == 1 and not GameManager.training_mode
+			and not GameManager.training_mode \
+			and LevelData.has_blocks(GameManager.current_level)
 	_using_descent = _using_ldtk and GameManager.use_descent_mode
 	if _using_descent:
 		await _setup_ldtk_descent()
