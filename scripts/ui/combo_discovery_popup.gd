@@ -22,6 +22,12 @@ const ELEMENT_COLORS: Dictionary = {
 	"bleed": Color(0.7, 0.1, 0.1),     ## Dark red
 }
 
+## Where the popup rests inside the (now full-screen) root, and how far it floats as it fades.
+## Named because the reset at the end of _animate_popup has to restore exactly this — it used to
+## reset to 0, which walked the popup 40px up the screen after the first discovery.
+const _REST_Y: float  = 40.0
+const _DRIFT_Y: float = 20.0
+
 ## Popup animation queue
 var _popup_queue: Array[Dictionary] = []
 var _is_animating: bool = false
@@ -48,6 +54,24 @@ func _ready() -> void:
 
 
 func _create_popup_ui() -> void:
+	## THIS node is a Control parented to the HUD's CanvasLayer, so it has no rect of its own —
+	## a Control's anchors resolve against its parent Control, and a CanvasLayer is not one, so
+	## it sat at 0x0. _popup_root below centres itself with 0.5 anchors, and those resolved
+	## against that empty rect: the popup centred on x=0 and rendered half off the LEFT EDGE of
+	## the screen. It had never once been on screen. (Found 2026-08-12 by forcing it visible in
+	## the Training Room; measured at global x=-120.)
+	##
+	## A Control whose parent is not a Control anchors against the viewport instead, so
+	## PRESET_FULL_RECT gives the 640x360 rect that _popup_root's anchors need.
+	##
+	## set_anchors_AND_OFFSETS_preset, not set_anchors_preset: the latter sets the anchors and
+	## then rewrites the offsets to preserve the rect the node already had, which here was 0x0 —
+	## it produced anchors 0,0,1,1 with offsets 0,0,-640,-360, a correctly-anchored empty box.
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	## MOUSE_FILTER_IGNORE is not optional now that this covers the whole screen: combat is
+	## manual cursor-aim, so a Control that answers to the mouse over the play field eats attacks.
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+
 	## Create the popup UI hierarchy
 	_popup_root = Control.new()
 	_popup_root.name = "ComboDiscoveryPopup"
@@ -55,22 +79,29 @@ func _create_popup_ui() -> void:
 	_popup_root.anchor_right = 0.5
 	_popup_root.offset_left = -120.0
 	_popup_root.offset_right = 120.0
-	_popup_root.offset_top = 40.0
-	_popup_root.offset_bottom = 100.0
+	_popup_root.offset_top = _REST_Y
+	_popup_root.offset_bottom = _REST_Y + 60.0
+	## Scale animates from zero; without a centred pivot it grows out of its own top-left corner
+	## instead of popping in place.
+	_popup_root.pivot_offset = Vector2(120.0, 30.0)
 	_popup_root.scale = Vector2.ZERO
 	_popup_root.modulate.a = 0.0
+	_popup_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_popup_root)
 
 	## Background panel
 	var bg := Panel.new()
 	bg.size = Vector2(240.0, 50.0)
 	bg.add_theme_stylebox_override("panel", _create_panel_style())
+	## Panel defaults to MOUSE_FILTER_STOP — see the note above.
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_popup_root.add_child(bg)
 
 	## Accent bar at top
 	_accent_color_rect = ColorRect.new()
 	_accent_color_rect.color = Color.WHITE
 	_accent_color_rect.size = Vector2(240.0, 3.0)
+	_accent_color_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_popup_root.add_child(_accent_color_rect)
 
 	## Combo name label
@@ -207,6 +238,10 @@ func _process_queue() -> void:
 
 	await _animate_popup(popup_data)
 
+	## _animate_popup now genuinely awaits its tween, so this resumes ~2.8s later — by which
+	## point the arena may have been reloaded out from under us.
+	if not is_inside_tree():
+		return
 	_is_animating = false
 	_process_queue()  ## Process next in queue
 
@@ -216,6 +251,14 @@ func _animate_popup(popup_data: Dictionary) -> void:
 	_combo_name_label.text = popup_data["combo_name"]
 	_combo_subtitle_label.text = popup_data["subtitle"]
 	_accent_color_rect.color = popup_data["color"]
+
+	## Start from the resting pose. This used to sit at the BOTTOM of the function, below the
+	## tween setup — and because nothing awaited, it ran immediately rather than after the
+	## animation. So every popup was shoved to y=0 the instant it was queued and then drifted
+	## to -20, i.e. it played its whole animation off the top of the screen.
+	_popup_root.position.y = _REST_Y
+	_popup_root.scale      = Vector2.ZERO
+	_popup_root.modulate.a = 0.0
 
 	var tween := create_tween()
 
@@ -228,13 +271,22 @@ func _animate_popup(popup_data: Dictionary) -> void:
 	tween.set_parallel(false)
 	tween.tween_interval(2.0)
 
-	## Animate out: fade out + drift up (0.5s)
+	## Animate out: fade out + drift up (0.5s), relative to the resting position rather than
+	## to an absolute -20 that only made sense from y=0.
 	tween.set_parallel(true)
 	tween.tween_property(_popup_root, "modulate:a", 0.0, 0.5)
-	tween.tween_property(_popup_root, "position:y", -20.0, 0.5)
+	tween.tween_property(_popup_root, "position:y", _REST_Y - _DRIFT_Y, 0.5)
 	tween.set_parallel(false)
 
-	## Reset position for next popup
-	_popup_root.position.y = 0.0
-	_popup_root.scale = Vector2.ZERO
+	## _process_queue awaits this call to serialise discoveries, but this function contained no
+	## await, so it returned instantly and the "queue" never queued: two combos discovered in the
+	## same swing started two tweens on the same node, and the second stomped the first.
+	await tween.finished
+
+	## The node can be freed during those 2.8s — the Training Room's live class swap reloads the
+	## arena — so re-check before touching anything, same as _ready() does.
+	if not is_instance_valid(_popup_root):
+		return
+	_popup_root.position.y = _REST_Y
+	_popup_root.scale      = Vector2.ZERO
 	_popup_root.modulate.a = 0.0
