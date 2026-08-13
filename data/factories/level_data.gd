@@ -86,10 +86,68 @@ const LEVELS: Dictionary = {
 
 	2: {
 		"name": "The Catacombs",
-		"music_id": "mus_catacombs",
-		"floor_path": "",
-		"wave_composition": [],
-		"scene_map": {},
+		"music_id": "mus_catacombs",   ## catacombs.ogg does not exist yet — AudioManager no-ops
+		"floor_path": "res://assets/minifantasy/Minifantasy_Crypt_Of_The_Forgotten_v1.0/Minifantasy_Crypt_Of_The_Forgotten_Assets/Premade_Scene/Separate_Layers/g_floor.png",
+		## Per-phase wave composition (index 0 = phase 1). Weights must sum to 1.0.
+		## Undead roster from Minifantasy_Undead_Creatures — see CryptEnemyData.
+		"wave_composition": [
+			## Phase 1 — the dormant dead wake: loose bones and skulls
+			{"crypt_fodder": 0.55, "crypt_swarmer": 0.25, "crypt_skirmisher": 0.20},
+			## Phase 2 — armed skeletons and the first ranged pressure
+			{"crypt_fodder": 0.28, "crypt_swarmer": 0.17, "crypt_skirmisher": 0.25,
+				"crypt_archer": 0.18, "crypt_ghost": 0.12},
+			## Phase 3 — zombies join; casters start punishing static play
+			{"crypt_skirmisher": 0.20, "crypt_raider": 0.22, "crypt_archer": 0.15,
+				"crypt_caster": 0.15, "crypt_ghost": 0.13, "crypt_brute": 0.15},
+			## Phase 4 — heavies and cavalry; the biome's mid-fight identity
+			{"crypt_raider": 0.18, "crypt_brute": 0.18, "crypt_cavalry": 0.18,
+				"crypt_zombie_archer": 0.16, "crypt_zombie_caster": 0.15, "crypt_heavy": 0.15},
+			## Phase 5 — everything heavy at once, ahead of the boss gate
+			{"crypt_heavy": 0.24, "crypt_brute": 0.20, "crypt_cavalry": 0.18,
+				"crypt_zombie_caster": 0.16, "crypt_zombie_archer": 0.12, "crypt_ghost": 0.10},
+		],
+		"miniboss_id": "skeleton_minotaur",
+		"final_boss_id": "zombie_giant",
+		## ── Descent blocks ───────────────────────────────────────────────────
+		## 11 of these were authored in c537cd5 and sat unreachable until the block pool
+		## moved into LevelData (3.1a). The Merchant and Portal bookends did not exist —
+		## the Crypt set had no equivalent of Block_Caves_05/09 — and were generated for
+		## this biome via the block compiler (blocks/crypt/*.block).
+		"blocks": {
+			"count": 10,                                  ## Entry + 8 inner + Portal
+			"entry": "Block_Crypt_00_Entry",              ## fixed bookends, never shuffled
+			"portal": "Block_Crypt_12_Portal",
+			"merchant": "Block_Crypt_11_Merchant",
+			"merchant_depth": 0.5,
+			"pool": [
+				"Block_Crypt_01_Hall",
+				"Block_Crypt_02_Chambers",
+				"Block_Crypt_03_Corridors",
+				"Block_Crypt_04_Crossing",
+				"Block_Crypt_05_Tombs",
+				"Block_Crypt_06_Gallery",
+				"Block_Crypt_07_Weave",
+				"Block_Crypt_08_Vault",
+				"Block_Crypt_09_Columns",
+				"Block_Crypt_10_Antechambers",
+			],
+		},
+		"scene_map": {
+			"crypt_fodder":        "res://scenes/enemies/crypt_fodder.tscn",
+			"crypt_swarmer":       "res://scenes/enemies/crypt_swarmer.tscn",
+			"crypt_skirmisher":    "res://scenes/enemies/crypt_skirmisher.tscn",
+			"crypt_raider":        "res://scenes/enemies/crypt_raider.tscn",
+			"crypt_ghost":         "res://scenes/enemies/crypt_ghost.tscn",
+			"crypt_brute":         "res://scenes/enemies/crypt_brute.tscn",
+			"crypt_heavy":         "res://scenes/enemies/crypt_heavy.tscn",
+			"crypt_cavalry":       "res://scenes/enemies/crypt_cavalry.tscn",
+			"crypt_archer":        "res://scenes/enemies/crypt_archer.tscn",
+			"crypt_zombie_archer": "res://scenes/enemies/crypt_zombie_archer.tscn",
+			"crypt_caster":        "res://scenes/enemies/crypt_caster.tscn",
+			"crypt_zombie_caster": "res://scenes/enemies/crypt_zombie_caster.tscn",
+			"skeleton_minotaur":   "res://scenes/enemies/skeleton_minotaur.tscn",
+			"zombie_giant":        "res://scenes/enemies/zombie_giant.tscn",
+		},
 	},
 	3: {
 		"name": "The Nightmare Realm",
@@ -172,3 +230,19 @@ static func is_configured(level_id: int) -> bool:
 ## Returns true if clearing this level's Phase 5 boss gate and extracting is the win condition.
 static func is_final_biome(level_id: int) -> bool:
 	return get_level(level_id).get("is_final_biome", false)
+
+
+## Level ids that can actually be launched — waves authored AND a block pool to descend.
+##
+## The launch pad's destination selector walks this, which means a biome becomes reachable the
+## moment both halves of it exist, with no separate unlock list to keep in sync. Before this,
+## GameManager.set_level() had no callers at all and current_level was permanently 1: The
+## Catacombs would have shipped complete and unreachable, which is the same failure that left
+## 21 authored blocks dead on disk.
+static func playable_ids() -> Array[int]:
+	var out: Array[int] = []
+	for level_id: int in LEVELS:
+		if is_configured(level_id) and has_blocks(level_id):
+			out.append(level_id)
+	out.sort()
+	return out

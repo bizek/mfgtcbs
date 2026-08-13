@@ -316,8 +316,33 @@ func _build_readiness(parent: Control, pm: Node) -> void:
 	## Row 1 — where this run goes, and the warning.
 	var r1 := _readiness_row(parent)
 	_lbl(r1, "DESTINATION", _FS_XS, _C_DIM)
-	var dest_lbl := _lbl(r1, where, _FS_XS, _C_BODY)
-	dest_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	## More than one biome authored = the destination becomes a choice. A plain button that
+	## cycles rather than a pair of arrows: there are two biomes today and the row has no width
+	## for chrome. LevelData.playable_ids() is the source of truth, so a new biome appears here
+	## as soon as its waves and blocks exist.
+	var choices: Array[int] = LevelData.playable_ids()
+	if choices.size() > 1:
+		var btn := Button.new()
+		btn.text = where
+		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		btn.focus_mode = Control.FOCUS_ALL
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		btn.clip_text = true
+		btn.add_theme_font_size_override("font_size", _FS_XS)
+		btn.add_theme_color_override("font_color", _C_BODY)
+		btn.add_theme_color_override("font_hover_color", Color(1.0, 0.85, 0.55))
+		_style_dest_btn(btn)
+		btn.pressed.connect(func() -> void:
+			var ids: Array[int] = LevelData.playable_ids()
+			var idx: int = ids.find(GameManager.current_level)
+			GameManager.set_level(ids[(idx + 1) % ids.size()] if idx != -1 else ids[0])
+			AudioManager.play_ui("sfx_ui_click")
+			populate(pm))
+		r1.add_child(btn)
+	else:
+		var dest_lbl := _lbl(r1, where, _FS_XS, _C_BODY)
+		dest_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	var unspent: int = pm.get_passive_points()
 	if unspent > 0:
@@ -328,6 +353,25 @@ func _build_readiness(parent: Control, pm: Node) -> void:
 	## pinned height pushed the fullest character's third class mod behind a scrollbar. Vault
 	## and insurance both read clearly in the Workshop; a mod you cannot see on the screen you
 	## launch from does not. Measured, not assumed — see _fit_to_content().
+
+
+## Flat, borderless until hovered/focused — the row is a status line, not a form, so the
+## destination should read as text that happens to be clickable.
+func _style_dest_btn(btn: Button) -> void:
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+		var sb := StyleBoxFlat.new()
+		var hot: bool = state in ["hover", "pressed", "focus"]
+		sb.bg_color = Color(0.20, 0.14, 0.06) if hot else Color(0, 0, 0, 0)
+		if state == "focus":
+			sb.set_border_width_all(1)
+			sb.border_color = _C_WARN
+		else:
+			sb.set_border_width_all(0)
+		sb.set_content_margin(SIDE_LEFT, 3)
+		sb.set_content_margin(SIDE_RIGHT, 3)
+		sb.set_content_margin(SIDE_TOP, 0)
+		sb.set_content_margin(SIDE_BOTTOM, 0)
+		btn.add_theme_stylebox_override(state, sb)
 
 
 func _readiness_row(parent: Control) -> HBoxContainer:
