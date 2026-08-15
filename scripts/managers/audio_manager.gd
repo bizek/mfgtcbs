@@ -408,8 +408,22 @@ func _on_hit_dealt(source: Variant, target: Variant, hit_data: Variant) -> void:
 ## player weapons emit from _fire_pending_shot, enemies from animated-ability and
 ## choreography starts (a whoosh on the wind-up doubles as an audio telegraph).
 ## Combo abilities are excluded — their swing SFX rides the on-hit path above.
+const SKILL_SOUND_BY_CATEGORY: Dictionary = {
+	"Buff": "sfx_skill_buff",
+	"Offensive": "sfx_skill_offensive",
+	"Movement": "sfx_skill_movement",
+	"Summon": "sfx_summon_arrive",
+}
+
 func _on_ability_used(source: Variant, ability: Variant) -> void:
 	if not (ability is AbilityDefinition):
+		return
+	## Q/E skills (SkillComponent.trigger, task 15 close-out): category is tags[1], set per-skill
+	## in SkillFactory._ability() — "Buff"/"Offensive"/"Movement"/"Summon". A summon's spawn also
+	## gets its own arrival stinger from the host spawn hook, so this branch covers the CAST only.
+	if ability.tags.has("Skill"):
+		var category: String = ability.tags[1] if ability.tags.size() > 1 else "Offensive"
+		play(SKILL_SOUND_BY_CATEGORY.get(category, "sfx_skill_offensive"), _entity_pos(source))
 		return
 	if ability.tags.has("Combo"):
 		return

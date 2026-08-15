@@ -17,6 +17,7 @@ Complete enumeration of sound-worthy events across all game systems. Organized b
 | `sfx_channel_loop` | Combat | `ChainFactory` channel phase tick (per beat) | P2 | Looped ability tick for held-RMB channels (Taunt shockwave, Fan of Blades, Dome, Torrent, Vampirize, Conceal, Song, Guard, Thousand Blades Storm, Desert Storm). Soft, repetitive. One loop sound per channel family (shockwave, projectile, song, etc.) — 5–6 variations. |
 | ✅ `sfx_projectile_fire` | Combat | `EventBus.on_ability_used` for any non-Combo, non-Melee ability (player weapon release + enemy ability wind-ups) | P2 | Wired 2026-07-09: aliases the swing_light whooshes with wide pitch variance (no dedicated CC0 asset found). Replace streams with per-family variants later, zero code changes needed. |
 | ✅ `sfx_melee_swing_arc` | Combat | `EventBus.on_ability_used` for Melee-tagged non-Combo abilities | P2 | Wired 2026-07-09: aliases swing_heavy whooshes, pitch-varied. |
+| ✅ `sfx_channel_loop_fire/arcane/martial` | Combat | `player.gd _tick_channel_audio()`, polled while `choreography_runner.current_phase_is_held_channel()` | P2 | Sustained bed under a held channel (Immolate/Hellfire→fire, Bone/Bramble Barrage→arcane, Taunt/Dictum/Reckoning dome→martial) so holding into empty air isn't silent. **Original, composed in REAPER 2026-08-15** (`tools/sfx_forge/channel_loop_{fire,arcane,martial}.py` + `build_channel_loops.py`) — three seamless ~2s loops, peak-normalized to -6 dBFS (not LUFS-matched like the biome music), `SoundTable` applies -18 dB on top to sit them under the beat hits. In-engine verified in the Training Room: RMB-hold on demonologist/necromancer/fighter starts, loops across the seam, stops on release. Distinct from `sfx_channel_loop` above (the still-open per-beat tick), which this does not replace. |
 
 ---
 
@@ -57,37 +58,30 @@ Complete enumeration of sound-worthy events across all game systems. Organized b
 
 | ID | Category | Trigger | Priority | Notes |
 |---|---|---|---|---|
-| `sfx_dash_generic` | Movement | Player inputs `dash` action / `player.dash()` called | P2 | Generic dash whoosh. Fallback if no class variant plays. |
-| `sfx_dash_teleport` | Movement | Wizard (The Spark) dash (`dash_style == "teleport"`) | P2 | Teleport blink (magical pop in/out). One pack for both teleport_out and teleport_in anims. |
-| `sfx_dash_deadly` | Movement | Ninja (The Whisper) dash (`dash_style == "deadly"`) | P2 | Deadly Dash strike trail (swift blade sweep, ghostly). |
-| `sfx_dash_dodge_roll` | Movement | Rogue (The Shade) dodge roll (dodge anim plays on dash) | P2 | Rolling dodge (tumble, cloth rustle). |
+| ✅ `sfx_dash_generic` | Movement | `player._on_dash_started()` → `_dash_sound_id()` fallback | P2 | Generic dash whoosh. Fallback if no class variant plays. |
+| ✅ `sfx_dash_teleport` | Movement | Wizard/Necromancer dash (`dash_style == "teleport"`/`"planeshift"`) | P2 | Teleport blink (magical pop in/out). Planeshift (The Shade) reuses this stinger. |
+| ✅ `sfx_dash_deadly` | Movement | Ninja (The Whisper) dash (`dash_style == "deadly"`) | P2 | Deadly Dash strike trail (swift blade sweep, ghostly). |
+| ✅ `sfx_dash_dodge_roll` | Movement | Rogue/Demonologist dodge/hop (dodge anim plays on dash, or `dash_style == "ashenstep"`) | P2 | Rolling dodge (tumble, cloth rustle). |
 
 ---
 
-## Skills & Neutral Abilities (Q/E)
+## Skills, Summons & Pets (Q/E) — task 15 close-out, 2026-08-15
+
+**Design decision:** NOT one sound per skill/pet. Every Q/E skill's `AbilityDefinition.tags` carries a
+category (`SkillFactory._ability(..., category)`) chosen per-skill at its build site — "Buff" (self
+status/heal), "Offensive" (damage-dealing cast), "Summon" (spawns a companion), or "Movement"
+(stance/utility, no damage or status). `SkillComponent.trigger()` emits `EventBus.on_ability_used`
+(the same signal weapon fire uses) and `AudioManager._on_ability_used` reads `tags[1]` to route to
+one of 4 shared stingers below. A future skill gets a voice automatically the moment its build
+function passes a category — no new sample, no new wiring. Pet ATTACKS are deliberately silent
+(the mix is already dense; only the summon moment is voiced, per CLAUDE.md pet standard).
 
 | ID | Category | Trigger | Priority | Notes |
 |---|---|---|---|---|
-| `sfx_skill_shout` | Ability | Barbarian `skill_q` (Battle Cry) hit_frame | P2 | Roar/shout sound. Battle Cry visual already has cry_fx overlay. |
-| `sfx_skill_ritual` | Ability | Ninja `skill_q` (Sharpen) hit_frame / whetstone ritual | P2 | Sharpening stone ritual sound (whetstone scrape, culminating in a "ready" ding). Loopable or single. |
-| `sfx_skill_reload` | Ability | Gunslinger `skill_q` (Reload) ticks during animation + hit_frame | P2 | Mechanical reload (cylinder spin, click-clack, final snap). Multi-frame sequence or one shot. |
-| `sfx_skill_throw_impact` | Ability | Barbarian `skill_e` (Throw Things) hit_frame | P2 | Impact of thrown junk hitting the ground. Heavy thud + crash. |
-| `sfx_skill_smoke_puff` | Ability | Ninja `skill_e` (Smoke Bomb) hit_frame | P2 | Smoke puff (whoosh + distant fade-out). Played on vanish. |
-| `sfx_skill_whip_crack` | Ability | Gunslinger `skill_e` (Whip Attack) hit_frame | P2 | Whip crack (sharp, tech-enhanced). Played on hit. |
-| `sfx_skill_song_charm` | Ability | Bard `skill_e` (Charming Serenade) hit_frame + song loop | P2 | Siren song / charm melody. Loopable per beat (SONG_TICK = 0.8s). One charm song suffices. |
-
----
-
-## Pet Summons & Attacks
-
-| ID | Category | Trigger | Priority | Notes |
-|---|---|---|---|---|
-| `sfx_pet_summon_fire` | Summon | Wizard `ChainFactory.build_wizard_summon()` hit_frame (FireFamiliar spawns) | P2 | Fire Familiar summoning sound (magical ignition, phoenix cry). |
-| `sfx_pet_fire_attack` | Combat | FireFamiliar `_start_strike()` called | P2 | Fire Familiar bite attack (quick snap, flame crackle). Loopable per cooldown. |
-| `sfx_pet_fire_expire` | Combat | FireFamiliar `disperse()` called (lifetime ends or player dies) | P2 | Fire Familiar disappears (dissipate, fade). |
-| `sfx_pet_summon_blood` | Summon | Blood Mage `ChainFactory.build_blood_mage_light()` phase 4 hit_frame (BloodElemental spawns) | P2 | Blood Elemental summoning sound (blood squelch, dark pulse). |
-| `sfx_pet_blood_attack` | Combat | BloodElemental `_start_strike()` called | P2 | Blood Elemental pound attack (heavy thud, wet impact). Loopable per cooldown. |
-| `sfx_pet_blood_expire` | Combat | BloodElemental `banish()` called (lifetime ends or player dies) | P2 | Blood Elemental vanishes (absorption, return-to-void sound). |
+| ✅ `sfx_skill_buff` | Ability | Any `Skill`-tagged ability with `tags[1] == "Buff"` (Second Wind, Sanctuary, Sharpen, Battle Cry, Reload, Aegis Shield, Lay on Hands, Smoke Bomb, …) | P2 | Rising self-cast chime. |
+| ✅ `sfx_skill_offensive` | Ability | `tags[1] == "Offensive"` (Frost Burst, Storm Call, Blood Eruption, Throw Things, Whip Attack, Archdemon's Call, Shield Rush, …) | P2 | Cast-release burst (zap + crack). |
+| ✅ `sfx_skill_movement` | Ability | `tags[1] == "Movement"` (Quiver Swap is the only user today) | P2 | Light whoosh, deliberately distinct from any `sfx_dash_*`. |
+| ✅ `sfx_summon_arrive` | Ability | `tags[1] == "Summon"` (Summon Angry Demon, Rise Corpse, Bone Legion, Summon Blood Elemental, Mirror Archer, Summon Bear, Summon Hounds, Spirit Guardians) | P2 | Deeper rising swell + low toll — "something is climbing out of the ground." Plays once on cast; not repeated per pet hit. |
 
 ---
 
@@ -162,8 +156,8 @@ Complete enumeration of sound-worthy events across all game systems. Organized b
 |---|---|---|---|---|
 | ✅ `mus_hub` | Music | Hub/base camp active; no extraction channel running | P1 | Hub background loop (calm, contemplative). 2–3 min loopable track. Ship-critical. |
 | ✅ `mus_caves` | Music | Phase 1–4 in Caves biome active | P1 | Caves ambient track (dark dungeon mood, sparse, tense). Loopable, 15+ min. Committed track loops at ~94s (shorter than spec) — acceptable for now, revisit if the seam is audible. |
-| `mus_catacombs` | Music | Phase 1–4 in Catacombs biome active | P2 | Catacombs ambient (heavier, slower pulse than Caves). Loopable. |
-| `mus_nightmare_realm` | Music | Phase 1–4 in Nightmare Realm biome active | P2 | Nightmare Realm (unsettling, chaotic energy). Loopable. |
+| ✅ `mus_catacombs` | Music | Phase 1–4 in Catacombs biome active | P2 | **Original, composed in REAPER 2026-08-15** (`tools/sfx_forge/music_catacombs.py`). 96.0 s loop, 60 BPM, A Phrygian, open fifths only. Processional footfall on beats 1 and 3, crypt bell every 8 bars, one descending motif in the B section. −27.7 LUFS (matches `caves.ogg` exactly). Loop is phase-continuous by construction — see the loop architecture note below. |
+| ✅ `mus_nightmare_realm` | Music | Phase 1–4 in Nightmare Realm biome active | P2 | **Original, composed in REAPER 2026-08-15** (`tools/sfx_forge/music_nightmare.py`). 114.0 s loop, deliberately **pulse-less** — no beat at any marchable interval (measured). 110/113 Hz detuned pair beats at 3 Hz (roughness, not rhythm); consonant A-minor bells at off-grid times, hitting the Eb tritone 3× per loop. −27.7 LUFS. |
 | `mus_threshold` | Music | Phase 1–4 in Threshold biome active | P2 | Threshold (climactic, building tension). Loopable. |
 | `mus_inferno` | Music | Phase 1–4 in Inferno biome active | P2 | Inferno (intense, aggressive). Loopable. |
 | ✅ `mus_boss` | Music | Boss encounter active (final_boss_spawned) | P2 | Boss music layer or full track (epic, memorable). Replaces or layers over biome music. One track or per-boss stinger. Committed track loops at ~33s — short for a boss encounter; revisit if it feels repetitive. |
@@ -179,15 +173,39 @@ No good-fit free CC0/CC-BY asset was found for these in the time available. Tabl
 | `sfx_status_burn_apply`, `sfx_status_chill_apply`, `sfx_status_frozen`, `sfx_status_shocked_apply`, `sfx_status_void_apply` | `assets/audio/sfx/status/*.ogg` | No short, subtle "status applied" stingers found in the Kenney packs pulled for this pass; worth a dedicated OpenGameArt/Kenney search pass. |
 | `sfx_status_burn_tick` | *(no table entry yet)* | Needs a StatusEffectComponent tick hook in addition to an asset — not started. |
 | `sfx_channel_loop` | *(no table entry yet)* | Needs per-family loop variants (5-6) and a ChoreographyRunner channel-tick hook — bigger scope than a data-only pass. (`sfx_projectile_fire` / `sfx_melee_swing_arc` were wired 2026-07-09 via `EventBus.on_ability_used`, reusing pitch-varied swing whooshes as stand-in assets.) |
-| `sfx_dash_generic`, `sfx_dash_teleport`, `sfx_dash_deadly`, `sfx_dash_dodge_roll` | *(no table entries yet)* | Not wired; dash call sites (`player.dash()`) need EventBus or direct-call hookup. |
-| `sfx_skill_*` (7 entries), `sfx_pet_*` (6 entries) | *(no table entries yet)* | Per-ability/per-pet hookup, out of scope for this pass. |
 | `sfx_boss_phase_transition` | *(no table entry yet)* | No per-phase transition signal currently emitted by boss choreography. |
 | `sfx_merchant_open`, `sfx_altar_interact` | *(no table entries yet)* | Merchant purchase/error sounds are wired (`sfx_ui_purchase`/`sfx_ui_error`); the greeting/altar stingers themselves are unassigned. |
 | `sfx_ui_hover` | *(intentionally skipped)* | Manifest marks this optional; click-only feedback is sufficient. |
 | `amb_caves_drip`, `amb_caves_wind`, `amb_threshold_hum`, `amb_inferno_crackle` | *(no table entries yet)* | Lowest-priority polish per the manifest; not started. |
-| `mus_catacombs`, `mus_nightmare_realm`, `mus_threshold`, `mus_inferno` | `assets/audio/music/{catacombs,nightmare_realm,threshold,inferno}.ogg` | Biomes 2-5 aren't shipped yet (per `docs/audio_pipeline.md` step 6, "add one track per biome as each biome ships"). |
+| `mus_threshold`, `mus_inferno` | `assets/audio/music/{threshold,inferno}.ogg` | Biomes 4-5 aren't shipped yet (per `docs/audio_pipeline.md` step 6, "add one track per biome as each biome ships"). `mus_catacombs` and `mus_nightmare_realm` were **closed 2026-08-15** — composed rather than sourced; re-run `tools/sfx_forge/build_biome_music.py` to rebuild either, and use the same module for the remaining two. |
 
 **Loop-seam QA needed (agent has no audio playback):** `mus_caves` and `mus_boss` are third-party OpenGameArt loops — Ben should listen for a pop/click at the loop point before ship. `mus_hub` (converted from MP3) tapers to near-silence at both ends and is very unlikely to pop.
+
+### Loop architecture for the composed biome tracks (2026-08-15)
+
+`mus_catacombs` and `mus_nightmare_realm` are seamless *by construction* rather than by
+crossfade, which matters if anyone edits them later. Two rules make it work, both enforced
+in `tools/sfx_forge/music_lib.py`:
+
+1. **Render two periods, keep the second.** Every discrete event is emitted at `t` and at
+   `t + SONG`, and the render covers `[0, 2*SONG]`. By the second period the reverb has rung
+   up, so that period is one cycle of the steady state of a signal that repeats forever — the
+   tail that "should" wrap into the head is already in it. No splice at the seam.
+2. **Whole-Hz drones over a whole-second loop.** REAPER's JS tonegenerator quantizes Base
+   Frequency to whole Hz (ask for 36.7049, get 37.0), so a sustained oscillator only lands on
+   the same phase at both ends if `freq × SONG` is an integer. Both tracks are centred on A
+   (55 / 110 / 165 Hz) for exactly this reason. Breaking this rule does not error — it just
+   produces a click, which is how it was found.
+
+Measured on the shipped files: the sample step across the join is **0.16×** (Catacombs) and
+**0.02×** (Nightmare) of the 99.9th-percentile *interior* step, i.e. smaller than jitter the
+waveform already contains. Both loop points also sit inside the spread of ordinary interior
+bar lines on rms and spectral similarity, so neither reads as a restart.
+
+**Still needs Ben's ears:** the agent has no audio playback, so everything above is measurement,
+not listening. The two judgement calls most likely to want a knob turn are named in the session
+report — the Nightmare Realm's 3 Hz drone beat (`abyss_detune` level) and the Catacombs' footfall
+prominence (`footfall` level).
 
 ---
 

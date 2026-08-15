@@ -305,6 +305,51 @@ def _extraction_complete_v2():
 R["extraction_channel_complete"] = (_extraction_complete_v2, 1.2, 1.4)
 
 
+# skills & pets (task 15 remainder): four category stingers, category chosen per skill in
+# SkillFactory's own tags, not a per-skill sample. See docs/audio_asset_manifest.md.
+
+def _skill_buff_v2():
+    # self-cast rising chime — Second Wind / Sanctuary / Sharpen / Battle Cry etc.
+    dexed_layer("rise", [(74, 0.0, 0.09, 92), (78, 0.05, 0.09, 96), (83, 0.10, 0.16, 104)],
+                vol_db=8.0,
+                chain=[supermassive(mix=0.28, feedback=0.55, density=0.8, mode=0.1, highcut=0.9)])
+    tone_layer("swell", shape=0, freq_pts=sweep(0.0, 0.28, 300, 700),
+               amp_pts=swell_db(0.0, 0.30, -14.0, rise=0.6))
+R["skill_buff"] = (_skill_buff_v2, 0.36, 0.35)
+
+
+def _skill_offensive_v2():
+    # cast-release burst — Frost Burst / Storm Call / Blood Eruption / Throw Things etc.
+    surge_layer("burst", [(55, 0.0, 0.14, 110)],
+                zap_patch(cutoff=0.4, reso=0.75, sweep=0.85, decay=0.32),
+                vol_db=8.0, chain=[dist(10.0, 4.0, -8.0)])
+    noise_layer("crack", white=True, gate_pts=gate_decay(0.0, 0.03, 1.0),
+                noise_db=3.0, chain=[highpass(0.25)])
+R["skill_offensive"] = (_skill_offensive_v2, 0.2, 0.2)
+
+
+def _skill_movement_v2():
+    # utility/stance shift — deliberately lighter and higher than any dash_* whoosh so it never
+    # reads as a dash (Quiver Swap is the only user today; future stance skills share it).
+    surge_layer("shift", [(66, 0.0, 0.10, 100)],
+                whoosh_patch(color=0.4, cutoff=0.48, reso=0.5, attack=0.15, release=0.22),
+                vol_db=8.0)
+R["skill_movement"] = (_skill_movement_v2, 0.16, 0.14)
+
+
+def _summon_arrive_v2():
+    # something climbs out of the ground — Rise Corpse / Summon Bear / Angry Demon / Spirit
+    # Guardian / Mirror Archer etc. Deeper and longer than the skill stingers; plays once at
+    # spawn, never per-hit (CLAUDE.md: don't voice every pet hit, the mix is dense enough).
+    tone_layer("rise", shape=0, freq_pts=sweep(0.0, 0.32, 90, 220, curve=1.2),
+               amp_pts=swell_db(0.0, 0.34, -10.0, rise=0.55))
+    dexed_layer("toll", [(50, 0.20, 0.4, 100)], vol_db=7.0,
+                chain=[supermassive(mix=0.4, feedback=0.65, density=0.85, mode=0.2, highcut=0.6)])
+    noise_layer("rumble", white=False, gate_pts=gate_swell(0.0, 0.35, 0.4, rise=0.5),
+                noise_db=-2.0, chain=[lowpass(0.3)])
+R["summon_arrive"] = (_summon_arrive_v2, 0.65, 0.6)
+
+
 # â•â•â• runner â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 if __name__ == "__main__":
     arg = sys.argv[1] if len(sys.argv) > 1 else "all"

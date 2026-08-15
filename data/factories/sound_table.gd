@@ -193,17 +193,14 @@ const ALL: Dictionary = {
 	## Hold one while missing and the ability is completely silent — nothing distinguishes
 	## "channelling into empty air" from "not channelling". These sustained beds fix that.
 	##
-	## THE FILES DO NOT EXIST YET. AudioManager.play_channel_loop stays silent (one warning)
-	## until they do, which is deliberate: the only true loop asset in the library is
-	## extraction_channel_hum.ogg, and re-voicing THAT would put an extraction cue — a
-	## high-stakes gameplay signal — under ordinary combat. Better silent than misleading.
-	##
-	## To render (REAPER, docs/audio_pipeline.md): three seamless ~2s loops, low and unobtrusive,
-	## mixed to sit UNDER the beat hits rather than compete with them. Suggested character —
-	##   channel_loop_fire:     a low roaring bed (Immolate, Hellfire)
-	##   channel_loop_arcane:   a dry rattling/whispering bed (Bone Barrage, Bramble Barrage)
-	##   channel_loop_martial:  a low physical rumble (Taunt, Dictum, the Reckoning dome)
-	## Drop them in assets/audio/sfx/combat/ and they light up with no code change.
+	## Rendered 2026-08-15 (REAPER, tools/sfx_forge/channel_loop_{fire,arcane,martial}.py +
+	## build_channel_loops.py). Three seamless ~2s loops — fire is a low roar (Immolate,
+	## Hellfire), arcane a dry rattle/whisper (Bone Barrage, Bramble Barrage), martial a low
+	## physical rumble (Taunt, Dictum, the Reckoning dome) — peak-normalized like ordinary SFX
+	## (not LUFS-matched like the biome music), since the -18 dB below is what sits them under
+	## the beat hits. In-engine verified in the Training Room 2026-08-15: RMB-hold on
+	## demonologist/necromancer/fighter starts, loops across the seam, and stops on release for
+	## all three.
 	"sfx_channel_loop_fire": {
 		"streams": ["res://assets/audio/sfx/combat/channel_loop_fire.ogg"],
 		"volume_db": -18.0, "loop": true,
@@ -328,6 +325,26 @@ const ALL: Dictionary = {
 	"sfx_dash_dodge_roll": {
 		"streams": ["res://assets/audio/sfx/dash/dash_dodge_roll.ogg"],
 		"volume_db": -11.0, "max_per_frame": 1, "min_interval_ms": 100,
+	},
+
+	# ── Skills & summons (task 15 close-out — synthesized in-house) ─────────
+	# Four shared stingers keyed by category, NOT one sound per skill — see
+	# SkillFactory._ability()'s category tag and AudioManager._on_ability_used.
+	"sfx_skill_buff": {
+		"streams": ["res://assets/audio/sfx/skills/skill_buff.ogg"],
+		"volume_db": -10.0, "max_per_frame": 1, "min_interval_ms": 100,
+	},
+	"sfx_skill_offensive": {
+		"streams": ["res://assets/audio/sfx/skills/skill_offensive.ogg"],
+		"volume_db": -9.0, "max_per_frame": 1, "min_interval_ms": 100,
+	},
+	"sfx_skill_movement": {
+		"streams": ["res://assets/audio/sfx/skills/skill_movement.ogg"],
+		"volume_db": -11.0, "max_per_frame": 1, "min_interval_ms": 100,
+	},
+	"sfx_summon_arrive": {
+		"streams": ["res://assets/audio/sfx/skills/summon_arrive.ogg"],
+		"volume_db": -8.0, "max_per_frame": 1, "min_interval_ms": 150,
 	},
 }
 

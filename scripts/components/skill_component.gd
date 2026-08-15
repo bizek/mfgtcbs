@@ -66,4 +66,8 @@ func trigger(slot: String) -> bool:
 	var ability: AbilityDefinition = _skills[slot]
 	_cooldowns[slot] = ability.cooldown_base
 	_runner.start(ability, [_host])
+	## Reuses the same signal weapon fire rides (EventBus.on_ability_used) so AudioManager has one
+	## seam for "an ability just went off" rather than a second bespoke path. AudioManager reads
+	## the "Skill" tag to route to the category stinger instead of the weapon-fire sounds.
+	EventBus.on_ability_used.emit(_host, ability)
 	return true

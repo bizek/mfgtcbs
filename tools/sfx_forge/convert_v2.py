@@ -38,6 +38,8 @@ for n in ("extraction_warning", "extraction_channel_start", "extraction_channel_
     LAYOUT[n] = ("extraction", False)
 for n in ("dash_generic", "dash_teleport", "dash_deadly", "dash_dodge_roll"):
     LAYOUT[n] = ("dash", False)
+for n in ("skill_buff", "skill_offensive", "skill_movement", "summon_arrive"):
+    LAYOUT[n] = ("skill", False)
 
 LOOPS = {"extraction_channel_hum"}
 TARGET = 10 ** (-1.0 / 20.0)  # -1 dBFS

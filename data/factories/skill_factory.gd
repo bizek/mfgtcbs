@@ -94,7 +94,7 @@ static func build_demon_summon(weapon_data: Dictionary) -> AbilityDefinition:
 	phase.effects = [pulse]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
-	return _ability("demon_summon", "Summon Angry Demon", phase, 16.0)
+	return _ability("demon_summon", "Summon Angry Demon", phase, 16.0, "Summon")
 
 
 ## Archdemon's Call (Demonologist, E): the long cast tears a pentagram open AT THE CURSOR and
@@ -146,7 +146,7 @@ static func build_fighter_second_wind(_weapon_data: Dictionary) -> AbilityDefini
 	phase.effects = [ChainFactory._self_heal(0.12), _ward_buff("steeled", 0.15, 4.0)]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
-	return _ability("fighter_second_wind", "Second Wind", phase, 12.0)
+	return _ability("fighter_second_wind", "Second Wind", phase, 12.0, "Buff")
 
 
 ## Shield Rush (Fighter, E — replaced Blade Flurry, Ben 2026-07-19: "just a big AoE swing
@@ -204,7 +204,7 @@ static func build_ranger_mirror_archer(_weapon_data: Dictionary) -> AbilityDefin
 	phase.effects = [apply]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
-	return _ability("ranger_mirror_archer", "Mirror Archer", phase, 14.0)
+	return _ability("ranger_mirror_archer", "Mirror Archer", phase, 14.0, "Summon")
 
 
 ## Quiver Swap (Ranger, E — replaced Conceal, Ben 2026-07-31). A STANCE, not a cast: each press
@@ -241,7 +241,7 @@ static func build_ranger_quiver_swap(_weapon_data: Dictionary) -> AbilityDefinit
 	phase.exit_type = "anim_finished"
 	phase.telegraph_speed_scale = 3.0    ## 0.875s duck → ~0.29s
 	phase.default_next = -1
-	return _ability("ranger_quiver_swap", "Quiver Swap", phase, 0.6)
+	return _ability("ranger_quiver_swap", "Quiver Swap", phase, 0.6, "Movement")
 
 
 ## Aegis Shield (Paladin, Q — was a heal, Ben 2026-07-20: "we want an absorb shield"): the oath
@@ -268,7 +268,7 @@ static func build_paladin_aegis_vow(_weapon_data: Dictionary) -> AbilityDefiniti
 	phase.effects = [apply]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
-	return _ability("paladin_aegis_vow", "Aegis Shield", phase, 14.0)
+	return _ability("paladin_aegis_vow", "Aegis Shield", phase, 14.0, "Buff")
 
 
 ## Lay on Hands (Paladin, E — was Bulwark Slam, Ben 2026-07-20: "make it a heal"): a real mend,
@@ -281,7 +281,7 @@ static func build_paladin_lay_on_hands(_weapon_data: Dictionary) -> AbilityDefin
 	phase.effects = [ChainFactory._self_heal(0.20), _ward_buff("hallowed", 0.15, 4.0)]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
-	return _ability("paladin_lay_on_hands", "Lay on Hands", phase, 12.0)
+	return _ability("paladin_lay_on_hands", "Lay on Hands", phase, 12.0, "Buff")
 
 
 ## Frost Burst (Wizard, Q — was Mana Surge, Ben 2026-07-20): a point-blank ICE nova that damages
@@ -366,7 +366,7 @@ static func build_necro_rise_corpse(weapon_data: Dictionary) -> AbilityDefinitio
 	phase.effects = [pulse]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
-	return _ability("necro_rise_corpse", "Rise Corpse", phase, 14.0)
+	return _ability("necro_rise_corpse", "Rise Corpse", phase, 14.0, "Summon")
 
 
 ## Bone Legion (Necromancer, E): raise a ring of VOLATILE skeletons that sprint at whatever is
@@ -393,7 +393,7 @@ static func build_necro_bone_legion(weapon_data: Dictionary) -> AbilityDefinitio
 	phase.effects = [pulse]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
-	return _ability("necro_bone_legion", "Bone Legion", phase, 10.0)
+	return _ability("necro_bone_legion", "Bone Legion", phase, 10.0, "Summon")
 
 
 ## Summon Blood Elemental (Blood Mage, Q — Ben 2026-08-01: "blood golem move to Q"). The golem used
@@ -423,7 +423,7 @@ static func build_blood_mage_blood_elemental(weapon_data: Dictionary) -> Ability
 	phase.effects = [pulse]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
-	return _ability("blood_mage_blood_elemental", "Summon Blood Elemental", phase, 16.0)
+	return _ability("blood_mage_blood_elemental", "Summon Blood Elemental", phase, 16.0, "Summon")
 
 
 ## Blood Eruption (Blood Mage, E — reworked, Ben 2026-07-19: was a re-skin of Blood Spikes):
@@ -470,7 +470,7 @@ static func build_barbarian_cry(_weapon_data: Dictionary) -> AbilityDefinition:
 	phase.effects = [ChainFactory._timed_damage_buff("battle_fury", 0.25, 6.0), ChainFactory._shaken_debuff()]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
-	return _ability("barbarian_cry", "Battle Cry", phase, 10.0)
+	return _ability("barbarian_cry", "Battle Cry", phase, 10.0, "Buff")
 
 
 ## Throw Things (Barbarian, E): hurl a slab of junk at the cursor — one big landing burst
@@ -503,7 +503,7 @@ static func build_ninja_sharpen(_weapon_data: Dictionary) -> AbilityDefinition:
 	phase.effects = [ChainFactory._timed_damage_buff("honed_edge", 0.35, 8.0)]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
-	return _ability("ninja_sharpen", "Sharpen", phase, 12.0)
+	return _ability("ninja_sharpen", "Sharpen", phase, 12.0, "Buff")
 
 
 ## Smoke Bomb (Ninja, E): vanish in the puff — "concealed" for 3.5s (enemies stop chasing;
@@ -515,7 +515,7 @@ static func build_ninja_smoke(_weapon_data: Dictionary) -> AbilityDefinition:
 	phase.effects = [ChainFactory._smoke_conceal()]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
-	return _ability("ninja_smoke", "Smoke Bomb", phase, 10.0)
+	return _ability("ninja_smoke", "Smoke Bomb", phase, 10.0, "Buff")
 
 
 ## Reload (Gunslinger, Q): the long 37-frame cylinder ritual — fresh chambers hit harder:
@@ -527,7 +527,7 @@ static func build_gunslinger_reload(_weapon_data: Dictionary) -> AbilityDefiniti
 	phase.effects = [ChainFactory._timed_damage_buff("loaded_chambers", 0.30, 6.0)]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
-	return _ability("gunslinger_reload", "Reload", phase, 9.0)
+	return _ability("gunslinger_reload", "Reload", phase, 9.0, "Buff")
 
 
 ## Whip Attack (Gunslinger, E): the tech-whip cracks — melee arc + shove to buy shooting
@@ -576,7 +576,7 @@ static func build_druid_summon_bear(weapon_data: Dictionary) -> AbilityDefinitio
 	phase.effects = [pulse]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
-	return _ability("druid_summon_bear", "Summon Bear", phase, 16.0)
+	return _ability("druid_summon_bear", "Summon Bear", phase, 16.0, "Summon")
 
 
 ## Summon Hounds (Druid, E): a PAIR of Forest Hounds, fanned either side of the aim. Faster cooldown
@@ -598,7 +598,7 @@ static func build_druid_summon_hounds(weapon_data: Dictionary) -> AbilityDefinit
 	phase.effects = [pulse]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
-	return _ability("druid_summon_hounds", "Summon Hounds", phase, 11.0)
+	return _ability("druid_summon_hounds", "Summon Hounds", phase, 11.0, "Summon")
 
 
 ## Sanctuary (Cleric, Q): pray — a self-heal plus "blessed" (−20% damage taken for 5s). The
@@ -610,7 +610,7 @@ static func build_cleric_sanctuary(_weapon_data: Dictionary) -> AbilityDefinitio
 	phase.effects = [ChainFactory._self_heal(0.12), _ward_buff("blessed", 0.20, 5.0)]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
-	return _ability("cleric_sanctuary", "Sanctuary", phase, 12.0)
+	return _ability("cleric_sanctuary", "Sanctuary", phase, 12.0, "Buff")
 
 
 ## Spirit Guardians (Cleric, E): summon the guardian pet. The "pray_guardian" body triggers the
@@ -630,7 +630,7 @@ static func build_cleric_guardians(weapon_data: Dictionary) -> AbilityDefinition
 	phase.effects = [pulse]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
-	return _ability("cleric_guardians", "Spirit Guardians", phase, 14.0)
+	return _ability("cleric_guardians", "Spirit Guardians", phase, 14.0, "Summon")
 
 
 # --- helpers ---
@@ -711,13 +711,19 @@ static func _speed_buff(id: String, amount: float, duration: float) -> ApplyStat
 	return apply
 
 
-static func _ability(id: String, name: String, phase: ChoreographyPhase, cooldown: float) -> AbilityDefinition:
+## `category` is the audio-relevant classification a skill sound plays off of
+## (AudioManager._on_ability_used reads tags[1]): "Buff" (self status/heal), "Offensive"
+## (damage-dealing cast), "Summon" (spawns a companion), or "Movement" (stance/utility with no
+## damage or status payload). It rides the ability's own `tags` field rather than a lookup table
+## elsewhere, so it stays next to the rest of the skill's data. Defaults to "Offensive" — the
+## commonest shape — so a call site that forgets the arg still gets a sane sound rather than none.
+static func _ability(id: String, name: String, phase: ChoreographyPhase, cooldown: float, category: String = "Offensive") -> AbilityDefinition:
 	var choreo := ChoreographyDefinition.new()
 	choreo.phases = [phase]
 	var a := AbilityDefinition.new()
 	a.ability_id = id
 	a.ability_name = name
-	a.tags = ["Skill", "Melee"]
+	a.tags = ["Skill", category]
 	a.mode = "Manual"
 	a.cooldown_base = cooldown
 	a.choreography = choreo
