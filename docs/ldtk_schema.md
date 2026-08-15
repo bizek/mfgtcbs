@@ -95,6 +95,44 @@ polarity from `Collision`: **only painted (nonzero) cells are solid**; unpainted
 > exactly like the `Collision` wall builder. The layer renders nothing in-game. Absent on a level =
 > no extra colliders (no warning).
 
+### 2.2 Descent block edges — the ENTRY block caps the stack, inner blocks must not
+
+Descent blocks are 81×60 cells (648×480 px) and stack vertically, so the `Collision` edges carry a
+convention that is invisible in any single block and only makes sense across the whole stack:
+
+| Block | Left/right columns | Top row (`cy=0`) | Bottom row (`cy=59`) | Void cells |
+|---|---|---|---|---|
+| **Entry** (`Block_*_00_Entry`) | solid | **solid — this is the world's ceiling** | open | **199** = 81 + 2×59 |
+| **Inner / Merchant / Portal** | solid | **open — this is the seam to the block above** | open | **120** = 2×60 |
+
+Only the entry block caps the top. Every other block leaves row 0 open, because that row is the
+join to the block above — cap it and you wall off the descent. Conversely, if the *entry* block
+leaves row 0 open there is nothing above y=0 at all: enemies shove the player straight out of the
+world (measured at y=-17.6 before this was restored), and the camera stays clamped at `limit_top=0`
+while the player drifts off the top of the screen.
+
+The bottom row is open on every block, entry included. Nothing physically caps the bottom of the
+stack — the Portal and its exit zone sit ~24px above `total_height`. That asymmetry is the shipped
+behaviour and extraction works, but it has not been probed for whether a player can be pushed
+below the last row.
+
+**Known deviations (audited 2026-08-15, all 37 blocks):**
+
+| Block | State | Consequence |
+|---|---|---|
+| `Block_Caves_09_Portal` | void=122, not 120 | Two extra corner cells. Harmless. |
+| `Block_NMRealm_00_Entry` | void=120, **row 0 open** — an entry block with no ceiling. Also has **no `Level_Instructions`**, so `BlockManager` falls back to spawning at `(level_width/2, 24)` — 24px below an open world edge. | Will reproduce the Catacombs failure the moment biome 3 gets a `blocks` entry in `LevelData`. Not live today: level 3 has no block pool, so `playable_ids()` is `[1, 2]`. |
+| `Block_Warp_00_Entry` | void=4860 — the entire block is unpainted, i.e. wholly solid | No walkable ground at all. Long-standing; see the FlowField notes. |
+
+> **The failure this convention prevents, and why it survived an authoring pass.** `Block_Crypt_00_Entry`
+> shipped with rows 0–29 unpainted. Per §2 that is *solid*, so the loader merged the block's whole top
+> half into one 648×240 collider — with the block's own `Player_Spawn_Pos` inside it. Every static
+> check passed: the level loaded, the stack built, waves and the boss were correct, and the block's
+> art (a full `CryptLayer` floor flood plus the entrance arch) showed a walkable hall. Only the
+> collision disagreed, and only at runtime. **Unpainted is solid — including in the half of the block
+> you never got around to painting.** After changing any `Collision` layer, check the value counts
+> against the table above; the two numbers 199 and 120 are the whole contract.
+
 ---
 
 ## 3. Layers (LDtk list order: top entry rendered last / on top)
@@ -422,6 +460,9 @@ When the importer (TBD) loads a `.ldtkl`, it must:
 2. Open in LDtk → swap tilesets to the new biome's pack (keep identifiers `<Biome>Tileset`, `<Biome>Tiles`, etc.).
 3. Verify all 6 layers from §3 still exist; relink AutoLayers to the new tileset.
 4. Confirm IntGrid values from §2 still exist on the `Collision` layer.
+   - **If the biome ships descent blocks, check the edges against §2.2 before anything else.**
+     Entry block: row 0 solid, void=199. Every other block: row 0 open, void=120. Getting this
+     wrong produces a biome that loads, builds and spawns correctly and is still unplayable.
 5. Add a new value to the `BiomeId` enum (append, never reorder).
 6. Add a stub entry to `data/factories/level_data.gd` `LEVELS` matching the new `BiomeId`.
 7. Create your first level. Set `biome` and `schema_version` level fields. Drop one `Level_Instructions` and fill out:
