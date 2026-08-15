@@ -151,10 +151,71 @@ const LEVELS: Dictionary = {
 	},
 	3: {
 		"name": "The Nightmare Realm",
-		"music_id": "mus_nightmare_realm",
-		"floor_path": "",
-		"wave_composition": [],
-		"scene_map": {},
+		"music_id": "mus_nightmare_realm",   ## nightmare_realm.ogg does not exist yet — AudioManager no-ops
+		"floor_path": "res://assets/minifantasy/Minifantasy_Nightmare_Realm_v1.0/Minifantasy_Nightmare_Realm_Assets/Premade/Separate_Layers/Premade_h-platforms_lvl_0.png",
+		## Per-phase wave composition (index 0 = phase 1). Weights must sum to 1.0.
+		## Monster bestiary from Minifantasy_Monster_Creatures — see NightmareEnemyData.
+		## Unlike the Catacombs' ordered undead legion, this roster is deliberately motley:
+		## the biome's identity is that nothing here belongs together.
+		"wave_composition": [
+			## Phase 1 — vermin and beasts: what scavenges a dead world
+			{"nm_fodder": 0.50, "nm_swarmer": 0.28, "nm_skirmisher": 0.22},
+			## Phase 2 — the humanoids arrive, and the first ranged pressure
+			{"nm_fodder": 0.26, "nm_swarmer": 0.18, "nm_skirmisher": 0.24,
+				"nm_stalker": 0.18, "nm_archer": 0.14},
+			## Phase 3 — deep ones and psychics; casters start punishing static play
+			{"nm_skirmisher": 0.16, "nm_stalker": 0.15, "nm_raider": 0.16, "nm_archer": 0.13,
+				"nm_caster": 0.14, "nm_aerial": 0.16, "nm_lurker": 0.10},
+			## Phase 4 — ambushers, royalty and spore turrets; the biome's mid-fight identity
+			{"nm_raider": 0.14, "nm_ambusher": 0.14, "nm_lurker": 0.10, "nm_aerial": 0.14,
+				"nm_royal": 0.14, "nm_spore": 0.12, "nm_brute": 0.14, "nm_caster": 0.08},
+			## Phase 5 — everything heavy at once, ahead of the boss gate
+			{"nm_heavy": 0.22, "nm_brute": 0.20, "nm_ambusher": 0.14, "nm_royal": 0.14,
+				"nm_aerial": 0.12, "nm_spore": 0.10, "nm_raider": 0.08},
+		],
+		"miniboss_id": "centaur_king",
+		"final_boss_id": "angel_of_death",
+		## ── Descent blocks ───────────────────────────────────────────────────
+		## 10 of these (00-09) were authored long before the biome was reachable. The
+		## Merchant and Portal bookends did not exist — the NMRealm set had no equivalent
+		## of Block_Caves_05/09 — and were generated for this biome via the block compiler
+		## (blocks/nmrealm/*.block), the same gap the Crypt set had.
+		"blocks": {
+			"count": 10,                                  ## Entry + 8 inner + Portal
+			"entry": "Block_NMRealm_00_Entry",            ## fixed bookends, never shuffled
+			"portal": "Block_NMRealm_11_Portal",
+			"merchant": "Block_NMRealm_10_Merchant",
+			"merchant_depth": 0.5,
+			"pool": [
+				"Block_NMRealm_01_Isles",
+				"Block_NMRealm_02_Scarred",
+				"Block_NMRealm_03_Rift",
+				"Block_NMRealm_04_Shards",
+				"Block_NMRealm_05_Ruins",
+				"Block_NMRealm_06_Shattered",
+				"Block_NMRealm_07_Bastion",
+				"Block_NMRealm_08_Straits",
+				"Block_NMRealm_09_Fields",
+			],
+		},
+		"scene_map": {
+			"nm_fodder":      "res://scenes/enemies/nm_fodder.tscn",
+			"nm_swarmer":     "res://scenes/enemies/nm_swarmer.tscn",
+			"nm_skirmisher":  "res://scenes/enemies/nm_skirmisher.tscn",
+			"nm_stalker":     "res://scenes/enemies/nm_stalker.tscn",
+			"nm_raider":      "res://scenes/enemies/nm_raider.tscn",
+			"nm_ambusher":    "res://scenes/enemies/nm_ambusher.tscn",
+			"nm_lurker":      "res://scenes/enemies/nm_lurker.tscn",
+			"nm_aerial":      "res://scenes/enemies/nm_aerial.tscn",
+			"nm_archer":      "res://scenes/enemies/nm_archer.tscn",
+			"nm_caster":      "res://scenes/enemies/nm_caster.tscn",
+			"nm_royal":       "res://scenes/enemies/nm_royal.tscn",
+			"nm_spore":       "res://scenes/enemies/nm_spore.tscn",
+			"nm_brute":       "res://scenes/enemies/nm_brute.tscn",
+			"nm_heavy":       "res://scenes/enemies/nm_heavy.tscn",
+			"centaur_king":   "res://scenes/enemies/centaur_king.tscn",
+			"angel_of_death": "res://scenes/enemies/angel_of_death.tscn",
+		},
 	},
 	4: {
 		"name": "The Threshold",
