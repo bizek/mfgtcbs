@@ -84,6 +84,44 @@
 					],
 					"__worldX": 976,
 					"__worldY": 1250
+				},
+				{
+					"__identifier": "Level_Instructions",
+					"__grid": [23,3],
+					"__pivot": [0,0],
+					"__tags": [],
+					"__tile": null,
+					"__smartColor": "#00FF00",
+					"iid": "0c5dbf39-9c97-44e9-968a-2b9b8f1e826e",
+					"width": 8,
+					"height": 8,
+					"defUid": 529,
+					"px": [184,24],
+					"fieldInstances": [
+						{ "__identifier": "Level_Name", "__type": "String", "__value": "", "__tile": null, "defUid": 585, "realEditorValues": [] },
+						{ "__identifier": "Monster_Spawns", "__type": "String", "__value": "", "__tile": null, "defUid": 586, "realEditorValues": [] },
+						{ "__identifier": "Boss_Spawn", "__type": "String", "__value": "", "__tile": null, "defUid": 587, "realEditorValues": [] },
+						{ "__identifier": "Loot_Pool", "__type": "String", "__value": "", "__tile": null, "defUid": 588, "realEditorValues": [] },
+						{ "__identifier": "Room_Distance_Tri", "__type": "Array<Int>", "__value": [], "__tile": null, "defUid": 589, "realEditorValues": [] },
+						{ "__identifier": "Misc_Overrides", "__type": "Array<String>", "__value": [], "__tile": null, "defUid": 590, "realEditorValues": [] },
+						{ "__identifier": "Misc_Notes", "__type": "Array<String>", "__value": [], "__tile": null, "defUid": 591, "realEditorValues": [] },
+						{ "__identifier": "Music_Id", "__type": "String", "__value": "", "__tile": null, "defUid": 592, "realEditorValues": [] },
+						{ "__identifier": "Recommended_Player_Level", "__type": "Int", "__value": 1, "__tile": null, "defUid": 593, "realEditorValues": [] },
+						{ "__identifier": "Tags", "__type": "Array<String>", "__value": [], "__tile": null, "defUid": 594, "realEditorValues": [] },
+						{ "__identifier": "Player_Spawn_Pos", "__type": "Point", "__value": { "cx": 48, "cy": 8 }, "__tile": null, "defUid": 595, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["48,8"]
+						}] },
+						{ "__identifier": "Player_Facing", "__type": "LocalEnum.Facing", "__value": "Down", "__tile": null, "defUid": 596, "realEditorValues": [] },
+						{ "__identifier": "Boss_Spawn_Pos", "__type": "Point", "__value": null, "__tile": null, "defUid": 597, "realEditorValues": [] },
+						{ "__identifier": "Boss_Intro_Delay", "__type": "Float", "__value": 1.5, "__tile": null, "defUid": 598, "realEditorValues": [] },
+						{ "__identifier": "Boss_Camera_Zoom", "__type": "Float", "__value": 1, "__tile": null, "defUid": 599, "realEditorValues": [] },
+						{ "__identifier": "Level_Exit_Pos", "__type": "Point", "__value": null, "__tile": null, "defUid": 600, "realEditorValues": [] },
+						{ "__identifier": "Next_Level_Id", "__type": "String", "__value": "", "__tile": null, "defUid": 601, "realEditorValues": [] },
+						{ "__identifier": "Exit_Transition", "__type": "LocalEnum.TransitionKind", "__value": "Fade", "__tile": null, "defUid": 602, "realEditorValues": [] }
+					],
+					"__worldX": 836,
+					"__worldY": 1034
 				}
 			]
 		},
@@ -10346,9 +10384,9 @@
 			"visible": true,
 			"optionalRules": [],
 			"intGridCsv": [
-				0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-				1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-				1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+				0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+				0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+				0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
 				1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
 				1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,
 				1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,

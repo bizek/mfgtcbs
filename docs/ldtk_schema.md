@@ -116,13 +116,19 @@ stack — the Portal and its exit zone sit ~24px above `total_height`. That asym
 behaviour and extraction works, but it has not been probed for whether a player can be pushed
 below the last row.
 
-**Known deviations (audited 2026-08-15, all 37 blocks):**
+**Known deviations (audited 2026-08-15, all 37 blocks — 35 conform):**
 
 | Block | State | Consequence |
 |---|---|---|
 | `Block_Caves_09_Portal` | void=122, not 120 | Two extra corner cells. Harmless. |
-| `Block_NMRealm_00_Entry` | void=120, **row 0 open** — an entry block with no ceiling. Also has **no `Level_Instructions`**, so `BlockManager` falls back to spawning at `(level_width/2, 24)` — 24px below an open world edge. | Will reproduce the Catacombs failure the moment biome 3 gets a `blocks` entry in `LevelData`. Not live today: level 3 has no block pool, so `playable_ids()` is `[1, 2]`. |
 | `Block_Warp_00_Entry` | void=4860 — the entire block is unpainted, i.e. wholly solid | No walkable ground at all. Long-standing; see the FlowField notes. |
+
+`Block_NMRealm_00_Entry` was the third: it had row 0 open and no `Level_Instructions` at
+all, so it carried both halves of the Catacombs failure into a biome nobody had played.
+Brought into conformance 2026-08-15 — row 0 capped (void 120 → 199) and a spawn entity
+added at cell (48,8). Its spawn cell is **not** the (39,14) the Caves and Crypt entries
+share: that cell is inside a wall formation here. Measure clearance, don't copy the
+number.
 
 > **The failure this convention prevents, and why it survived an authoring pass.** `Block_Crypt_00_Entry`
 > shipped with rows 0–29 unpainted. Per §2 that is *solid*, so the loader merged the block's whole top
