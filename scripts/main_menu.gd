@@ -312,8 +312,13 @@ func _on_quit_pressed() -> void:
 	get_tree().quit()
 
 func _start_new_game() -> void:
+	## Land in the hub, not straight into a descent — a brand-new player never saw the
+	## roster/armory/launch panel/biome choice otherwise (Ben, 2026-08-15). reset_save()
+	## is new-game-only state work that CONTINUE's path never runs; keep it. Fade params
+	## now match CONTINUE's (_on_continue_pressed) — no reason for NEW GAME's fade to
+	## differ once both land on the same scene.
 	ProgressionManager.reset_save()
-	SceneTransition.change_scene("res://scenes/main_arena.tscn", 0.35, 0.3)
+	SceneTransition.change_scene("res://scenes/hub.tscn")
 
 # ── New Game overwrite confirmation ─────────────────────────────────────────
 

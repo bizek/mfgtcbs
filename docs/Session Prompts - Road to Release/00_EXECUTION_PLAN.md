@@ -15,12 +15,12 @@ inlining them).
 | 01–03, 05–08 | ✅ done | archived with `rtr_` prefix |
 | **04** win state | ✅ **done** (was recorded open) | `scripts/ui/win_screen.gd`, `scripts/ui/credits.gd`, `GameManager.last_run_was_win`, `final_boss_defeated` |
 | 09 settings core | ✅ done | `scripts/managers/settings.gd`, `scripts/ui/settings_panel.gd` |
-| 10 main menu | ✅ done | `scenes/main_menu.tscn` |
+| 10 main menu | ✅ done | `scenes/main_menu.tscn`; NEW GAME now lands in `hub.tscn` (was `main_arena.tscn` as The Drifter) 2026-08-15 — `scripts/main_menu.gd` `_start_new_game()` |
 | 11 save versioning | ✅ done (2026-07-21) | `SAVE_VERSION`, `_migrate_save`, corrupt backup, newer-version refusal; snapshot `tests/save_snapshots/v1.json`; 4 cases verified in-engine |
 | 12 settings phase 2 | ✅ done | rebinding + `screen_shake` + `colorblind_mode` in `settings.gd` |
 | 13 SFX manifest | ✅ done | `docs/audio_asset_manifest.md` |
 | 14 audio architecture | ✅ done | `scripts/managers/audio_manager.gd`, `data/factories/sound_table.gd` (54 entries) |
-| **15 audio wiring** | ⚠️ **partial** | weapon fire wired via `on_ability_used`; channel loops + dash/skill/pet stingers outstanding |
+| **15 audio wiring** | ⚠️ **partial** | weapon fire wired via `on_ability_used`; **biome music for Catacombs + Nightmare Realm composed and shipped 2026-08-15** (`mus_catacombs`, `mus_nightmare_realm` — zero code change, verified in-engine); **channel-loop beds (fire/arcane/martial) composed and shipped 2026-08-15** (`tools/sfx_forge/channel_loop_*.py` — zero code change, verified in-engine on demonologist/necromancer/fighter); dash/skill/pet stingers still outstanding |
 | 16 onboarding | ✅ done | `scripts/ui/first_run_overlay.gd` |
 | 17 juice pass | ✅ done | hit-stop / shake in `combat_utils.gd`, `player.gd`, `main_arena.gd`, shake respects `Settings.screen_shake` |
 | 18 balance instrumentation | ✅ done | `scripts/systems/run_report_manager.gd` (debug-only) |

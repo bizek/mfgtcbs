@@ -62,32 +62,50 @@ biomes 2 and 3 shipping, and the calculus changed: two of the game's three playa
 All REAPER work renders to `assets/audio/_incoming` via the REAPER MCP bridge, per
 `docs/audio_pipeline.md`.
 
-### 1.1 The Catacombs and Nightmare Realm have no music
+### 1.1 The Catacombs and Nightmare Realm have no music — ✅ DONE 2026-08-15
 
-*(verified 2026-08-15)* `ls assets/audio/music/` → `boss.ogg`, `caves.ogg`, `hub.ogg`. That's all.
-`mus_catacombs` → `catacombs.ogg` and `mus_nightmare_realm` → `nightmare_realm.ogg` are referenced
-by the sound table and do not exist; `AudioManager` no-ops on missing files, so every run in
-biomes 2–3 plays nothing. A shipped biome with no music is the loudest remaining "prototype" tell
-now that scene fades and the Grim HUD are in.
+*(was, verified 2026-08-15)* `ls assets/audio/music/` → `boss.ogg`, `caves.ogg`, `hub.ogg`. That's
+all. `mus_catacombs` → `catacombs.ogg` and `mus_nightmare_realm` → `nightmare_realm.ogg` were
+referenced by the sound table and did not exist; `AudioManager` no-ops on missing files, so every
+run in biomes 2–3 played nothing.
 
-**Do:** two loopable tracks (~1.5–2 min each), forged in REAPER against the existing `caves.ogg`
-as the mix reference. `threshold.ogg` / `inferno.ogg` wait for their biomes (Tier 3).
+**Done:** both tracks composed in REAPER and shipped, zero code changes.
 
-### 1.2 Held channels are still silent — three loop beds
+| | Catacombs | Nightmare Realm |
+|---|---|---|
+| Loop | 96.0 s, 60 BPM, A Phrygian | 114.0 s, no pulse |
+| Identity | processional footfall on beats 1 & 3, open fifths, crypt bell every 8 bars | 3 Hz detuned drone beat, consonant bells at off-grid times, Eb tritone 3×/loop |
+| Loudness | −27.7 LUFS (exact match to `caves.ogg`) | −27.7 LUFS |
+| Seam | step 0.16× interior noise floor | step 0.02× |
 
-*(verified 2026-08-15)* `AudioManager.play_channel_loop` is wired and called
-(`player.gd:1691`, keyed by `SoundTable.CHANNEL_LOOP_BY_KIT`), and
-`ls assets/audio/sfx/combat/` contains **no `channel_loop_*` files**. This is the same
-wired-but-assetless state first recorded 2026-08-02:
+Sources: `tools/sfx_forge/music_catacombs.py`, `music_nightmare.py`, shared loop machinery in
+`music_lib.py`; rebuild with `build_biome_music.py`, install with `install_biome_music.py`.
+REAPER projects for a feel pass: `assets/audio/_incoming/reaper_music/*.rpp`.
+**Ben still needs to listen** — every claim above is measurement, not ears.
 
-```
-channel_loop_fire.ogg      low roaring bed      (Immolate, Hellfire)
-channel_loop_arcane.ogg    dry rattle/whisper   (Bone / Bramble Barrage)
-channel_loop_martial.ogg   low physical rumble  (Taunt, Dictum, dome)
-```
+`threshold.ogg` / `inferno.ogg` wait for their biomes (Tier 3), and `music_lib.py` is built to
+take them.
 
-Seamless ~2s loops, quiet enough to sit under the per-beat hits. Drop them in and they light up
-with **no code change**.
+### 1.2 Held channels are still silent — three loop beds ✅ DONE 2026-08-15
+
+Shipped: `assets/audio/sfx/combat/channel_loop_{fire,arcane,martial}.ogg` (~2s seamless loops,
+peak-normalized -6 dBFS, `SoundTable`'s existing -18 dB sits them under the per-beat hits).
+Composed in REAPER via `tools/sfx_forge/channel_loop_{fire,arcane,martial}.py` +
+`build_channel_loops.py`/`install_channel_loops.py` (same pipeline shape as the biome music,
+peak-normalized like ordinary SFX rather than LUFS-matched). Zero code change — `player.gd:1691`
+and `SoundTable.CHANNEL_LOOP_BY_KIT` already pointed at these exact paths.
+
+In-engine verified in the Training Room 2026-08-15: RMB-hold starts the bed, it loops across the
+seam, and releasing stops it — checked on demonologist (Immolate → fire), necromancer/The Shade
+(Bone Barrage → arcane), and fighter/The Drifter (Taunt → martial).
+
+The straight extraction technique used for the biome music (`music_lib.render_two_periods` +
+`extract_period`) doesn't hold for these: it makes *duplicated deterministic events* periodic,
+but the beds lean on continuously-running noise generators, which have no phase to lock. Fixed
+with a standard ambient-loop splice instead — fold the extracted period's true tail into its true
+head with a short equal-power crossfade (`build_channel_loops.extract_loop_xfade`). REAPER
+projects for a feel pass: `assets/audio/_incoming/reaper_music/channel_loop_*.rpp`.
+**Ben still needs to listen** — every claim above is measurement, not ears.
 
 ### 1.3 Skill and pet stingers — the last of RTR task 15
 
@@ -107,12 +125,16 @@ whether the exhale feels right. Nothing to build unless he wants it re-voiced.
 
 ## Tier 2 — Open decisions, carried from 08-08 (all still open, none re-decided)
 
-### 2.1 NEW GAME still skips the hub
+### 2.1 NEW GAME still skips the hub — DECIDED, DONE
 
-*(verified 2026-08-15)* `main_menu.gd:279` / `:316` — NEW GAME still goes straight to
-`main_arena.tscn` as The Drifter; CONTINUE goes to the hub (`:266`). With biome selection now live
-in the launch panel, a first-run player never sees the biome choice either. The question from the
-08-08 plan is unchanged and unanswered: **intended, or should NEW GAME land in the hub?**
+*(2026-08-15)* Decided: NEW GAME lands in the hub, same as CONTINUE. `_start_new_game()`
+(`main_menu.gd`) now transitions to `res://scenes/hub.tscn` with the default `SceneTransition`
+fade (matching CONTINUE) instead of `main_arena.tscn`; `ProgressionManager.reset_save()` is still
+called first, so the new-game reset behaves exactly as before. The ERASE & START confirm button
+(`_on_confirm_erase`) shares the same `_start_new_game()` call, so it inherited the fix with no
+separate change. Verified in-engine: fresh-save NEW GAME → hub renders → LAUNCH PAD panel opens →
+BEGIN DESCENT → first-run overlay's spawn cue fires as expected. `first_run_overlay.gd` needed no
+change — it only exists as a child of the in-run HUD, so it was never reachable from the hub.
 
 ### 2.2 The mod rework has still never been felt in a run *(carried)*
 
@@ -180,9 +202,9 @@ a layout re-check per screen.
    remaining anywhere in the project.
 3. **1.3** — skill/pet stingers, closing RTR task 15 for good.
 4. **2.2** — play the mod rework (Ben), before more content stacks on it.
-5. Then the Tier 2 decisions (2.1, 2.3, 2.4 need Ben's word; 2.5 needs a design look), and the
-   Tier 3 walls when Ben picks a biome identity.
+5. Then the remaining Tier 2 decisions (2.3, 2.4 need Ben's word; 2.5 needs a design look), and
+   the Tier 3 walls when Ben picks a biome identity.
 
 Step 0 and Tier 1 need nothing from Ben except Godot open (Step 0) and a yes on un-excluding
-audio (Tier 1). The four standing decisions are: NEW GAME flow (2.1), mod rarity (2.3), phase
+audio (Tier 1). 2.1 is now decided and done. The remaining standing decisions are: mod rarity (2.3), phase
 dial (2.4), and the next biome's identity (3.1).
