@@ -314,8 +314,10 @@ static func _spell_attack(id: String, sheet: String, frame_count: int, damage: f
 static func _row_frames(path: String, count: int, fps: float) -> SpriteFrames:
 	var tex: Texture2D = load(path)
 	var frames := SpriteFrames.new()
+	## clear_all() KEEPS (re-creates) an empty "default" animation, so adding it again fails and
+	## pushes an engine error every time the crypt casters are built — two per registry build.
+	## Reuse the built-in one, same as weapon_factory.gd and chain_factory.gd already do.
 	frames.clear_all()
-	frames.add_animation(&"default")
 	frames.set_animation_loop(&"default", true)
 	frames.set_animation_speed(&"default", fps)
 	if tex == null:

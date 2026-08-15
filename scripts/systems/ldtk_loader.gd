@@ -338,11 +338,18 @@ func _render_tile_layer(layer_inst: Dictionary, is_auto: bool, result: Dictionar
 	## bottom, structural overlays (Cave_Pillars: rims, caps, trims) above the floor,
 	## shadows above those, prop layers in front so props are never hidden under
 	## rim/cap overlay lines.
+	##
+	## `CryptLayer` is the Crypt biome's BASE FLOOR — an IntGrid flooded to value 1 whose
+	## auto-rules paint every one of the block's 4860 cells. It sat at -2, i.e. IN FRONT of
+	## `CryptTiles` (-4), the hand-placed floor detail, so the flood covered all 612 detail
+	## tiles and the Catacombs rendered as one flat grid. It is the backmost crypt layer in
+	## LDtk's own list, and has to be the backmost here too. Verified in-engine on
+	## Block_Crypt_00_Entry, where 441 of the 612 buried tiles sit in the top band.
 	const LAYER_Z: Dictionary = {
-		"Background": -5, "CavesBackground": -5, "CryptTiles": -4,
-		"EtherealAutoLayer": -4,
+		"Background": -5, "CavesBackground": -5, "CryptLayer": -5,
+		"CryptTiles": -4, "EtherealAutoLayer": -4,
 		"FloorAuto": -3, "Cave_Tiles": -3, "Ethereal_Floor": -3,
-		"Cave_Pillars": -2, "CavesShadows": -2, "CryptLayer": -2,
+		"Cave_Pillars": -2, "CavesShadows": -2,
 		"CaveEntrances": -2, "Caves_PropsShadows": -2, "CryptProps_Shadows": -2,
 		"CryptShadows": -2, "Ethereal_Shadows": -2, "Ethereal_Props_Shadows": -2,
 		"Ethereal_Walls": -2,
