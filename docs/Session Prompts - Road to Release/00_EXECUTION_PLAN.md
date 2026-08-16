@@ -34,14 +34,22 @@ inlining them).
 | 26–28 passive tree | ✅ done | `data/passive_tree.gd` (59 nodes), `hub_passives_panel.gd` |
 | 29 pacing pass 2 | ✅ done | move speeds rebalanced 2026-07-07 |
 | 30 roster completion | ✅ done | 12/12 — Verdant + Devout |
-| 31–33 class mods + level-up | ✅ done | 48 class mods, `ModApplicability`, `ability_upgrades.gd` (36) |
+| 31–33 class mods + level-up | ✅ done | 96 class mods + 24 evolutions, `ModApplicability`, `ability_upgrades.gd` (36); in-engine mod pass 2026-08-15 — 120/120 verified clean in Training Room, zero bugs, see `docs/mod_levelup_rework_plan.md` §7 |
 | 34 class gear & rarity | ✅ done | 42 weapons, `trinkets.gd`, `gear_unique_factory.gd` |
 
-**Remaining work: the rest of 15 (audio wiring), and two Ben-blocked items (24, 25).** Task 11 (save versioning) shipped 2026-07-21 — the plan has no unstarted tasks left.
+**Remaining work: two Ben-blocked items (24, 25).** Task 11 (save versioning) shipped
+2026-07-21 and task 15 (audio wiring) closed 2026-08-15 — the plan has no unstarted tasks left,
+and nothing outstanding that is not waiting on Ben.
 
 > Not an RTR-numbered task, but worth cross-referencing here: the HUD phase dial
 > (`docs/polish_plan_2026-08-15.md` §2.4, `docs/ui_pack_inventory.md` §12) shipped 2026-08-15 —
 > the last item flagged in this plan's Tier-2 carry list before the Steam/store-copy blocks.
+
+> Also not RTR-numbered: **biome 4, The Threshold, shipped 2026-08-16**
+> (`docs/polish_plan_2026-08-15.md` §3.1; commits `4bc8841` blocks, `da7d5c6` roster).
+> `LevelData.playable_ids()` is now `[1, 2, 3, 4]`. Two follow-ups belong to other tracks
+> rather than to this plan: `threshold.ogg` on task 02's music pattern, and biome 5
+> (The Inferno), which still needs Ben to pick an enemy pack and an identity sentence.
 
 > Note on scope drift: mods are getting a **fresh pass after the current character/ability polish
 > phase**, and weapons are becoming class-locked rather than transferable (Ben, 2026-07-21). Treat
