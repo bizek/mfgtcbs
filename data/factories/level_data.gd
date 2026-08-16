@@ -219,10 +219,80 @@ const LEVELS: Dictionary = {
 	},
 	4: {
 		"name": "The Threshold",
-		"music_id": "mus_threshold",
-		"floor_path": "",
-		"wave_composition": [],
-		"scene_map": {},
+		"music_id": "mus_threshold",   ## threshold.ogg does not exist yet — AudioManager no-ops
+		"floor_path": "res://assets/minifantasy/Minifantasy_Warp_Lands_v1.0/Minifantasy_ Warp_Lands_Assets/Premade/_Separate_Layers/Premade_k-background.png",
+		## Per-phase wave composition (index 0 = phase 1). Weights must sum to 1.0.
+		## TWO packs, split by depth — see ThresholdEnemyData. The biome's identity is
+		## "someone opened a door they could not hold", so the escalation is not a power
+		## curve with a single roster on it: the shallows are the cult still holding the
+		## door, the deeps are the army that came through, and the Possessed tier is the
+		## hinge — the cult after the thing it summoned got inside it. WHO you are fighting
+		## changes twice, which is the point.
+		"wave_composition": [
+			## Phase 1 — the cult alone. Fanatics with knives; nothing here is trained.
+			{"th_fodder": 0.50, "th_swarmer": 0.28, "th_zealot": 0.22},
+			## Phase 2 — the devoted step up: armour, discipline, and the first ranged threat
+			{"th_fodder": 0.24, "th_swarmer": 0.16, "th_zealot": 0.20,
+				"th_skirmisher": 0.22, "th_archer": 0.18},
+			## Phase 3 — the chosen. Channelers and flagellants, and the first thing that
+			## used to be a cultist and is not one any more.
+			{"th_zealot": 0.12, "th_skirmisher": 0.18, "th_sentinel": 0.14, "th_archer": 0.14,
+				"th_caster": 0.14, "th_flagellant": 0.14, "th_possessed": 0.14},
+			## Phase 4 — the door gives way. Possessed dominate, and the first orcs arrive.
+			{"th_possessed": 0.16, "th_hound": 0.14, "th_abomination": 0.12, "th_caster": 0.10,
+				"th_flagellant": 0.10, "th_raider": 0.14, "th_warg": 0.12, "th_arbalist": 0.12},
+			## Phase 5 — the army, ahead of the boss gate. The cult is gone; this is an
+			## invasion now, and it is armoured (phalanx 14 armour, troll 13).
+			{"th_berserker": 0.18, "th_phalanx": 0.18, "th_troll": 0.14, "th_arbalist": 0.14,
+				"th_warg": 0.12, "th_raider": 0.12, "th_abomination": 0.12},
+		],
+		"miniboss_id": "ritual_guard",
+		"final_boss_id": "pale_champion",
+		## ── Descent blocks ───────────────────────────────────────────────────
+		## Authored from scratch by tools/gen_warp_blocks.py and compiled with the new
+		## `warp` style (docs/block_sketch_workflow.md). Unlike the Crypt and NMRealm sets
+		## there were no pre-existing blocks to adopt — only Ben's Block_Warp_00_Entry,
+		## which was a scratch test of the three AutoWarp layers rather than a playable
+		## block, and was regenerated.
+		"blocks": {
+			"count": 10,                                  ## Entry + 8 inner + Portal
+			"entry": "Block_Warp_00_Entry",               ## fixed bookends, never shuffled
+			"portal": "Block_Warp_11_Portal",
+			"merchant": "Block_Warp_10_Merchant",
+			"merchant_depth": 0.5,
+			"pool": [
+				"Block_Warp_01_Tears",
+				"Block_Warp_02_Bruise",
+				"Block_Warp_03_Seam",
+				"Block_Warp_04_Doorway",
+				"Block_Warp_05_Lattice",
+				"Block_Warp_06_Causeway",
+				"Block_Warp_07_Contested",
+				"Block_Warp_08_Spill",
+				"Block_Warp_09_Shatter",
+			],
+		},
+		"scene_map": {
+			"th_fodder":      "res://scenes/enemies/th_fodder.tscn",
+			"th_swarmer":     "res://scenes/enemies/th_swarmer.tscn",
+			"th_zealot":      "res://scenes/enemies/th_zealot.tscn",
+			"th_skirmisher":  "res://scenes/enemies/th_skirmisher.tscn",
+			"th_sentinel":    "res://scenes/enemies/th_sentinel.tscn",
+			"th_archer":      "res://scenes/enemies/th_archer.tscn",
+			"th_caster":      "res://scenes/enemies/th_caster.tscn",
+			"th_flagellant":  "res://scenes/enemies/th_flagellant.tscn",
+			"th_possessed":   "res://scenes/enemies/th_possessed.tscn",
+			"th_hound":       "res://scenes/enemies/th_hound.tscn",
+			"th_abomination": "res://scenes/enemies/th_abomination.tscn",
+			"th_raider":      "res://scenes/enemies/th_raider.tscn",
+			"th_berserker":   "res://scenes/enemies/th_berserker.tscn",
+			"th_phalanx":     "res://scenes/enemies/th_phalanx.tscn",
+			"th_arbalist":    "res://scenes/enemies/th_arbalist.tscn",
+			"th_warg":        "res://scenes/enemies/th_warg.tscn",
+			"th_troll":       "res://scenes/enemies/th_troll.tscn",
+			"ritual_guard":   "res://scenes/enemies/ritual_guard.tscn",
+			"pale_champion":  "res://scenes/enemies/pale_champion.tscn",
+		},
 	},
 	5: {
 		"name": "The Inferno",
