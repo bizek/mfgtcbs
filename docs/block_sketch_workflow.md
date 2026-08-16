@@ -159,11 +159,53 @@ Inverted world — the island floats in a black void:
 - Registers on the NMRealm world row (worldY = 1006). Not wired to any descent
   rotation yet. Entry-style mega-walls stay hero content.
 
+## Warp Lands Style (`style = warp`) — The Threshold
+
+Fourth grammar (sketches in `blocks/warp/`), for biome 4. Inverted world like
+nmrealm — `#` is void, walkable cells are land — but the land is painted by
+**three** IntGrid auto-layers instead of one, because `Tileset.png` ships purple,
+cyan and red variants of every terrain piece stacked at a 336px stride.
+
+- `AutoWarpPurp` is the base plane: every walkable cell. `AutoWarpBlue` and
+  `AutoWarpRed` are patches on top of it, authored with the `B` and `R` grid
+  chars. All three are walkable — the zones are visual, not mechanical, and the
+  biome's premise is that the ground disagrees with itself about what it is.
+- All 75 rules (25 per layer) are **Ben's**, authored in LDtk on the original
+  `Block_Warp_00_Entry` and read from the project defs at compile time, same
+  contract as `CryptLayer` / `EtherealAutoLayer`.
+- The base plane bakes with `oob=True` so land continues across block seams; the
+  two colour layers bake with `oob=False` so a zone closes itself at the block
+  edge instead of showing a hard colour seam against a neighbour that knows
+  nothing about it.
+- **`ground = 0.22`** scatters the pack's GROUND speckle tiles over land, tinted
+  per zone. This is not decoration — the auto-rules paint only a zone's glowing
+  contour and leave the interior transparent, so without the speckle pass land
+  and void are both pure black and unreadable.
+- **Rifts are the signature.** Void blobs get filled with the matching rift
+  sprite (`big_cross` 15×15, `window` 11×11, `small_cross` 7×7), so **sketch
+  cross-shaped and square holes** and the tear fits exactly. Rifts are void, not
+  walkable — a 15×15 glowing cross is the most obstacle-shaped thing on screen
+  and making it walkable teaches the player to distrust the biome's clearest
+  signal. `rifts = N` controls only the small decorative pieces on land.
+- Props: `tools/block_style_warp.json`, 39 stamps mined from the pack's premade
+  scene by `tools/extract_warp_style.py`. This is the v1 premade path the
+  nmrealm extractor abandoned, and it is a starting point, not the answer —
+  paint props on `Warp_Props` in LDtk and rerun with `--from-blocks` to replace
+  it with Ben's own placement.
+- **No preserved layer** (unlike nmrealm's `Ethereal_Floor`). `Warp_floor`
+  carries the generated speckle and rifts, and the preserve step *replaces*
+  `gridTiles` rather than merging, so preserving it would erase them all on the
+  first recompile.
+- Registers on the Warp world row (worldY = 1542). The 12-block set is authored
+  by `tools/gen_warp_blocks.py` rather than by hand — grids this sparse are
+  easier to get right from shape primitives than from counting 81×60 characters.
+
 ## Current Limitations (v1)
 
-- Caves + Crypt + Nightmare Realm only. New biome = grammar + stamp extraction,
-  from hand-painted reference blocks or from the pack's premade scene (see the
-  nmrealm section — premade mining works when the pack ships Separate_Layers).
+- Caves + Crypt + Nightmare Realm + Warp Lands only. New biome = grammar + stamp
+  extraction, from hand-painted reference blocks or from the pack's premade scene
+  (see the nmrealm and warp sections — premade mining works when the pack ships
+  Separate_Layers).
 - No ponds/pits/water (`~`/`o` reserved, not implemented) — pin them by hand in LDtk on
   a forked copy, or wait for v2.
 - Hero features (cave-mouth door, merchant gate, the Entry stump) are not generated —

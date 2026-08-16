@@ -1,0 +1,69 @@
+name = Block_Warp_03_Seam
+biome = Caves
+style = warp
+density = normal
+rifts = 2
+ground = 0.22
+seed = 20260819
+spawn_zone = rect=full phase=Any density=Medium
+grid:
+#...............................................................................#
+#...............................................................................#
+#...............................................................................#
+#...............................................................................#
+#...............B...............................................................#
+#..........BBBBBBBBBBB..........................................................#
+#........BBBBBBBBBBBBBBB........................................................#
+#.......BBBBBBBBBBBBBBBBB........................................R..............#
+#......BBBBBBBBBBBBBBBBBBB..................................RRRRRRRRRRR.........#
+#.....BBBBBBBBBBBBBBBBBBBBB................................RRRRRRRRRRRRR........#
+#....BBBBBBBBBBBBBBBBBBBBBBB.............................RRRRRRRRRRRRRRRRR......#
+#...BBBBBBBBBBBBBBBBBBBBBBBBB...........................RRRRRRRRRRRRRRRRRRR.....#
+#...BBBBBBBBBBBBBBBBBBBBBBBBB..........................RRRRRRRRRRRRRRRRRRRRR....#
+#..BBBBBBBBBBBBBBBBBBBBBBBBBBB........................RRRRRRRRRRRRRRRRRRRRRRR...#
+#..BBBBBBBBBBBBBBBBBBBBBBBBBBB........................RRRRRRRRRRRRRRRRRRRRRRR...#
+#.BBBBBBBBBBBBBBBBBBBBBBBBBBBBB......................RRRRRRRRRRRRRRRRRRRRRRRRR..#
+#.BBBBBBBBBBBBBBBBBBBBBBBBBBBBB......................RRRRRRRRRRRRRRRRRRRRRRRRR..#
+#.BBBBBBBBBBBBBBBBBBBBBBBBBBBBB.....................RRRRRRRRRRRRRRRRRRRRRRRRRRR.#
+#.BBBBBBBBBBBBBBBBBBBBBBBBBBBBB.....................RRRRRRRRRRRRRRRRRRRRRRRRRRR.#
+#.BBBBBBBBBBBBBBBBBBBBBBBBBBBBB.....................RRRRRRRRRRRRRRRRRRRRRRRRRRR.#
+#BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB....................RRRRRRRRRRRRRRRRRRRRRRRRRRR.#
+#.BBBBBBBBBBBBBBBBBBBBBBBBBBBBB.....................RRRRRRRRRRRRRRRRRRRRRRRRRRR.#
+#.BBBBBBBBBBBBBBBBBBBBBBBBBBBBB....................RRRRRRRRRRRRRRRRRRRRRRRRRRRRR#
+#.BBBBBBBBBBBBBBBBBBBBBBBBBBBBB.....................RRRRRRRRRRRRRRRRRRRRRRRRRRR.#
+#.BBBBBBBBBBBBBBBBBBBBBBBBBBBBB.....................RRRRRRRRRRRRRRRRRRRRRRRRRRR.#
+#.BBBBBBBBBBBBBBBBBBBBBBBBBBBBB.....................RRRRRRRRRRRRRRRRRRRRRRRRRRR.#
+#..BBBBBBBBBBBBBBBBBBBBBBBBBBB......................RRRRRRRRRRRRRRRRRRRRRRRRRRR.#
+#..BBBBBBBBBBBBBBBBBBBBBBBBBBB......................RRRRRRRRRRRRRRRRRRRRRRRRRRR.#
+#...BBBBBBBBBBBBBBBBBBBBBBBBB........................RRRRRRRRRRRRRRRRRRRRRRRRR..#
+#...BBBBBBBBBBBBBBBBBBBBBBBBB........................RRRRRRRRRRRRRRRRRRRRRRRRR..#
+#....BBBBBBBBBBBBBBBBBB###BB..........................RRRRRRRRRRRRRRRRRRRRRRR...#
+#.....BBBBBBBBBBBBBBBBB###B...........................RRRRRRRRRRRRRRRRRRRRRRR...#
+#......BBBBBBBBBBBBBB#######...........................RR###RRRRRRRRRRRRRRRR....#
+#.......BBBBBBBBBBBBB#######............................R###RRRRRRRRRRRRRRR.....#
+#........BBBBBBBBBBBB#######...........................#######RRRRRRRRRRRR......#
+#..........BBBBBBBBBBB.###.............................#######RRRRRRRRRR........#
+#...............B......###.............................#######RRRRRRRRR.........#
+#..........BBBBBBBBBBB...................................###RRRRRRRRRR..........#
+#........BBBBBBBBBBBBBBB.................................###RRRRRRRRRRRR........#
+#......BBBBBBBBBBBBBBBBBBB.............................RRRRRRRRRRRRRRRRRRR......#
+#.....BBBBBBBBBBBBBBBBBBBBB...........................RRRRRRRRRRRRRRRRRRRRR.....#
+#....BBBBBBBBBBBBBBBBBBBBBBB.........................RRRRRRRRRRRRRRRRRRRRRRR....#
+#....BBBBBBBBBBBBBBBBBBBBBBB.........................RRRRRRRRRRRRRRRRRRRRRRR....#
+#...BBBBBBBBBBBBBBBBBBBBBBBBB.......................RRRRRRRRRRRRRRRRRRRRRRRRR...#
+#...BBBBBBBBBBBBBBBBBBBBBBBBB.......................RRRRRRRRRRRRRRRRRRRRRRRRR...#
+#...BBBBBBBBBBBBBBBBBBBBBBBBB.......................RRRRRRRRRRRRRRRRRRRRRRRRR...#
+#..BBBBBBBBBBBBBBBBBBBBBBBBBBB.....................RRRRRRRRRRRRRRRRRRRRRRRRRRR..#
+#...BBBBBBBBBBBBBBBBBBBBBBBBB.......................RRRRRRRRRRRRRRRRRRRRRRRRR...#
+#...BBBBBBBBBBBBBBBBBBBBBBBBB.......................RRRRRRRRRRRRRRRRRRRRRRRRR...#
+#...BBBBBBBBBBBBBBBBBBBBBBBBB.......................RRRRRRRRRRRRRRRRRRRRRRRRR...#
+#....BBBBBBBBBBBBBBBBBBBBBBB.........................RRRRRRRRRRRRRRRRRRRRRRR....#
+#....BBBBBBBBBBBBBBBBBBBBBBB.........................RRRRRRRRRRRRRRRRRRRRRRR....#
+#.....BBBBBBBBBBBBBBBBBBBBB...........................RRRRRRRRRRRRRRRRRRRRR.....#
+#......BBBBBBBBBBBBBBBBBBB.............................RRRRRRRRRRRRRRRRRRR......#
+#........BBBBBBBBBBBBBBB.................................RRRRRRRRRRRRRRR........#
+#..........BBBBBBBBBBB.....................................RRRRRRRRRRR..........#
+#...............................................................................#
+#...............................................................................#
+#...............................................................................#
+#...............................................................................#

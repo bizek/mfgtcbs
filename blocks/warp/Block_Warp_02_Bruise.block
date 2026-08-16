@@ -1,0 +1,69 @@
+name = Block_Warp_02_Bruise
+biome = Caves
+style = warp
+density = normal
+rifts = 3
+ground = 0.22
+seed = 20260818
+spawn_zone = rect=full phase=Any density=Medium
+grid:
+#...............................................................................#
+#...............................................................................#
+#...............................................................................#
+#...............................................................................#
+#...............................................................................#
+#...............................................................................#
+#...............................................................................#
+#...............................................................................#
+#.......................................B.......................................#
+#.............................BBBBBBBBBBBBBBBBBBBBB.............................#
+#.........................BBBBBBBBBBBBBBBBBBBBBBBBBBBBB.........................#
+#......................BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB......................#
+#....................BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB....................#
+#..................BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB..................#
+#................BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB................#
+#...............BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB...............#
+#.............BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB.............#
+#............BBBBBBBBBBBBBBB#####BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB............#
+#...........BBBBBBBBBBBBBBBB#####BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB...........#
+#..........BBBBBBBBBBBBBBBBB#####BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB..........#
+#.........BBBBBBBBBBBBBBBBBB#####BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB.........#
+#........BBBBBBBBBBBBBBBBBBB#####BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB........#
+#........BBBBBBBBBBBBBB###############BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB........#
+#.......BBBBBBBBBBBBBBB###############BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB.......#
+#.......BBBBBBBBBBBBBBB###############BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB.......#
+#......BBBBBBBBBBBBBBBB###############BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB......#
+#......BBBBBBBBBBBBBBBB###############BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB......#
+#......BBBBBBBBBBBBBBBBBBBBB#####BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB......#
+#......BBBBBBBBBBBBBBBBBBBBB#####BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB......#
+#......BBBBBBBBBBBBBBBBBBBBB#####BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB......#
+#.....BBBBBBBBBBBBBBBBBBBBBB#####BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB.....#
+#......BBBBBBBBBBBBBBBBBBBBB#####BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB......#
+#......BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB......#
+#......BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB......#
+#......BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB#BBBBBBBBBBB......#
+#......BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB#######BBBBBBBB......#
+#.......BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB###########BBBBB.......#
+#.......BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB#############BBBB.......#
+#........BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB#############BBB........#
+#........BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB#############BBB........#
+#.........BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB###############B.........#
+#..........BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB#############B..........#
+#...........BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB#############...........#
+#..........RRBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB#############...........#
+#........RRRRRBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB###########............#
+#.......RRRRRRRRBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB#######..............#
+#......RRRRRRRRRRBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB#B................#
+#......RRRRRRRRRRRRBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB..................#
+#.....RRRRRRRRRRRRRRRBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB....................#
+#......RRRRRRRRRRRRRRRRBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB......................#
+#......RRRRRRRRRRRRRRRRRRRBBBBBBBBBBBBBBBBBBBBBBBBBBBBB.........................#
+#.......RRRRRRRRRRRRRRRRR.....BBBBBBBBBBBBBBBBBBBBB.............................#
+#........RRRRRRRRRRRRRRR................B.......................................#
+#..........RRRRRRRRRRR..........................................................#
+#...............R...............................................................#
+#...............................................................................#
+#...............................................................................#
+#...............................................................................#
+#...............................................................................#
+#...............................................................................#

@@ -11,7 +11,7 @@
 	"iid": "45139d80-21a0-11f1-98a2-21c7292a6549",
 	"jsonVersion": "1.5.3",
 	"appBuildId": 473703,
-	"nextUid": 952,
+	"nextUid": 963,
 	"identifierStyle": "Free",
 	"toc": [],
 	"worldLayout": "Free",
@@ -12253,46 +12253,6 @@
 			"__neighbours": []
 		},
 		{
-			"identifier": "Block_Warp_00_Entry",
-			"iid": "712ed460-6fc0-11f1-b09f-d39678ecddd5",
-			"uid": 863,
-			"worldX": 660,
-			"worldY": 1542,
-			"worldDepth": 0,
-			"pxWid": 648,
-			"pxHei": 480,
-			"__bgColor": "#696A79",
-			"bgColor": null,
-			"useAutoIdentifier": false,
-			"bgRelPath": null,
-			"bgPos": null,
-			"bgPivotX": 0.5,
-			"bgPivotY": 0.5,
-			"__smartColor": "#ADADB5",
-			"__bgPos": null,
-			"externalRelPath": "Level 1 - Caves/Block_Warp_00_Entry.ldtkl",
-			"fieldInstances": [
-				{
-					"__identifier": "biome",
-					"__type": "LocalEnum.BiomeId",
-					"__value": "Caves",
-					"__tile": null,
-					"defUid": 465,
-					"realEditorValues": []
-				},
-				{
-					"__identifier": "schema_version",
-					"__type": "Int",
-					"__value": 1,
-					"__tile": null,
-					"defUid": 471,
-					"realEditorValues": []
-				}
-			],
-			"layerInstances": null,
-			"__neighbours": []
-		},
-		{
 			"identifier": "Block_Crypt_11_Merchant",
 			"iid": "dae37490-0ab6-4ffc-8384-0be7d414512f",
 			"uid": 948,
@@ -12502,6 +12462,642 @@
 				}
 			],
 			"externalRelPath": "Level 1 - Caves/Block_NMRealm_11_Portal.ldtkl",
+			"layerInstances": null
+		},
+		{
+			"identifier": "Block_Warp_00_Entry",
+			"iid": "d71ebb2e-027a-4ba9-8ce7-8d43bfee8c96",
+			"uid": 863,
+			"worldX": 660,
+			"worldY": 1542,
+			"worldDepth": 0,
+			"pxWid": 648,
+			"pxHei": 480,
+			"__bgColor": "#696A79",
+			"bgColor": null,
+			"useAutoIdentifier": false,
+			"bgRelPath": null,
+			"bgPos": null,
+			"bgPivotX": 0.5,
+			"bgPivotY": 0.5,
+			"__smartColor": "#ADADB5",
+			"__bgPos": null,
+			"fieldInstances": [
+				{
+					"__identifier": "biome",
+					"__type": "LocalEnum.BiomeId",
+					"__value": "Caves",
+					"__tile": null,
+					"defUid": 465,
+					"realEditorValues": [
+						{
+							"id": "V_String",
+							"params": [
+								"Caves"
+							]
+						}
+					]
+				},
+				{
+					"__identifier": "schema_version",
+					"__type": "Int",
+					"__value": 1,
+					"__tile": null,
+					"defUid": 471,
+					"realEditorValues": [
+						{
+							"id": "V_Int",
+							"params": [
+								1
+							]
+						}
+					]
+				}
+			],
+			"externalRelPath": "Level 1 - Caves/Block_Warp_00_Entry.ldtkl",
+			"layerInstances": null
+		},
+		{
+			"identifier": "Block_Warp_01_Tears",
+			"iid": "4537d2c4-8b17-4a92-becf-3c208bda6fe0",
+			"uid": 952,
+			"worldX": 1360,
+			"worldY": 1542,
+			"worldDepth": 0,
+			"pxWid": 648,
+			"pxHei": 480,
+			"__bgColor": "#696A79",
+			"bgColor": null,
+			"useAutoIdentifier": false,
+			"bgRelPath": null,
+			"bgPos": null,
+			"bgPivotX": 0.5,
+			"bgPivotY": 0.5,
+			"__smartColor": "#ADADB5",
+			"__bgPos": null,
+			"fieldInstances": [
+				{
+					"__identifier": "biome",
+					"__type": "LocalEnum.BiomeId",
+					"__value": "Caves",
+					"__tile": null,
+					"defUid": 465,
+					"realEditorValues": [
+						{
+							"id": "V_String",
+							"params": [
+								"Caves"
+							]
+						}
+					]
+				},
+				{
+					"__identifier": "schema_version",
+					"__type": "Int",
+					"__value": 1,
+					"__tile": null,
+					"defUid": 471,
+					"realEditorValues": [
+						{
+							"id": "V_Int",
+							"params": [
+								1
+							]
+						}
+					]
+				}
+			],
+			"externalRelPath": "Level 1 - Caves/Block_Warp_01_Tears.ldtkl",
+			"layerInstances": null
+		},
+		{
+			"identifier": "Block_Warp_02_Bruise",
+			"iid": "8ccc0028-5de5-4ac4-8b50-4c4d57a096be",
+			"uid": 953,
+			"worldX": 2060,
+			"worldY": 1542,
+			"worldDepth": 0,
+			"pxWid": 648,
+			"pxHei": 480,
+			"__bgColor": "#696A79",
+			"bgColor": null,
+			"useAutoIdentifier": false,
+			"bgRelPath": null,
+			"bgPos": null,
+			"bgPivotX": 0.5,
+			"bgPivotY": 0.5,
+			"__smartColor": "#ADADB5",
+			"__bgPos": null,
+			"fieldInstances": [
+				{
+					"__identifier": "biome",
+					"__type": "LocalEnum.BiomeId",
+					"__value": "Caves",
+					"__tile": null,
+					"defUid": 465,
+					"realEditorValues": [
+						{
+							"id": "V_String",
+							"params": [
+								"Caves"
+							]
+						}
+					]
+				},
+				{
+					"__identifier": "schema_version",
+					"__type": "Int",
+					"__value": 1,
+					"__tile": null,
+					"defUid": 471,
+					"realEditorValues": [
+						{
+							"id": "V_Int",
+							"params": [
+								1
+							]
+						}
+					]
+				}
+			],
+			"externalRelPath": "Level 1 - Caves/Block_Warp_02_Bruise.ldtkl",
+			"layerInstances": null
+		},
+		{
+			"identifier": "Block_Warp_03_Seam",
+			"iid": "81b2f714-675d-47d8-a46e-128f0f979fa1",
+			"uid": 954,
+			"worldX": 2760,
+			"worldY": 1542,
+			"worldDepth": 0,
+			"pxWid": 648,
+			"pxHei": 480,
+			"__bgColor": "#696A79",
+			"bgColor": null,
+			"useAutoIdentifier": false,
+			"bgRelPath": null,
+			"bgPos": null,
+			"bgPivotX": 0.5,
+			"bgPivotY": 0.5,
+			"__smartColor": "#ADADB5",
+			"__bgPos": null,
+			"fieldInstances": [
+				{
+					"__identifier": "biome",
+					"__type": "LocalEnum.BiomeId",
+					"__value": "Caves",
+					"__tile": null,
+					"defUid": 465,
+					"realEditorValues": [
+						{
+							"id": "V_String",
+							"params": [
+								"Caves"
+							]
+						}
+					]
+				},
+				{
+					"__identifier": "schema_version",
+					"__type": "Int",
+					"__value": 1,
+					"__tile": null,
+					"defUid": 471,
+					"realEditorValues": [
+						{
+							"id": "V_Int",
+							"params": [
+								1
+							]
+						}
+					]
+				}
+			],
+			"externalRelPath": "Level 1 - Caves/Block_Warp_03_Seam.ldtkl",
+			"layerInstances": null
+		},
+		{
+			"identifier": "Block_Warp_04_Doorway",
+			"iid": "f801f2d2-5ecd-47d2-9c2c-16aa8aefaa1c",
+			"uid": 955,
+			"worldX": 3460,
+			"worldY": 1542,
+			"worldDepth": 0,
+			"pxWid": 648,
+			"pxHei": 480,
+			"__bgColor": "#696A79",
+			"bgColor": null,
+			"useAutoIdentifier": false,
+			"bgRelPath": null,
+			"bgPos": null,
+			"bgPivotX": 0.5,
+			"bgPivotY": 0.5,
+			"__smartColor": "#ADADB5",
+			"__bgPos": null,
+			"fieldInstances": [
+				{
+					"__identifier": "biome",
+					"__type": "LocalEnum.BiomeId",
+					"__value": "Caves",
+					"__tile": null,
+					"defUid": 465,
+					"realEditorValues": [
+						{
+							"id": "V_String",
+							"params": [
+								"Caves"
+							]
+						}
+					]
+				},
+				{
+					"__identifier": "schema_version",
+					"__type": "Int",
+					"__value": 1,
+					"__tile": null,
+					"defUid": 471,
+					"realEditorValues": [
+						{
+							"id": "V_Int",
+							"params": [
+								1
+							]
+						}
+					]
+				}
+			],
+			"externalRelPath": "Level 1 - Caves/Block_Warp_04_Doorway.ldtkl",
+			"layerInstances": null
+		},
+		{
+			"identifier": "Block_Warp_05_Lattice",
+			"iid": "bbdb969a-1d61-4ef5-b7d7-5c098c68fe06",
+			"uid": 956,
+			"worldX": 4160,
+			"worldY": 1542,
+			"worldDepth": 0,
+			"pxWid": 648,
+			"pxHei": 480,
+			"__bgColor": "#696A79",
+			"bgColor": null,
+			"useAutoIdentifier": false,
+			"bgRelPath": null,
+			"bgPos": null,
+			"bgPivotX": 0.5,
+			"bgPivotY": 0.5,
+			"__smartColor": "#ADADB5",
+			"__bgPos": null,
+			"fieldInstances": [
+				{
+					"__identifier": "biome",
+					"__type": "LocalEnum.BiomeId",
+					"__value": "Caves",
+					"__tile": null,
+					"defUid": 465,
+					"realEditorValues": [
+						{
+							"id": "V_String",
+							"params": [
+								"Caves"
+							]
+						}
+					]
+				},
+				{
+					"__identifier": "schema_version",
+					"__type": "Int",
+					"__value": 1,
+					"__tile": null,
+					"defUid": 471,
+					"realEditorValues": [
+						{
+							"id": "V_Int",
+							"params": [
+								1
+							]
+						}
+					]
+				}
+			],
+			"externalRelPath": "Level 1 - Caves/Block_Warp_05_Lattice.ldtkl",
+			"layerInstances": null
+		},
+		{
+			"identifier": "Block_Warp_06_Causeway",
+			"iid": "00c7f9a7-b489-489a-bff3-fa819fe1edc4",
+			"uid": 957,
+			"worldX": 4860,
+			"worldY": 1542,
+			"worldDepth": 0,
+			"pxWid": 648,
+			"pxHei": 480,
+			"__bgColor": "#696A79",
+			"bgColor": null,
+			"useAutoIdentifier": false,
+			"bgRelPath": null,
+			"bgPos": null,
+			"bgPivotX": 0.5,
+			"bgPivotY": 0.5,
+			"__smartColor": "#ADADB5",
+			"__bgPos": null,
+			"fieldInstances": [
+				{
+					"__identifier": "biome",
+					"__type": "LocalEnum.BiomeId",
+					"__value": "Caves",
+					"__tile": null,
+					"defUid": 465,
+					"realEditorValues": [
+						{
+							"id": "V_String",
+							"params": [
+								"Caves"
+							]
+						}
+					]
+				},
+				{
+					"__identifier": "schema_version",
+					"__type": "Int",
+					"__value": 1,
+					"__tile": null,
+					"defUid": 471,
+					"realEditorValues": [
+						{
+							"id": "V_Int",
+							"params": [
+								1
+							]
+						}
+					]
+				}
+			],
+			"externalRelPath": "Level 1 - Caves/Block_Warp_06_Causeway.ldtkl",
+			"layerInstances": null
+		},
+		{
+			"identifier": "Block_Warp_07_Contested",
+			"iid": "8631ecf7-b9cf-481c-afa2-42af7a287e51",
+			"uid": 958,
+			"worldX": 5560,
+			"worldY": 1542,
+			"worldDepth": 0,
+			"pxWid": 648,
+			"pxHei": 480,
+			"__bgColor": "#696A79",
+			"bgColor": null,
+			"useAutoIdentifier": false,
+			"bgRelPath": null,
+			"bgPos": null,
+			"bgPivotX": 0.5,
+			"bgPivotY": 0.5,
+			"__smartColor": "#ADADB5",
+			"__bgPos": null,
+			"fieldInstances": [
+				{
+					"__identifier": "biome",
+					"__type": "LocalEnum.BiomeId",
+					"__value": "Caves",
+					"__tile": null,
+					"defUid": 465,
+					"realEditorValues": [
+						{
+							"id": "V_String",
+							"params": [
+								"Caves"
+							]
+						}
+					]
+				},
+				{
+					"__identifier": "schema_version",
+					"__type": "Int",
+					"__value": 1,
+					"__tile": null,
+					"defUid": 471,
+					"realEditorValues": [
+						{
+							"id": "V_Int",
+							"params": [
+								1
+							]
+						}
+					]
+				}
+			],
+			"externalRelPath": "Level 1 - Caves/Block_Warp_07_Contested.ldtkl",
+			"layerInstances": null
+		},
+		{
+			"identifier": "Block_Warp_08_Spill",
+			"iid": "b0abf578-75dd-481d-b7c1-47bd9b3385e7",
+			"uid": 959,
+			"worldX": 6260,
+			"worldY": 1542,
+			"worldDepth": 0,
+			"pxWid": 648,
+			"pxHei": 480,
+			"__bgColor": "#696A79",
+			"bgColor": null,
+			"useAutoIdentifier": false,
+			"bgRelPath": null,
+			"bgPos": null,
+			"bgPivotX": 0.5,
+			"bgPivotY": 0.5,
+			"__smartColor": "#ADADB5",
+			"__bgPos": null,
+			"fieldInstances": [
+				{
+					"__identifier": "biome",
+					"__type": "LocalEnum.BiomeId",
+					"__value": "Caves",
+					"__tile": null,
+					"defUid": 465,
+					"realEditorValues": [
+						{
+							"id": "V_String",
+							"params": [
+								"Caves"
+							]
+						}
+					]
+				},
+				{
+					"__identifier": "schema_version",
+					"__type": "Int",
+					"__value": 1,
+					"__tile": null,
+					"defUid": 471,
+					"realEditorValues": [
+						{
+							"id": "V_Int",
+							"params": [
+								1
+							]
+						}
+					]
+				}
+			],
+			"externalRelPath": "Level 1 - Caves/Block_Warp_08_Spill.ldtkl",
+			"layerInstances": null
+		},
+		{
+			"identifier": "Block_Warp_09_Shatter",
+			"iid": "2aca4239-ca9e-4520-9e16-d542b10ac4f5",
+			"uid": 960,
+			"worldX": 6960,
+			"worldY": 1542,
+			"worldDepth": 0,
+			"pxWid": 648,
+			"pxHei": 480,
+			"__bgColor": "#696A79",
+			"bgColor": null,
+			"useAutoIdentifier": false,
+			"bgRelPath": null,
+			"bgPos": null,
+			"bgPivotX": 0.5,
+			"bgPivotY": 0.5,
+			"__smartColor": "#ADADB5",
+			"__bgPos": null,
+			"fieldInstances": [
+				{
+					"__identifier": "biome",
+					"__type": "LocalEnum.BiomeId",
+					"__value": "Caves",
+					"__tile": null,
+					"defUid": 465,
+					"realEditorValues": [
+						{
+							"id": "V_String",
+							"params": [
+								"Caves"
+							]
+						}
+					]
+				},
+				{
+					"__identifier": "schema_version",
+					"__type": "Int",
+					"__value": 1,
+					"__tile": null,
+					"defUid": 471,
+					"realEditorValues": [
+						{
+							"id": "V_Int",
+							"params": [
+								1
+							]
+						}
+					]
+				}
+			],
+			"externalRelPath": "Level 1 - Caves/Block_Warp_09_Shatter.ldtkl",
+			"layerInstances": null
+		},
+		{
+			"identifier": "Block_Warp_10_Merchant",
+			"iid": "7b3ddbc1-052d-44aa-b219-872ba8244f0e",
+			"uid": 961,
+			"worldX": 7660,
+			"worldY": 1542,
+			"worldDepth": 0,
+			"pxWid": 648,
+			"pxHei": 480,
+			"__bgColor": "#696A79",
+			"bgColor": null,
+			"useAutoIdentifier": false,
+			"bgRelPath": null,
+			"bgPos": null,
+			"bgPivotX": 0.5,
+			"bgPivotY": 0.5,
+			"__smartColor": "#ADADB5",
+			"__bgPos": null,
+			"fieldInstances": [
+				{
+					"__identifier": "biome",
+					"__type": "LocalEnum.BiomeId",
+					"__value": "Caves",
+					"__tile": null,
+					"defUid": 465,
+					"realEditorValues": [
+						{
+							"id": "V_String",
+							"params": [
+								"Caves"
+							]
+						}
+					]
+				},
+				{
+					"__identifier": "schema_version",
+					"__type": "Int",
+					"__value": 1,
+					"__tile": null,
+					"defUid": 471,
+					"realEditorValues": [
+						{
+							"id": "V_Int",
+							"params": [
+								1
+							]
+						}
+					]
+				}
+			],
+			"externalRelPath": "Level 1 - Caves/Block_Warp_10_Merchant.ldtkl",
+			"layerInstances": null
+		},
+		{
+			"identifier": "Block_Warp_11_Portal",
+			"iid": "52cca224-b129-4bbb-9ad5-8924f9e127ef",
+			"uid": 962,
+			"worldX": 8360,
+			"worldY": 1542,
+			"worldDepth": 0,
+			"pxWid": 648,
+			"pxHei": 480,
+			"__bgColor": "#696A79",
+			"bgColor": null,
+			"useAutoIdentifier": false,
+			"bgRelPath": null,
+			"bgPos": null,
+			"bgPivotX": 0.5,
+			"bgPivotY": 0.5,
+			"__smartColor": "#ADADB5",
+			"__bgPos": null,
+			"fieldInstances": [
+				{
+					"__identifier": "biome",
+					"__type": "LocalEnum.BiomeId",
+					"__value": "Caves",
+					"__tile": null,
+					"defUid": 465,
+					"realEditorValues": [
+						{
+							"id": "V_String",
+							"params": [
+								"Caves"
+							]
+						}
+					]
+				},
+				{
+					"__identifier": "schema_version",
+					"__type": "Int",
+					"__value": 1,
+					"__tile": null,
+					"defUid": 471,
+					"realEditorValues": [
+						{
+							"id": "V_Int",
+							"params": [
+								1
+							]
+						}
+					]
+				}
+			],
+			"externalRelPath": "Level 1 - Caves/Block_Warp_11_Portal.ldtkl",
 			"layerInstances": null
 		}
 	],

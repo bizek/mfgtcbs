@@ -345,14 +345,20 @@ func _render_tile_layer(layer_inst: Dictionary, is_auto: bool, result: Dictionar
 	## tiles and the Catacombs rendered as one flat grid. It is the backmost crypt layer in
 	## LDtk's own list, and has to be the backmost here too. Verified in-engine on
 	## Block_Crypt_00_Entry, where 441 of the 612 buried tiles sit in the top band.
+	##
+	## The Warp trio stacks the same way for the same reason: `AutoWarpPurp` is The
+	## Threshold's flooded base plane and has to sit behind `AutoWarpBlue`/`AutoWarpRed`,
+	## which are the patches of other realities bleeding through it. Their order matches
+	## the layer order in LDtk (red topmost).
 	const LAYER_Z: Dictionary = {
 		"Background": -5, "CavesBackground": -5, "CryptLayer": -5,
-		"CryptTiles": -4, "EtherealAutoLayer": -4,
-		"FloorAuto": -3, "Cave_Tiles": -3, "Ethereal_Floor": -3,
+		"AutoWarpPurp": -5,
+		"CryptTiles": -4, "EtherealAutoLayer": -4, "AutoWarpBlue": -4,
+		"FloorAuto": -3, "Cave_Tiles": -3, "Ethereal_Floor": -3, "AutoWarpRed": -3,
 		"Cave_Pillars": -2, "CavesShadows": -2,
 		"CaveEntrances": -2, "Caves_PropsShadows": -2, "CryptProps_Shadows": -2,
 		"CryptShadows": -2, "Ethereal_Shadows": -2, "Ethereal_Props_Shadows": -2,
-		"Ethereal_Walls": -2,
+		"Ethereal_Walls": -2, "Warp_floor": -2, "Warp_Prop_shadows": -2,
 		"WallsAuto": -1,
 		"Decoration": 2,
 	}

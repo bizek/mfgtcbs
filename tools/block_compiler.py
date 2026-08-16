@@ -47,7 +47,9 @@ PREVIEW_DIR = os.path.join(ROOT, "blocks", "previews")
 BLOCK_W, BLOCK_H = 81, 60
 GRID = 8
 
-WALKABLE = {".", ",", "-"}
+ZONE_BLUE = "B"       # warp only: walkable ground, blue reality bleeding through
+ZONE_RED = "R"        # warp only: walkable ground, red reality bleeding through
+WALKABLE = {".", ",", "-", ZONE_BLUE, ZONE_RED}
 SOLID = {"#"}
 PLATFORM = "P"        # nmrealm only: raised platform (solid, on top of island floor)
 RUINWALL = "W"        # nmrealm only: ruined wall line (walkable decor, like Ben's)
@@ -159,6 +161,24 @@ NM_SPIRE = [(464, 400), (472, 400), (480, 400),         # 3x4 broken-spire cap
             (464, 416), (472, 416), (480, 416),
             (464, 424), (472, 424), (480, 424)]
 
+# ---------------------------------------------------------------------------
+# Warp Lands visual grammar (The Threshold) — three realities over one void
+# ---------------------------------------------------------------------------
+# Inverted world like nmrealm: `#` is VOID, walkable cells are land. What makes
+# the biome read as itself is that the land is painted by THREE independent
+# IntGrid auto-layers off the same Warp_floor tileset, which ships purple, cyan
+# and red variants of every terrain piece (GROUND/HILLS/CLIFFS/WALLS/RIFTS —
+# see the pack's Tileset_Use_Guidelines.png). Purple is the base plane; blue and
+# red are patches bleeding through it, stacked in that order.
+#
+# All 75 rules (25 per layer) are Ben's, authored in LDtk on Block_Warp_00_Entry
+# and evaluated here from the project defs — same contract as CryptLayer and
+# EtherealAutoLayer, so an LDtk re-save re-bakes identically.
+WARP_BASE_LAYER = "AutoWarpPurp"          # base reality: every land cell
+WARP_BLUE_LAYER = "AutoWarpBlue"          # 'B' cells
+WARP_RED_LAYER = "AutoWarpRed"            # 'R' cells
+WARP_DETAIL_LAYER = "Warp_floor"          # ground speckle + rifts (compiler-owned)
+
 STYLES = {
     "caves": {
         "pack": STYLE_PACK,
@@ -182,6 +202,18 @@ STYLES = {
             "dense":  {"debris": 4.2, "small": 1.2, "medium": 4.5, "large": 2.3},
         },
     },
+    "warp": {
+        "pack": os.path.join(ROOT, "tools", "block_style_warp.json"),
+        "min_blob_w": 3, "min_blob_h": 3, "rims": False,
+        "world_y": 1542,  # Block_Warp_00_Entry's row in the LDtk world view
+        # measured from the pack's premade scene (tools/extract_warp_style.py)
+        "density_presets": {
+            "none":   {"debris": 0.0, "small": 0.0, "medium": 0.0, "large": 0.0},
+            "sparse": {"debris": 1.4, "small": 0.6, "medium": 1.2, "large": 0.5},
+            "normal": {"debris": 2.4, "small": 1.0, "medium": 2.0, "large": 0.9},
+            "dense":  {"debris": 3.6, "small": 1.5, "medium": 3.0, "large": 1.4},
+        },
+    },
 }
 
 
@@ -200,6 +232,8 @@ class Sketch:
         self.floor = FLOOR_DEFAULT
         self.density = "sparse"
         self.scratches = "off"   # nmrealm ground scarring: off = Ben hand-paints
+        self.rifts = 2           # warp: signature rift landmarks per block
+        self.ground = 0.22       # warp: speckle coverage of walkable land
         self.seed = 0
         self.spawn_zones = []
         self.markers = []
@@ -259,6 +293,12 @@ def parse_sketch(path):
             if val not in ("off", "auto"):
                 raise ValueError(f"{path}: scratches must be off|auto, got {val!r}")
             sk.scratches = val
+        elif key == "rifts":
+            sk.rifts = int(val)
+        elif key == "ground":
+            sk.ground = float(val)
+            if not 0.0 <= sk.ground <= 1.0:
+                raise ValueError(f"{path}: ground must be 0.0-1.0, got {val!r}")
         elif key == "seed":
             sk.seed = int(val)
         elif key == "spawn_zone":
@@ -393,6 +433,8 @@ def validate(sk, min_obstacle_size=2):
                 errors.append(f"row {y} col {x}: unknown char {ch!r}")
             elif ch in (PLATFORM, RUINWALL) and sk.style != "nmrealm":
                 errors.append(f"row {y} col {x}: {ch!r} is nmrealm-only")
+            elif ch in (ZONE_BLUE, ZONE_RED) and sk.style != "warp":
+                errors.append(f"row {y} col {x}: {ch!r} is warp-only")
     if errors:
         return errors, []
 
@@ -1038,6 +1080,144 @@ def render_structure_nmrealm(sk, rng, defs):
     return p, {"Collision": intgrid, NM_FLOOR_LAYER: nm_csv}, {NM_FLOOR_LAYER: auto}
 
 
+def render_structure_warp(sk, rng, defs):
+    """The Threshold: land over black void, painted by three stacked reality
+    layers. Every walkable cell goes in the purple base mask; 'B' and 'R' cells
+    additionally go in the blue / red masks, which bake on top. Each of the
+    three is baked from its own Ben-authored 25-rule set with oob=True, so the
+    cliff edges the rules draw continue across block seams rather than fencing
+    every block. Returns (painter, intgrids dict, autotiles dict)."""
+    g = sk.grid
+    p = TilePainter()
+    intgrid = [0] * (BLOCK_W * BLOCK_H)
+
+    land = [[False] * BLOCK_W for _ in range(BLOCK_H)]
+    blue = [[False] * BLOCK_W for _ in range(BLOCK_H)]
+    red = [[False] * BLOCK_W for _ in range(BLOCK_H)]
+    for y in range(BLOCK_H):
+        for x in range(BLOCK_W):
+            ch = g[y][x]
+            if ch in WALKABLE:
+                intgrid[y * BLOCK_W + x] = IG_SPAWNBLOCK if ch == "," else IG_FLOOR
+                land[y][x] = True
+                if ch == ZONE_BLUE:
+                    blue[y][x] = True
+                elif ch == ZONE_RED:
+                    red[y][x] = True
+            elif ch == "#":
+                intgrid[y * BLOCK_W + x] = IG_WALL if 0 < x < BLOCK_W - 1 else 0
+
+    with open(STYLES["warp"]["pack"], encoding="utf-8") as f:
+        pack = json.load(f)
+
+    # --- ground speckle -----------------------------------------------------
+    # The AutoWarp rules paint a zone's glowing contour and leave its interior
+    # transparent, so without this pass walkable land and void are both pure
+    # black and the player cannot tell which is which. The speckle tiles are the
+    # pack's own GROUND group; each cell takes the colour of the reality it sits
+    # in, which is also what makes a 'B' or 'R' zone read as zone rather than as
+    # an unexplained outline.
+    ground = pack["ground_tiles"]
+    for y in range(BLOCK_H):
+        for x in range(BLOCK_W):
+            if not land[y][x] or rng.random() >= sk.ground:
+                continue
+            variant = "blue" if blue[y][x] else "red" if red[y][x] else "purple"
+            p.put(WARP_DETAIL_LAYER, x, y, tuple(rng.choice(ground[variant])))
+
+    # --- rift landmarks -----------------------------------------------------
+    # The biome's signature: a glowing tear where another reality shows through.
+    #
+    # Big rifts fill VOID blobs rather than sitting on walkable ground. Painting
+    # them on land looked right in isolation and read wrong in play -- a bright
+    # 15x15 glowing cross is the most obstacle-shaped thing on the screen, so
+    # making it walkable teaches the player to distrust the biome's clearest
+    # signal. Sketch a cross-shaped hole and the tear fills it exactly; sketch a
+    # rounder one and the art clips to whatever is actually void, with the
+    # AutoWarp contour still drawing the hole's edge underneath.
+    #
+    # Only the small pieces decorate walkable land, and their colour is picked
+    # to CLASH with the ground they sit on: a red spark on the purple plane is
+    # the premise of the biome in one tile.
+    def rift_variant_for(x, y):
+        here = "blue" if blue[y][x] else "red" if red[y][x] else "purple"
+        return rng.choice([v for v in ("purple", "blue", "red") if v != here])
+
+    by_id = {r["id"]: r for r in pack["rifts"]}
+    big = [by_id[k] for k in ("big_cross", "window", "small_cross")]
+    big.sort(key=lambda r: -r["w_cells"] * r["h_cells"])
+
+    voids = []
+    seen_void = set()
+    for y in range(BLOCK_H):
+        for x in range(BLOCK_W):
+            if land[y][x] or (x, y) in seen_void or not (0 < x < BLOCK_W - 1):
+                continue
+            stack, comp = [(x, y)], []
+            seen_void.add((x, y))
+            while stack:
+                cx, cy = stack.pop()
+                comp.append((cx, cy))
+                for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    nx, ny = cx + dx, cy + dy
+                    if (0 < nx < BLOCK_W - 1 and 0 <= ny < BLOCK_H
+                            and not land[ny][nx] and (nx, ny) not in seen_void):
+                        seen_void.add((nx, ny))
+                        stack.append((nx, ny))
+            voids.append(comp)
+
+    for comp in voids:
+        void_cells = set(comp)
+        xs = [c[0] for c in comp]
+        ys = [c[1] for c in comp]
+        bw, bh = max(xs) - min(xs) + 1, max(ys) - min(ys) + 1
+        shape = next((r for r in big
+                      if r["w_cells"] <= bw and r["h_cells"] <= bh), None)
+        if shape is None:
+            continue
+        ox = min(xs) + (bw - shape["w_cells"]) // 2
+        oy = min(ys) + (bh - shape["h_cells"]) // 2
+        variant = rng.choice(("purple", "blue", "red"))
+        for (dx, dy, sx, sy, _fl) in shape["variants"][variant]:
+            if (ox + dx, oy + dy) in void_cells:
+                p.put(WARP_DETAIL_LAYER, ox + dx, oy + dy, (sx, sy))
+
+    small = [by_id[k] for k in ("bar_h", "bar_v", "glow", "spark")]
+    rift_taken = set()
+    for _ in range(max(0, sk.rifts)):
+        shape = rng.choice(small)
+        w, h = shape["w_cells"], shape["h_cells"]
+        for _ in range(60):
+            x = rng.randint(2, BLOCK_W - 2 - w)
+            y = rng.randint(5, BLOCK_H - 6 - h)
+            cells = [(x + dx, y + dy) for dx in range(w) for dy in range(h)]
+            if any(not land[cy][cx] for cx, cy in cells):
+                continue
+            if any(c in rift_taken for c in cells):
+                continue
+            variant = rift_variant_for(x, y)
+            for (dx, dy, sx, sy, _fl) in shape["variants"][variant]:
+                p.put(WARP_DETAIL_LAYER, x + dx, y + dy, (sx, sy))
+            rift_taken.update(cells)
+            break
+
+    # oob=False on the colour layers: a zone that runs off the block edge should
+    # close itself there, otherwise the neighbouring block (which knows nothing
+    # of this zone) shows a hard colour seam. Only the base plane is seamless.
+    autotiles = {
+        WARP_BASE_LAYER: bake_intgrid_rules(defs, WARP_BASE_LAYER, land, oob=True),
+        WARP_BLUE_LAYER: bake_intgrid_rules(defs, WARP_BLUE_LAYER, blue),
+        WARP_RED_LAYER: bake_intgrid_rules(defs, WARP_RED_LAYER, red),
+    }
+    intgrids = {"Collision": intgrid}
+    for layer_name, mask in ((WARP_BASE_LAYER, land), (WARP_BLUE_LAYER, blue),
+                             (WARP_RED_LAYER, red)):
+        intgrids[layer_name] = [1 if mask[i // BLOCK_W][i % BLOCK_W] else 0
+                                for i in range(BLOCK_W * BLOCK_H)]
+
+    return p, intgrids, autotiles
+
+
 # ---------------------------------------------------------------------------
 # Decorator — prop stamps
 # ---------------------------------------------------------------------------
@@ -1385,13 +1565,14 @@ def register_level(project, level, name):
 # Mirrors LdtkLoader's LAYER_Z map + default (-1) — keep in sync with
 # scripts/systems/ldtk_loader.gd _render_tile_layer.
 LOADER_LAYER_Z = {
-    "Background": -5, "CavesBackground": -5, "CryptTiles": -4,
-    "EtherealAutoLayer": -4,
-    "FloorAuto": -3, "Cave_Tiles": -3, "Ethereal_Floor": -3,
-    "Cave_Pillars": -2, "CavesShadows": -2, "CryptLayer": -2,
+    "Background": -5, "CavesBackground": -5, "CryptLayer": -5,
+    "AutoWarpPurp": -5,
+    "CryptTiles": -4, "EtherealAutoLayer": -4, "AutoWarpBlue": -4,
+    "FloorAuto": -3, "Cave_Tiles": -3, "Ethereal_Floor": -3, "AutoWarpRed": -3,
+    "Cave_Pillars": -2, "CavesShadows": -2,
     "CaveEntrances": -2, "Caves_PropsShadows": -2, "CryptProps_Shadows": -2,
     "CryptShadows": -2, "Ethereal_Shadows": -2, "Ethereal_Props_Shadows": -2,
-    "Ethereal_Walls": -2,
+    "Ethereal_Walls": -2, "Warp_floor": -2, "Warp_Prop_shadows": -2,
     "WallsAuto": -1,
     "Decoration": 2,
 }
@@ -1460,6 +1641,8 @@ def compile_sketch(path, project, defs, preview_only=False, min_obstacle_size=2)
         painter, intgrids, autotiles = render_structure_crypt(sk, rng, defs)
     elif sk.style == "nmrealm":
         painter, intgrids, autotiles = render_structure_nmrealm(sk, rng, defs)
+    elif sk.style == "warp":
+        painter, intgrids, autotiles = render_structure_warp(sk, rng, defs)
     else:
         painter, intgrids, autotiles = render_structure(sk, rng, defs)
     placed = decorate(sk, painter, rng)
@@ -1480,6 +1663,12 @@ def compile_sketch(path, project, defs, preview_only=False, min_obstacle_size=2)
     # Hand-touch-up layers survive recompiles: Ben owns the nmrealm scratch
     # layer (Ethereal_Floor), so if the block already exists on disk, carry its
     # tiles over instead of regenerating/clearing them.
+    # Warp deliberately has NO preserved layer. The nmrealm case works because
+    # Ethereal_Floor is Ben's alone -- the compiler never paints it, so handing
+    # the old tiles back is lossless. Warp_floor is the opposite: it carries the
+    # generated ground speckle and rifts, and this restore *replaces* gridTiles
+    # rather than merging, so preserving it would silently erase every one of
+    # them on the first recompile.
     preserve = {"nmrealm": ["Ethereal_Floor"]}.get(sk.style, [])
     existing_path = os.path.join(LEVELS_DIR, sk.name + ".ldtkl")
     if preserve and os.path.exists(existing_path):
