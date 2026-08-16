@@ -189,6 +189,11 @@ var _ranger_quiver: String = ""
 ## carries the OFF-hand status underneath its own — a Fire arrow lands Chilled then Burning, which
 ## trips the Frostfire listener chilled already ships. Set from the equipped class mods at kit build.
 var _quiver_all_chains: bool = false
+## Warden hammer class mods. Neither can be a phase op: a Holy Hammer is a HolyHammer entity this
+## host spawns at the hit frame, not an effect sitting on the phase, so there is nothing for
+## _apply_op_to_phase to mutate. Same kit_flag shape as SPLIT QUIVER above — set at kit build.
+var _hammer_bound_spiral: bool = false   ## BOUND SPIRAL — spirals track the moving Warden
+var _hammer_splinters: bool = false      ## SHATTERING HAMMERS — first connect sheds splinters
 ## Combo cadence feedback (docs/combo_feedback_spec.md): pitch-ladder depth, channel-tick
 ## suppression, and the cancel-window pulse tween.
 var _combo_step_depth: int = 0        ## light-chain hits fired this run (1-based ladder depth)
@@ -1470,6 +1475,9 @@ func _load_combo() -> void:
 	## rather than at weapon load because it is a class mod now — it follows the character, not the
 	## weapon. The EventBus hookup itself is (re)asserted by reload_mods / _ready.
 	_has_instability_siphon = class_mods.has("necro_soul_tithe")
+	## Warden hammer mods — read here and handed to each HolyHammer at spawn (see the flags' note).
+	_hammer_bound_spiral = class_mods.has("paladin_bound_spiral")
+	_hammer_splinters = class_mods.has("paladin_shattering_hammers")
 	## The codex tracker caches which mod evolutions this loadout satisfies; a mid-run pickup can
 	## complete one, so the cache has to be dropped wherever the loadout is rebuilt.
 	if combat_manager != null and combat_manager.combo_effect_resolver != null:
@@ -2952,6 +2960,12 @@ func _spawn_holy_hammers(reach: float) -> void:
 	## 8.5s hammer orbiting 300px out — most of a 640x360 screen away from the fight he is in.
 	## 1.5x tops out at 225px / ~6.3s, which still reads as a reward for stacking Reach.
 	hammer.max_radius = 150.0 * minf(reach, 1.5)
+	## Class mods (both kit_flag — see _hammer_bound_spiral's declaration for why they can't be
+	## phase ops). BOUND SPIRAL re-anchors the spiral on the Warden every frame; SHATTERING
+	## HAMMERS arms the first-connect splinter shed.
+	hammer.follow_player = _hammer_bound_spiral
+	if _hammer_splinters:
+		hammer.splits = HolyHammer.SPLIT_COUNT
 	get_tree().current_scene.add_child(hammer)
 	_hammer_angle_cycle = fmod(_hammer_angle_cycle + TAU * 0.382, TAU)
 

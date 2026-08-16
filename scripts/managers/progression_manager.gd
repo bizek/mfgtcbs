@@ -21,7 +21,7 @@ const SAVE_PATH := "user://progression.json"
 ## catches those. Field-level defaults still live in load_data() as a second safety
 ## net; migrations are for STRUCTURAL changes (renames, reshapes, splits) that a
 ## simple `.get(key, default)` cannot express.
-const SAVE_VERSION: int = 2
+const SAVE_VERSION: int = 3
 
 ## Set true by load_data() when the save on disk is from a newer game version than
 ## this build supports. The save is NOT loaded (defaults remain); the main menu reads
@@ -225,6 +225,8 @@ func _migrate_save(data: Dictionary, from_version: int) -> Dictionary:
 				data = _migrate_v0_to_v1(data)
 			1:
 				data = _migrate_v1_to_v2(data)
+			2:
+				data = _migrate_v2_to_v3(data)
 			_:
 				## Unknown gap — refuse to guess. Stamp current and let the
 				## field-level defaults in load_data() fill anything absent.
@@ -268,6 +270,49 @@ func _migrate_v1_to_v2(data: Dictionary) -> Dictionary:
 	if dropped > 0:
 		push_warning("ProgressionManager: save v1→v2 dropped %d retired generic mod(s) from "
 				% dropped + "owned_mods, and cleared per-weapon mod slots.")
+	return data
+
+## v2 → v3 (2026-08-15): two Warden class mods were replaced by the hammer mods, so their ids are
+## now unknown. Unlike v1→v2 this is a RENAME, not a retirement — each retired mod has a direct
+## successor at the same rarity, in the same roster slot, on the same ability:
+##   paladin_blessed_hammer_storm (rare, Holy Hammer ×1.40 dmg) → paladin_shattering_hammers
+##   paladin_dictums_reach       (uncommon, dictum ×1.45 radius) → paladin_bound_spiral
+## so the honest migration is to convert rather than drop. A player who ground out the epic-adjacent
+## rare keeps a rare; an equipped slot keeps a mod in it instead of going blank.
+##
+## Both storages have to be walked, because a class mod lives in exactly one of them at a time:
+## `owned_mods` (the unequipped inventory) and `character_mods` (per-character equip slots, which
+## is where an id sits while it is doing work — this is the one v1→v2 did not have to touch).
+const _V3_MOD_RENAMES: Dictionary = {
+	"paladin_blessed_hammer_storm": "paladin_shattering_hammers",
+	"paladin_dictums_reach": "paladin_bound_spiral",
+}
+
+func _migrate_v2_to_v3(data: Dictionary) -> Dictionary:
+	var converted: int = 0
+	var owned: Array = []
+	for mid: Variant in data.get("owned_mods", []):
+		var id_str: String = str(mid)
+		if _V3_MOD_RENAMES.has(id_str):
+			converted += 1
+			owned.append(_V3_MOD_RENAMES[id_str])
+		else:
+			owned.append(mid)
+	data["owned_mods"] = owned
+
+	var equipped: Dictionary = data.get("character_mods", {})
+	for char_id: Variant in equipped:
+		var slots: Array = equipped[char_id]
+		for i in range(slots.size()):
+			var id_str: String = str(slots[i])
+			if _V3_MOD_RENAMES.has(id_str):
+				converted += 1
+				slots[i] = _V3_MOD_RENAMES[id_str]
+	data["character_mods"] = equipped
+
+	if converted > 0:
+		push_warning("ProgressionManager: save v2→v3 renamed %d retired Warden mod(s) to their "
+				% converted + "hammer-mod successors.")
 	return data
 
 ## Copy a corrupt save aside before it gets overwritten, so a player (or we) can

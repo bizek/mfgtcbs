@@ -142,27 +142,34 @@ const ALL: Dictionary = {
 		"op": "scale_aoe",
 		"params": { "radius_mult": 1.35, "damage_mult": 1.25 },
 	},
-	"paladin_blessed_hammer_storm": {
-		"id": "paladin_blessed_hammer_storm",
-		"name": "BLESSED HAMMER STORM",
+	## The two hammer mods approved in spirit during the 2026-07-20 ability wave and built
+	## 2026-08-15. Both are kit_flag: a Holy Hammer is a HolyHammer *entity* spawned by
+	## player.gd at the hit frame, not an effect on the phase, so no phase op can reach it.
+	## They took the roster slots of BLESSED HAMMER STORM (rare, hammer ×1.40 dmg) and
+	## DICTUM'S REACH (uncommon, dictum ×1.45 radius) — RARITY_SHAPE is a hard 1/3/4 per kit, so
+	## two had to go. These two cost nothing to retire: both survive verbatim in the level-up pool
+	## as `paladin_hammer_storm` and `paladin_ringing_dictum`, and they were the only two Warden
+	## mods not pinned as an EVOLUTION requirement. Both were also pure damage/radius numbers,
+	## which is the layer ability upgrades are for; class mods should change what a button DOES.
+	"paladin_shattering_hammers": {
+		"id": "paladin_shattering_hammers",
+		"name": "SHATTERING HAMMERS",
 		"kit": "paladin",
 		"rarity": "rare",
-		"desc": "Holy Hammer descends 40% harder - the hammerdin moment magnified.",
+		"desc": "The first thing each blessed hammer strikes breaks a piece off it - two splinters spiral out of the wound.",
 		"color": Color(1.0, 1.0, 0.55),
-		"target": { "anim": "hammer" },
-		"op": "scale_aoe",
-		"params": { "damage_mult": 1.4 },
+		"op": "kit_flag",
+		"params": {},
 	},
-	"paladin_dictums_reach": {
-		"id": "paladin_dictums_reach",
-		"name": "DICTUM'S REACH",
+	"paladin_bound_spiral": {
+		"id": "paladin_bound_spiral",
+		"name": "BOUND SPIRAL",
 		"kit": "paladin",
 		"rarity": "uncommon",
-		"desc": "Blades of Justice orbit 45% further from the Warden's body.",
-		"color": Color(0.85, 0.95, 1.0),
-		"target": { "anim": "dictum" },
-		"op": "scale_aoe",
-		"params": { "radius_mult": 1.45 },
+		"desc": "The hammers are sworn to the Warden, not to the ground. Their spirals travel with him.",
+		"color": Color(0.95, 0.90, 0.65),
+		"op": "kit_flag",
+		"params": {},
 	},
 	"paladin_retribution_dome": {
 		"id": "paladin_retribution_dome",
@@ -1171,8 +1178,8 @@ const ORDER: Array = [
 	"fighter_grappling_rush",
 	## Paladin
 	"paladin_thunderous_bash",
-	"paladin_blessed_hammer_storm",
-	"paladin_dictums_reach",
+	"paladin_shattering_hammers",
+	"paladin_bound_spiral",
 	"paladin_retribution_dome",
 	"paladin_aegis_plating",
 	"paladin_shield_wall",
@@ -1313,7 +1320,7 @@ const EVOLUTIONS: Dictionary = {
 	},
 	"evo_paladin_hammer_of_judgement": {
 		"id": "evo_paladin_hammer_of_judgement", "name": "HAMMER OF JUDGEMENT", "kit": "paladin",
-		"requires": ["paladin_blessed_hammer_storm", "paladin_relentless_vow"],
+		"requires": ["paladin_shattering_hammers", "paladin_relentless_vow"],
 		"desc": "The hammer falls, and falls again. Judgement stops waiting its turn.",
 		"color": Color(1.0, 1.0, 0.70),
 		"target": { "anim": "hammer" },

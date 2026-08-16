@@ -188,10 +188,15 @@ The carry is a memory-index artifact: `project_ability_fix_wave.md`'s one-line d
 on 2026-07-20**. That stale one-liner is what got copied forward into this plan. No code change
 needed; closing as already-done, not gated.
 
+Two of the four hammer MOD ideas approved in spirit on 2026-07-20 were then built on Ben's word the
+same day this section was closed: **SHATTERING HAMMERS** (split-on-hit) and **BOUND SPIRAL**
+(spiral-follows-player), both `kit_flag` class mods — see `class_mod_system.md` §Beyond phases.
+They took the roster slots of BLESSED HAMMER STORM and DICTUM'S REACH, whose numbers survive in the
+level-up pool; save migration v2→v3 renames the old ids in place.
+
 Genuinely still open on the Warden, and *not* a redesign: whether the hammer window lapsing should
-fire the combo-drop exhale (a feel call for Ben), and the approved-in-spirit-but-unbuilt hammer mod
-ideas from the same wave — elemental recolors (Ben does art), split-on-hit mini-hammers,
-pierce-raises-hit-cap, spiral-follows-player. Those belong to the mod pass, not here.
+fire the combo-drop exhale (a feel call for Ben), and the two remaining mod ideas — elemental
+recolors (Ben does art) and pierce-raises-hit-cap.
 
 ### 2.6 Hub NPC emotions and speech bubbles *(carried)*
 

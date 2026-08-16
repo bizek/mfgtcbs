@@ -128,6 +128,13 @@ equipped id directly in `player._load_combo`. First user: **SPLIT QUIVER** (Rang
 quiver stance onto the light chain and makes every armed arrow carry the off-hand element as well
 as its own. Prefer a phase op whenever one will do; `kit_flag` moves behaviour out of data.
 
+The Warden's two hammer mods (**SHATTERING HAMMERS**, **BOUND SPIRAL**, 2026-08-15) are the second
+and third users, and they show the *other* reason a phase op can't reach a mod: not routing, but
+**ownership**. A Holy Hammer is a `HolyHammer` entity `player._spawn_holy_hammers` creates at the
+hit frame — the phase's own effects are the slam, not the spiral — so there is no effect resource
+on any phase for `_apply_op_to_phase` to multiply. The flags are read at kit build and handed to
+each hammer as it spawns.
+
 New ops are added here (one `match` case) as task 32 needs them — never per-mod scripts.
 
 ---
@@ -213,8 +220,8 @@ merchant/boss-tier.
 | Mod | Node | Op | Shipped |
 |-----|------|----|---------|
 | Thunderous Bash ✅ | Shield Bash (both graphs) | scale_aoe | ×1.35 radius / ×1.25 dmg |
-| Blessed Hammer Storm ✅ | Holy Hammer | scale_aoe | ×1.40 dmg |
-| Dictum's Reach ✅ | Blades of Justice (dictum) | scale_aoe | ×1.45 radius |
+| Shattering Hammers ✅ | Holy Hammer | kit_flag | first connect sheds 2 splinters (½ dmg, 0.77s) |
+| Bound Spiral ✅ | Holy Hammer | kit_flag | spirals re-anchor on the moving Warden |
 | Retribution Dome ✅ | Dome of Rightfulness (channel) | add_status | Ignites each retribution tick |
 
 ### The Whisper — Ninja  *(4 shipped)*

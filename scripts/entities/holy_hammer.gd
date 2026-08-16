@@ -39,13 +39,42 @@ var radius_start: float = 10.0
 var radius_growth: float = 34.0    ## px/sec spiral-out rate
 var max_radius: float = 150.0      ## despawn past this (spawner scales it with melee_range)
 ## Spiral anchor: the CAST point, captured at spawn — each hammer corkscrews out from where it
-## was thrown (Ben 2026-07-20). A future class mod flips follow_player so spirals track the
-## moving Warden instead.
+## was thrown (Ben 2026-07-20). The BOUND SPIRAL class mod flips follow_player so spirals track
+## the moving Warden instead: the difference is throw-and-leave-behind (zone denial, cover for a
+## retreat) versus carrying the mill into the horde with you.
 var follow_player: bool = false
+## Splinters (SHATTERING HAMMERS class mod) spiral from where the hammer connected, not from the
+## Warden, so they need an anchor that is neither the cast point nor the player.
+var use_anchor_override: bool = false
+var anchor_override: Vector2 = Vector2.ZERO
 var _anchor: Vector2 = Vector2.ZERO
+
+## ── SHATTERING HAMMERS (class mod) ────────────────────────────────────────────────────────────
+## The first enemy a hammer connects with sheds SPLIT_COUNT splinters out of that spot. The parent
+## hammer survives and keeps spiralling — it *sheds*, it does not shatter — so the mod adds to the
+## hammerdin instead of trading it away.
+##
+## Only the FIRST connect splits, for two reasons: a hammer that sweeps ten enemies would leave
+## twenty splinters in its wake (unreadable, and a node spike on an ability you are meant to mash),
+## and "the first thing it hits breaks off shrapnel" is a sentence a player can actually see
+## happen. Splinters never split again (`is_splinter`) and never follow the player even with BOUND
+## SPIRAL equipped — they belong to the place the hammer landed, which is what makes them read as
+## shrapnel rather than as more hammers.
+const SPLIT_COUNT: int = 2
+const SPLIT_DAMAGE_FRAC: float = 0.5
+const SPLIT_SCALE: float = 0.6
+const SPLIT_SPIN: float = 1.4          ## rev/s — faster than the parent's 0.7 so it reads as shrapnel
+const SPLIT_RADIUS_START: float = 6.0
+const SPLIT_RADIUS_GROWTH: float = 70.0
+const SPLIT_MAX_RADIUS: float = 60.0   ## (60 - 6) / 70 = 0.77s of life — a burst, not a second mill
+const SPLIT_SPREAD: float = 0.7        ## radians between splinters, centred on the parent's heading
+var splits: int = 0                    ## splinters shed on first contact (0 = mod not equipped)
+var is_splinter: bool = false
+var scale_mult: float = 1.0
 
 var _angle: float = 0.0
 var _radius: float = 0.0
+var _has_split: bool = false
 var _hit_ids: Dictionary = {}      ## enemy instance_id → true (one hit per enemy per hammer)
 var _sprite: AnimatedSprite2D = null
 
@@ -71,11 +100,18 @@ func _ready() -> void:
 	_sprite = AnimatedSprite2D.new()
 	_sprite.sprite_frames = _get_frames()
 	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_sprite.scale = Vector2.ONE * scale_mult
 	_sprite.play(&"e")
 	add_child(_sprite)
+	if is_splinter:
+		circle.radius *= scale_mult   ## a smaller hammer should not keep the full hitbox
 
 	body_entered.connect(_on_body_entered)
-	if is_instance_valid(player_ref):
+	## Splinters anchor where the parent connected; ordinary hammers anchor on the Warden.
+	if use_anchor_override:
+		_anchor = anchor_override
+		global_position = _anchor + Vector2(cos(_angle), sin(_angle)) * _radius
+	elif is_instance_valid(player_ref):
 		_anchor = player_ref.global_position
 		global_position = _anchor + Vector2(cos(_angle), sin(_angle)) * _radius
 
@@ -123,6 +159,37 @@ func _on_body_entered(body: Node2D) -> void:
 		body.take_damage(hit)
 		## No knockback — hammers should keep enemies in the spiral's path, not scatter them.
 	_spawn_impact(body.global_position)
+
+	## SHATTERING HAMMERS: shed splinters at the point of the first connect.
+	if splits > 0 and not _has_split:
+		_has_split = true
+		_shed_splinters(global_position)
+
+
+## SHATTERING HAMMERS: throw `splits` mini-hammers out of `at`, fanned around the parent's current
+## heading so they spray forward off the impact rather than all going the same way.
+##
+## Deferred add, unlike _spawn_impact's direct one: these are monitoring Area2Ds and this runs
+## inside a body_entered callback, i.e. during the physics query flush. Adding a live collision
+## body there is the case Godot complains about; a one-shot AnimatedSprite2D is not.
+func _shed_splinters(at: Vector2) -> void:
+	var heading: float = _angle + PI * 0.5           ## tangent of the spiral = where it was going
+	var base: float = heading - SPLIT_SPREAD * 0.5 * float(splits - 1)
+	for i in range(splits):
+		var s := HolyHammer.new()
+		s.player_ref = player_ref                     ## still reads the Warden's live damage stat
+		s.damage_type = damage_type
+		s.damage_mult = damage_mult * SPLIT_DAMAGE_FRAC
+		s.is_splinter = true
+		s.use_anchor_override = true
+		s.anchor_override = at
+		s.start_angle = base + SPLIT_SPREAD * float(i)
+		s.spin_speed = SPLIT_SPIN
+		s.radius_start = SPLIT_RADIUS_START
+		s.radius_growth = SPLIT_RADIUS_GROWTH
+		s.max_radius = SPLIT_MAX_RADIUS
+		s.scale_mult = SPLIT_SCALE
+		get_tree().current_scene.add_child.call_deferred(s)
 
 
 ## One-shot golden burst (the package's Impact sheet) at the hit position.
