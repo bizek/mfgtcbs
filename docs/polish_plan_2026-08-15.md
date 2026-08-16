@@ -154,11 +154,15 @@ section was never re-verified against source before being copied into the 2026-0
 it originated in `polish_plan_2026-08-08.md` and nothing updated it after 366f823 landed two
 days later. No code change needed; closing as already-done, not gated.
 
-### 2.4 The phase dial *(carried)*
+### 2.4 The phase dial — DONE (2026-08-15)
 
-`Minifantasy_GuiClock.png` / `Minifantasy_GuiDayNightDial.png` remain unwired; the phase flash
-label is the only "where am I in the run" signal. A dial answers at a glance what a flash cannot.
-**Needs Ben:** phase-display design call.
+Ben picked `Minifantasy_GuiClock.png` over the day/night dial, and wall-clock phase over descent
+depth. Wired into `hud.gd`: a `PhaseDial` panel under the timer/kills plate, face + rotating hand
+composited from the sheet's 16-frame sweep, hand colour flips blue→red while the extraction
+window is open. Full detail (frame math, sheet layout, verification) in
+`docs/ui_pack_inventory.md` §12. Verified live in the Training Room; descent-mode pass (same
+wall-clock signal — not expected to differ) still needs Ben per the Training-Room-only testing
+rule.
 
 ### 2.5 Holy Hammer / Reckoning redesigns *(carried, from the 2026-07-20 ability wave)*
 
@@ -212,5 +216,5 @@ a layout re-check per screen.
    the Tier 3 walls when Ben picks a biome identity.
 
 Step 0 and Tier 1 need nothing from Ben except Godot open (Step 0) and a yes on un-excluding
-audio (Tier 1). 2.1 is now decided and done. The remaining standing decisions are: mod rarity (2.3), phase
-dial (2.4), and the next biome's identity (3.1).
+audio (Tier 1). 2.1, 2.3, and 2.4 are now decided and done. The remaining standing decision is
+the next biome's identity (3.1).

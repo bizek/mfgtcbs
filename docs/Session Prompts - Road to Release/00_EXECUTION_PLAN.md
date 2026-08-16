@@ -39,6 +39,10 @@ inlining them).
 
 **Remaining work: the rest of 15 (audio wiring), and two Ben-blocked items (24, 25).** Task 11 (save versioning) shipped 2026-07-21 — the plan has no unstarted tasks left.
 
+> Not an RTR-numbered task, but worth cross-referencing here: the HUD phase dial
+> (`docs/polish_plan_2026-08-15.md` §2.4, `docs/ui_pack_inventory.md` §12) shipped 2026-08-15 —
+> the last item flagged in this plan's Tier-2 carry list before the Steam/store-copy blocks.
+
 > Note on scope drift: mods are getting a **fresh pass after the current character/ability polish
 > phase**, and weapons are becoming class-locked rather than transferable (Ben, 2026-07-21). Treat
 > any mod/weapon assumptions baked into the prompts below as provisional.

@@ -541,6 +541,37 @@ to compensate. Recorded rather than wired.
 `merchant.gd` and `summon_altar.gd` are live entities. ~50 faces × 8-direction bubbles is flavour
 for the hub, not a mechanic. Lowest priority; listed so it is not lost.
 
+### 12. Legacy clock sheet → phase dial — **DONE (2026-08-15)**
+
+`Miscellany/Clock/Minifantasy_GuiClock.png` (272×64, 16px-native) is wired into `hud.gd` as the
+HUD's phase-position readout, replacing "the only signal is a fading centre flash" with a
+persistent dial. Ben's calls: the **clock** sheet over the day/night dial, and the dial reads
+**wall-clock phase** (`GameManager.phase_number` / `phase_timer`), not descent depth — the depth
+meter already owns spatial depth, and `get_effective_phase()` is deliberately not used here.
+
+Sheet layout (17×4 grid of 16px cells, row/col 0-indexed): a static face at col 1 row 2
+(`Rect2(16,32,16,16)`), a 16-frame red hand sweep at row 0 (`y=0`), and a 16-frame blue hand
+sweep at row 1 (`y=16`) — one full clockwise lap in 16 steps. `hud.gd` layers face + hand as two
+`AtlasTexture`s at 2× scale (32px), in a `PhaseDial` panel directly under the timer/kills plate
+(`Rect2(566,2,72,40)`), clear of the keystone/portal pill column at x=480–558.
+
+Frame mapping: `frame = round(((phase_number-1) + phase_timer/phase_duration) / MAX_PHASES * 15)`
+— the hand sweeps once around the face over the whole 5-phase run, not per-phase, so all 16
+frames get used and the motion doesn't judder. Hand colour is the state cue: blue while running,
+swaps to red while `extraction_window_active` — the same "it's time" read as the existing
+countdown label and flash overlay. No numeral on the dial by design; the countdown text stays on
+the extraction-warning label. Verified live in the Training Room (2026-08-15): dial renders at
+frame 0 and holds static there, correctly, since `GameManager._process` bails out entirely under
+`training_mode` and the wall clock never ticks in that mode; manually driving `phase_number` /
+`phase_timer` / `extraction_window_active` in the running game confirmed the hand rotates and
+recolours as expected. Descent-mode confirmation (same wall-clock signal, so expected to be
+identical) needs Ben's own pass per `CLAUDE.md`'s Training-Room-only testing rule — the task
+prompt itself asked to hand that one to him rather than starting a real run.
+
+`Miscellany/Day_Night_Dial/Minifantasy_GuiDayNightDial.png` (400×64, 16×16 animated,
+day/night-cycle framed icons) remains unused — rejected in favour of the clock sheet, not
+forgotten. No open home for it; if a day/night or biome-time mechanic is ever added, revisit.
+
 ---
 
 ## Legacy tree
@@ -549,10 +580,5 @@ for the hub, not a mechanic. Lowest priority; listed so it is not lost.
 overhaul for every widget class — panels, buttons, bars, icons, cursors and controls all have
 better equivalents above. Do not author against it.
 
-Two assets have **no overhaul equivalent** and are worth remembering:
-
-- `Miscellany/Clock/Minifantasy_GuiClock.png` — 16×16 animated clock.
-- `Miscellany/Day_Night_Dial/Minifantasy_GuiDayNightDial.png` — 16×16 animated dial.
-
-The run is a **5-phase clock**. A dial is a more legible read of "which phase am I in" than a
-number, and the art already exists. Flagged, not proposed — phase display is a design call.
+The clock (§12) is the one exception, now wired for the HUD phase dial. The day/night dial is the
+last asset in this tree with no overhaul equivalent and no home — see §12.

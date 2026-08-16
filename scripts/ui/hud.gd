@@ -39,6 +39,18 @@ const NUB_BLUE: Rect2 = Rect2(1032.0, 1821.0, 4.0, 6.0)
 const BOSS_BAR_W: float = 192.0
 var _ui_sheet: Texture2D = null
 
+## ── Phase dial (Legacy Minifantasy clock sheet) ──────────────────────────────
+## The only asset in the whole pack with no Grim-overhaul equivalent
+## (docs/ui_pack_inventory.md "Legacy tree"). 272x64, 16px-native cells: a
+## static face at (16,32)-16x16, a 16-frame red hand row at y=0, and a
+## 16-frame blue hand row at y=16 — a full clockwise sweep in 16 steps.
+const CLOCK_SHEET_PATH: String = "res://assets/minifantasy/Minifantasy_UI _Overhaul_v1.0/Legacy_Assets/Minifantasy_Userinterface_Assets_(OLD__VERSION)/Miscellany/Clock/Minifantasy_GuiClock.png"
+const CLOCK_FACE_RECT: Rect2 = Rect2(16.0, 32.0, 16.0, 16.0)
+const CLOCK_HAND_FRAMES: int = 16
+const CLOCK_HAND_RED_Y: float = 0.0
+const CLOCK_HAND_BLUE_Y: float = 16.0
+var _clock_sheet: Texture2D = null
+
 ## Scales a base font size by the accessibility text-size setting (Small/Normal/Large).
 ## Scaled font size, snapped to the m5x7 pixel grid — see Settings.snap_font_size for why a
 ## raw multiply cannot be used here (0.85 and 1.25 both produce off-grid, and sub-16 fuses).
@@ -87,6 +99,9 @@ var _extraction_warning_label: Label = null
 ## ── Skill slots (Q/E cooldown keycaps, bottom-center) ────────────────────────
 ## slot:String -> { root, veil, key, key_text, prev_remaining }
 var _skill_slots: Dictionary = {}
+## ── Phase dial (top-right, below the timer/kills panel) ──────────────────────
+var _phase_dial_root: Control = null
+var _phase_dial_hand_atlas: AtlasTexture = null
 ## ── Depth meter (descent mode, left edge below instability) ──────────────────
 var _depth_tracker: DepthTracker = null
 var _depth_meter_root: Control = null
@@ -128,6 +143,7 @@ func _ready() -> void:
 	_build_guardian_health_bar()
 	_build_phase_flash_label()
 	_build_extraction_warning_label()
+	_build_phase_dial()
 	_build_depth_meter()
 	_build_combo_discovery_popup()
 	_build_first_run_overlay()
@@ -199,6 +215,26 @@ func _process(delta: float) -> void:
 			_extraction_warning_label.visible = fmod(_blink_timer, 1.0) > 0.5
 		else:
 			_extraction_warning_label.visible = false
+
+	## Phase dial — hand sweeps once around the face over the whole 5-phase run.
+	## Reads GameManager.phase_number/phase_timer (wall-clock), never
+	## get_effective_phase() (descent depth) — Ben's call, 2026-08-15: the dial
+	## reads run position, the depth meter already owns spatial depth. In the
+	## training room phase_timer never advances (GameManager._process bails on
+	## training_mode), so the hand just sits at frame 0 — correct, not a bug.
+	if _phase_dial_hand_atlas != null:
+		var phase_frac: float = clampf(
+				GameManager.phase_timer / maxf(GameManager.phase_duration, 0.001), 0.0, 1.0)
+		var run_frac: float = clampf(
+				(float(GameManager.phase_number - 1) + phase_frac) / float(GameManager.MAX_PHASES),
+				0.0, 1.0)
+		var frame: int = int(round(run_frac * float(CLOCK_HAND_FRAMES - 1)))
+		## Blue hand normally; swaps to red while the extraction window is open —
+		## the same "it's time" cue as the countdown label and flash overlay.
+		var hand_y: float = CLOCK_HAND_RED_Y if GameManager.extraction_window_active else CLOCK_HAND_BLUE_Y
+		var new_region := Rect2(16.0 + float(frame) * 16.0, hand_y, 16.0, 16.0)
+		if new_region != _phase_dial_hand_atlas.region:
+			_phase_dial_hand_atlas.region = new_region
 
 	## Depth meter — tween fill bar when progress advances
 	if _depth_tracker != null and _depth_fill != null:
@@ -287,6 +323,11 @@ func _sheet() -> Texture2D:
 	if _ui_sheet == null:
 		_ui_sheet = load(UI_SHEET_PATH)
 	return _ui_sheet
+
+func _clock_sheet_tex() -> Texture2D:
+	if _clock_sheet == null:
+		_clock_sheet = load(CLOCK_SHEET_PATH)
+	return _clock_sheet
 
 ## Colored capsule fill for a ProgressBar (3px end caps preserved on stretch).
 func _bar_fill_stylebox(region: Rect2) -> StyleBoxTexture:
@@ -648,6 +689,57 @@ func _build_extraction_warning_label() -> void:
 	lbl.visible = false
 	add_child(lbl)
 	_extraction_warning_label = lbl
+
+## ── Phase dial ────────────────────────────────────────────────────────────────
+
+func _build_phase_dial() -> void:
+	## Small clock face + rotating hand, directly under the timer/kills panel
+	## (Rect2(566,2,72,40)) and clear of the keystone/portal pill column at
+	## x=480-558. 16px art drawn at 2x (32px) — legible without crowding the
+	## corner. No numeral on the dial by design; the countdown text stays with
+	## the existing extraction-warning label.
+	var root := Control.new()
+	root.name = "PhaseDial"
+	root.position = Vector2(602.0, 44.0)
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(root)
+	_phase_dial_root = root
+
+	var bg := NinePatchRect.new()
+	bg.texture = _sheet()
+	bg.region_rect = PANEL_SQUARE
+	bg.patch_margin_left = PANEL_MARGIN
+	bg.patch_margin_top = PANEL_MARGIN
+	bg.patch_margin_right = PANEL_MARGIN
+	bg.patch_margin_bottom = PANEL_MARGIN
+	bg.size = Vector2(36.0, 36.0)
+	bg.modulate = Color(1.0, 1.0, 1.0, 0.94)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(bg)
+
+	var face_atlas := AtlasTexture.new()
+	face_atlas.atlas = _clock_sheet_tex()
+	face_atlas.region = CLOCK_FACE_RECT
+	var face := TextureRect.new()
+	face.texture = face_atlas
+	face.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	face.stretch_mode = TextureRect.STRETCH_SCALE
+	face.position = Vector2(2.0, 2.0)
+	face.size = Vector2(32.0, 32.0)
+	face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(face)
+
+	_phase_dial_hand_atlas = AtlasTexture.new()
+	_phase_dial_hand_atlas.atlas = _clock_sheet_tex()
+	_phase_dial_hand_atlas.region = Rect2(16.0, CLOCK_HAND_BLUE_Y, 16.0, 16.0)
+	var hand := TextureRect.new()
+	hand.texture = _phase_dial_hand_atlas
+	hand.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	hand.stretch_mode = TextureRect.STRETCH_SCALE
+	hand.position = Vector2(2.0, 2.0)
+	hand.size = Vector2(32.0, 32.0)
+	hand.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(hand)
 
 func flash_text(text: String, color: Color = Color(1.0, 0.9, 0.7),
 		duration: float = 1.5) -> void:
