@@ -142,11 +142,17 @@ change — it only exists as a child of the in-run HUD, so it was never reachabl
 `mod_levelup_rework_plan.md` §"Still open" at session start; if still open, the cheap version is a
 Training Room pass per class (mod bench landed in `e88481e`), the real one is Ben playing.
 
-### 2.3 Mod rarity and pricing *(carried)*
+### 2.3 Mod rarity and pricing — RESOLVED, premise was stale (2026-08-15)
 
-Flat `MOD_PRICE`, unweighted 8-deep class pools, rarity pills describing a distinction the economy
-no longer makes. **Needs Ben:** restore rarity (drop weight + price) or embrace the flat roster and
-retire the pills. Verify the merchant still charges flat before building anything.
+This section (and RTR prompt `06_SONNET_mod_rarity.md`) described a flat `MOD_PRICE`,
+unweighted drops, and rarity pills with nothing behind them. That was already fixed five days
+earlier, in `366f823` (2026-08-10, "rarity that means something — drops, prices and a visible
+tag"): every class mod carries a rarity (1 epic / 3 rare / 4 uncommon per kit), drops roll
+weighted by depth (`ClassModData.droppable_pool_of_rarity`), and the merchant charges
+6/10/16 by tier (`merchant_shop.gd` `MOD_PRICE_BY_RARITY`) instead of a flat 8. This carried
+section was never re-verified against source before being copied into the 2026-08-15 plan —
+it originated in `polish_plan_2026-08-08.md` and nothing updated it after 366f823 landed two
+days later. No code change needed; closing as already-done, not gated.
 
 ### 2.4 The phase dial *(carried)*
 

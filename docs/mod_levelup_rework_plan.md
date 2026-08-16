@@ -199,6 +199,6 @@ be the exact case that matters — it carries `weapon_mods: {"Mercenary's Edge":
 - **No live playtest.** Everything above is static verification plus editor-side simulation. The mod
   rosters have not been felt in a run, and the 8-per-class numbers are first-pass values.
 - The two per-class evolutions are authored but not balanced against each other.
-- Mod **rarity/pricing** was not revisited. The merchant still charges one flat `MOD_PRICE` now that
-  every mod is class gear, and loot rarity no longer influences which mod drops (the pool is 8 deep
-  per character, unweighted).
+- ~~Mod rarity/pricing was not revisited~~ — resolved in `366f823` (2026-08-10): every mod carries
+  a rarity (1 epic / 3 rare / 4 uncommon per kit), drops are depth-weighted, and the merchant
+  charges 6/10/16 by tier instead of a flat `MOD_PRICE`. See `docs/polish_plan_2026-08-15.md` §2.3.

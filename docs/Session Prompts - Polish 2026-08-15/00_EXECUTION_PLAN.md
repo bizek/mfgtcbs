@@ -28,7 +28,7 @@ No task in this plan scored Tier 1 — the cheapest real work here still needs i
 | 03 channel loop beds ×3 | ⬜ gated | same gate as 02 |
 | 04 skill/pet stingers | ⬜ gated | same gate as 02 |
 | 05 NEW GAME → hub | ⬜ gated | **HUMAN D-B:** Ben decides plan §2.1 |
-| 06 mod rarity: restore or retire | ⬜ gated | **HUMAN D-C:** Ben decides plan §2.3 |
+| 06 mod rarity: restore or retire | ✅ already done (2026-08-10) | premise stale — `366f823` shipped rarity-weighted drops + tiered merchant pricing before this plan was written; see plan §2.3 |
 | 07 phase dial | ⬜ gated | **HUMAN D-D:** Ben decides plan §2.4 (incl. what the dial shows in descent) |
 | 08 mod rework Training Room pass | ⬜ ready | none (Ben's *felt* playtest is separate and still wanted) |
 | 09 Holy Hammer / Reckoning redesign | ⬜ ready | Ben approves the pitch mid-session |
@@ -54,7 +54,7 @@ those, don't rewrite them.
 
 ### Phase P2 — Decisions cashed in + verification (after P0; each gated on its decision)
 - 05 [SONNET] ∥ NEW GAME lands in the hub — after D-B
-- 06 [SONNET] ∥ Mod rarity: restore or retire — after D-C
+- 06 [SONNET] ~~Mod rarity: restore or retire~~ — already done, `366f823` pre-dates this plan
 - 07 [SONNET] ∥ Phase dial on the HUD — after D-D
 - 08 [SONNET] Mod rework Training Room verification pass — no gate; run **before** 09/11 stack
   content on an unfelt system
