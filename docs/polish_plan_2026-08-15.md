@@ -164,10 +164,34 @@ window is open. Full detail (frame math, sheet layout, verification) in
 wall-clock signal — not expected to differ) still needs Ben per the Training-Room-only testing
 rule.
 
-### 2.5 Holy Hammer / Reckoning redesigns *(carried, from the 2026-07-20 ability wave)*
+### 2.5 Holy Hammer / Reckoning redesigns — RESOLVED, premise was stale (2026-08-15)
 
-Recorded as pending since the all-roster playtest. Verify against the current Cleric/Paladin kits
-before designing — three kits have churned since.
+Both are Warden (Paladin) abilities — the Devout/Cleric kit has neither — and both were redesigned
+in `05e05ea` (2026-07-20, the ability polish wave itself), not left pending by it. What shipped:
+
+- **Holy Hammer** stopped being a single slam and became the hammerdin spiral — one blessed hammer
+  per RMB press, the phase self-looping so mashing RMB fans more hammers out at golden-angle
+  offsets (`chain_factory._hammer_phase`, `player._spawn_holy_hammers`, `scripts/entities/holy_hammer.gd`).
+- **Reckoning** replaced the old damaging Dome with a pure absorb channel: it deals nothing while
+  held, drinks every incoming hit into `player._dome_absorbed` (cap 30% max HP), and detonates the
+  stored total ×1.5 in r70 on release or cap (`player._detonate_reckoning`, `build_paladin_dome`).
+
+They have been *tuned twice more since*, which is the clearest evidence the redesigns were live and
+being felt: `62d2789` (2026-07-21) dropped the hammer spin 1.1→0.7 rev/s and anchored the spiral at
+the cast point; `3e35f96` (2026-07-30) widened `HAMMER_WIN` 0.55→0.9s after the ComboTimingAudit
+found the re-tap branch had only a ~50ms slice to fire in; `8a0ccae` (2026-08-01) slowed the spiral
+to 34px/s out to 150px (1.8s → ~4.1s of life, ~2.9 revolutions) on Ben's "holy hammers should last
+longer", and made RMB-tap open on Holy Hammer alone instead of repeating Shield Bash.
+
+The carry is a memory-index artifact: `project_ability_fix_wave.md`'s one-line description says
+"Holy Hammer/Reckoning redesigns pending" while its own body records them as **built and Ben-approved
+on 2026-07-20**. That stale one-liner is what got copied forward into this plan. No code change
+needed; closing as already-done, not gated.
+
+Genuinely still open on the Warden, and *not* a redesign: whether the hammer window lapsing should
+fire the combo-drop exhale (a feel call for Ben), and the approved-in-spirit-but-unbuilt hammer mod
+ideas from the same wave — elemental recolors (Ben does art), split-on-hit mini-hammers,
+pierce-raises-hit-cap, spiral-follows-player. Those belong to the mod pass, not here.
 
 ### 2.6 Hub NPC emotions and speech bubbles *(carried)*
 
@@ -212,8 +236,8 @@ a layout re-check per screen.
    remaining anywhere in the project.
 3. **1.3** — skill/pet stingers, closing RTR task 15 for good.
 4. **2.2** — play the mod rework (Ben), before more content stacks on it.
-5. Then the remaining Tier 2 decisions (2.3, 2.4 need Ben's word; 2.5 needs a design look), and
-   the Tier 3 walls when Ben picks a biome identity.
+5. Then the remaining Tier 2 decisions (2.4 needs Ben's word; 2.3 and 2.5 both closed as
+   already-done), and the Tier 3 walls when Ben picks a biome identity.
 
 Step 0 and Tier 1 need nothing from Ben except Godot open (Step 0) and a yes on un-excluding
 audio (Tier 1). 2.1, 2.3, and 2.4 are now decided and done. The remaining standing decision is

@@ -31,7 +31,7 @@ No task in this plan scored Tier 1 — the cheapest real work here still needs i
 | 06 mod rarity: restore or retire | ✅ already done (2026-08-10) | premise stale — `366f823` shipped rarity-weighted drops + tiered merchant pricing before this plan was written; see plan §2.3 |
 | 07 phase dial | ⬜ gated | **HUMAN D-D:** Ben decides plan §2.4 (incl. what the dial shows in descent) |
 | 08 mod rework Training Room pass | ⬜ ready | none (Ben's *felt* playtest is separate and still wanted) |
-| 09 Holy Hammer / Reckoning redesign | ⬜ ready | Ben approves the pitch mid-session |
+| 09 Holy Hammer / Reckoning redesign | ✅ already done (2026-07-20) | premise stale — both shipped in `05e05ea` and were tuned again in `62d2789`/`3e35f96`/`8a0ccae`; see plan §2.5 |
 | 10 hub NPC speech bubbles (optional) | ⬜ ready | none — lowest priority in the set |
 | 11 next biome (Threshold / Inferno) | ⬜ gated | **HUMAN D-E:** Ben picks biome + pack + identity |
 | 12 game-wide TEXT_SIZE_SCALE | ⬜ ready | none |
@@ -60,7 +60,7 @@ those, don't rewrite them.
   content on an unfelt system
 
 ### Phase P3 — Design and content walls
-- 09 [OPUS] Holy Hammer / Reckoning redesign — after 08 ideally
+- 09 [OPUS] ~~Holy Hammer / Reckoning redesign~~ — already done, `05e05ea` (2026-07-20) pre-dates this plan
 - 10 [SONNET] Hub NPC speech bubbles — optional, anytime
 - 11 [OPUS] Next biome — after D-E; 01's commit is the template
 - 12 [SONNET] TEXT_SIZE_SCALE game-wide — anytime, but **not ∥ with 05/06/07** (broad UI overlap)
