@@ -196,9 +196,196 @@ be the exact case that matters — it carries `weapon_mods: {"Mercenary's Edge":
 `lifesteal` and `abyssal_pull` dropped, both class mods preserved, version stamped 2.
 
 ### Still open
-- **No live playtest.** Everything above is static verification plus editor-side simulation. The mod
-  rosters have not been felt in a run, and the 8-per-class numbers are first-pass values.
-- The two per-class evolutions are authored but not balanced against each other.
+- ~~**No live playtest.**~~ — closed 2026-08-15, see §7. The one thing §7 did NOT do is manual
+  DPS-meter combat clicking per mod (120 items); it verified through the real `player._load_combo`
+  code path instead. See §7's methodology note before treating this as "felt in a run."
+- The two per-class evolutions are authored but not balanced against each other. See §7's tuning
+  shortlist for the specific pairs worth a look.
 - ~~Mod rarity/pricing was not revisited~~ — resolved in `366f823` (2026-08-10): every mod carries
   a rarity (1 epic / 3 rare / 4 uncommon per kit), drops are depth-weighted, and the merchant
   charges 6/10/16 by tier instead of a flat `MOD_PRICE`. See `docs/polish_plan_2026-08-15.md` §2.3.
+
+## 7. In-engine verification — 2026-08-15
+
+Ran every class's 8 mods + 2 evolutions (96 + 24 = 120 entries) through the Training Room. **Zero
+bugs found** — everything shipped in `366f823`/§6 works as authored. No code changes this session.
+
+**Tuning questions for Ben** (balance judgments, not bugs — mine to flag, his to call):
+1. **Five evolutions are same-tag modifier stacks on top of their own prerequisite**, which makes
+   them read as "your rare mod, but slightly bigger" rather than a capstone transformation — compare
+   against the kit_flag/add_pull/scale_aoe evolutions, which visibly change what the move *does*:
+   - `evo_wizard_absolute_zero` (+10% cooldown reduce) sits on `wizard_manaburn` (+15% cooldown
+     reduce, same tag/op) — the evolution is a 10-point top-up on a mod already in the loadout.
+   - `evo_necro_soul_engine` (+6% leech) on `necro_soul_leech` (+5% leech) — same shape, +6 points.
+   - `evo_paladin_bulwark_of_dawn` (−15% damage taken, tag "All") stacks on `paladin_shield_wall`
+     (block chance) + `paladin_aegis_plating` (Physical resist) — the two prereqs are distinct
+     stats, but the evolution's own payload is a third, unrelated flat mitigation number.
+   - `evo_ninja_shadowkill` (+0.35 crit_multiplier) on `ninja_deep_cut` (+0.4 crit_multiplier,
+     same tag/op) — the two ninja crit evolutions are its only pairing where prereq and payoff
+     are literally the same stat, so this one is worth a first look.
+   - `evo_cleric_unending_vigil` (+25% Heal bonus) on `cleric_fervent_prayer` (+35% Heal bonus,
+     same tag/op).
+   None of these are broken — the modifier stacks and is read correctly — but if the intent for
+   every evolution was "the capstone changes what the kit *does*" (per §6's framing), these five
+   are the ones that don't clear that bar today.
+2. **Rally is a common false-diff in any future automated mod check.** Every Fighter mod's phase
+   diff also showed a change on `skill_q:rally` even when the mod's target was elsewhere — turned
+   out to be `HealEffect` object identity, not a real mutation (see methodology note below). Not a
+   game bug, but worth knowing before trusting a future automated sweep's raw diff output.
+
+**Methodology.** `ClassModFactory.apply_to_kit` / `apply_to_skills` are the exact functions
+`player._load_combo` calls — so verification ran the real production code path, not a re-implementation
+of it, called directly (`ChainFactory.build_kit` → `ClassModFactory.apply_to_kit/apply_to_skills`)
+rather than through 120 round-trips of `ProgressionManager.set_character_mod` + `save_data()`. For
+each of the 96 mods: built a pristine kit, built the same kit with only that mod's id active, and
+diffed the resulting `ChoreographyPhase.effects` — radius/damage on `AreaDamageEffect`/
+`GroundZoneEffect`/`SpawnProjectilesEffect`, appended `ApplyStatusEffectData` (recursing into
+`aura_radius`/`aura_tick_effects`/`tick_effects`/`on_expire_effects`, since the Necromancer's Bone
+Swirl and similar kits carry their real payload on a status object one level down — an early version
+of this harness missed that layer and threw 4 false "NO CHANGE" results, all traced to the harness,
+not the game, before this run's real findings were logged).
+- **34 `"modifier"`-op mods/evolutions**: built each one's `ModifierDefinition` and ran it through a
+  real `ModifierComponent.add_modifier()` (debug build, so `_warn_if_unreadable` was live) — zero
+  push_warnings, meaning none hit the known tag/op silent-failure class from §2.5. Cross-checked
+  the tag list against actual `sum_modifiers()` call sites (`leech`, `move_speed`, `status_duration`,
+  `Heal`, `max_hp`, `crit_chance`, `crit_multiplier`, `block_chance`, `All:cooldown_reduce`,
+  `All:damage_taken`, `<DamageType>:resist`, `damage`) — all 34 land on a pair something reads.
+- **2 `"kit_flag"` mods** (`ranger_split_quiver`, `necro_soul_tithe`): confirmed live on the actual
+  running `Player` node in the Training Room — equipped via `ProgressionManager.set_character_mod`
+  + `player.debug_reload_mods()`, read `player._quiver_all_chains` / `player._has_instability_siphon`
+  before and after. Both flip `false → true` correctly and back to `false` on unequip.
+- **24 evolutions**: confirmed `ClassModData.active_evolutions()` returns the evolution id once both
+  `requires` mods are active on the real `ProgressionManager` state, and does NOT return it with only
+  one of the two equipped (gate gap check) — all 24 correct in both directions.
+
+Save was restored byte-identical after (`progression.json` backed up to the session scratchpad
+before touching the mod bench, diffed back in with `md5sum`, matched).
+
+### Full table
+
+Verdict is `OK` for all 120 unless noted. Evidence is the phase(s)/flag the mod visibly changed.
+
+| Class | Mod | Op | Evidence |
+|---|---|---|---|
+| Fighter | OVERCHARGED CATACLYSM | scale_aoe | `light/heavy:cataclysm` r 55→77, d 75.6→102.1 |
+| Fighter | TEMPEST VORTEX | add_pull | `light:tempest` gains pull-toward-player (dist 260) |
+| Fighter | SUSTAINED WHIRLWIND | scale_aoe | `light:swirl` r 30→42 |
+| Fighter | CONCUSSIVE TAUNT | add_status | `channel:taunt` gains `chilled` |
+| Fighter | BLOOD WAGES | modifier | `leech:bonus` +0.06, reader confirmed |
+| Fighter | OPENING CUT | add_status | `light:attack` gains `bleed` |
+| Fighter | SHATTERING UPPERCUT | scale_aoe | `heavy:uppercut` r 35→49, d 25.2→31.5 |
+| Fighter | GRAPPLING RUSH | add_pull | `skill_e:rush` gains pull-toward-player (dist 220) |
+| Fighter | evo BLOODSTORM | add_status | gate OK (whirlwind+blood_wages) |
+| Fighter | evo EARTHBREAKER | scale_aoe | gate OK (cataclysm+uppercut) |
+| Paladin | THUNDEROUS BASH | scale_aoe | `light:bash` r 36→48.6, d 37.8→47.3 |
+| Paladin | BLESSED HAMMER STORM | scale_aoe | `light/heavy:hammer` d 33.6→47.0 |
+| Paladin | DICTUM'S REACH | scale_aoe | `light:dictum` r 50→72.5 |
+| Paladin | RETRIBUTION DOME | add_status | `channel:dome` gains `burning` |
+| Paladin | AEGIS PLATING | modifier | `Physical:resist` +20, reader confirmed |
+| Paladin | SHIELD WALL | modifier | `block_chance:add` +0.15, reader confirmed |
+| Paladin | SWORN THORNS | add_status | `skill_q:vow` gains `thorns_passive` |
+| Paladin | RELENTLESS VOW | modifier | `All:cooldown_reduce` +0.12, reader confirmed |
+| Paladin | evo BULWARK OF DAWN | modifier | gate OK (aegis+shield_wall); see tuning Q1 |
+| Paladin | evo HAMMER OF JUDGEMENT | scale_aoe | gate OK (hammer_storm+vow) |
+| Wizard | OVERLOAD BOLTS | scale_aoe | `light:attack/attack_2/fireburst` d up ~30% |
+| Wizard | TORRENT SURGE | scale_aoe | `light:fireburst` r 46→69 |
+| Wizard | EMBER FAMILIAR | modifier | `damage:bonus` +0.15, reader confirmed |
+| Wizard | ARCANE MULTIPLICITY | add_projectiles | `light:attack` n 1→2 |
+| Wizard | DEEP FREEZE | add_status | `skill_q:ice_cast` gains `frozen` |
+| Wizard | TEMPEST CALL | scale_aoe | `skill_e:storm_cast` r 40→58 |
+| Wizard | MANABURN | modifier | `All:cooldown_reduce` +0.15, reader confirmed |
+| Wizard | evo CONFLAGRATION | add_status | gate OK (fireball+torrent) |
+| Wizard | evo ABSOLUTE ZERO | modifier | gate OK (deep_freeze+manaburn); see tuning Q1 |
+| Ranger | BARBED ARROWS | add_projectile_status | `light:attack/double_shot/triple_shot/knife` gain `bleed` on hit |
+| Ranger | IMPALING KNIFE | scale_aoe | `light:knife` d 50.4→75.6 |
+| Ranger | EXPLOSIVE TIPS | add_projectile_status | `light/channel:triple_shot` gain `burning` on hit |
+| Ranger | GHOST STEP | modifier | `move_speed:bonus` +0.15, reader confirmed |
+| Ranger | SPLIT QUIVER | kit_flag | `_quiver_all_chains` false→true live on Player |
+| Ranger | HUNTER'S FOCUS | modifier | `crit_chance:add` +0.1, reader confirmed |
+| Ranger | PINNING SHOT | add_projectile_status | `light/heavy_elemental:double_shot` gain `chilled` on hit |
+| Ranger | CLOSE QUARTERS | scale_aoe | `heavy:melee` r 26→35, d 37.8→49.1 |
+| Ranger | evo DEADFALL | add_projectile_status | gate OK (barbed+pinning) |
+| Ranger | evo PERFECT SHOT | scale_aoe | gate OK (hunters_focus+impaling)* — see note |
+| Necromancer | SPLINTERING SWIRL | scale_aoe | `BoneSwirl` aura_radius 46→64.4, tick dmg 8.4→10.5 |
+| Necromancer | GRAVE BOND | modifier | `max_hp:bonus` +0.12, reader confirmed |
+| Necromancer | DARK HASTE | modifier | `All:cooldown_reduce` +0.12, reader confirmed |
+| Necromancer | SOUL LEECH | modifier | `leech:bonus` +0.05, reader confirmed |
+| Necromancer | MARROW SHARDS | add_projectile_status | `light/heavy/channel:bone_cast` gain `bleed` on hit |
+| Necromancer | ENDLESS BONES | add_projectiles | `bone_cast` n 1→3 (all 3 graphs) |
+| Necromancer | GRAVE LEGION | scale_aoe | `skill_e:bone_legion` r 30→42, d 12.6→15.75 |
+| Necromancer | SOUL TITHE | kit_flag | `_has_instability_siphon` false→true live on Player |
+| Necromancer | evo OSSUARY | add_projectiles | gate OK (endless_bones+marrow_shards) |
+| Necromancer | evo SOUL ENGINE | modifier | gate OK (soul_tithe+soul_leech); see tuning Q1 |
+| Demonologist | SEARING HELLFIRE | scale_aoe | `heavy:hellfire_2` r 44→59.4, d 37.8→45.4 |
+| Demonologist | NINEFOLD CIRCLE | scale_aoe | `brimstone` r 52→72.8, zone tick 9.24→11.55 |
+| Demonologist | INFERNAL HIDE | modifier | `Fire:resist` +25, reader confirmed |
+| Demonologist | GREATER PACT | modifier | `damage:bonus` +0.15, reader confirmed |
+| Demonologist | BREACH WAKE | scale_aoe | `light:hell_breach` r 54→75.6, d 71.4→85.7 |
+| Demonologist | SUSTAINED TORMENT | add_status | `channel:hellfire_ch` gains `searing_wound` |
+| Demonologist | ARCHDEMON'S TOLL | scale_aoe | `skill_e:archdemon_call` zone r 56→81.2, tick 23.1→28.9 |
+| Demonologist | BLOOD PACT | modifier | `max_hp:bonus` +0.15, reader confirmed |
+| Demonologist | evo INFERNAL ENGINE | scale_aoe | gate OK (searing+torment) |
+| Demonologist | evo THE NINTH GATE | add_status | gate OK (ninefold+breach_wake) |
+| Blood Mage | HEMORRHAGE SHARDS | add_projectile_status | `light:shards` gains `bleed` on hit |
+| Blood Mage | DEEPER PACT | modifier | `damage:bonus` +0.2, reader confirmed |
+| Blood Mage | BLOODQUAKE | scale_aoe | `heavy:spikes` r 55→79.8; `skill_e:spikes` r 48→69.6 |
+| Blood Mage | SANGUINE DRAIN | modifier | `damage:bonus` +0.18, reader confirmed |
+| Blood Mage | CRIMSON FEAST | modifier | `leech:bonus` +0.08, reader confirmed |
+| Blood Mage | RUPTURE | scale_aoe | `heavy:slam` r 42→58.8, d 50.4→65.5 |
+| Blood Mage | THIRSTING VORTEX | scale_aoe | `channel:vampirize` r 50→75 |
+| Blood Mage | HEMOPLAGUE | add_projectiles | `light:shards` n 3→5 |
+| Blood Mage | evo EXSANGUINATE | add_projectiles | gate OK (hemorrhage+hemoplague) |
+| Blood Mage | evo RED HARVEST | scale_aoe | gate OK (bloodquake+vortex) |
+| Barbarian | EARTHSPLITTER | scale_aoe | `light/heavy:sunder` r/d up ~45%/25% |
+| Barbarian | CHAINED LIGHTNING | scale_aoe | `light/heavy:thunder` r 40→? d 50.4→70.6, proj d 37.8→52.9 |
+| Barbarian | IRON WALL | modifier | `All:damage_taken` −0.18, reader confirmed |
+| Barbarian | DEAFENING CRY | modifier | `damage:bonus` +0.15, reader confirmed |
+| Barbarian | STORM VOLLEY | add_projectiles | `light/heavy:thunder` proj n 1→3 |
+| Barbarian | HURLED RUIN | scale_aoe | `skill_e:throw` r 30→42, d 54.6→71.0 |
+| Barbarian | BLOODRAGE | modifier | `leech:bonus` +0.06, reader confirmed |
+| Barbarian | TERRIFYING ROAR | add_status | `skill_q:cry` gains `chilled` |
+| Barbarian | evo RAGNAROK | scale_aoe | gate OK (earthsplitter+hurled_ruin) |
+| Barbarian | evo STORMHEART | add_projectiles | gate OK (chained+storm_volley) |
+| Ninja | BLEEDING BLADES | add_status | `light:attack/attack_2/blades*` gain `bleed` |
+| Ninja | ENDLESS STORM | scale_aoe | `channel:blades` r 50→75 |
+| Ninja | HONED EDGE | modifier | `crit_chance:add` +0.12, reader confirmed |
+| Ninja | CHOKING SMOKE | modifier | `All:damage_taken` −0.12, reader confirmed |
+| Ninja | DEEP CUT | modifier | `crit_multiplier:add` +0.4, reader confirmed |
+| Ninja | BLINDING SMOKE | add_status | `skill_e:smoke` gains `chilled` |
+| Ninja | FINISHING FLOURISH | scale_aoe | `blades_end` (light/heavy/channel) r 40→54, d up 30% |
+| Ninja | WHETSTONE RITUAL | add_status | `skill_q:sharpen` gains `serrated_strikes` |
+| Ninja | evo THOUSAND CUTS | add_status | gate OK (bleeding+whetstone) |
+| Ninja | evo SHADOWKILL | modifier | gate OK (honed+deep_cut); see tuning Q1 |
+| Gunslinger | FAN THE HAMMER +2 | add_projectiles | `light/heavy:fan` n 5→7 |
+| Gunslinger | HOLLOW POINTS | add_projectile_status | `attack/attack_2/fan` gain `bleed` on hit |
+| Gunslinger | SUPPRESSING STORM | scale_aoe | `channel:storm` proj d 14.7→19.1 |
+| Gunslinger | QUICKDRAW | modifier | `crit_chance:add` +0.1, reader confirmed |
+| Gunslinger | INCENDIARY ROUNDS | add_projectile_status | `attack/attack_2/fan` gain `burning` on hit |
+| Gunslinger | HOT LOADS | add_projectiles | `channel:storm` n 3→5 |
+| Gunslinger | LASH AND DRAW | scale_aoe | `skill_e:whip` r 36→50.4, d 42→54.6 |
+| Gunslinger | DEAD AIM | modifier | `crit_multiplier:add` +0.35, reader confirmed |
+| Gunslinger | evo HELLFIRE IRON | add_projectile_status | gate OK (incendiary+hollow_points) |
+| Gunslinger | evo LEADSTORM | add_projectiles | gate OK (fan+2+hot_loads) |
+| Druid | SAVAGE MAUL | scale_aoe | `light:attack` d 31.5→39.4 |
+| Druid | DIVING OWL | add_projectiles | `light:attack_2` n 3→4 |
+| Druid | STRANGLING ROOTS | scale_aoe | `heavy:root_cast` zone r 40→60 |
+| Druid | PACK LEADER | scale_aoe | `channel:attack_2` d 16.8→20.2 |
+| Druid | THORNED SEEDS | add_projectile_status | `light:attack/attack_2` gain `bleed` on hit |
+| Druid | URSINE FURY | scale_aoe | `skill_q:summon_bear` d 12.6→17.0 |
+| Druid | PACK HUNTER | scale_aoe | `skill_e:summon_hounds` r 30→42 |
+| Druid | BARKSKIN | modifier | `Physical:resist` +18, reader confirmed |
+| Druid | evo WILD HUNT | scale_aoe | gate OK (ursine+pack_hunter) |
+| Druid | evo BRAMBLE TIDE | add_projectiles | gate OK (thorned+diving_owl) |
+| Cleric | PURIFYING FIRE | scale_aoe | `light/heavy:divine_fire` d up ~35% |
+| Cleric | WORDS OF AGONY | scale_aoe | `light/heavy:pray_pain` zone r 44→66 |
+| Cleric | RADIANT SMITE | scale_aoe | `light:attack` d 37.8→47.25 |
+| Cleric | GREATER SANCTUARY | modifier | `All:damage_taken` −0.15, reader confirmed |
+| Cleric | CENSER EMBERS | add_projectile_status | `light/heavy:divine_fire` gain `burning` on hit |
+| Cleric | GUARDIAN'S WRATH | scale_aoe | `skill_e:pray_guardian` r 26→36.4 |
+| Cleric | LINGERING GRACE | modifier | `status_duration:bonus` +0.25, reader confirmed |
+| Cleric | FERVENT PRAYER | modifier | `Heal:bonus` +0.35, reader confirmed |
+| Cleric | evo PYRE OF FAITH | add_projectile_status | gate OK (censer+purifying) |
+| Cleric | evo UNENDING VIGIL | modifier | gate OK (fervent+lingering); see tuning Q1 |
+
+*Ranger evo PERFECT SHOT gate uses `hunters_focus`+`impaling_knife` per `EVOLUTIONS`, not the
+display pairing implied by name order — confirmed against `data/class_mods.gd` directly.

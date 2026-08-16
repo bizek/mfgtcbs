@@ -1,0 +1,2145 @@
+<REAPER_PROJECT 0.1 "7.77/win64" 1786830377 0
+  <NOTES 0 2
+  >
+  RIPPLE 0 0
+  GROUPOVERRIDE 0 0 0 0
+  AUTOXFADE 129
+  ENVATTACH 3
+  POOLEDENVATTACH 0
+  TCPUIFLAGS 0
+  MIXERUIFLAGS 11 48 0
+  ENVFADESZ10 40
+  PEAKGAIN 1
+  FEEDBACK 0
+  PANLAW 1
+  PROJOFFS 0 0 0
+  MAXPROJLEN 0 0
+  GRID 3199 8 1 8 1 0 0 0
+  TIMEMODE 1 5 -1 30 0 0 -1 0
+  VIDEO_CONFIG 0 0 65792
+  PANMODE 3
+  PANLAWFLAGS 3
+  CURSOR 0
+  ZOOM 100 563 0
+  VZOOMEX 6 0
+  USE_REC_CFG 0
+  RECMODE 1
+  SMPTESYNC 0 30 100 40 1000 300 0 0 1 0 0
+  LOOP 0
+  LOOPGRAN 0 4
+  RECORD_PATH "Media" ""
+  <RECORD_CFG
+    ZXZhdxgAAQ==
+  >
+  <APPLYFX_CFG
+  >
+  RENDER_FILE "E:\Projects\extraction-survivors\assets\audio\_incoming\reaper_music\catacombs_raw.wav"
+  RENDER_FMT 0 2 44100
+  RENDER_1X 0
+  RENDER_RANGE 0 0 192 0 1000
+  RENDER_RESAMPLE 3 0 1
+  RENDER_ADDTOPROJ 0
+  RENDER_STEMS 0
+  RENDER_DITHER 0
+  RENDER_TRIM 0.000001 0.000001 0 0
+  TIMELOCKMODE 1
+  TEMPOENVLOCKMODE 1
+  ITEMMIX 1
+  DEFPITCHMODE 589824 0
+  TAKELANE 1
+  SAMPLERATE 44100 0 0
+  <RENDER_CFG
+    ZXZhdxgAAQ==
+  >
+  LOCK 1
+  <METRONOME 6 2
+    VOL 0.25 0.125
+    BEATLEN 4
+    FREQ 1760 880 1
+    SAMPLES "" "" "" ""
+    SPLIGNORE 0 0
+    SPLDEF 2 660 "" 0 ""
+    SPLDEF 3 440 "" 0 ""
+    PATTERN 0 169
+    PATTERNSTR ABBB
+    MULT 1
+  >
+  GLOBAL_AUTO -1
+  TEMPO 120 4 4 0
+  PLAYRATE 1 0 0.25 4
+  SELECTION 0 0
+  SELECTION2 0 0
+  MASTERAUTOMODE 0
+  MASTERTRACKHEIGHT 0 0
+  MASTERPEAKCOL 16576
+  MASTERMUTESOLO 0
+  MASTERTRACKVIEW 0 0.6667 0.5 0.5 0 0 0 0 0 0 0 0 0 0 1
+  MASTERHWOUT 0 0 1 0 0 0 0 -1
+  MASTER_NCH 2 2
+  MASTER_VOLUME 1.04209781592932 0 -1 -1 1
+  MASTER_PANMODE 3
+  MASTER_PANLAWFLAGS 3
+  MASTER_FX 1
+  MASTER_SEL 0
+  <MASTERFXLIST
+    SHOW 0
+    LASTSEL 0
+    DOCKED 0
+    BYPASS 0 0 0
+    <JS schwa/soft_clipper ""
+      0 -1 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    >
+    FLOATPOS 0 0 0 0
+    FXID {78CF4F5A-CC47-4B10-8437-B66E73CB24AC}
+    WAK 0 0
+  >
+  <MASTERPLAYSPEEDENV
+    EGUID {8B5103D2-939F-40A8-B169-36F33BB26EE0}
+    ACT 0 -1
+    VIS 0 1 1
+    LANEHEIGHT 0 0
+    ARM 0
+    DEFSHAPE 0 -1 -1
+  >
+  <TEMPOENVEX
+    EGUID {94C815F4-0DEF-4820-A7DD-3D1560B10320}
+    ACT 0 -1
+    VIS 1 0 1
+    LANEHEIGHT 0 0
+    ARM 0
+    DEFSHAPE 1 -1 -1
+  >
+  RULERHEIGHT 86 86
+  RULERLANE 1 4 "" 0 -1 0
+  RULERLANE 2 8 "" 0 -1 0
+  <PROJBAY
+  >
+  <TRACK {32A76691-1736-46A3-8ADC-8BC5E5FB0C68}
+    NAME crypt_drone
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 0.05623413251903 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    LANEREC -1 -1 -1 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {32A76691-1736-46A3-8ADC-8BC5E5FB0C68}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <FXCHAIN
+      SHOW 0
+      LASTSEL 0
+      DOCKED 0
+      BYPASS 0 0 0
+      <JS synthesis/tonegenerator ""
+        -16 -120 55 0 0 0 0 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      >
+      FLOATPOS 0 0 0 0
+      FXID {6B01FDAC-E90E-4A08-8B9D-AF66CF96F9B9}
+      <PARMENV 2 20 24000 12010 "Base Frequency (Hz) / Tone Generator"
+        EGUID {CA17BCE6-9839-4C9C-8D83-6C9225E3D1DC}
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 1
+        DEFSHAPE 0 -1 -1
+        PT 0 55 0
+        PT 196 55 0
+      >
+      <PARMENV 0 -120 6 0 "Wet Mix (dB) / Tone Generator"
+        EGUID {DFE29974-F75E-473E-A922-8628DF34B97E}
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 1
+        DEFSHAPE 0 -1 -1
+        PT 0 -16 0
+        PT 193 -16 0
+      >
+      WAK 0 0
+      BYPASS 0 0 0
+      <VST "VST: ReaDelay (Cockos)" readelay.dll 0 "" 1919247468<5653547265646C72656164656C617900> ""
+        bGRlcu5e7f4CAAAAAQAAAAAAAAACAAAAAAAAAAIAAAABAAAAAAAAAAIAAAAAAAAATAAAAAEAAAAAABAA
+        AAAAAAAAAAABAAAALAAAAAIAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAAAAAK5HYT4AAAAAAACAPwAAgD8AAIA/AAAAPw==
+        AAAQAAAA
+      >
+      FLOATPOS 0 0 0 0
+      FXID {67DB4B3F-8050-4C0B-94B8-3236141BBE1B}
+      WAK 0 0
+      BYPASS 0 0 0
+      <VST "VST: ReaVerbate (Cockos)" reaverbate.dll 0 "" 1920361016<56535472766238726561766572626174> ""
+        OGJ2cu9e7f4CAAAAAQAAAAAAAAACAAAAAAAAAAIAAAABAAAAAAAAAAIAAAAAAAAAKAAAAAAAAAAAABAA
+        776t3g3wrd7NzEw+AACAPwAAQD8zMzM/AACAPwAAAAAAAIA/AAAAAA==
+        AAAQAAAA
+      >
+      FLOATPOS 0 0 0 0
+      FXID {BB409D3C-3119-409D-B2C1-72D1446C1855}
+      WAK 0 0
+    >
+  >
+  <TRACK {75FE2724-3D39-42F0-8957-C6387D3483C8}
+    NAME drone_octave
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 0.15848931924611 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    LANEREC -1 -1 -1 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {75FE2724-3D39-42F0-8957-C6387D3483C8}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <FXCHAIN
+      SHOW 0
+      LASTSEL 0
+      DOCKED 0
+      BYPASS 0 0 0
+      <JS synthesis/tonegenerator ""
+        -9 -120 110 0 0 0 0 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      >
+      FLOATPOS 0 0 0 0
+      FXID {7BA669DF-F237-4984-B019-6D41BA089A01}
+      <PARMENV 2 20 24000 12010 "Base Frequency (Hz) / Tone Generator"
+        EGUID {1D99F82B-C965-4461-B0EA-D1E06F8B243B}
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 1
+        DEFSHAPE 0 -1 -1
+        PT 0 110 0
+        PT 196 110 0
+      >
+      <PARMENV 0 -120 6 0 "Wet Mix (dB) / Tone Generator"
+        EGUID {E81D17B4-35BE-41C1-8A94-D01EB7EB5F2A}
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 1
+        DEFSHAPE 0 -1 -1
+        PT 0 -9 0
+        PT 3.2 -7.23664424 0
+        PT 6.4 -6.14683045 0
+        PT 9.6 -6.14683045 0
+        PT 12.8 -7.23664424 0
+        PT 16 -9 0
+        PT 19.2 -10.76335576 0
+        PT 22.4 -11.85316955 0
+        PT 25.6 -11.85316955 0
+        PT 28.8 -10.76335576 0
+        PT 32 -9 0
+        PT 35.2 -7.23664424 0
+        PT 38.4 -6.14683045 0
+        PT 41.6 -6.14683045 0
+        PT 44.8 -7.23664424 0
+        PT 48 -9 0
+        PT 51.2 -10.76335576 0
+        PT 54.4 -11.85316955 0
+        PT 57.6 -11.85316955 0
+        PT 60.8 -10.76335576 0
+        PT 64 -9 0
+        PT 67.2 -7.23664424 0
+        PT 70.4 -6.14683045 0
+        PT 73.6 -6.14683045 0
+        PT 76.8 -7.23664424 0
+        PT 80 -9 0
+        PT 83.2 -10.76335576 0
+        PT 86.4 -11.85316955 0
+        PT 89.6 -11.85316955 0
+        PT 92.8 -10.76335576 0
+        PT 96 -9 0
+        PT 99.2 -7.23664424 0
+        PT 102.4 -6.14683045 0
+        PT 105.6 -6.14683045 0
+        PT 108.8 -7.23664424 0
+        PT 112 -9 0
+        PT 115.2 -10.76335576 0
+        PT 118.4 -11.85316955 0
+        PT 121.6 -11.85316955 0
+        PT 124.8 -10.76335576 0
+        PT 128 -9 0
+        PT 131.2 -7.23664424 0
+        PT 134.4 -6.14683045 0
+        PT 137.6 -6.14683045 0
+        PT 140.8 -7.23664424 0
+        PT 144 -9 0
+        PT 147.2 -10.76335576 0
+        PT 150.4 -11.85316955 0
+        PT 153.6 -11.85316955 0
+        PT 156.8 -10.76335576 0
+        PT 160 -9 0
+        PT 163.2 -7.23664424 0
+        PT 166.4 -6.14683045 0
+        PT 169.6 -6.14683045 0
+        PT 172.8 -7.23664424 0
+        PT 176 -9 0
+        PT 179.2 -10.76335576 0
+        PT 182.4 -11.85316955 0
+        PT 185.6 -11.85316955 0
+        PT 188.8 -10.76335576 0
+        PT 192 -9 0
+      >
+      WAK 0 0
+      BYPASS 0 0 0
+      <VST "VST: ReaDelay (Cockos)" readelay.dll 0 "" 1919247468<5653547265646C72656164656C617900> ""
+        bGRlcu5e7f4CAAAAAQAAAAAAAAACAAAAAAAAAAIAAAABAAAAAAAAAAIAAAAAAAAATAAAAAEAAAAAABAA
+        AAAAAAAAAAABAAAALAAAAAIAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAAAAAHsUrj4AAAAAAACAPwAAgD8AAIA/AAAAPw==
+        AAAQAAAA
+      >
+      FLOATPOS 0 0 0 0
+      FXID {AABBBC56-9871-4DE0-9C9D-AFB90459CD52}
+      WAK 0 0
+      BYPASS 0 0 0
+      <VST "VST: ReaVerbate (Cockos)" reaverbate.dll 0 "" 1920361016<56535472766238726561766572626174> ""
+        OGJ2cu9e7f4CAAAAAQAAAAAAAAACAAAAAAAAAAIAAAABAAAAAAAAAAIAAAAAAAAAKAAAAAAAAAAAABAA
+        776t3g3wrd4pXI8+AACAP83MTD+amRk/AACAPwAAAAAAAIA/AAAAAA==
+        AAAQAAAA
+      >
+      FLOATPOS 0 0 0 0
+      FXID {8806538E-0F12-4C98-ADC6-57BDA557BF7D}
+      WAK 0 0
+    >
+  >
+  <TRACK {30CAE371-92E8-41D9-8E9B-3FEBD6AA0FE0}
+    NAME drone_fifth
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 0.14125375446228 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    LANEREC -1 -1 -1 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {30CAE371-92E8-41D9-8E9B-3FEBD6AA0FE0}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <FXCHAIN
+      SHOW 0
+      LASTSEL 0
+      DOCKED 0
+      BYPASS 0 0 0
+      <JS synthesis/tonegenerator ""
+        -10 -120 165 0 0 0 0 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      >
+      FLOATPOS 0 0 0 0
+      FXID {49D86371-90CC-4A64-A917-F9D095A58341}
+      <PARMENV 2 20 24000 12010 "Base Frequency (Hz) / Tone Generator"
+        EGUID {9D53B9DA-983F-4F5A-8671-B9DA8EA08244}
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 1
+        DEFSHAPE 0 -1 -1
+        PT 0 165 0
+        PT 196 165 0
+      >
+      <PARMENV 0 -120 6 0 "Wet Mix (dB) / Tone Generator"
+        EGUID {0F4ADE87-ECC7-4BDF-B4CD-B58ABEA2E07A}
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 1
+        DEFSHAPE 0 -1 -1
+        PT 0 -9.67130219 0
+        PT 2.4 -10.94275162 0
+        PT 4.8 -13 0
+        PT 7.2 -15.05724838 0
+        PT 9.6 -16.32869781 0
+        PT 12 -16.32869781 0
+        PT 14.4 -15.05724838 0
+        PT 16.8 -13 0
+        PT 19.2 -10.94275162 0
+        PT 21.6 -9.67130219 0
+        PT 24 -9.67130219 0
+        PT 26.4 -10.94275162 0
+        PT 28.8 -13 0
+        PT 31.2 -15.05724838 0
+        PT 33.6 -16.32869781 0
+        PT 36 -16.32869781 0
+        PT 38.4 -15.05724838 0
+        PT 40.8 -13 0
+        PT 43.2 -10.94275162 0
+        PT 45.6 -9.67130219 0
+        PT 48 -9.67130219 0
+        PT 50.4 -10.94275162 0
+        PT 52.8 -13 0
+        PT 55.2 -15.05724838 0
+        PT 57.6 -16.32869781 0
+        PT 60 -16.32869781 0
+        PT 62.4 -15.05724838 0
+        PT 64.8 -13 0
+        PT 67.2 -10.94275162 0
+        PT 69.6 -9.67130219 0
+        PT 72 -9.67130219 0
+        PT 74.4 -10.94275162 0
+        PT 76.8 -13 0
+        PT 79.2 -15.05724838 0
+        PT 81.6 -16.32869781 0
+        PT 84 -16.32869781 0
+        PT 86.4 -15.05724838 0
+        PT 88.8 -13 0
+        PT 91.2 -10.94275162 0
+        PT 93.6 -9.67130219 0
+        PT 96 -9.67130219 0
+        PT 98.4 -10.94275162 0
+        PT 100.8 -13 0
+        PT 103.2 -15.05724838 0
+        PT 105.6 -16.32869781 0
+        PT 108 -16.32869781 0
+        PT 110.4 -15.05724838 0
+        PT 112.8 -13 0
+        PT 115.2 -10.94275162 0
+        PT 117.6 -9.67130219 0
+        PT 120 -9.67130219 0
+        PT 122.4 -10.94275162 0
+        PT 124.8 -13 0
+        PT 127.2 -15.05724838 0
+        PT 129.6 -16.32869781 0
+        PT 132 -16.32869781 0
+        PT 134.4 -15.05724838 0
+        PT 136.8 -13 0
+        PT 139.2 -10.94275162 0
+        PT 141.6 -9.67130219 0
+        PT 144 -9.67130219 0
+        PT 146.4 -10.94275162 0
+        PT 148.8 -13 0
+        PT 151.2 -15.05724838 0
+        PT 153.6 -16.32869781 0
+        PT 156 -16.32869781 0
+        PT 158.4 -15.05724838 0
+        PT 160.8 -13 0
+        PT 163.2 -10.94275162 0
+        PT 165.6 -9.67130219 0
+        PT 168 -9.67130219 0
+        PT 170.4 -10.94275162 0
+        PT 172.8 -13 0
+        PT 175.2 -15.05724838 0
+        PT 177.6 -16.32869781 0
+        PT 180 -16.32869781 0
+        PT 182.4 -15.05724838 0
+        PT 184.8 -13 0
+        PT 187.2 -10.94275162 0
+        PT 189.6 -9.67130219 0
+        PT 192 -9.67130219 0
+      >
+      WAK 0 0
+      BYPASS 0 0 0
+      <VST "VST: ReaDelay (Cockos)" readelay.dll 0 "" 1919247468<5653547265646C72656164656C617900> ""
+        bGRlcu5e7f4CAAAAAQAAAAAAAAACAAAAAAAAAAIAAAABAAAAAAAAAAIAAAAAAAAATAAAAAEAAAAAABAA
+        AAAAAAAAAAABAAAALAAAAAIAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAAAAAGZm5j4AAAAAAACAPwAAgD8AAIA/AAAAPw==
+        AAAQAAAA
+      >
+      FLOATPOS 0 0 0 0
+      FXID {709E48FB-5C6A-4EFF-B31E-BFEB408F374F}
+      WAK 0 0
+      BYPASS 0 0 0
+      <VST "VST: ReaVerbate (Cockos)" reaverbate.dll 0 "" 1920361016<56535472766238726561766572626174> ""
+        OGJ2cu9e7f4CAAAAAQAAAAAAAAACAAAAAAAAAAIAAAABAAAAAAAAAAIAAAAAAAAAKAAAAAAAAAAAABAA
+        776t3g3wrd57FK4+AACAP5qZWT/NzAw/AACAPwAAAAAAAIA/AAAAAA==
+        AAAQAAAA
+      >
+      FLOATPOS 0 0 0 0
+      FXID {8FE501C5-13D7-42D5-86CF-DA9D4A2106C6}
+      WAK 0 0
+    >
+  >
+  <TRACK {1E4C2D54-16D4-4D45-8097-C8E603FDD4E7}
+    NAME footfall
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 0.17782794100389 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    LANEREC -1 -1 -1 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {1E4C2D54-16D4-4D45-8097-C8E603FDD4E7}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <FXCHAIN
+      SHOW 0
+      LASTSEL 0
+      DOCKED 0
+      BYPASS 0 0 0
+      <VST "VSTi: ReaSynth (Cockos)" reasynth.dll 0 "" 1919251321<5653547265737972656173796E746800> ""
+        eXNlcu9e7f4AAAAAAgAAAAEAAAAAAAAAAgAAAAAAAABEAAAAAAAAAAAAEAA=
+        776t3g3wrd5vEgM77FG4PQAAAAAAAAAAAACAPpqZWT+4HoU+AAAAAAAAAD8AAAAAAACAPwAAAD8AAAAAAAAAAAAAAAA=
+        AAAQAAAA
+      >
+      FLOATPOS 0 0 0 0
+      FXID {2445CBBE-C864-4CA6-9083-B0A7FBE10707}
+      WAK 0 0
+      BYPASS 0 0 0
+      <VST "VST: ReaDelay (Cockos)" readelay.dll 0 "" 1919247468<5653547265646C72656164656C617900> ""
+        bGRlcu5e7f4CAAAAAQAAAAAAAAACAAAAAAAAAAIAAAABAAAAAAAAAAIAAAAAAAAATAAAAAEAAAAAABAA
+        AAAAAAAAAAABAAAALAAAAAIAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAAAAAGZm5j4AAAAAAACAPwAAgD8AAIA/AAAAPw==
+        AAAQAAAA
+      >
+      FLOATPOS 0 0 0 0
+      FXID {1A900964-47EE-40B0-BF8F-E388CE405C48}
+      WAK 0 0
+      BYPASS 0 0 0
+      <JS loser/Saturation ""
+        15 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      >
+      FLOATPOS 0 0 0 0
+      FXID {6F606A52-D01F-4567-BC25-5A6CDC320BB1}
+      WAK 0 0
+      BYPASS 0 0 0
+      <VST "VST: ReaVerbate (Cockos)" reaverbate.dll 0 "" 1920361016<56535472766238726561766572626174> ""
+        OGJ2cu9e7f4CAAAAAQAAAAAAAAACAAAAAAAAAAIAAAABAAAAAAAAAAIAAAAAAAAAKAAAAAAAAAAAABAA
+        776t3g3wrd6amRk+AACAPwAAAD8AAEA/AACAPwAAAAAAAIA/AAAAAA==
+        AAAQAAAA
+      >
+      FLOATPOS 0 0 0 0
+      FXID {4BCA3BCE-8A9A-429B-B507-9A35052995E6}
+      WAK 0 0
+    >
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 196
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {AEE9B44E-F573-462D-9A0B-48795EBB1A12}
+      IID 29
+      NAME ""
+      VOLPAN 1 0 1 -1
+      SOFFS 0 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {56F9A9C8-9ADE-4A85-B0B0-9C0731048349}
+      <SOURCE MIDI
+        HASDATA 1 960 QN
+        CCINTERP 32
+        POOLEDEVTS {D001093E-B1F9-49AF-A9E5-06767B1A8BE8}
+        E 0 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 3264 90 2d 64
+        E 576 80 2d 00
+        E 3264 90 2d 52
+        E 576 80 2d 00
+        E 10944 b0 7b 00
+        CCINTERP 32
+        CHASE_CC_TAKEOFFS 1
+        GUID {5C70915D-B29B-43E7-B6A1-B62049029F73}
+        IGNTEMPO 0 120 4 4
+        SRCCOLOR 28
+        EVTFILTER 0 -1 -1 -1 -1 0 0 0 0 -1 -1 -1 -1 0 -1 0 -1 -1
+      >
+    >
+  >
+  <TRACK {B5F5048D-40F2-4A96-9677-0C43DDFBD343}
+    NAME rank_shuffle
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 0.0446683592151 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    LANEREC -1 -1 -1 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {B5F5048D-40F2-4A96-9677-0C43DDFBD343}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <FXCHAIN
+      SHOW 0
+      LASTSEL 0
+      DOCKED 0
+      BYPASS 0 0 0
+      <JS Liteon/pinknoisegen ""
+        0 -4 -25 0 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      >
+      SAMPLE_ACCURATE_WETDRY 1
+      WET 0 0
+      FLOATPOS 0 0 0 0
+      FXID {B27F08EA-E0C6-4349-BEF3-C188E0789A5B}
+      <PARMENV 5:wet 0 1 0.5 "Wet / Pink Noise Generator"
+        EGUID {A2CDA51B-5F7D-4DB6-80C0-9D1DD814D107}
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 1
+        DEFSHAPE 0 -1 -1
+        PT 0 0 0
+        PT 0.043 0 0
+        PT 0.045 0 0
+        PT 0.15833333 0.40447852 0
+        PT 0.27166667 0.11615595 0
+        PT 0.385 0 0
+        PT 0.395 0 0
+        PT 2.058 0 0
+        PT 2.06 0 0
+        PT 2.17333333 0.40447852 0
+        PT 2.28666667 0.11615595 0
+        PT 2.4 0 0
+        PT 2.41 0 0
+        PT 4.043 0 0
+        PT 4.045 0 0
+        PT 4.15833333 0.40447852 0
+        PT 4.27166667 0.11615595 0
+        PT 4.385 0 0
+        PT 4.395 0 0
+        PT 6.058 0 0
+        PT 6.06 0 0
+        PT 6.17333333 0.40447852 0
+        PT 6.28666667 0.11615595 0
+        PT 6.4 0 0
+        PT 6.41 0 0
+        PT 8.043 0 0
+        PT 8.045 0 0
+        PT 8.15833333 0.40447852 0
+        PT 8.27166667 0.11615595 0
+        PT 8.385 0 0
+        PT 8.395 0 0
+        PT 10.058 0 0
+        PT 10.06 0 0
+        PT 10.17333333 0.40447852 0
+        PT 10.28666667 0.11615595 0
+        PT 10.4 0 0
+        PT 10.41 0 0
+        PT 12.043 0 0
+        PT 12.045 0 0
+        PT 12.15833333 0.40447852 0
+        PT 12.27166667 0.11615595 0
+        PT 12.385 0 0
+        PT 12.395 0 0
+        PT 14.058 0 0
+        PT 14.06 0 0
+        PT 14.17333333 0.40447852 0
+        PT 14.28666667 0.11615595 0
+        PT 14.4 0 0
+        PT 14.41 0 0
+        PT 16.043 0 0
+        PT 16.045 0 0
+        PT 16.15833333 0.40447852 0
+        PT 16.27166667 0.11615595 0
+        PT 16.385 0 0
+        PT 16.395 0 0
+        PT 18.058 0 0
+        PT 18.06 0 0
+        PT 18.17333333 0.40447852 0
+        PT 18.28666667 0.11615595 0
+        PT 18.4 0 0
+        PT 18.41 0 0
+        PT 20.043 0 0
+        PT 20.045 0 0
+        PT 20.15833333 0.40447852 0
+        PT 20.27166667 0.11615595 0
+        PT 20.385 0 0
+        PT 20.395 0 0
+        PT 22.058 0 0
+        PT 22.06 0 0
+        PT 22.17333333 0.40447852 0
+        PT 22.28666667 0.11615595 0
+        PT 22.4 0 0
+        PT 22.41 0 0
+        PT 24.043 0 0
+        PT 24.045 0 0
+        PT 24.15833333 0.40447852 0
+        PT 24.27166667 0.11615595 0
+        PT 24.385 0 0
+        PT 24.395 0 0
+        PT 26.058 0 0
+        PT 26.06 0 0
+        PT 26.17333333 0.40447852 0
+        PT 26.28666667 0.11615595 0
+        PT 26.4 0 0
+        PT 26.41 0 0
+        PT 28.043 0 0
+        PT 28.045 0 0
+        PT 28.15833333 0.40447852 0
+        PT 28.27166667 0.11615595 0
+        PT 28.385 0 0
+        PT 28.395 0 0
+        PT 30.058 0 0
+        PT 30.06 0 0
+        PT 30.17333333 0.40447852 0
+        PT 30.28666667 0.11615595 0
+        PT 30.4 0 0
+        PT 30.41 0 0
+        PT 32.043 0 0
+        PT 32.045 0 0
+        PT 32.15833333 0.40447852 0
+        PT 32.27166667 0.11615595 0
+        PT 32.385 0 0
+        PT 32.395 0 0
+        PT 34.058 0 0
+        PT 34.06 0 0
+        PT 34.17333333 0.40447852 0
+        PT 34.28666667 0.11615595 0
+        PT 34.4 0 0
+        PT 34.41 0 0
+        PT 36.043 0 0
+        PT 36.045 0 0
+        PT 36.15833333 0.40447852 0
+        PT 36.27166667 0.11615595 0
+        PT 36.385 0 0
+        PT 36.395 0 0
+        PT 38.058 0 0
+        PT 38.06 0 0
+        PT 38.17333333 0.40447852 0
+        PT 38.28666667 0.11615595 0
+        PT 38.4 0 0
+        PT 38.41 0 0
+        PT 40.043 0 0
+        PT 40.045 0 0
+        PT 40.15833333 0.40447852 0
+        PT 40.27166667 0.11615595 0
+        PT 40.385 0 0
+        PT 40.395 0 0
+        PT 42.058 0 0
+        PT 42.06 0 0
+        PT 42.17333333 0.40447852 0
+        PT 42.28666667 0.11615595 0
+        PT 42.4 0 0
+        PT 42.41 0 0
+        PT 44.043 0 0
+        PT 44.045 0 0
+        PT 44.15833333 0.40447852 0
+        PT 44.27166667 0.11615595 0
+        PT 44.385 0 0
+        PT 44.395 0 0
+        PT 46.058 0 0
+        PT 46.06 0 0
+        PT 46.17333333 0.40447852 0
+        PT 46.28666667 0.11615595 0
+        PT 46.4 0 0
+        PT 46.41 0 0
+        PT 48.043 0 0
+        PT 48.045 0 0
+        PT 48.15833333 0.40447852 0
+        PT 48.27166667 0.11615595 0
+        PT 48.385 0 0
+        PT 48.395 0 0
+        PT 50.058 0 0
+        PT 50.06 0 0
+        PT 50.17333333 0.40447852 0
+        PT 50.28666667 0.11615595 0
+        PT 50.4 0 0
+        PT 50.41 0 0
+        PT 52.043 0 0
+        PT 52.045 0 0
+        PT 52.15833333 0.40447852 0
+        PT 52.27166667 0.11615595 0
+        PT 52.385 0 0
+        PT 52.395 0 0
+        PT 54.058 0 0
+        PT 54.06 0 0
+        PT 54.17333333 0.40447852 0
+        PT 54.28666667 0.11615595 0
+        PT 54.4 0 0
+        PT 54.41 0 0
+        PT 56.043 0 0
+        PT 56.045 0 0
+        PT 56.15833333 0.40447852 0
+        PT 56.27166667 0.11615595 0
+        PT 56.385 0 0
+        PT 56.395 0 0
+        PT 58.058 0 0
+        PT 58.06 0 0
+        PT 58.17333333 0.40447852 0
+        PT 58.28666667 0.11615595 0
+        PT 58.4 0 0
+        PT 58.41 0 0
+        PT 60.043 0 0
+        PT 60.045 0 0
+        PT 60.15833333 0.40447852 0
+        PT 60.27166667 0.11615595 0
+        PT 60.385 0 0
+        PT 60.395 0 0
+        PT 62.058 0 0
+        PT 62.06 0 0
+        PT 62.17333333 0.40447852 0
+        PT 62.28666667 0.11615595 0
+        PT 62.4 0 0
+        PT 62.41 0 0
+        PT 64.043 0 0
+        PT 64.045 0 0
+        PT 64.15833333 0.40447852 0
+        PT 64.27166667 0.11615595 0
+        PT 64.385 0 0
+        PT 64.395 0 0
+        PT 66.058 0 0
+        PT 66.06 0 0
+        PT 66.17333333 0.40447852 0
+        PT 66.28666667 0.11615595 0
+        PT 66.4 0 0
+        PT 66.41 0 0
+        PT 68.043 0 0
+        PT 68.045 0 0
+        PT 68.15833333 0.40447852 0
+        PT 68.27166667 0.11615595 0
+        PT 68.385 0 0
+        PT 68.395 0 0
+        PT 70.058 0 0
+        PT 70.06 0 0
+        PT 70.17333333 0.40447852 0
+        PT 70.28666667 0.11615595 0
+        PT 70.4 0 0
+        PT 70.41 0 0
+        PT 72.043 0 0
+        PT 72.045 0 0
+        PT 72.15833333 0.40447852 0
+        PT 72.27166667 0.11615595 0
+        PT 72.385 0 0
+        PT 72.395 0 0
+        PT 74.058 0 0
+        PT 74.06 0 0
+        PT 74.17333333 0.40447852 0
+        PT 74.28666667 0.11615595 0
+        PT 74.4 0 0
+        PT 74.41 0 0
+        PT 76.043 0 0
+        PT 76.045 0 0
+        PT 76.15833333 0.40447852 0
+        PT 76.27166667 0.11615595 0
+        PT 76.385 0 0
+        PT 76.395 0 0
+        PT 78.058 0 0
+        PT 78.06 0 0
+        PT 78.17333333 0.40447852 0
+        PT 78.28666667 0.11615595 0
+        PT 78.4 0 0
+        PT 78.41 0 0
+        PT 80.043 0 0
+        PT 80.045 0 0
+        PT 80.15833333 0.40447852 0
+        PT 80.27166667 0.11615595 0
+        PT 80.385 0 0
+        PT 80.395 0 0
+        PT 82.058 0 0
+        PT 82.06 0 0
+        PT 82.17333333 0.40447852 0
+        PT 82.28666667 0.11615595 0
+        PT 82.4 0 0
+        PT 82.41 0 0
+        PT 84.043 0 0
+        PT 84.045 0 0
+        PT 84.15833333 0.40447852 0
+        PT 84.27166667 0.11615595 0
+        PT 84.385 0 0
+        PT 84.395 0 0
+        PT 86.058 0 0
+        PT 86.06 0 0
+        PT 86.17333333 0.40447852 0
+        PT 86.28666667 0.11615595 0
+        PT 86.4 0 0
+        PT 86.41 0 0
+        PT 88.043 0 0
+        PT 88.045 0 0
+        PT 88.15833333 0.40447852 0
+        PT 88.27166667 0.11615595 0
+        PT 88.385 0 0
+        PT 88.395 0 0
+        PT 90.058 0 0
+        PT 90.06 0 0
+        PT 90.17333333 0.40447852 0
+        PT 90.28666667 0.11615595 0
+        PT 90.4 0 0
+        PT 90.41 0 0
+        PT 92.043 0 0
+        PT 92.045 0 0
+        PT 92.15833333 0.40447852 0
+        PT 92.27166667 0.11615595 0
+        PT 92.385 0 0
+        PT 92.395 0 0
+        PT 94.058 0 0
+        PT 94.06 0 0
+        PT 94.17333333 0.40447852 0
+        PT 94.28666667 0.11615595 0
+        PT 94.4 0 0
+        PT 94.41 0 0
+        PT 96.043 0 0
+        PT 96.045 0 0
+        PT 96.15833333 0.40447852 0
+        PT 96.27166667 0.11615595 0
+        PT 96.385 0 0
+        PT 96.395 0 0
+        PT 98.058 0 0
+        PT 98.06 0 0
+        PT 98.17333333 0.40447852 0
+        PT 98.28666667 0.11615595 0
+        PT 98.4 0 0
+        PT 98.41 0 0
+        PT 100.043 0 0
+        PT 100.045 0 0
+        PT 100.15833333 0.40447852 0
+        PT 100.27166667 0.11615595 0
+        PT 100.385 0 0
+        PT 100.395 0 0
+        PT 102.058 0 0
+        PT 102.06 0 0
+        PT 102.17333333 0.40447852 0
+        PT 102.28666667 0.11615595 0
+        PT 102.4 0 0
+        PT 102.41 0 0
+        PT 104.043 0 0
+        PT 104.045 0 0
+        PT 104.15833333 0.40447852 0
+        PT 104.27166667 0.11615595 0
+        PT 104.385 0 0
+        PT 104.395 0 0
+        PT 106.058 0 0
+        PT 106.06 0 0
+        PT 106.17333333 0.40447852 0
+        PT 106.28666667 0.11615595 0
+        PT 106.4 0 0
+        PT 106.41 0 0
+        PT 108.043 0 0
+        PT 108.045 0 0
+        PT 108.15833333 0.40447852 0
+        PT 108.27166667 0.11615595 0
+        PT 108.385 0 0
+        PT 108.395 0 0
+        PT 110.058 0 0
+        PT 110.06 0 0
+        PT 110.17333333 0.40447852 0
+        PT 110.28666667 0.11615595 0
+        PT 110.4 0 0
+        PT 110.41 0 0
+        PT 112.043 0 0
+        PT 112.045 0 0
+        PT 112.15833333 0.40447852 0
+        PT 112.27166667 0.11615595 0
+        PT 112.385 0 0
+        PT 112.395 0 0
+        PT 114.058 0 0
+        PT 114.06 0 0
+        PT 114.17333333 0.40447852 0
+        PT 114.28666667 0.11615595 0
+        PT 114.4 0 0
+        PT 114.41 0 0
+        PT 116.043 0 0
+        PT 116.045 0 0
+        PT 116.15833333 0.40447852 0
+        PT 116.27166667 0.11615595 0
+        PT 116.385 0 0
+        PT 116.395 0 0
+        PT 118.058 0 0
+        PT 118.06 0 0
+        PT 118.17333333 0.40447852 0
+        PT 118.28666667 0.11615595 0
+        PT 118.4 0 0
+        PT 118.41 0 0
+        PT 120.043 0 0
+        PT 120.045 0 0
+        PT 120.15833333 0.40447852 0
+        PT 120.27166667 0.11615595 0
+        PT 120.385 0 0
+        PT 120.395 0 0
+        PT 122.058 0 0
+        PT 122.06 0 0
+        PT 122.17333333 0.40447852 0
+        PT 122.28666667 0.11615595 0
+        PT 122.4 0 0
+        PT 122.41 0 0
+        PT 124.043 0 0
+        PT 124.045 0 0
+        PT 124.15833333 0.40447852 0
+        PT 124.27166667 0.11615595 0
+        PT 124.385 0 0
+        PT 124.395 0 0
+        PT 126.058 0 0
+        PT 126.06 0 0
+        PT 126.17333333 0.40447852 0
+        PT 126.28666667 0.11615595 0
+        PT 126.4 0 0
+        PT 126.41 0 0
+        PT 128.043 0 0
+        PT 128.045 0 0
+        PT 128.15833333 0.40447852 0
+        PT 128.27166667 0.11615595 0
+        PT 128.385 0 0
+        PT 128.395 0 0
+        PT 130.058 0 0
+        PT 130.06 0 0
+        PT 130.17333333 0.40447852 0
+        PT 130.28666667 0.11615595 0
+        PT 130.4 0 0
+        PT 130.41 0 0
+        PT 132.043 0 0
+        PT 132.045 0 0
+        PT 132.15833333 0.40447852 0
+        PT 132.27166667 0.11615595 0
+        PT 132.385 0 0
+        PT 132.395 0 0
+        PT 134.058 0 0
+        PT 134.06 0 0
+        PT 134.17333333 0.40447852 0
+        PT 134.28666667 0.11615595 0
+        PT 134.4 0 0
+        PT 134.41 0 0
+        PT 136.043 0 0
+        PT 136.045 0 0
+        PT 136.15833333 0.40447852 0
+        PT 136.27166667 0.11615595 0
+        PT 136.385 0 0
+        PT 136.395 0 0
+        PT 138.058 0 0
+        PT 138.06 0 0
+        PT 138.17333333 0.40447852 0
+        PT 138.28666667 0.11615595 0
+        PT 138.4 0 0
+        PT 138.41 0 0
+        PT 140.043 0 0
+        PT 140.045 0 0
+        PT 140.15833333 0.40447852 0
+        PT 140.27166667 0.11615595 0
+        PT 140.385 0 0
+        PT 140.395 0 0
+        PT 142.058 0 0
+        PT 142.06 0 0
+        PT 142.17333333 0.40447852 0
+        PT 142.28666667 0.11615595 0
+        PT 142.4 0 0
+        PT 142.41 0 0
+        PT 144.043 0 0
+        PT 144.045 0 0
+        PT 144.15833333 0.40447852 0
+        PT 144.27166667 0.11615595 0
+        PT 144.385 0 0
+        PT 144.395 0 0
+        PT 146.058 0 0
+        PT 146.06 0 0
+        PT 146.17333333 0.40447852 0
+        PT 146.28666667 0.11615595 0
+        PT 146.4 0 0
+        PT 146.41 0 0
+        PT 148.043 0 0
+        PT 148.045 0 0
+        PT 148.15833333 0.40447852 0
+        PT 148.27166667 0.11615595 0
+        PT 148.385 0 0
+        PT 148.395 0 0
+        PT 150.058 0 0
+        PT 150.06 0 0
+        PT 150.17333333 0.40447852 0
+        PT 150.28666667 0.11615595 0
+        PT 150.4 0 0
+        PT 150.41 0 0
+        PT 152.043 0 0
+        PT 152.045 0 0
+        PT 152.15833333 0.40447852 0
+        PT 152.27166667 0.11615595 0
+        PT 152.385 0 0
+        PT 152.395 0 0
+        PT 154.058 0 0
+        PT 154.06 0 0
+        PT 154.17333333 0.40447852 0
+        PT 154.28666667 0.11615595 0
+        PT 154.4 0 0
+        PT 154.41 0 0
+        PT 156.043 0 0
+        PT 156.045 0 0
+        PT 156.15833333 0.40447852 0
+        PT 156.27166667 0.11615595 0
+        PT 156.385 0 0
+        PT 156.395 0 0
+        PT 158.058 0 0
+        PT 158.06 0 0
+        PT 158.17333333 0.40447852 0
+        PT 158.28666667 0.11615595 0
+        PT 158.4 0 0
+        PT 158.41 0 0
+        PT 160.043 0 0
+        PT 160.045 0 0
+        PT 160.15833333 0.40447852 0
+        PT 160.27166667 0.11615595 0
+        PT 160.385 0 0
+        PT 160.395 0 0
+        PT 162.058 0 0
+        PT 162.06 0 0
+        PT 162.17333333 0.40447852 0
+        PT 162.28666667 0.11615595 0
+        PT 162.4 0 0
+        PT 162.41 0 0
+        PT 164.043 0 0
+        PT 164.045 0 0
+        PT 164.15833333 0.40447852 0
+        PT 164.27166667 0.11615595 0
+        PT 164.385 0 0
+        PT 164.395 0 0
+        PT 166.058 0 0
+        PT 166.06 0 0
+        PT 166.17333333 0.40447852 0
+        PT 166.28666667 0.11615595 0
+        PT 166.4 0 0
+        PT 166.41 0 0
+        PT 168.043 0 0
+        PT 168.045 0 0
+        PT 168.15833333 0.40447852 0
+        PT 168.27166667 0.11615595 0
+        PT 168.385 0 0
+        PT 168.395 0 0
+        PT 170.058 0 0
+        PT 170.06 0 0
+        PT 170.17333333 0.40447852 0
+        PT 170.28666667 0.11615595 0
+        PT 170.4 0 0
+        PT 170.41 0 0
+        PT 172.043 0 0
+        PT 172.045 0 0
+        PT 172.15833333 0.40447852 0
+        PT 172.27166667 0.11615595 0
+        PT 172.385 0 0
+        PT 172.395 0 0
+        PT 174.058 0 0
+        PT 174.06 0 0
+        PT 174.17333333 0.40447852 0
+        PT 174.28666667 0.11615595 0
+        PT 174.4 0 0
+        PT 174.41 0 0
+        PT 176.043 0 0
+        PT 176.045 0 0
+        PT 176.15833333 0.40447852 0
+        PT 176.27166667 0.11615595 0
+        PT 176.385 0 0
+        PT 176.395 0 0
+        PT 178.058 0 0
+        PT 178.06 0 0
+        PT 178.17333333 0.40447852 0
+        PT 178.28666667 0.11615595 0
+        PT 178.4 0 0
+        PT 178.41 0 0
+        PT 180.043 0 0
+        PT 180.045 0 0
+        PT 180.15833333 0.40447852 0
+        PT 180.27166667 0.11615595 0
+        PT 180.385 0 0
+        PT 180.395 0 0
+        PT 182.058 0 0
+        PT 182.06 0 0
+        PT 182.17333333 0.40447852 0
+        PT 182.28666667 0.11615595 0
+        PT 182.4 0 0
+        PT 182.41 0 0
+        PT 184.043 0 0
+        PT 184.045 0 0
+        PT 184.15833333 0.40447852 0
+        PT 184.27166667 0.11615595 0
+        PT 184.385 0 0
+        PT 184.395 0 0
+        PT 186.058 0 0
+        PT 186.06 0 0
+        PT 186.17333333 0.40447852 0
+        PT 186.28666667 0.11615595 0
+        PT 186.4 0 0
+        PT 186.41 0 0
+        PT 188.043 0 0
+        PT 188.045 0 0
+        PT 188.15833333 0.40447852 0
+        PT 188.27166667 0.11615595 0
+        PT 188.385 0 0
+        PT 188.395 0 0
+        PT 190.058 0 0
+        PT 190.06 0 0
+        PT 190.17333333 0.40447852 0
+        PT 190.28666667 0.11615595 0
+        PT 190.4 0 0
+        PT 190.41 0 0
+      >
+      WAK 0 0
+      BYPASS 0 0 0
+      <VST "VST: ReaDelay (Cockos)" readelay.dll 0 "" 1919247468<5653547265646C72656164656C617900> ""
+        bGRlcu5e7f4CAAAAAQAAAAAAAAACAAAAAAAAAAIAAAABAAAAAAAAAAIAAAAAAAAATAAAAAEAAAAAABAA
+        AAAAAAAAAAABAAAALAAAAAIAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAAAAAGZm5j7NzEw9AACAPwAAgD8AAIA/AAAAPw==
+        AAAQAAAA
+      >
+      FLOATPOS 0 0 0 0
+      FXID {EF38F6E6-B11A-4B71-817E-31FA63EDED0E}
+      WAK 0 0
+      BYPASS 0 0 0
+      <VST "VST: ReaVerbate (Cockos)" reaverbate.dll 0 "" 1920361016<56535472766238726561766572626174> ""
+        OGJ2cu9e7f4CAAAAAQAAAAAAAAACAAAAAAAAAAIAAAABAAAAAAAAAAIAAAAAAAAAKAAAAAAAAAAAABAA
+        776t3g3wrd7NzEw+AACAP2Zm5j4AAAA/AACAPwAAAAAAAIA/AAAAAA==
+        AAAQAAAA
+      >
+      FLOATPOS 0 0 0 0
+      FXID {D51AA946-250C-4B01-93BD-1253302A9FD2}
+      WAK 0 0
+    >
+  >
+  <TRACK {A170496D-36EA-491E-82EB-EE67D218C9F2}
+    NAME hollow_choir
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 0.22387211385683 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    LANEREC -1 -1 -1 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {A170496D-36EA-491E-82EB-EE67D218C9F2}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <FXCHAIN
+      SHOW 0
+      LASTSEL 0
+      DOCKED 0
+      BYPASS 0 0 0
+      <VST "VSTi: ReaSynth (Cockos)" reasynth.dll 0 "" 1919251321<5653547265737972656173796E746800> ""
+        eXNlcu9e7f4AAAAAAgAAAAEAAAAAAAAAAgAAAAAAAABEAAAAAAAAAAAAEAA=
+        776t3g3wrd5mZqY/AACAPwAAAAAAAAAAAAAAP2Zmhj9mZmY/7FE4PgAAAD8AAEA/AACAPwAAAD8AAAAAAAAAAAAAAAA=
+        AAAQAAAA
+      >
+      FLOATPOS 0 0 0 0
+      FXID {9AF1D186-F992-4714-9CDF-37B844C37FB8}
+      WAK 0 0
+      BYPASS 0 0 0
+      <VST "VST: ReaDelay (Cockos)" readelay.dll 0 "" 1919247468<5653547265646C72656164656C617900> ""
+        bGRlcu5e7f4CAAAAAQAAAAAAAAACAAAAAAAAAAIAAAABAAAAAAAAAAIAAAAAAAAATAAAAAEAAAAAABAA
+        AAAAAAAAAAABAAAALAAAAAIAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAAAAAJqZGT8AAAAAAACAPwAAgD8AAIA/AAAAPw==
+        AAAQAAAA
+      >
+      FLOATPOS 0 0 0 0
+      FXID {77EEEB50-2B54-4AD9-8861-E8925BA8DBE6}
+      WAK 0 0
+      BYPASS 0 0 0
+      <JS guitar/chorus ""
+        26 3 0.3 0.7 -10 -3 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      >
+      FLOATPOS 0 0 0 0
+      FXID {FEBB8670-C615-4382-961A-9C6913557FBA}
+      WAK 0 0
+      BYPASS 0 0 0
+      <VST "VST: ReaVerbate (Cockos)" reaverbate.dll 0 "" 1920361016<56535472766238726561766572626174> ""
+        OGJ2cu9e7f4CAAAAAQAAAAAAAAACAAAAAAAAAAIAAAABAAAAAAAAAAIAAAAAAAAAKAAAAAAAAAAAABAA
+        776t3g3wrd7NzMw+AACAP5qZWT/NzAw/AACAPwAAAAAAAIA/AAAAAA==
+        AAAQAAAA
+      >
+      FLOATPOS 0 0 0 0
+      FXID {BE2B3FD3-2C71-419F-8600-44B573049D3D}
+      WAK 0 0
+    >
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 196
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {D3DA054E-EEC4-4BC3-9A26-D7B6E566DEEA}
+      IID 30
+      NAME ""
+      VOLPAN 1 0 1 -1
+      SOFFS 0 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {1F2CE376-74C8-4F24-8309-D948275E6038}
+      <SOURCE MIDI
+        HASDATA 1 960 QN
+        CCINTERP 32
+        POOLEDEVTS {F5F31CF4-0BC4-4B63-89D4-8574DEAB0DFA}
+        E 0 90 2d 38
+        E 96 90 34 38
+        E 96 90 39 38
+        E 30048 80 2d 00
+        E 96 80 34 00
+        E 96 80 39 00
+        E 288 90 29 38
+        E 96 90 30 38
+        E 96 90 35 38
+        E 30048 80 29 00
+        E 96 80 30 00
+        E 96 80 35 00
+        E 288 90 2e 38
+        E 96 90 35 38
+        E 96 90 3a 38
+        E 30048 80 2e 00
+        E 96 80 35 00
+        E 96 80 3a 00
+        E 288 90 2d 38
+        E 96 90 34 38
+        E 96 90 39 38
+        E 30048 80 2d 00
+        E 96 80 34 00
+        E 96 80 39 00
+        E 288 90 2b 38
+        E 96 90 32 38
+        E 96 90 37 38
+        E 30048 80 2b 00
+        E 96 80 32 00
+        E 96 80 37 00
+        E 288 90 2d 38
+        E 96 90 34 38
+        E 96 90 39 38
+        E 30048 80 2d 00
+        E 96 80 34 00
+        E 96 80 39 00
+        E 288 90 2d 38
+        E 96 90 34 38
+        E 96 90 39 38
+        E 30048 80 2d 00
+        E 96 80 34 00
+        E 96 80 39 00
+        E 288 90 29 38
+        E 96 90 30 38
+        E 96 90 35 38
+        E 30048 80 29 00
+        E 96 80 30 00
+        E 96 80 35 00
+        E 288 90 2e 38
+        E 96 90 35 38
+        E 96 90 3a 38
+        E 30048 80 2e 00
+        E 96 80 35 00
+        E 96 80 3a 00
+        E 288 90 2d 38
+        E 96 90 34 38
+        E 96 90 39 38
+        E 30048 80 2d 00
+        E 96 80 34 00
+        E 96 80 39 00
+        E 288 90 2b 38
+        E 96 90 32 38
+        E 96 90 37 38
+        E 30048 80 2b 00
+        E 96 80 32 00
+        E 96 80 37 00
+        E 288 90 2d 38
+        E 96 90 34 38
+        E 96 90 39 38
+        E 30048 80 2d 00
+        E 96 80 34 00
+        E 96 80 39 00
+        E 7968 b0 7b 00
+        CCINTERP 32
+        CHASE_CC_TAKEOFFS 1
+        GUID {392A4EB3-0E61-4AAD-B388-99FF15F22C53}
+        IGNTEMPO 0 120 4 4
+        SRCCOLOR 29
+        EVTFILTER 0 -1 -1 -1 -1 0 0 0 0 -1 -1 -1 -1 0 -1 0 -1 -1
+      >
+    >
+  >
+  <TRACK {BEBF5A42-D609-4B50-BC61-0AC010E76F27}
+    NAME choir_low
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 0.14125375446228 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    LANEREC -1 -1 -1 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {BEBF5A42-D609-4B50-BC61-0AC010E76F27}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <FXCHAIN
+      SHOW 0
+      LASTSEL 0
+      DOCKED 0
+      BYPASS 0 0 0
+      <VST "VSTi: ReaSynth (Cockos)" reasynth.dll 0 "" 1919251321<5653547265737972656173796E746800> ""
+        eXNlcu9e7f4AAAAAAgAAAAEAAAAAAAAAAgAAAAAAAABEAAAAAAAAAAAAEAA=
+        776t3g3wrd7NzMw/AACAPwAAAAAAAAAAzczMPgAAQD9mZmY/AAAAAAAAAD8zMzM/AACAPwAAAD8AAAAAAAAAAAAAAAA=
+        AAAQAAAA
+      >
+      FLOATPOS 0 0 0 0
+      FXID {E26DFB68-61FC-4705-B3E7-05FB38E856E8}
+      WAK 0 0
+      BYPASS 0 0 0
+      <VST "VST: ReaDelay (Cockos)" readelay.dll 0 "" 1919247468<5653547265646C72656164656C617900> ""
+        bGRlcu5e7f4CAAAAAQAAAAAAAAACAAAAAAAAAAIAAAABAAAAAAAAAAIAAAAAAAAATAAAAAEAAAAAABAA
+        AAAAAAAAAAABAAAALAAAAAIAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAAAAAM3MzD4AAAAAAACAPwAAgD8AAIA/AAAAPw==
+        AAAQAAAA
+      >
+      FLOATPOS 0 0 0 0
+      FXID {E9428ED3-2998-4EC6-9608-C293878A1288}
+      WAK 0 0
+      BYPASS 0 0 0
+      <VST "VST: ReaVerbate (Cockos)" reaverbate.dll 0 "" 1920361016<56535472766238726561766572626174> ""
+        OGJ2cu9e7f4CAAAAAQAAAAAAAAACAAAAAAAAAAIAAAABAAAAAAAAAAIAAAAAAAAAKAAAAAAAAAAAABAA
+        776t3g3wrd4K16M+AACAP83MTD8AAAA/AACAPwAAAAAAAIA/AAAAAA==
+        AAAQAAAA
+      >
+      FLOATPOS 0 0 0 0
+      FXID {7EB10B7F-D8B4-4755-942C-C08F3E936B76}
+      WAK 0 0
+    >
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 196
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {08BF5862-CDED-450A-BF2A-23AA2A3D61E2}
+      IID 31
+      NAME ""
+      VOLPAN 1 0 1 -1
+      SOFFS 0 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {81913417-5529-408A-8FF6-22021B2140E4}
+      <SOURCE MIDI
+        HASDATA 1 960 QN
+        CCINTERP 32
+        POOLEDEVTS {0EB39CD2-9677-4A4B-B99B-170C03501E89}
+        E 123072 90 1f 30
+        E 30240 80 1f 00
+        E 480 90 21 30
+        E 30240 80 21 00
+        E 123360 90 1f 30
+        E 30240 80 1f 00
+        E 480 90 21 30
+        E 30240 80 21 00
+        E 7968 b0 7b 00
+        CCINTERP 32
+        CHASE_CC_TAKEOFFS 1
+        GUID {D9FC4287-BE81-4AFD-8EA9-5C9F53A4951E}
+        IGNTEMPO 0 120 4 4
+        SRCCOLOR 30
+        EVTFILTER 0 -1 -1 -1 -1 0 0 0 0 -1 -1 -1 -1 0 -1 0 -1 -1
+      >
+    >
+  >
+  <TRACK {8AEB8824-060A-4EC3-9F5B-91DA480BE304}
+    NAME pedal
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 0.15848931924611 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    LANEREC -1 -1 -1 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {8AEB8824-060A-4EC3-9F5B-91DA480BE304}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <FXCHAIN
+      SHOW 0
+      LASTSEL 0
+      DOCKED 0
+      BYPASS 0 0 0
+      <VST "VSTi: ReaSynth (Cockos)" reasynth.dll 0 "" 1919251321<5653547265737972656173796E746800> ""
+        eXNlcu9e7f4AAAAAAgAAAAEAAAAAAAAAAgAAAAAAAABEAAAAAAAAAAAAEAA=
+        776t3g3wrd5mZmY/AACAPwAAAAAAAAAAMzOzPs3MTD9mZmY/AAAAAAAAAD8zMzM/AACAPwAAAD8AAAAAAAAAAAAAAAA=
+        AAAQAAAA
+      >
+      FLOATPOS 0 0 0 0
+      FXID {FEBA43CD-1D84-49B1-9B57-256A2E39C146}
+      WAK 0 0
+      BYPASS 0 0 0
+      <VST "VST: ReaDelay (Cockos)" readelay.dll 0 "" 1919247468<5653547265646C72656164656C617900> ""
+        bGRlcu5e7f4CAAAAAQAAAAAAAAACAAAAAAAAAAIAAAABAAAAAAAAAAIAAAAAAAAATAAAAAEAAAAAABAA
+        AAAAAAAAAAABAAAALAAAAAIAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAAAAAM3MzD4AAAAAAACAPwAAgD8AAIA/AAAAPw==
+        AAAQAAAA
+      >
+      FLOATPOS 0 0 0 0
+      FXID {6670120C-7561-437D-8B56-4ECA293377EE}
+      WAK 0 0
+      BYPASS 0 0 0
+      <JS loser/Saturation ""
+        10 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      >
+      FLOATPOS 0 0 0 0
+      FXID {A5EE8EDC-26BB-4EE6-8590-C3E322AB7275}
+      WAK 0 0
+    >
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 196
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {A82228F4-616F-415F-824C-1E0354553EAF}
+      IID 32
+      NAME ""
+      VOLPAN 1 0 1 -1
+      SOFFS 0 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {23925D40-D4AF-4FA0-B3F2-45213B54C6E7}
+      <SOURCE MIDI
+        HASDATA 1 960 QN
+        CCINTERP 32
+        POOLEDEVTS {BAAB5FB4-D44C-49FF-8590-1C3B0536F94A}
+        E 0 90 2d 46
+        E 3840 90 34 34
+        E 26112 80 2d 00
+        E 0 80 34 00
+        E 768 90 29 46
+        E 3840 90 30 34
+        E 26112 80 29 00
+        E 0 80 30 00
+        E 768 90 2e 46
+        E 3840 90 35 34
+        E 26112 80 2e 00
+        E 0 80 35 00
+        E 768 90 2d 46
+        E 3840 90 34 34
+        E 26112 80 2d 00
+        E 0 80 34 00
+        E 768 90 2b 46
+        E 3840 90 32 34
+        E 26112 80 2b 00
+        E 0 80 32 00
+        E 768 90 2d 46
+        E 3840 90 34 34
+        E 26112 80 2d 00
+        E 0 80 34 00
+        E 768 90 2d 46
+        E 3840 90 34 34
+        E 26112 80 2d 00
+        E 0 80 34 00
+        E 768 90 29 46
+        E 3840 90 30 34
+        E 26112 80 29 00
+        E 0 80 30 00
+        E 768 90 2e 46
+        E 3840 90 35 34
+        E 26112 80 2e 00
+        E 0 80 35 00
+        E 768 90 2d 46
+        E 3840 90 34 34
+        E 26112 80 2d 00
+        E 0 80 34 00
+        E 768 90 2b 46
+        E 3840 90 32 34
+        E 26112 80 2b 00
+        E 0 80 32 00
+        E 768 90 2d 46
+        E 3840 90 34 34
+        E 26112 80 2d 00
+        E 0 80 34 00
+        E 8448 b0 7b 00
+        CCINTERP 32
+        CHASE_CC_TAKEOFFS 1
+        GUID {43D18F0F-4141-4BC5-AF2D-BCD6B584A149}
+        IGNTEMPO 0 120 4 4
+        SRCCOLOR 31
+        EVTFILTER 0 -1 -1 -1 -1 0 0 0 0 -1 -1 -1 -1 0 -1 0 -1 -1
+      >
+    >
+  >
+  <TRACK {EF6031FD-088B-4E78-8CB9-9833AABD33FC}
+    NAME crypt_bell
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 0.25118864315096 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    LANEREC -1 -1 -1 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {EF6031FD-088B-4E78-8CB9-9833AABD33FC}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <FXCHAIN
+      SHOW 0
+      LASTSEL 0
+      DOCKED 0
+      BYPASS 0 0 0
+      <VST "VSTi: ReaSynth (Cockos)" reasynth.dll 0 "" 1919251321<5653547265737972656173796E746800> ""
+        eXNlcu9e7f4AAAAAAgAAAAEAAAAAAAAAAgAAAAAAAABEAAAAAAAAAAAAEAA=
+        776t3g3wrd5vEoM7AACAPwAAAAAAAAAAzcxMPgAAgD8AAIA/mpmZPgAAAD/NzMw9AACAPwAAAD8AAAAAAAAAAAAAAAA=
+        AAAQAAAA
+      >
+      FLOATPOS 0 0 0 0
+      FXID {A9620036-23AF-4017-B3CA-B186C75CBF26}
+      WAK 0 0
+      BYPASS 0 0 0
+      <VST "VST: ReaDelay (Cockos)" readelay.dll 0 "" 1919247468<5653547265646C72656164656C617900> ""
+        bGRlcu5e7f4CAAAAAQAAAAAAAAACAAAAAAAAAAIAAAABAAAAAAAAAAIAAAAAAAAATAAAAAEAAAAAABAA
+        AAAAAAAAAAABAAAALAAAAAIAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAAAAAM3MTD8AAAAAAACAPwAAgD8AAIA/AAAAPw==
+        AAAQAAAA
+      >
+      FLOATPOS 0 0 0 0
+      FXID {5D7E0C61-FA11-42CD-BDA5-2FEBC06A1E55}
+      WAK 0 0
+      BYPASS 0 0 0
+      <VST "VST: ReaVerbate (Cockos)" reaverbate.dll 0 "" 1920361016<56535472766238726561766572626174> ""
+        OGJ2cu9e7f4CAAAAAQAAAAAAAAACAAAAAAAAAAIAAAABAAAAAAAAAAIAAAAAAAAAKAAAAAAAAAAAABAA
+        776t3g3wrd7NzAw/AACAP2ZmZj8AAAA/AACAPwAAAAAAAIA/AAAAAA==
+        AAAQAAAA
+      >
+      FLOATPOS 0 0 0 0
+      FXID {135FF727-AE73-4087-870F-1A220D2ED277}
+      WAK 0 0
+    >
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 196
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {C8F9CAF9-0541-4BB2-AD62-F5C0018AD5D3}
+      IID 33
+      NAME ""
+      VOLPAN 1 0 1 -1
+      SOFFS 0 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {4A754332-D1D6-4A08-8191-EBD87DCC1FF4}
+      <SOURCE MIDI
+        HASDATA 1 960 QN
+        CCINTERP 32
+        POOLEDEVTS {DB513624-4B8A-4755-AED6-918F87A0382A}
+        E 0 90 39 48
+        E 10560 80 39 00
+        E 50880 90 39 48
+        E 10560 80 39 00
+        E 50880 90 39 48
+        E 10560 80 39 00
+        E 50880 90 39 48
+        E 10560 80 39 00
+        E 50880 90 39 48
+        E 10560 80 39 00
+        E 50880 90 39 48
+        E 10560 80 39 00
+        E 58560 b0 7b 00
+        CCINTERP 32
+        CHASE_CC_TAKEOFFS 1
+        GUID {618EDF98-F293-47ED-A901-954F976517A8}
+        IGNTEMPO 0 120 4 4
+        SRCCOLOR 32
+        EVTFILTER 0 -1 -1 -1 -1 0 0 0 0 -1 -1 -1 -1 0 -1 0 -1 -1
+      >
+    >
+  >
+  <TRACK {88BEE778-E8D0-4808-824C-17D67DE6EBC2}
+    NAME bell_partial
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 0.12589254117942 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    LANEREC -1 -1 -1 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {88BEE778-E8D0-4808-824C-17D67DE6EBC2}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <FXCHAIN
+      SHOW 0
+      LASTSEL 0
+      DOCKED 0
+      BYPASS 0 0 0
+      <VST "VSTi: ReaSynth (Cockos)" reasynth.dll 0 "" 1919251321<5653547265737972656173796E746800> ""
+        eXNlcu9e7f4AAAAAAgAAAAEAAAAAAAAAAgAAAAAAAABEAAAAAAAAAAAAEAA=
+        776t3g3wrd6mm0Q7AACAPwAAAAAAAAAAAAAAAAAAAD9mZmY/AAAAPwAAAD8AAAAAAACAPwAAAD8AAAAAAAAAAAAAAAA=
+        AAAQAAAA
+      >
+      FLOATPOS 0 0 0 0
+      FXID {945C8DF9-B3B3-4197-9456-F9A7DCAFC949}
+      WAK 0 0
+      BYPASS 0 0 0
+      <VST "VST: ReaDelay (Cockos)" readelay.dll 0 "" 1919247468<5653547265646C72656164656C617900> ""
+        bGRlcu5e7f4CAAAAAQAAAAAAAAACAAAAAAAAAAIAAAABAAAAAAAAAAIAAAAAAAAATAAAAAEAAAAAABAA
+        AAAAAAAAAAABAAAALAAAAAIAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAAAAAM3MTD8AAAAAAACAPwAAgD8AAIA/AAAAPw==
+        AAAQAAAA
+      >
+      FLOATPOS 0 0 0 0
+      FXID {64EFF048-6717-4135-BC18-E24184DD5611}
+      WAK 0 0
+      BYPASS 0 0 0
+      <VST "VST: ReaVerbate (Cockos)" reaverbate.dll 0 "" 1920361016<56535472766238726561766572626174> ""
+        OGJ2cu9e7f4CAAAAAQAAAAAAAAACAAAAAAAAAAIAAAABAAAAAAAAAAIAAAAAAAAAKAAAAAAAAAAAABAA
+        776t3g3wrd64HgU/AACAP2ZmZj9mZuY+AACAPwAAAAAAAIA/AAAAAA==
+        AAAQAAAA
+      >
+      FLOATPOS 0 0 0 0
+      FXID {140A8500-F676-4149-8265-3495198F6980}
+      WAK 0 0
+    >
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 196
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {612CAB9C-C15C-4080-B8D2-5A7FE31B5F87}
+      IID 34
+      NAME ""
+      VOLPAN 1 0 1 -1
+      SOFFS 0 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {25CE898A-DBFE-4EE2-9F69-A24CAE710AED}
+      <SOURCE MIDI
+        HASDATA 1 960 QN
+        CCINTERP 32
+        POOLEDEVTS {DCC21096-8240-4663-86F9-1B1C15A8DF83}
+        E 23 90 4c 26
+        E 4224 80 4c 00
+        E 57216 90 4c 26
+        E 4224 80 4c 00
+        E 57216 90 4c 26
+        E 4224 80 4c 00
+        E 57216 90 4c 26
+        E 4224 80 4c 00
+        E 57216 90 4c 26
+        E 4224 80 4c 00
+        E 57216 90 4c 26
+        E 4224 80 4c 00
+        E 64873 b0 7b 00
+        CCINTERP 32
+        CHASE_CC_TAKEOFFS 1
+        GUID {D1C076D7-D20D-4C77-B2EA-FA5F14134781}
+        IGNTEMPO 0 120 4 4
+        SRCCOLOR 33
+        EVTFILTER 0 -1 -1 -1 -1 0 0 0 0 -1 -1 -1 -1 0 -1 0 -1 -1
+      >
+    >
+  >
+  <TRACK {7CED1303-8081-4534-A55C-C0ABFBBA3A13}
+    NAME descent_motif
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 0.19952623149689 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    LANEREC -1 -1 -1 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {7CED1303-8081-4534-A55C-C0ABFBBA3A13}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <FXCHAIN
+      SHOW 0
+      LASTSEL 0
+      DOCKED 0
+      BYPASS 0 0 0
+      <VST "VSTi: ReaSynth (Cockos)" reasynth.dll 0 "" 1919251321<5653547265737972656173796E746800> ""
+        eXNlcu9e7f4AAAAAAgAAAAEAAAAAAAAAAgAAAAAAAABEAAAAAAAAAAAAEAA=
+        776t3g3wrd4zM7M+AACAPwAAAAAAAAAAAACAPmZmZj8AAIA/MzOzPgAAAD+amZk+AACAPwAAAD8AAAAAAAAAAAAAAAA=
+        AAAQAAAA
+      >
+      FLOATPOS 0 0 0 0
+      FXID {94F7806C-3172-467A-BD97-DA3AD1A8E086}
+      WAK 0 0
+      BYPASS 0 0 0
+      <VST "VST: ReaDelay (Cockos)" readelay.dll 0 "" 1919247468<5653547265646C72656164656C617900> ""
+        bGRlcu5e7f4CAAAAAQAAAAAAAAACAAAAAAAAAAIAAAABAAAAAAAAAAIAAAAAAAAATAAAAAEAAAAAABAA
+        AAAAAAAAAAABAAAALAAAAAIAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAAAAADMzMz8AAAAAAACAPwAAgD8AAIA/AAAAPw==
+        AAAQAAAA
+      >
+      FLOATPOS 0 0 0 0
+      FXID {ECA252CB-A769-4E56-A05C-A87C4F1583BB}
+      WAK 0 0
+      BYPASS 0 0 0
+      <VST "VST: ReaDelay (Cockos)" readelay.dll 0 "" 1919247468<5653547265646C72656164656C617900> ""
+        bGRlcu5e7f4CAAAAAQAAAAAAAAACAAAAAAAAAAIAAAABAAAAAAAAAAIAAAAAAAAATAAAAAEAAAAAABAA
+        AAAAAAAAAAABAAAALAAAAAIAAAAAAAAAj8J1PgAAgD8AAAAAAACAP83MTD4AAAAAmpmZPmZm5j4AAAAAAACAPwAAgD8AAIA/AAAAPw==
+        AAAQAAAA
+      >
+      FLOATPOS 0 0 0 0
+      FXID {E0B816B3-65AA-4880-8918-84432CF3D4C0}
+      WAK 0 0
+      BYPASS 0 0 0
+      <VST "VST: ReaVerbate (Cockos)" reaverbate.dll 0 "" 1920361016<56535472766238726561766572626174> ""
+        OGJ2cu9e7f4CAAAAAQAAAAAAAAACAAAAAAAAAAIAAAABAAAAAAAAAAIAAAAAAAAAKAAAAAAAAAAAABAA
+        776t3g3wrd4fhes+AACAP2ZmZj8AAAA/AACAPwAAAAAAAIA/AAAAAA==
+        AAAQAAAA
+      >
+      FLOATPOS 0 0 0 0
+      FXID {62336704-B693-48D4-9811-1E91843733B4}
+      WAK 0 0
+    >
+    <ITEM
+      POSITION 0
+      SNAPOFFS 0
+      LENGTH 196
+      LOOP 1
+      ALLTAKES 0
+      FADEIN 1 0 0 1 0 0 0
+      FADEOUT 1 0 0 1 0 0 0
+      MUTE 0 0
+      SEL 0
+      IGUID {1E5831F7-DE1E-4A04-A46C-12E10683E3A0}
+      IID 35
+      NAME ""
+      VOLPAN 1 0 1 -1
+      SOFFS 0 0
+      PLAYRATE 1 1 0 -1 0 0.0025
+      CHANMODE 0
+      GUID {74022402-7D9D-4D34-B7BD-F1B27BC0885C}
+      <SOURCE MIDI
+        HASDATA 1 960 QN
+        CCINTERP 32
+        POOLEDEVTS {FA5DD3F8-F2F5-4BED-B2A3-F54032E39BD5}
+        E 69120 90 41 3c
+        E 4992 80 41 00
+        E 6528 90 40 36
+        E 4224 80 40 00
+        E 7296 90 3c 38
+        E 4992 80 3c 00
+        E 6528 90 3a 32
+        E 3840 90 39 3a
+        E 768 80 3a 00
+        E 6912 80 39 00
+        E 138240 90 41 3c
+        E 4992 80 41 00
+        E 6528 90 40 36
+        E 4224 80 40 00
+        E 7296 90 3c 38
+        E 4992 80 3c 00
+        E 6528 90 3a 32
+        E 3840 90 39 3a
+        E 768 80 3a 00
+        E 6912 80 39 00
+        E 76800 b0 7b 00
+        CCINTERP 32
+        CHASE_CC_TAKEOFFS 1
+        GUID {CD2A0BE3-98DE-480B-90F8-F2199FCA3EC0}
+        IGNTEMPO 0 120 4 4
+        SRCCOLOR 34
+        EVTFILTER 0 -1 -1 -1 -1 0 0 0 0 -1 -1 -1 -1 0 -1 0 -1 -1
+      >
+    >
+  >
+>

@@ -1,0 +1,355 @@
+<REAPER_PROJECT 0.1 "7.77/win64" 1786832621 0
+  <NOTES 0 2
+  >
+  RIPPLE 0 0
+  GROUPOVERRIDE 0 0 0 0
+  AUTOXFADE 129
+  ENVATTACH 3
+  POOLEDENVATTACH 0
+  TCPUIFLAGS 0
+  MIXERUIFLAGS 11 48 0
+  ENVFADESZ10 40
+  PEAKGAIN 1
+  FEEDBACK 0
+  PANLAW 1
+  PROJOFFS 0 0 0
+  MAXPROJLEN 0 0
+  GRID 3199 8 1 8 1 0 0 0
+  TIMEMODE 1 5 -1 30 0 0 -1 0
+  VIDEO_CONFIG 0 0 65792
+  PANMODE 3
+  PANLAWFLAGS 3
+  CURSOR 0
+  ZOOM 100 563 0
+  VZOOMEX 6 0
+  USE_REC_CFG 0
+  RECMODE 1
+  SMPTESYNC 0 30 100 40 1000 300 0 0 1 0 0
+  LOOP 0
+  LOOPGRAN 0 4
+  RECORD_PATH "Media" ""
+  <RECORD_CFG
+    ZXZhdxgAAQ==
+  >
+  <APPLYFX_CFG
+  >
+  RENDER_FILE "E:\Projects\extraction-survivors\assets\audio\_incoming\reaper_music\channel_loop_arcane_raw.wav"
+  RENDER_FMT 0 2 44100
+  RENDER_1X 0
+  RENDER_RANGE 0 0 4.09 0 1000
+  RENDER_RESAMPLE 3 0 1
+  RENDER_ADDTOPROJ 0
+  RENDER_STEMS 0
+  RENDER_DITHER 0
+  RENDER_TRIM 0.000001 0.000001 0 0
+  TIMELOCKMODE 1
+  TEMPOENVLOCKMODE 1
+  ITEMMIX 1
+  DEFPITCHMODE 589824 0
+  TAKELANE 1
+  SAMPLERATE 44100 0 0
+  <RENDER_CFG
+    ZXZhdxgAAQ==
+  >
+  LOCK 1
+  <METRONOME 6 2
+    VOL 0.25 0.125
+    BEATLEN 4
+    FREQ 1760 880 1
+    SAMPLES "" "" "" ""
+    SPLIGNORE 0 0
+    SPLDEF 2 660 "" 0 ""
+    SPLDEF 3 440 "" 0 ""
+    PATTERN 0 169
+    PATTERNSTR ABBB
+    MULT 1
+  >
+  GLOBAL_AUTO -1
+  TEMPO 120 4 4 0
+  PLAYRATE 1 0 0.25 4
+  SELECTION 0 0
+  SELECTION2 0 0
+  MASTERAUTOMODE 0
+  MASTERTRACKHEIGHT 0 0
+  MASTERPEAKCOL 16576
+  MASTERMUTESOLO 0
+  MASTERTRACKVIEW 0 0.6667 0.5 0.5 0 0 0 0 0 0 0 0 0 0 1
+  MASTERHWOUT 0 0 1 0 0 0 0 -1
+  MASTER_NCH 2 2
+  MASTER_VOLUME 1.04209781592932 0 -1 -1 1
+  MASTER_PANMODE 3
+  MASTER_PANLAWFLAGS 3
+  MASTER_FX 1
+  MASTER_SEL 0
+  <MASTERFXLIST
+    SHOW 0
+    LASTSEL 0
+    DOCKED 0
+    BYPASS 0 0 0
+    <JS schwa/soft_clipper ""
+      0 -1 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    >
+    FLOATPOS 0 0 0 0
+    FXID {78CF4F5A-CC47-4B10-8437-B66E73CB24AC}
+    WAK 0 0
+  >
+  <MASTERPLAYSPEEDENV
+    EGUID {8B5103D2-939F-40A8-B169-36F33BB26EE0}
+    ACT 0 -1
+    VIS 0 1 1
+    LANEHEIGHT 0 0
+    ARM 0
+    DEFSHAPE 0 -1 -1
+  >
+  <TEMPOENVEX
+    EGUID {94C815F4-0DEF-4820-A7DD-3D1560B10320}
+    ACT 0 -1
+    VIS 1 0 1
+    LANEHEIGHT 0 0
+    ARM 0
+    DEFSHAPE 1 -1 -1
+  >
+  RULERHEIGHT 86 86
+  RULERLANE 1 4 "" 0 -1 0
+  RULERLANE 2 8 "" 0 -1 0
+  <PROJBAY
+  >
+  <TRACK {47CAF4DD-1E30-4408-8432-66D25D66FB1F}
+    NAME whisper_body
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 0.35481338923358 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    LANEREC -1 -1 -1 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {47CAF4DD-1E30-4408-8432-66D25D66FB1F}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <FXCHAIN
+      SHOW 0
+      LASTSEL 0
+      DOCKED 0
+      BYPASS 0 0 0
+      <JS Liteon/pinknoisegen ""
+        1 1 -25 0 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      >
+      SAMPLE_ACCURATE_WETDRY 1
+      WET 0.35 0
+      FLOATPOS 0 0 0 0
+      FXID {B6ABE1B9-A268-406A-924F-601270BFC91B}
+      <PARMENV 5:wet 0 1 0.5 "Wet / Pink Noise Generator"
+        EGUID {2D92EBB5-E34B-4308-8287-B1D38932638B}
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 1
+        DEFSHAPE 0 -1 -1
+        PT 0 0.35 0
+        PT 4 0.35 0
+      >
+      WAK 0 0
+      BYPASS 0 0 0
+      <JS Liteon/ringmodulator ""
+        0 0 41 0 8 22 0 0 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      >
+      FLOATPOS 0 0 0 0
+      FXID {C9679870-D0DB-4359-9B77-4EAF23111096}
+      WAK 0 0
+      BYPASS 0 0 0
+      <VST "VST: ReaDelay (Cockos)" readelay.dll 0 "" 1919247468<5653547265646C72656164656C617900> ""
+        bGRlcu5e7f4CAAAAAQAAAAAAAAACAAAAAAAAAAIAAAABAAAAAAAAAAIAAAAAAAAATAAAAAEAAAAAABAA
+        AAAAAAAAAAABAAAALAAAAAIAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAAAAAOxROD+amZk+AACAPwAAgD8AAIA/AAAAPw==
+        AAAQAAAA
+      >
+      FLOATPOS 0 0 0 0
+      FXID {C4581C6C-0067-49EC-9FC0-784764AB70DC}
+      WAK 0 0
+    >
+  >
+  <TRACK {50E58F48-002C-4A9A-B9BF-67615803DD3E}
+    NAME rattle
+    PEAKCOL 16576
+    BEAT -1
+    AUTOMODE 0
+    PANLAWFLAGS 3
+    VOLPAN 0.50118723362727 0 -1 -1 1
+    MUTESOLO 0 0 0
+    IPHASE 0
+    PLAYOFFS 0 1
+    ISBUS 0 0
+    BUSCOMP 0 0 0 0 0
+    SHOWINMIX 1 0.6667 0.5 1 0.5 0 0 0 0
+    FIXEDLANES 9 0 0 0 0
+    LANEREC -1 -1 -1 0
+    SEL 0
+    REC 0 0 1 0 0 0 0 0
+    VU 64
+    TRACKHEIGHT 0 0 0 0 0 0 0
+    INQ 0 0 0 0.5 100 0 0 100
+    NCHAN 2
+    FX 1
+    TRACKID {50E58F48-002C-4A9A-B9BF-67615803DD3E}
+    PERF 0
+    MIDIOUT -1 -1
+    MAINSEND 1 0
+    <FXCHAIN
+      SHOW 0
+      LASTSEL 0
+      DOCKED 0
+      BYPASS 0 0 0
+      <JS Liteon/pinknoisegen ""
+        1 4 -25 0 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      >
+      SAMPLE_ACCURATE_WETDRY 1
+      WET 0 0
+      FLOATPOS 0 0 0 0
+      FXID {D04C74E7-C00F-4447-96A4-BB9B1B63C881}
+      <PARMENV 5:wet 0 1 0.5 "Wet / Pink Noise Generator"
+        EGUID {AC294449-1C34-480E-80E8-AF9D8BF58C9D}
+        ACT 1 -1
+        VIS 1 1 1
+        LANEHEIGHT 0 0
+        ARM 1
+        DEFSHAPE 0 -1 -1
+        PT 0 0 0
+        PT 0.048 0 0
+        PT 0.052 0.75 0
+        PT 0.056 0.39828692 0
+        PT 0.06 0.16322823 0
+        PT 0.064 0.03552461 0
+        PT 0.068 0 0
+        PT 0.078 0 0
+        PT 0.278 0 0
+        PT 0.282 0.75 0
+        PT 0.2885 0.39828692 0
+        PT 0.295 0.16322823 0
+        PT 0.3015 0.03552461 0
+        PT 0.308 0 0
+        PT 0.318 0 0
+        PT 0.548 0 0
+        PT 0.552 0.75 0
+        PT 0.561 0.39828692 0
+        PT 0.57 0.16322823 0
+        PT 0.579 0.03552461 0
+        PT 0.588 0 0
+        PT 0.598 0 0
+        PT 0.798 0 0
+        PT 0.802 0.75 0
+        PT 0.806 0.39828692 0
+        PT 0.81 0.16322823 0
+        PT 0.814 0.03552461 0
+        PT 0.818 0 0
+        PT 0.828 0 0
+        PT 1.048 0 0
+        PT 1.052 0.75 0
+        PT 1.0585 0.39828692 0
+        PT 1.065 0.16322823 0
+        PT 1.0715 0.03552461 0
+        PT 1.078 0 0
+        PT 1.088 0 0
+        PT 1.298 0 0
+        PT 1.302 0.75 0
+        PT 1.311 0.39828692 0
+        PT 1.32 0.16322823 0
+        PT 1.329 0.03552461 0
+        PT 1.338 0 0
+        PT 1.348 0 0
+        PT 1.578 0 0
+        PT 1.582 0.75 0
+        PT 1.586 0.39828692 0
+        PT 1.59 0.16322823 0
+        PT 1.594 0.03552461 0
+        PT 1.598 0 0
+        PT 1.608 0 0
+        PT 1.818 0 0
+        PT 1.822 0.75 0
+        PT 1.8285 0.39828692 0
+        PT 1.835 0.16322823 0
+        PT 1.8415 0.03552461 0
+        PT 1.848 0 0
+        PT 1.858 0 0
+        PT 2.048 0 0
+        PT 2.052 0.75 0
+        PT 2.061 0.39828692 0
+        PT 2.07 0.16322823 0
+        PT 2.079 0.03552461 0
+        PT 2.088 0 0
+        PT 2.098 0 0
+        PT 2.278 0 0
+        PT 2.282 0.75 0
+        PT 2.286 0.39828692 0
+        PT 2.29 0.16322823 0
+        PT 2.294 0.03552461 0
+        PT 2.298 0 0
+        PT 2.308 0 0
+        PT 2.548 0 0
+        PT 2.552 0.75 0
+        PT 2.5585 0.39828692 0
+        PT 2.565 0.16322823 0
+        PT 2.5715 0.03552461 0
+        PT 2.578 0 0
+        PT 2.588 0 0
+        PT 2.798 0 0
+        PT 2.802 0.75 0
+        PT 2.811 0.39828692 0
+        PT 2.82 0.16322823 0
+        PT 2.829 0.03552461 0
+        PT 2.838 0 0
+        PT 2.848 0 0
+        PT 3.048 0 0
+        PT 3.052 0.75 0
+        PT 3.056 0.39828692 0
+        PT 3.06 0.16322823 0
+        PT 3.064 0.03552461 0
+        PT 3.068 0 0
+        PT 3.078 0 0
+        PT 3.298 0 0
+        PT 3.302 0.75 0
+        PT 3.3085 0.39828692 0
+        PT 3.315 0.16322823 0
+        PT 3.3215 0.03552461 0
+        PT 3.328 0 0
+        PT 3.338 0 0
+        PT 3.578 0 0
+        PT 3.582 0.75 0
+        PT 3.591 0.39828692 0
+        PT 3.6 0.16322823 0
+        PT 3.609 0.03552461 0
+        PT 3.618 0 0
+        PT 3.628 0 0
+        PT 3.818 0 0
+        PT 3.822 0.75 0
+        PT 3.826 0.39828692 0
+        PT 3.83 0.16322823 0
+        PT 3.834 0.03552461 0
+        PT 3.838 0 0
+        PT 3.848 0 0
+      >
+      WAK 0 0
+      BYPASS 0 0 0
+      <VST "VST: ReaDelay (Cockos)" readelay.dll 0 "" 1919247468<5653547265646C72656164656C617900> ""
+        bGRlcu5e7f4CAAAAAQAAAAAAAAACAAAAAAAAAAIAAAABAAAAAAAAAAIAAAAAAAAATAAAAAEAAAAAABAA
+        AAAAAAAAAAABAAAALAAAAAIAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAAAAAAAAgD9mZuY+AACAPwAAgD8AAIA/AAAAPw==
+        AAAQAAAA
+      >
+      FLOATPOS 0 0 0 0
+      FXID {8ECCDC8D-BC4D-47F3-9423-E05DDE0ECF6A}
+      WAK 0 0
+    >
+  >
+>

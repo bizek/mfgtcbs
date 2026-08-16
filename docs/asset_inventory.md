@@ -230,8 +230,10 @@ MiniFantasy packs are visual only — no SFX included. SFX requires external sou
 | `assets/audio/music/hub.ogg` | OpenGameArt.org — "Contemplation" | CC0 | Converted from source MP3 to OGG Vorbis via ffmpeg |
 | `assets/audio/music/caves.ogg` | OpenGameArt.org — "Loopable Dungeon Ambience" | CC0 | ~94s loop; loop-seam not ear-verified by the agent (no audio playback) — Ben should confirm no pop before ship |
 | `assets/audio/music/boss.ogg` | OpenGameArt.org — "Basilisk Boss Battle Loop" | CC0 | ~33s loop; same loop-seam caveat as above |
+| `assets/audio/music/catacombs.ogg` | **Original** — composed in REAPER via `tools/sfx_forge/music_catacombs.py` | Ours (no third-party content) | 96.0s loop, 60 BPM A Phrygian. All synthesis is REAPER stock (ReaSynth, JS tonegenerator, JS pink noise, ReaVerbate/ReaDelay). Project: `assets/audio/_incoming/reaper_music/catacombs.rpp` |
+| `assets/audio/music/nightmare_realm.ogg` | **Original** — composed in REAPER via `tools/sfx_forge/music_nightmare.py` | Ours (no third-party content) | 114.0s loop, pulse-less. Same stock-only synthesis. Project: `assets/audio/_incoming/reaper_music/nightmare_realm.rpp` |
 
-All Kenney.nl packs above ship under a blanket CC0 license (no per-file attribution required, but Kenney credit is good practice). OpenGameArt CC0 tracks likewise require no attribution. No CC-BY assets were used.
+All Kenney.nl packs above ship under a blanket CC0 license (no per-file attribution required, but Kenney credit is good practice). OpenGameArt CC0 tracks likewise require no attribution. No CC-BY assets were used. The two composed biome tracks are original work generated from REAPER stock plugins only — nothing third-party is embedded in them, so they carry no attribution obligation either.
 
 ---
 

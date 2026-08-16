@@ -5,6 +5,9 @@
       "args": [
         "E:/Projects/godot-pro-mcp/server/build/index.js"
       ]
+    },
+    "ldtk-mcp": {
+      "command": "E:/Projects/extraction-survivors/tools/ldtk-mcp/target/release/ldtk-mcp.exe"
     }
   }
 }
