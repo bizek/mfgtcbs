@@ -453,8 +453,9 @@ const ALL: Dictionary = {
 		"color_body":      Color(0.62, 0.34, 0.16),
 		"color_head":      Color(0.85, 0.62, 0.42),
 		## Barbarian (True Heroes I) — bare-chested berserker. Full special package wired:
-		## Battle_Cry (+frame-matched effect front layer as cry_fx), Guard, Throw_Things,
-		## Thunder_Blade (+its own 4-frame directional lightning projectile, ChainFactory).
+		## Battle_Cry (+frame-matched effect front layer as cry_fx), Guard, Throw_Things
+		## (split into hoist/hurl for Pile Driver — see below), Thunder_Blade (+its own 4-frame
+		## directional lightning projectile, ChainFactory).
 		"sprite": {
 			"dir":        "res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/General_Animations/",
 			"frame_size": 32,
@@ -475,7 +476,22 @@ const ALL: Dictionary = {
 				"sunder":    ["Minifantasy_TrueHeroesBarbarianAttack.png",            6, 13.0, {"cancel_open": 4}],
 				"sunder_fx": ["Minifantasy_TrueHeroesBarbarianAttackBrokenGround.png", 6, 13.0],
 				"thunder":  ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Thunder_Blade_Attack/Minifantasy_TrueHeroesBarbarianThunderBlade.png", 17, 22.0],
-				"throw":    ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Throw_Things/Minifantasy_TrueHeroesBarbarianThrowThings.png",          16, 20.0],
+				## Pile Driver (E) — the Throw_Things sheet is ONE animation on disk and TWO beats in
+				## the game, so it is sliced at the beats the artist already drew (verified frame by
+				## frame, row 0): f4 he crouches and closes his hands on something, f6-8 he has it
+				## hoisted overhead, f9 is the release flash, f10+ recovery.
+				##   "hoist" = f0-8, freezing on the overhead pose the hold phase parks in;
+				##   "hurl"  = f8-15, starting ON that same pose so the handoff is seamless.
+				## hit_frame indices in SkillFactory are LOCAL to each slice (hurl's release = 1).
+				"hoist":    ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Throw_Things/Minifantasy_TrueHeroesBarbarianThrowThings.png",           9, 20.0, {"from": 0, "to": 8}],
+				"hurl":     ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Throw_Things/Minifantasy_TrueHeroesBarbarianThrowThings.png",           8, 20.0, {"from": 8, "to": 15}],
+				## NOTE: while a Pile Driver hold is up he stands in the frozen "hoist" frame even
+				## while walking. A spliced carry_idle/carry_walk pair was tried and cut — Ben is
+				## authoring a purpose-drawn carry sheet instead (2026-08-17). To wire one up, add
+				## "carry_idle"/"carry_walk" here, add both to CharacterSpriteFactory.LOOPING_ANIMS,
+				## and drive them from player._physics_process's locomotion block (they have to be
+				## played THERE, not by the choreography, because the hold phase keeps
+				## _attack_anim_active true for its whole six seconds).
 				"cry":      ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Battle_Cry/Minifantasy_TrueHeroesBarbarianBattleCry.png",              11, 14.0],
 				"cry_fx":   ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Battle_Cry/Minifantasy_TrueHeroesBarbarianBattleCryEffectFrontLayer.png", 11, 14.0],
 				"guard":        ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Guard/Minifantasy_TrueHeroesBarbarianBlockGuardUp.png",   4,  8.0],

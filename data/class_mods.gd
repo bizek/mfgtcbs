@@ -1012,15 +1012,23 @@ const ALL: Dictionary = {
 		## ("All", "damage_taken") — the ("damage_taken", "bonus") pair is never read. See above.
 		"params": { "stat": "All", "op": "damage_taken", "value": -0.18 },
 	},
-	"barbarian_deafening_cry": {
-		"id": "barbarian_deafening_cry",
-		"name": "DEAFENING CRY",
+	## Took DEAFENING CRY's slot on 2026-08-16 rather than being added alongside it: validate_order
+	## enforces an identical rarity shape across all twelve kits (4 uncommon / 3 rare / 1 epic), so
+	## a ninth barbarian mod is not a thing that can exist on its own. DEAFENING CRY was the right
+	## one to give up — a flat +15% damage named after Battle Cry that never touched Battle Cry, on
+	## a character whose passive AND whose Q are both already damage buffs. It is in no evolution
+	## recipe; owners are migrated to this id by ProgressionManager v3→v4.
+	"barbarian_avalanche": {
+		"id": "barbarian_avalanche",
+		"name": "AVALANCHE",
 		"kit": "barbarian",
 		"rarity": "uncommon",
-		"desc": "Battle Cry echoes with pure fury - +15% damage while equipped.",
-		"color": Color(1.0, 0.3, 0.05),
+		"desc": "His grip takes three more bodies before it runs out of arms.",
+		"color": Color(0.70, 0.72, 0.78),
+		## Raises Pile Driver's chain cap through the ordinary stat path — player._pile_capacity()
+		## reads get_stat("pile_capacity"), base 6.
 		"op": "modifier",
-		"params": { "stat": "damage", "op": "bonus", "value": 0.15 },
+		"params": { "stat": "pile_capacity", "op": "add", "value": 3.0 },
 	},
 
 	"barbarian_storm_volley": {
@@ -1041,7 +1049,10 @@ const ALL: Dictionary = {
 		"rarity": "uncommon",
 		"desc": "Whatever the Ravager throws lands 30% harder across a 40% wider crater.",
 		"color": Color(0.80, 0.60, 0.35),
-		"target": { "graph": "skill_e", "anim": "throw" },
+		## Retargeted "throw" -> "hurl" when Throw Things became Pile Driver (2026-08-16). The old
+		## anim name no longer exists, and a target that matches nothing is silently dead content —
+		## which is exactly what validate_anim_targets() exists to catch.
+		"target": { "graph": "skill_e", "anim": "hurl" },
 		"op": "scale_aoe",
 		"params": { "radius_mult": 1.40, "damage_mult": 1.30 },
 	},
@@ -1261,7 +1272,7 @@ const ORDER: Array = [
 	"barbarian_earthsplitter",
 	"barbarian_chained_lightning",
 	"barbarian_iron_wall",
-	"barbarian_deafening_cry",
+	"barbarian_avalanche",
 	"barbarian_storm_volley",
 	"barbarian_hurled_ruin",
 	"barbarian_bloodrage",

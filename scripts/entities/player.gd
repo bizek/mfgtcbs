@@ -43,6 +43,10 @@ var _base_stats: Dictionary = {
 	"dash_speed":      520.0,  ## impulse speed at dash start (px/s)
 	"dash_cooldown":   1.6,    ## per-charge refill time (s)
 	"dash_charges":    1.0,    ## max charges (clamped to int >= 1 at read time)
+	## How many enemies the Ravager's Pile Driver can carry at once. A stat rather than a constant
+	## so AVALANCHE (class mod) and GREATER PILE (level-up) raise it through the normal modifier
+	## path — see _pile_capacity(). Inert for every other character.
+	"pile_capacity":   6.0,
 }
 
 ## XP and leveling
@@ -252,10 +256,34 @@ const BOMB_ARC_H: float = 14.0
 ## directional 64px torrent flame sheet (4 facing rows, drawn ahead of the caster).
 const TELEPORT_RANGE: float = 100.0
 const TORRENT_FORWARD: float = 36.0
-## Barbarian Throw Things: the junk lands at the cursor, clamped to a hurl range. The thrown
-## slab itself is cropped from the ThrowThings sheet's release frame (the pack draws it there —
-## no separate projectile asset ships) and arced to the landing point as a world visual.
-const THROW_RANGE: float = 120.0
+## ── Barbarian Pile Driver (E) ────────────────────────────────────────────────────────────────
+## Two presses: grab a chain of bodies out of the crowd and carry them overhead, then hurl the
+## pile at the cursor. Replaced Throw Things (a cropped slab of scenery) on 2026-08-16 — see
+## SkillFactory.build_barbarian_pile_driver for the design and the phase/host split.
+const THROW_RANGE: float = 120.0        ## how far the pile can be hurled, clamped from the cursor
+## The chain. Starting from the nearest enemy, every body within PILE_LINK_RADIUS of an
+## already-grabbed body joins, breadth-first, until the pile is full. That radius is deliberately
+## tight — about a body and a half — so this reads as "they were touching", not as a vacuum.
+const PILE_SEED_RADIUS: float = 46.0    ## how far he can reach for the FIRST body
+const PILE_LINK_RADIUS: float = 26.0    ## body-to-body hop distance for every one after it
+## The cap is a STAT (_base_stats.pile_capacity), not a constant, so class mods and level-up picks
+## can raise it through the ordinary modifier path. Uncapped this would grab a whole phase-4 pile
+## (max_enemies is 90) and delete the encounter, which is the thing Ben flagged first.
+const PILE_CARRY_SLOW: float = -0.35    ## he is carrying six people; move_speed bonus while held
+## Pile centre above his origin, in px. Measured against the art, not guessed: the 32px cell is
+## centred, his feet sit at cell row 19 (+3) and the hold pose's raised hands at rows 8-10 (-8 to
+## -6), so -12 puts the mass resting ON his hands with a pixel of overlap. It was -18 while the
+## carry pose was still a frozen lift frame, which left the pile visibly levitating a body's
+## width above him (caught in an in-game capture, 2026-08-17).
+const PILE_CARRY_HEIGHT: float = -12.0
+const PILE_CLUMP_RADIUS: float = 7.0    ## how tightly the carried bodies pack around that centre
+const PILE_THROW_TIME: float = 0.34     ## flight time of the hurled pile
+const PILE_THROW_ARC: float = 26.0      ## arc height of that flight
+const PILE_SCATTER: float = 12.0        ## landing spread, so they don't stack in one pixel
+## Damage. The crowd hit at the landing point is the phase's own AreaDamageEffect (mods scale it);
+## these two are the parts that scale with how many he caught, which no static effect can know.
+const PILE_BODY_DAMAGE: float = 0.9     ## × damage, dealt to each THROWN body on impact
+const PILE_PER_BODY_BONUS: float = 0.25 ## × damage added to the landing burst per carried body
 ## Barbarian Guard (RMB-hold channel): sword up — ALL damage from the frontal arc is blocked
 ## outright (take_damage), with the pack's BlockImpact flashing on each stopped hit.
 const GUARD_BLOCK_ARC: float = 2.62   ## ~150° frontal arc (radians)
@@ -285,8 +313,6 @@ const STORM_FX_FILES: Dictionary = {
 }
 const STORM_FORWARD: float = 52.0
 var _storm_fx: AnimatedSprite2D = null
-const THROW_SHEET: String = "res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Throw_Things/Minifantasy_TrueHeroesBarbarianThrowThings.png"
-const THROW_JUNK_REGION: Rect2 = Rect2(499, 13, 13, 8)   ## the airborne slab in row 0, frame 15
 const TORRENT_FX_SHEET: String = "res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Wizard/Special_Animations/Fire_Torrent/Fire_Torrent_Effect.png"
 var _fire_familiar: Node2D = null
 var _torrent_fx: AnimatedSprite2D = null
@@ -523,7 +549,11 @@ func _setup_components() -> void:
 	choreography_runner.setup(self)
 
 	_combat_input = CombatInputBuffer.new()
-	_combat_input.setup(["light_attack", "heavy_attack"])
+	## "skill_e" is tracked because the Ravager's Pile Driver is the first skill with a SECOND
+	## press inside its own graph (hold → hurl). _tick_combo returns early while the runner is
+	## running, so that press can only reach the branch through this buffer, which ticks
+	## unconditionally every physics frame.
+	_combat_input.setup(["light_attack", "heavy_attack", "skill_e"])
 
 	skill_component = SkillComponent.new()
 	skill_component.name = "SkillComponent"
@@ -1252,6 +1282,8 @@ func _physics_process(delta: float) -> void:
 	if sprite:
 		sprite.position = position.round() - position
 	knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 1400.0 * delta)
+	## Carried pile rides along — after move_and_slide, so it never trails a frame behind him.
+	_tick_pile()
 
 	_dash_anim_timer = maxf(_dash_anim_timer - delta, 0.0)
 	## Spark Frost Burst: the shard aura loops for ICE_AURA_TIME, then plays its deteriorate pass.
@@ -1543,6 +1575,11 @@ func _tick_combo() -> void:
 		_on_skill_q()
 	if InputMap.has_action("skill_e") and Input.is_action_just_pressed("skill_e") \
 			and skill_component and skill_component.has_skill("skill_e"):
+		## Consume the opening tap, exactly as the light chain does above. Without this the
+		## Pile Driver's hold phase would see the press that STARTED it still sitting in the
+		## buffer and hurl the pile on the same frame it was grabbed.
+		if _combat_input:
+			_combat_input.consume("skill_e")
 		skill_component.trigger("skill_e")
 
 	if Input.is_action_just_pressed("light_attack"):
@@ -1833,7 +1870,7 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 	if ability != null and ability.ability_id == "wizard_ice_burst":
 		_cast_ice_burst()
 	var is_torrent: bool = cur_anim.begins_with("torrent")
-	var is_throw: bool = cur_anim.begins_with("throw")
+	var is_hurl: bool = cur_anim.begins_with("hurl")
 	var is_teleport: bool = cur_anim.begins_with("teleport_out")
 	var is_extract: bool = cur_anim.begins_with("extract")
 	var is_spikes: bool = cur_anim.begins_with("spikes")
@@ -1888,13 +1925,27 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 			var t_aim: Vector2 = _get_aim_world_position() - global_position
 			if t_aim.length_squared() >= 1.0:
 				center = _get_aim_target(global_position + t_aim.normalized() * TORRENT_FORWARD)
-		elif is_throw:
-			## Throw Things: the junk lands where you point, up to a hurl's reach.
-			var j_aim: Vector2 = _get_aim_world_position() - global_position
-			if j_aim.length() > THROW_RANGE:
-				j_aim = j_aim.normalized() * THROW_RANGE
-			center = _get_aim_target(global_position + j_aim)
-			_spawn_thrown_junk(global_position + j_aim)
+		elif is_hurl:
+			## Pile Driver release: the pile lands where you point, up to a hurl's reach. This
+			## burst is the CROWD hit, and it carries a per-body bonus so a fat grab lands harder
+			## on whatever it is dropped onto. _hurl_pile throws the bodies themselves.
+			center = _get_aim_target(_pile_landing_point())
+			var pile_bonus: float = get_stat("damage") * PILE_PER_BODY_BONUS * float(_pile.size())
+			if pile_bonus > 0.0:
+				## On a DUPLICATE. At Reach 1.0 self_effects holds the phase's own resource (see
+				## the branch above), and adding to that would compound the burst on every cast.
+				var boosted: Array = []
+				for eff in self_effects:
+					if eff is AreaDamageEffect:
+						var bumped: AreaDamageEffect = eff.duplicate()
+						bumped.base_damage += pile_bonus
+						boosted.append(bumped)
+					else:
+						boosted.append(eff)
+				self_effects = boosted
+			## aoe_radius is the burst's LIVE radius — Reach and any scale_aoe mod already in it —
+			## so the crowd stun always covers exactly the circle that took the damage.
+			_hurl_pile(aoe_radius)
 		EffectDispatcher.execute_effects(self_effects, self, [center], ability, combat_manager)
 
 	## Charged Fireball release: swap the base projectile for one scaled by how long the
@@ -2599,26 +2650,261 @@ func _spawn_sunder_cracks() -> void:
 	tw.tween_callback(decal.queue_free)
 
 
-## Throw Things visual: the slab cropped from the throw sheet tumbles from the Ravager's
-## hands to the landing point, then vanishes as the landing burst hits.
-func _spawn_thrown_junk(land: Vector2) -> void:
-	var tex := AtlasTexture.new()
-	tex.atlas = load(THROW_SHEET)
-	tex.region = THROW_JUNK_REGION
-	tex.filter_clip = true
-	var junk := Sprite2D.new()
-	junk.texture = tex
-	junk.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	junk.z_index = 2
-	get_tree().current_scene.add_child(junk)
-	var from: Vector2 = global_position + Vector2(0.0, -8.0)   ## leaves at chest height
-	junk.global_position = from
-	junk.rotation = (land - from).angle()
-	var tw := junk.create_tween()
-	tw.set_parallel(true)
-	tw.tween_property(junk, "global_position", land, 0.16)
-	tw.tween_property(junk, "rotation", junk.rotation + TAU, 0.16)   ## one full tumble
-	tw.chain().tween_callback(junk.queue_free)
+## ── Barbarian Pile Driver (E) ────────────────────────────────────────────────────────────────
+## The whole carried-enemy system. There is no fake "ball" sprite here: the pile IS the enemies,
+## suspended out of the simulation and drawn in a clump over the Ravager's head, then thrown back
+## into it. See SkillFactory.build_barbarian_pile_driver for the two-phase graph that drives it.
+##
+## A carried enemy is suspended in three ways, all reversed by _release_body():
+##   • is_untargetable      — SpatialGrid.rebuild skips it, so nothing targets or AoEs it while
+##                            it is over the player's head, including the player's own swings;
+##   • physics process off  — no chasing, no contact damage, and nothing fighting us for its
+##                            position (its own move_and_slide would otherwise run every frame);
+##   • "stunned"            — it is still stunned when it lands, which is the point of the throw
+##                            and also what makes a DROPPED pile a real (if lesser) payoff.
+
+var _pile: Array = []                 ## carried enemies, in grab order
+
+
+## Live cap, through the modifier system: base 6 (_base_stats.pile_capacity) plus AVALANCHE
+## (class mod) and GREATER PILE (level-up), both ordinary "add" modifiers on the same stat.
+func _pile_capacity() -> int:
+	return maxi(1, int(round(get_stat("pile_capacity"))))
+
+
+## Where the pile is going: the cursor, clamped to THROW_RANGE.
+func _pile_landing_point() -> Vector2:
+	var aim: Vector2 = _get_aim_world_position() - global_position
+	if aim.length() > THROW_RANGE:
+		aim = aim.normalized() * THROW_RANGE
+	return global_position + aim
+
+
+## The grab, fired off the hoist phase's hit frame. Breadth-first from the nearest body: each
+## enemy already in the pile pulls in anything within PILE_LINK_RADIUS of ITSELF, so a dense
+## crowd comes up like a blanket and an isolated straggler comes up alone. That chaining is the
+## whole idea (Ben + Clerveu) — a flat "grab everything in radius R" would pick up enemies with
+## clear air between them and read as a vacuum instead of a scoop.
+func _grab_pile() -> void:
+	_drop_pile()                       ## defensive: never carry two piles at once
+	if spatial_grid == null:
+		call_deferred("_abort_empty_pile")
+		return
+	var cap: int = _pile_capacity()
+	## Everything in reach of the initial grab, nearest first — the seed, and the pool the
+	## chain grows through. One query, then pure math: no per-hop grid lookups.
+	var pool: Array = []
+	var seed_sq: float = (PILE_SEED_RADIUS + PILE_LINK_RADIUS * float(cap)) \
+			* (PILE_SEED_RADIUS + PILE_LINK_RADIUS * float(cap))
+	for en in spatial_grid.get_nearby_in_range(global_position, 1, seed_sq):
+		if not is_instance_valid(en) or not en.is_alive:
+			continue
+		## Bosses are not furniture. Hoisting one would trivialise the fight it exists to be.
+		## The flag lives on the definition, not the node — enemy.gd only reads def.is_boss.
+		var en_def: EnemyDefinition = en.get("_enemy_def")
+		if en_def != null and en_def.is_boss:
+			continue
+		if en.modifier_component != null and en.modifier_component.has_negation("Displacement"):
+			continue   ## Anchored — the same immunity that refuses knockback refuses being picked up
+		pool.append(en)
+	if pool.is_empty():
+		call_deferred("_abort_empty_pile")
+		return
+	pool.sort_custom(func(a, b) -> bool:
+		return global_position.distance_squared_to(a.global_position) \
+				< global_position.distance_squared_to(b.global_position))
+	## Seed must be within actual arm's reach, even though the pool was gathered wider.
+	if global_position.distance_squared_to(pool[0].global_position) > PILE_SEED_RADIUS * PILE_SEED_RADIUS:
+		call_deferred("_abort_empty_pile")
+		return
+
+	var link_sq: float = PILE_LINK_RADIUS * PILE_LINK_RADIUS
+	_pile = [pool[0]]
+	var frontier: int = 0
+	while frontier < _pile.size() and _pile.size() < cap:
+		var from_body: Node2D = _pile[frontier]
+		frontier += 1
+		for candidate in pool:
+			if _pile.size() >= cap:
+				break
+			if _pile.has(candidate):
+				continue
+			if from_body.global_position.distance_squared_to(candidate.global_position) <= link_sq:
+				_pile.append(candidate)
+
+	for body in _pile:
+		_suspend_body(body)
+	## He is carrying people. Removed on every exit path (throw, drop, interrupt).
+	modifier_component.remove_by_source_prefix("pile_carry")
+	_add_modifier("move_speed", "bonus", PILE_CARRY_SLOW, "pile_carry")
+
+
+## Grabbed at thin air: end the ability instead of locking the overhead pose for the full six
+## seconds with nothing in his hands. Deferred because the caller is inside the runner's own
+## _fire() — reaching back in to interrupt from there would re-enter it mid-callback.
+## The cooldown is already spent (SkillComponent.trigger charges it on start), so a mistimed
+## grab still costs the skill. That is the point: this is a positioning ability.
+func _abort_empty_pile() -> void:
+	if choreography_runner == null or not choreography_runner.is_running():
+		return
+	if not _pile.is_empty():
+		return
+	var ab: AbilityDefinition = choreography_runner.get_ability()
+	if ab != null and ab.ability_id == "barbarian_pile_driver":
+		choreography_runner.interrupt()
+
+
+## Put "stunned" on one entity for `seconds`. The definition's own base_duration is a default;
+## every Pile Driver caller overrides it, and "overwrite" refresh means a shorter landing stun
+## correctly replaces the long carry stun rather than being ignored.
+func _apply_stun(entity: Node2D, seconds: float) -> void:
+	if not is_instance_valid(entity) or entity.status_effect_component == null:
+		return
+	var stun: StatusEffectDefinition = StatusFactory.get_by_id("stunned")
+	if stun != null:
+		entity.status_effect_component.apply_status(stun, self, 1, seconds)
+
+
+## Lift one enemy out of the simulation. Mirrored exactly by _release_body.
+func _suspend_body(body: Node2D) -> void:
+	if not is_instance_valid(body):
+		return
+	body.is_untargetable = true
+	body.set_physics_process(false)
+	if body.get("knockback_velocity") != null:
+		body.knockback_velocity = Vector2.ZERO
+	if body.get("velocity") != null:
+		body.velocity = Vector2.ZERO
+	if body.get("z_index") != null:
+		body.z_index = 3               ## drawn over the Ravager while overhead
+	## Take it off its collision layer. Disabling physics stops the body MOVING, but it stays
+	## SOLID — and the pile is parked directly above the player's head, so his own
+	## move_and_slide() depenetrated against six overlapping bodies and shoved him steadily
+	## downward the moment he grabbed (Ben, 2026-08-17). Same seam _set_dash_phasing uses to
+	## slip the dash through a crowd; the layer is saved rather than assumed so an enemy on a
+	## non-standard layer comes back exactly as it was.
+	body.set_meta("pile_collision_layer", body.collision_layer)
+	body.collision_layer = 0
+	## An elite mid-choreography keeps running its sequence from _process, which physics-process
+	## being off does NOT stop — enemy.gd's stun-interrupt lives in _physics_process. Cut it here
+	## or a grabbed caster finishes its cast from inside the pile.
+	var runner = body.get("_choreo_runner")
+	if runner != null and runner.is_running():
+		runner.interrupt()
+	## Long enough to cover carry + flight; refreshed to the real landing stun on impact.
+	_apply_stun(body, SkillFactory.PILE_HOLD_TIME + PILE_THROW_TIME)
+
+
+## Put one enemy back into the simulation, wherever it currently is.
+func _release_body(body: Node2D, stun_seconds: float) -> void:
+	if not is_instance_valid(body):
+		return
+	body.is_untargetable = false
+	body.z_index = 0
+	if body.has_meta("pile_collision_layer"):
+		body.collision_layer = int(body.get_meta("pile_collision_layer"))
+		body.remove_meta("pile_collision_layer")
+	body.set_physics_process(true)
+	if body.is_alive:
+		_apply_stun(body, stun_seconds)
+
+
+## Keep the carried bodies clumped over his head. Called from _physics_process AFTER
+## move_and_slide so the pile never lags a frame behind the man carrying it.
+func _tick_pile() -> void:
+	if _pile.is_empty():
+		return
+	var i: int = _pile.size() - 1
+	while i >= 0:
+		var body = _pile[i]
+		if not is_instance_valid(body) or not body.is_alive:
+			## Died in his hands (a DoT ticking through the carry). Drop it from the pile so the
+			## throw doesn't try to fling a corpse; the body itself is already handling its death.
+			if is_instance_valid(body):
+				_release_body(body, 0.0)
+			_pile.remove_at(i)
+		i -= 1
+	if _pile.is_empty():
+		modifier_component.remove_by_source_prefix("pile_carry")
+		return
+	var centre: Vector2 = global_position + Vector2(0.0, PILE_CARRY_HEIGHT)
+	for idx in range(_pile.size()):
+		## Fixed golden-angle spiral, so the clump is stable frame to frame (jitter here would
+		## read as the pile vibrating) but still looks packed rather than stacked.
+		var a: float = float(idx) * 2.3999632
+		var r: float = PILE_CLUMP_RADIUS * sqrt(float(idx) / maxf(float(_pile.size()), 1.0))
+		_pile[idx].global_position = centre + Vector2(cos(a), sin(a) * 0.6) * r
+
+
+## The release, fired off the hurl phase's hit frame: every carried body arcs to the landing
+## point, takes the impact itself, and is stunned where it lands. The crowd already standing
+## there takes the phase's own AreaDamageEffect (choreo_fire_effects re-centres it) and is
+## stunned HERE — `burst_radius` is that effect's live radius, Reach and mods included.
+##
+## The stun on the landed-on crowd cannot ride the phase as an ApplyStatusEffectData: non-AoE
+## effects are routed to the enemies around the PLAYER (see the routing at the top of
+## choreo_fire_effects), which is the wrong end of a 120px throw entirely.
+func _hurl_pile(burst_radius: float) -> void:
+	modifier_component.remove_by_source_prefix("pile_carry")
+	var land: Vector2 = _pile_landing_point()
+	## Everything standing at the landing point. The carried bodies are still overhead and still
+	## untargetable, so they are not in the grid and cannot be double-stunned by this.
+	if spatial_grid != null and burst_radius > 0.0:
+		for en in spatial_grid.get_nearby_in_range(land, 1, burst_radius * burst_radius):
+			if is_instance_valid(en) and en.is_alive:
+				_apply_stun(en, SkillFactory.PILE_STUN_TIME)
+	if _pile.is_empty():
+		return
+	var dtype: String = ChainFactory._damage_type(_weapon_data)
+	var body_damage: float = get_stat("damage") * PILE_BODY_DAMAGE
+	var thrown: Array = _pile.duplicate()
+	_pile.clear()
+
+	for idx in range(thrown.size()):
+		var body = thrown[idx]
+		if not is_instance_valid(body):
+			continue
+		var a: float = float(idx) * 2.3999632
+		var target: Vector2 = land + Vector2(cos(a), sin(a) * 0.6) * PILE_SCATTER
+		var start: Vector2 = body.global_position
+		## The bodies stay suspended for the flight and are released on arrival — a body that
+		## re-entered physics mid-air would start walking home through the throw.
+		var tw := create_tween()
+		tw.tween_method(func(t: float) -> void:
+			if not is_instance_valid(body):
+				return
+			var pos: Vector2 = start.lerp(target, t)
+			pos.y -= 4.0 * PILE_THROW_ARC * t * (1.0 - t)
+			body.global_position = pos
+		, 0.0, 1.0, PILE_THROW_TIME)
+		tw.tween_callback(func() -> void:
+			if not is_instance_valid(body):
+				return
+			_release_body(body, SkillFactory.PILE_STUN_TIME)
+			if body.is_alive and body.has_method("take_damage"):
+				var hit: HitData = DamageCalculator.calculate_raw_hit(
+						self, body, body_damage, dtype, null,
+						combat_manager.rng if combat_manager else null)
+				if not hit.is_dodged:
+					body.take_damage(hit)
+		)
+
+
+## The grip goes: the hold window lapsed without a second press. They come down where he stands,
+## stunned but unhurt — holding is not a payoff, throwing is (Ben, 2026-08-16).
+func _drop_pile() -> void:
+	modifier_component.remove_by_source_prefix("pile_carry")
+	if _pile.is_empty():
+		return
+	var dropped: Array = _pile.duplicate()
+	_pile.clear()
+	for idx in range(dropped.size()):
+		var body = dropped[idx]
+		if not is_instance_valid(body):
+			continue
+		var a: float = float(idx) * 2.3999632
+		body.global_position = global_position + Vector2(cos(a), sin(a) * 0.6) * PILE_SCATTER
+		_release_body(body, SkillFactory.PILE_STUN_TIME)
 
 
 ## Desert Storm overlay: 8-direction barrage strips, restarted every volley beat, aimed at
@@ -3288,6 +3574,10 @@ func choreo_on_phase_hit(phase: ChoreographyPhase, phase_index: int, ability: Ab
 	if phase_index == _combo_last_hit_phase:
 		return
 	_combo_last_hit_phase = phase_index
+	## Pile Driver: this phase carries no effects at all — the grab IS its hit. Fires on the
+	## frame the Ravager closes his hands (SkillFactory pins it to the pack's crouch frame).
+	if phase.animation == "hoist":
+		_grab_pile()
 	## Pitch ladder (mechanism A) — light chain only per Ben's redline; the finisher node is the
 	## ladder's natural top note, no extra accent (its hitstop + shake are the accent).
 	if ability == _combo_ability:
@@ -3321,6 +3611,7 @@ func choreo_on_chain_timeout(_phase: ChoreographyPhase) -> void:
 	## finisher completing. The "exhale" (mechanism E); depth < 2 never established a cadence.
 	if _combo_step_depth >= 2:
 		EventBus.on_combo_dropped.emit(self, _combo_step_depth)
+	## Pile Driver: six seconds up and no second press. His grip goes; choreo_on_end drops them.
 
 
 func _combo_window_pulse() -> void:
@@ -3362,6 +3653,11 @@ func choreo_on_end() -> void:
 	if _vamp_fx:
 		_vamp_fx.visible = false
 	_vamp_hit = false
+	## Pile Driver: the single place a carried pile comes down. Covers the hold window lapsing,
+	## the graph being interrupted (a hit, a dash, a stun, death) and the throw itself — after a
+	## throw _pile is already empty, so this is a no-op rather than a second release.
+	if not _pile.is_empty():
+		_drop_pile()
 	## Drop the channel slow / charge tax if active (no-ops otherwise).
 	modifier_component.remove_by_source_prefix("combo_taunt")
 	modifier_component.remove_by_source_prefix("combo_charge")

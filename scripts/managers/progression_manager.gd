@@ -21,7 +21,7 @@ const SAVE_PATH := "user://progression.json"
 ## catches those. Field-level defaults still live in load_data() as a second safety
 ## net; migrations are for STRUCTURAL changes (renames, reshapes, splits) that a
 ## simple `.get(key, default)` cannot express.
-const SAVE_VERSION: int = 3
+const SAVE_VERSION: int = 4
 
 ## Set true by load_data() when the save on disk is from a newer game version than
 ## this build supports. The save is NOT loaded (defaults remain); the main menu reads
@@ -227,6 +227,8 @@ func _migrate_save(data: Dictionary, from_version: int) -> Dictionary:
 				data = _migrate_v1_to_v2(data)
 			2:
 				data = _migrate_v2_to_v3(data)
+			3:
+				data = _migrate_v3_to_v4(data)
 			_:
 				## Unknown gap — refuse to guess. Stamp current and let the
 				## field-level defaults in load_data() fill anything absent.
@@ -289,13 +291,42 @@ const _V3_MOD_RENAMES: Dictionary = {
 }
 
 func _migrate_v2_to_v3(data: Dictionary) -> Dictionary:
+	var converted: int = _rename_mod_ids(data, _V3_MOD_RENAMES)
+	if converted > 0:
+		push_warning("ProgressionManager: save v2→v3 renamed %d retired Warden mod(s) to their "
+				% converted + "hammer-mod successors.")
+	return data
+
+## v3 → v4 (2026-08-16): the Ravager's Throw Things became Pile Driver, and AVALANCHE (which raises
+## how many bodies the pile carries) took DEAFENING CRY's roster slot. It had to take a slot rather
+## than be added: ClassModData.validate_order enforces an identical rarity shape on all twelve kits,
+## so a ninth barbarian mod cannot exist alone.
+##
+## Same rename-not-retire reasoning as v2→v3 — same kit, same rarity, same slot — so an owner keeps
+## an uncommon and an equipped slot keeps a mod in it. The two storages are walked by the shared
+## _rename_mod_ids helper the v3 step's body was factored into.
+const _V4_MOD_RENAMES: Dictionary = {
+	"barbarian_deafening_cry": "barbarian_avalanche",
+}
+
+func _migrate_v3_to_v4(data: Dictionary) -> Dictionary:
+	var converted: int = _rename_mod_ids(data, _V4_MOD_RENAMES)
+	if converted > 0:
+		push_warning("ProgressionManager: save v3→v4 renamed %d retired Ravager mod(s) to AVALANCHE."
+				% converted)
+	return data
+
+## Rewrite class-mod ids in BOTH storages a mod can be sitting in, returning how many were changed.
+## A class mod lives in exactly one of them at a time: `owned_mods` (unequipped inventory) and
+## `character_mods` (per-character equip slots — where an id sits while it is doing work).
+func _rename_mod_ids(data: Dictionary, renames: Dictionary) -> int:
 	var converted: int = 0
 	var owned: Array = []
 	for mid: Variant in data.get("owned_mods", []):
 		var id_str: String = str(mid)
-		if _V3_MOD_RENAMES.has(id_str):
+		if renames.has(id_str):
 			converted += 1
-			owned.append(_V3_MOD_RENAMES[id_str])
+			owned.append(renames[id_str])
 		else:
 			owned.append(mid)
 	data["owned_mods"] = owned
@@ -304,16 +335,12 @@ func _migrate_v2_to_v3(data: Dictionary) -> Dictionary:
 	for char_id: Variant in equipped:
 		var slots: Array = equipped[char_id]
 		for i in range(slots.size()):
-			var id_str: String = str(slots[i])
-			if _V3_MOD_RENAMES.has(id_str):
+			var slot_id: String = str(slots[i])
+			if renames.has(slot_id):
 				converted += 1
-				slots[i] = _V3_MOD_RENAMES[id_str]
+				slots[i] = renames[slot_id]
 	data["character_mods"] = equipped
-
-	if converted > 0:
-		push_warning("ProgressionManager: save v2→v3 renamed %d retired Warden mod(s) to their "
-				% converted + "hammer-mod successors.")
-	return data
+	return converted
 
 ## Copy a corrupt save aside before it gets overwritten, so a player (or we) can
 ## recover data or diagnose the failure. Best-effort: a failed backup must not block

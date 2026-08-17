@@ -27,6 +27,7 @@ static var frozen: StatusEffectDefinition
 static var shocked: StatusEffectDefinition
 static var void_touched: StatusEffectDefinition
 static var abyssal_slow: StatusEffectDefinition  ## The Deep's Pull: void wake slow
+static var stunned: StatusEffectDefinition       ## plain hard CC — the Ravager's Pile Driver
 
 ## Trigger-based upgrade effects (passive statuses on player)
 static var bloodthirst: StatusEffectDefinition
@@ -95,6 +96,7 @@ static func build_all() -> void:
 	shocked = _build_shocked()
 	void_touched = _build_void_touched()
 	abyssal_slow = _build_abyssal_slow()
+	stunned = _build_stunned()
 
 	bloodthirst = _build_bloodthirst()
 	static_discharge = _build_static_discharge()
@@ -174,6 +176,8 @@ static func get_by_id(status_id: String) -> StatusEffectDefinition:
 			return void_touched
 		"abyssal_slow":
 			return abyssal_slow
+		"stunned", "stun":
+			return stunned
 		"bloodthirst":
 			return bloodthirst
 		"static_discharge":
@@ -358,6 +362,24 @@ static func _build_frozen() -> StatusEffectDefinition:
 	def.on_expire_effects = [hemorrhage_dmg]
 
 	_attach_aura(def, "ice")
+	return def
+
+
+static func _build_stunned() -> StatusEffectDefinition:
+	## Hard CC with no element and no combo rider. Until now `frozen` was the game's ONLY status
+	## setting disables_actions, so anything that wanted to stun had to borrow it — and frozen is
+	## Ice-tagged and carries the Shatter trigger, which would have made the Ravager's physical
+	## body-slam prime a fire combo it has no business priming. Duration is the default; callers
+	## pass their own (Pile Driver overrides per landing).
+	var def := StatusEffectDefinition.new()
+	def.status_id = "stunned"
+	def.tags = ["CC", "Stun"]
+	def.is_positive = false
+	def.max_stacks = 1
+	def.base_duration = 1.2
+	def.duration_refresh_mode = "overwrite"
+	def.disables_actions = true
+	def.disables_movement = true
 	return def
 
 

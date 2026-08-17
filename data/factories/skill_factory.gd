@@ -50,7 +50,7 @@ static func build_kit_skills(kit_id: String, weapon_data: Dictionary) -> Diction
 		"barbarian":
 			return {
 				"skill_q": build_barbarian_cry(weapon_data),
-				"skill_e": build_barbarian_throw(weapon_data),
+				"skill_e": build_barbarian_pile_driver(weapon_data),
 			}
 		"ninja":
 			return {
@@ -473,25 +473,70 @@ static func build_barbarian_cry(_weapon_data: Dictionary) -> AbilityDefinition:
 	return _ability("barbarian_cry", "Battle Cry", phase, 10.0, "Buff")
 
 
-## Throw Things (Barbarian, E): hurl a slab of junk at the cursor — one big landing burst
-## (moved off RMB-hold, Ben feel test 2026-07-05; Guard took over the channel). The host
-## centers the AoE on the clamped aim point and arcs the slab visual from the throw sheet.
-static func build_barbarian_throw(weapon_data: Dictionary) -> AbilityDefinition:
+## Pile Driver (Barbarian, E): TWO presses. The first one has him bend down and grab an enemy —
+## and everything packed close enough to it, and everything packed close to THOSE, chaining
+## outward through the crowd until the pile is full. He straightens up carrying the lot overhead.
+## The second press hurls the whole pile at the cursor: the thrown bodies take the impact, so does
+## whatever they land on, and all of it is stunned.
+##
+## Replaces the old Throw Things (a slab of scenery at the cursor) — Ben + Clerveu, 2026-08-16.
+## The pack drew this: the Throw_Things sheet is a crouch-grab, an overhead carry and a release,
+## which is exactly the two-beat shape. See CharacterData's "hoist"/"hurl" slices.
+##
+## The grab and the throw are HOST hooks (player._grab_pile / _hurl_pile), not effect resources.
+## "chain outward through a crowd, pick those bodies up, carry them, then throw them at a point"
+## is not something the effect vocabulary can say, and inventing a 17th effect type to say it once
+## would be worse than the hook — the phase still owns every number the mod/upgrade ops can reach.
+const PILE_HOLD_TIME: float = 6.0    ## seconds he can carry before his grip goes (Ben, 2026-08-16)
+const PILE_STUN_TIME: float = 1.4    ## stun on everything involved, thrown and landed-on alike
+
+static func build_barbarian_pile_driver(weapon_data: Dictionary) -> AbilityDefinition:
 	var dmg: float = weapon_data.get("damage", 42.0)
 	var dtype: String = _damage_type(weapon_data)
 
+	## Phase 0 — HOIST. Parks on the last frame (arms overhead) for up to PILE_HOLD_TIME.
+	## hold_anim_on_reentry is what freezes the carry pose: it makes the runner treat this as a
+	## channel beat, which suppresses the recovery release that otherwise hands the body back to
+	## walk/idle the moment a one-shot animation finishes drawing.
+	## default_next = -1 means the window lapsing ENDS the graph → choreo_on_chain_timeout, where
+	## the host drops the pile (stunned, no damage — the throw is the payoff, holding is not).
+	var hoist := ChoreographyPhase.new()
+	hoist.animation = "hoist"
+	hoist.hit_frame = 4                  ## he closes his hands — the grab chain runs here
+	hoist.exit_type = "wait"
+	hoist.wait_duration = PILE_HOLD_TIME
+	hoist.hold_anim_on_reentry = true
+	hoist.default_next = -1
+	hoist.branches = [ChainFactory._branch_buffered("skill_e", 1)]
+
+	## Phase 1 — HURL. This burst is the CROWD hit at the landing point (the host re-centers it on
+	## the clamped aim point, same seam the bomb and torrent use). The damage the thrown bodies
+	## themselves take, and the stun on both groups, are applied by the host on arrival — they
+	## scale with how many he actually caught, which no static effect resource can know.
 	var burst := AreaDamageEffect.new()
 	burst.damage_type = dtype
-	burst.base_damage = dmg * 1.3
-	burst.aoe_radius = 30.0
+	burst.base_damage = dmg * 1.1
+	burst.aoe_radius = 34.0
 
-	var phase := ChoreographyPhase.new()
-	phase.animation = "throw"
-	phase.hit_frame = 13         ## the release frame — junk leaves his hand
-	phase.effects = [burst]
-	phase.exit_type = "anim_finished"
-	phase.default_next = -1
-	return _ability("barbarian_throw", "Throw Things", phase, 5.0)
+	var hurl := ChoreographyPhase.new()
+	hurl.animation = "hurl"
+	hurl.hit_frame = 1                   ## the pack's release flash (sheet frame 9)
+	hurl.effects = [burst]
+	hurl.exit_type = "anim_finished"
+	hurl.default_next = -1
+	hurl.is_finisher = true
+
+	var choreo := ChoreographyDefinition.new()
+	choreo.phases = [hoist, hurl]
+	var a := AbilityDefinition.new()
+	a.ability_id = "barbarian_pile_driver"
+	a.ability_name = "Pile Driver"
+	a.tags = ["Skill", "Offensive"]
+	a.mode = "Manual"
+	## Longer than the old 5s throw: this is a hard-CC crowd answer now, not a ranged poke.
+	a.cooldown_base = 9.0
+	a.choreography = choreo
+	return a
 
 
 ## Sharpen (Ninja, Q): the long whetstone ritual — 27 frames of commitment for +35% damage

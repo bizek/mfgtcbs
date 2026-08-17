@@ -18,7 +18,8 @@ extends RefCounted
 ##   [sheet, frame_count, fps]                                  ## base (idle/walk/attack/...)
 ##   [sheet, frame_count, fps, {hit_frame, cancel_open, cancel_close}]  ## combo/skill nodes
 ## The optional 4th element carries per-anim combat timing read by the choreography runner /
-## chain factory via get_anim_meta(); build() ignores it (slicing doesn't need it).
+## chain factory via get_anim_meta(). build() reads only {"from","to"} out of it (the authored
+## column range — see the slicing block below); every other key is timing metadata it ignores.
 ##
 ## `sheet` is normally a filename appended to the "dir" base, but combat specials live in
 ## Special_Animations/<Name>/ subfolders — so a spec sheet starting with "res://" is treated
@@ -237,10 +238,21 @@ static func build(char_id: String) -> SpriteFrames:
 		var sheet_rows: int = int(sheet.get_height() / float(a_fs))
 		var sheet_cols: int = int(sheet.get_width() / float(a_fs))
 		var loops: bool = anim_name in LOOPING_ANIMS
-		## Animation Lab override: sub-range of the sheet's columns + fps replacement.
+		## Authored sub-range: the spec's timing Dictionary may carry {"from": int} (and optionally
+		## "to") to slice PART of a sheet under this name. Needed whenever one pack sheet holds two
+		## distinct beats the kit drives separately — the Barbarian's Throw_Things is one animation
+		## on disk but a grab (f0-8) and a hurl (f8-15) in the game. Without a spec-level `from`,
+		## the only way to start a slice past column 0 was an Animation Lab override, which is Ben's
+		## in-game tuning file, not a place to author a kit's structure.
+		## Omitted `from` = 0 and `to` = count-1, i.e. exactly the old behavior.
+		var timing: Dictionary = spec[3] if spec.size() >= 4 and spec[3] is Dictionary else {}
+		var spec_from: int = int(timing.get("from", 0))
+		var spec_to: int = int(timing.get("to", spec_from + count - 1))
+		## Animation Lab override: sub-range of the sheet's columns + fps replacement. Still wins
+		## over the authored range — retrimming in the Lab must keep working on a sliced anim.
 		var ov: Dictionary = get_anim_override(char_id, str(anim_name))
-		var first: int = clampi(int(ov.get("from", 0)), 0, sheet_cols - 1)
-		var last: int = clampi(int(ov.get("to", count - 1)), first, sheet_cols - 1)
+		var first: int = clampi(int(ov.get("from", spec_from)), 0, sheet_cols - 1)
+		var last: int = clampi(int(ov.get("to", spec_to)), first, sheet_cols - 1)
 		fps = float(ov.get("fps", fps))
 		## Anim-level overlay layers: "<anim>_fx" (above the body) and "<anim>_base" (below).
 		## Lets a ONE-SHOT anim carry pack layers too, not just staged channels.

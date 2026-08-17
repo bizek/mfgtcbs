@@ -700,9 +700,19 @@ const ALL: Dictionary = {
 	## ── Barbarian ─────────────────────────────────────────────────────────────
 	"barbarian_hurled_doom": {
 		"id": "barbarian_hurled_doom", "name": "Hurled Doom",
-		"description": "Thrown axe (E) hits +30% wider and harder",
+		"description": "Pile Driver (E) lands +30% wider and harder",
 		"kit": "barbarian", "is_ability_upgrade": true, "op": "scale_aoe",
-		"target": { "anim": "throw" }, "params": { "radius_mult": 1.30, "damage_mult": 1.30 },
+		## Retargeted "throw" -> "hurl" with the Pile Driver rebuild (2026-08-16).
+		"target": { "anim": "hurl" }, "params": { "radius_mult": 1.30, "damage_mult": 1.30 },
+	},
+	"barbarian_greater_pile": {
+		"id": "barbarian_greater_pile", "name": "Greater Pile",
+		"description": "Pile Driver (E) carries +2 more enemies",
+		## "modifier" op on the pile_capacity stat — same seam AVALANCHE uses, so a run can stack
+		## the mod and up to three ranks of this (6 base → 15 at the ceiling). Rankable because
+		## MAX_RANK_BY_OP allows modifier x3 and the picks genuinely compound here.
+		"kit": "barbarian", "is_ability_upgrade": true, "op": "modifier",
+		"stat": "pile_capacity", "type": "flat", "value": 2.0,
 	},
 	"barbarian_cleaving_blow": {
 		"id": "barbarian_cleaving_blow", "name": "Cleaving Blow",
@@ -768,8 +778,11 @@ const ORDER_BY_KIT: Dictionary = {
 				   "blood_mage_crimson_slam",       "blood_mage_gluttony",          "blood_mage_thrall"],
 	"demonologist": ["demon_conflagration",         "demon_wider_circle",           "demon_hellfire_heart",
 					 "demon_wider_breach",          "demon_sustained_hellfire",     "demon_archdemon_wrath"],
+	## 7 entries — the extra one is GREATER PILE, the level-up half of Pile Driver's expandable
+	## chain cap (AVALANCHE is the class-mod half). Same deliberate overshoot as the Shade above.
 	"barbarian":  ["barbarian_seismic_sunder",      "barbarian_thunder_amp",        "barbarian_battle_rage",
-				   "barbarian_hurled_doom",         "barbarian_cleaving_blow",      "barbarian_stormcaller"],
+				   "barbarian_hurled_doom",         "barbarian_cleaving_blow",      "barbarian_stormcaller",
+				   "barbarian_greater_pile"],
 	"gunslinger": ["gunslinger_hair_trigger",       "gunslinger_storm_surge",       "gunslinger_cold_steel",
 				   "gunslinger_whipcrack",          "gunslinger_double_tap",        "gunslinger_hollow_points"],
 }
