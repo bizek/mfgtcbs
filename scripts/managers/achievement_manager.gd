@@ -147,6 +147,7 @@ func _build_toast() -> void:
 	style.border_color = Color(0.831, 0.447, 0.102)
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(3)
+	style.anti_aliasing = false   ## rounded StyleBoxFlats default to AA, which feathers a sub-pixel fringe on every edge — off-grid in a 640x360 pixel UI
 	bg.add_theme_stylebox_override("panel", style)
 	_toast_root.add_child(bg)
 

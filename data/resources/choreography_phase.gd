@@ -28,6 +28,14 @@ extends Resource
 ## re-entry instead, since a frozen body never reaches its hit_frame again.
 @export var hold_anim_on_reentry: bool = false
 
+## Recovery locomotion set. When this phase's one-shot body finishes drawing while the phase is
+## still live, the runner hands the sprite back to the host's locomotion (choreo_on_phase_recovery).
+## Normally that means walk/idle; a phase whose pose must persist through the recovery — the
+## Ravager carrying a pile overhead — names a prefix here and the host plays "<prefix>_walk" /
+## "<prefix>_idle" instead. "" = ordinary walk/idle. Only consulted by hosts that own a locomotion
+## block (the player); a boss body just freezes as before.
+@export var recovery_locomotion: String = ""
+
 ## Combo feel
 @export var is_finisher: bool = false                  ## Landing this phase's hit is a kit's payoff
                                                         ## moment (Cataclysm, Bomb, Holy Hammer, ...).

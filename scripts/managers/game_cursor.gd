@@ -207,11 +207,16 @@ func _refresh() -> void:
 
 
 ## Integer upscale factor the viewport is currently being drawn at, so the cursor's pixels are
-## the same size as the game's. Clamped to >= 1 so a window smaller than the base viewport still
-## gets a usable cursor rather than a zero-sized one.
+## the same size as the game's. Read straight off the window's stretch transform rather than
+## re-deriving it from the window width: with `stretch/aspect=keep` the real factor is
+## min(w/640, h/360), so a width-only estimate over-scales the cursor on anything wider than
+## 16:9, and `stretch/scale_mode=integer` already guarantees the transform's scale IS an integer.
+## Clamped to >= 1 so a window smaller than the base viewport still gets a usable cursor.
 func _current_scale() -> int:
-	var win_w: float = float(DisplayServer.window_get_size().x)
-	return maxi(1, int(floor(win_w / BASE_VIEWPORT_WIDTH)))
+	var factor: float = get_tree().root.get_final_transform().get_scale().x
+	if factor <= 0.0:
+		factor = float(DisplayServer.window_get_size().x) / BASE_VIEWPORT_WIDTH
+	return maxi(1, int(floor(factor + 0.001)))
 
 
 func _texture_for(col: int, row: int) -> ImageTexture:

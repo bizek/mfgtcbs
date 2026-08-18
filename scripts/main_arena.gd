@@ -1258,6 +1258,22 @@ func _setup_floor() -> void:
 		push_warning("ArenaFloor: floor texture not found for level %d (%s) — floor will be blank." \
 				% [GameManager.current_level, floor_path])
 		return
+	## Integer cover, never STRETCH_SCALE: the premade grounds are small pixel art (Deep Caves
+	## 304x184, the Hellscape fallback 384x304) and the floor rect is 1600x1200, so a straight
+	## stretch was ~5.3x wide by ~6.5x tall — non-uniform AND fractional, every source pixel a
+	## different size. Upscale by the smallest whole factor that covers the rect (7x / 5x) with
+	## nearest-neighbour, then draw it centred at native size; the overhang past ±800/±600 is
+	## outside the camera limits and never seen. Flat arena / training room only — LDtk and
+	## descent hide this node.
+	var factor: int = maxi(1, ceili(maxf(
+			arena_floor.size.x / float(source.get_width()),
+			arena_floor.size.y / float(source.get_height()))))
+	if factor > 1:
+		source.resize(source.get_width() * factor, source.get_height() * factor,
+				Image.INTERPOLATE_NEAREST)
 	arena_floor.texture = ImageTexture.create_from_image(source)
-	arena_floor.stretch_mode = TextureRect.STRETCH_SCALE
+	## IGNORE_SIZE: without it a TextureRect's minimum size is its texture, so the upscaled
+	## floor would grow the rect from its top-left corner instead of overhanging evenly.
+	arena_floor.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	arena_floor.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
 	arena_floor.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST

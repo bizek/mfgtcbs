@@ -485,20 +485,18 @@ const ALL: Dictionary = {
 				## hit_frame indices in SkillFactory are LOCAL to each slice (hurl's release = 1).
 				"hoist":    ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Throw_Things/Minifantasy_TrueHeroesBarbarianThrowThings.png",           9, 20.0, {"from": 0, "to": 8}],
 				"hurl":     ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Throw_Things/Minifantasy_TrueHeroesBarbarianThrowThings.png",           8, 20.0, {"from": 8, "to": 15}],
-				## Carry idle/walk (Clerveu, hand-drawn, 2026-08-17) — purpose-drawn loops for the
-				## up-to-6s pile hold. Same 4-col x 4-row layout as the base Walk sheet (frame_size
-				## 32, 4 facing rows inherited from the top-level "sprite" dict). These are driven
-				## from player._physics_process's locomotion block, NOT the choreography: the
-				## hoist phase deliberately does not set hold_anim_on_reentry (see SkillFactory —
-				## that flag freezes on one frame and pins _attack_anim_active true, which would
-				## block exactly this idle/walk swap), so the runner's normal recovery release
-				## hands the body back to the locomotion block the instant the hoist swing finishes
-				## playing. The locomotion block then picks carry_idle/carry_walk over idle/walk
-				## for as long as _pile is non-empty, so the pose actually reacts to movement
-				## instead of freezing on the overhead grab. Registered in
-				## CharacterSpriteFactory.LOOPING_ANIMS alongside idle/walk.
-				"carry_idle": ["res://assets/Custom/Minifantasy_TrueHeroesBarbarianCarryIdle.png",  4,  8.0],
-				"carry_walk": ["res://assets/Custom/Minifantasy_TrueHeroesBarbarianCarryWalk.png",  4, 10.0],
+				## Carry locomotion (Clerveu, 2026-08-17): purpose-drawn 4x4 sheets, arms overhead in
+				## every frame, neutral pose matching Throw_Things frame 8. The hoist phase names
+				## them via ChoreographyPhase.recovery_locomotion = "carry": once the grab body
+				## finishes drawing, the runner's normal recovery release hands the sprite to the
+				## locomotion block, which plays "<prefix>_walk"/"<prefix>_idle" (player.gd). Both
+				## loop (CharacterSpriteFactory.LOOPING_ANIMS). The idle has a 1-2px hand bob and
+				## the walk a 1px vertical one — the carried pile follows the HANDS, found per frame
+				## from the art (player._pile_hands_anchor), so no offsets are keyed here.
+				## fps: the base Idle is 16 @ 9 (a ~1.8s cycle); 4 frames @ 4.5 keeps a slow strain.
+				## The walk matches the base Walk's 4-frame stride, slowed for the -35% carry speed.
+				"carry_idle": ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Throw_Things/Minifantasy_TrueHeroesBarbarianCarryIdle.png", 4, 4.5],
+				"carry_walk": ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Throw_Things/Minifantasy_TrueHeroesBarbarianCarryWalk.png", 4, 7.0],
 				"cry":      ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Battle_Cry/Minifantasy_TrueHeroesBarbarianBattleCry.png",              11, 14.0],
 				"cry_fx":   ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Battle_Cry/Minifantasy_TrueHeroesBarbarianBattleCryEffectFrontLayer.png", 11, 14.0],
 				"guard":        ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Guard/Minifantasy_TrueHeroesBarbarianBlockGuardUp.png",   4,  8.0],

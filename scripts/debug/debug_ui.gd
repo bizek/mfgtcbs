@@ -43,6 +43,32 @@ extends RefCounted
 ## — see CLAUDE.md "Godot Rules".
 
 static var _vector_theme: Theme = null
+static var _crisp_font: Font = null
+
+
+## The vector face, rasterised for a pixel viewport. `ThemeDB.fallback_font` as shipped is
+## anti-aliased with sub-pixel positioning: at 9-14px in a 640x360 buffer every glyph edge is a
+## grey pixel, and the integer window upscale turns each one into a 2x2 / 3x3 grey block — the
+## "blurry" training room / anim lab text (clerveu, 2026-08-17). Same face, same sizes, but
+## AA off + sub-pixel positioning off + the FreeType autohinter (`force_autohinter`, which is
+## what snaps stems to whole pixels — normal hinting alone left them 1px/2px uneven) renders
+## 1-bit glyphs that stay 1px-per-pixel through the upscale. Nothing about layout changes.
+## Falls back to the plain fallback font if it isn't a FontFile we can duplicate.
+static func crisp_vector_font() -> Font:
+	if _crisp_font != null:
+		return _crisp_font
+	var base: Font = ThemeDB.fallback_font
+	if base is FontFile:
+		var f: FontFile = (base as FontFile).duplicate()
+		f.antialiasing = TextServer.FONT_ANTIALIASING_NONE
+		f.subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED
+		f.hinting = TextServer.HINTING_NORMAL
+		f.force_autohinter = true
+		f.oversampling = 1.0
+		_crisp_font = f
+	else:
+		_crisp_font = base
+	return _crisp_font
 
 
 ## Make `root` and its whole subtree render in Godot's built-in vector font, so the
@@ -52,7 +78,7 @@ static func use_vector_font(root: Control) -> void:
 		return
 	if _vector_theme == null:
 		_vector_theme = Theme.new()
-		_vector_theme.default_font = ThemeDB.fallback_font
+		_vector_theme.default_font = crisp_vector_font()
 	root.theme = _vector_theme
 
 
@@ -62,4 +88,4 @@ static func use_vector_font(root: Control) -> void:
 static func use_vector_font_on(c: Control) -> void:
 	if c == null:
 		return
-	c.add_theme_font_override("font", ThemeDB.fallback_font)
+	c.add_theme_font_override("font", crisp_vector_font())

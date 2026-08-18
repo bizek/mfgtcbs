@@ -494,19 +494,15 @@ static func build_barbarian_pile_driver(weapon_data: Dictionary) -> AbilityDefin
 	var dmg: float = weapon_data.get("damage", 42.0)
 	var dtype: String = _damage_type(weapon_data)
 
-	## Phase 0 — HOIST. The grab-and-lift plays once; hit_frame 4 fires the chain-grab. It does
-	## NOT set hold_anim_on_reentry — that flag marks a phase as a channel beat (suppresses the
-	## runner's recovery release, so the pose freezes for the whole wait), which was originally
-	## copied from Guard/Sharpen/Whirlwind-style stationary channels. Pile Driver's hold isn't
-	## stationary: PILE_CARRY_SLOW is a move-speed *penalty*, not a lock, so the player is meant
-	## to walk around during the up-to-6s hold. Without the flag, the runner's own recovery
-	## release (choreo_on_phase_recovery) fires the instant the hoist animation finishes playing,
-	## clearing _attack_anim_active early and handing the body back to the locomotion block for
-	## the rest of the hold — which is exactly what lets Clerveu's carry_idle/carry_walk sheets
-	## (CharacterData "sprite") actually react to movement instead of freezing on the overhead
-	## grab. Re-adding hold_anim_on_reentry would silently break that swap by pinning
-	## _attack_anim_active true again — see Ben + Clerveu, 2026-08-17: keeping it pinned for the
-	## full hold was confirmed a bug, not intended behavior.
+	## Phase 0 — HOIST. The grab body plays once (crouch, close hands, straighten up), then the
+	## phase stays open for up to PILE_HOLD_TIME while he walks around with the pile. When the body
+	## finishes drawing the runner's ordinary recovery release hands the sprite back to locomotion —
+	## and recovery_locomotion = "carry" makes that locomotion the purpose-drawn carry_idle /
+	## carry_walk pair (Ben, 2026-08-17) instead of walk/idle, so he never drops his arms while
+	## six goblins are stacked on his hands. (This used to be faked with hold_anim_on_reentry, which
+	## classified the phase as a channel beat and blocked recovery outright, freezing the last hoist
+	## frame for six seconds even while walking. The phase never re-enters itself, so that flag's
+	## real semantic never applied here.)
 	## default_next = -1 means the window lapsing ENDS the graph → choreo_on_chain_timeout, where
 	## the host drops the pile (stunned, no damage — the throw is the payoff, holding is not).
 	var hoist := ChoreographyPhase.new()
@@ -514,6 +510,7 @@ static func build_barbarian_pile_driver(weapon_data: Dictionary) -> AbilityDefin
 	hoist.hit_frame = 4                  ## he closes his hands — the grab chain runs here
 	hoist.exit_type = "wait"
 	hoist.wait_duration = PILE_HOLD_TIME
+	hoist.recovery_locomotion = "carry"
 	hoist.default_next = -1
 	hoist.branches = [ChainFactory._branch_buffered("skill_e", 1)]
 
@@ -532,7 +529,12 @@ static func build_barbarian_pile_driver(weapon_data: Dictionary) -> AbilityDefin
 	hurl.effects = [burst]
 	hurl.exit_type = "anim_finished"
 	hurl.default_next = -1
-	hurl.is_finisher = true
+	## Deliberately NOT is_finisher: the runner would fire the finisher beat (hit-stop + the
+	## strongest shake in the game) on the RELEASE frame, a third of a second before anything
+	## lands. The payoff of a thrown pile is the impact, so the host fires choreo_on_finisher_hit
+	## itself from the touchdown callback — same beat, right moment. The burst above is likewise
+	## held by the host until touchdown (see player.choreo_fire_effects, is_hurl).
+	hurl.is_finisher = false
 
 	var choreo := ChoreographyDefinition.new()
 	choreo.phases = [hoist, hurl]

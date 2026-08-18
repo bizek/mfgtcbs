@@ -90,6 +90,11 @@ var _hit_flash_tween: Tween = null
 
 ## Animation state flags — prevent walk/idle logic from clobbering one-shot anims
 var _attack_anim_active: bool = false
+## Locomotion set the walk/idle block plays: "" = "walk"/"idle"; "carry" = "carry_walk"/"carry_idle".
+## Set by choreo_on_phase_recovery from ChoreographyPhase.recovery_locomotion, so a phase whose
+## pose must outlive its body anim (the Ravager carrying a pile) walks in that pose instead of
+## dropping his arms. Cleared whenever a phase anim reclaims the sprite and when the graph ends.
+var _locomotion_prefix: String = ""
 var _damage_anim_active: bool = false
 var _is_dying: bool = false
 
@@ -209,7 +214,6 @@ var _combo_fx: AnimatedSprite2D = null
 ## Ground layer for packs' "Base" sheets — same frames, drawn UNDER the character (z -1).
 var _combo_base: AnimatedSprite2D = null
 const FX_NATIVE_RADIUS: float = 14.0   ## radius (px) the white slash reaches inside the 32px frame
-const COMBO_FX_SCALE: float = 2.4   ## fallback upscale for nodes with no AreaDamage radius
 ## Frame-matched full-body overlays that must play at NATIVE scale — never stretched to the
 ## hit radius (stretching a pack's frame-matched effect sheet reads as pixel mush; the
 ## shockwave ring marks the zone for these instead). The generic white swing slashes stay
@@ -270,16 +274,50 @@ const PILE_LINK_RADIUS: float = 26.0    ## body-to-body hop distance for every o
 ## can raise it through the ordinary modifier path. Uncapped this would grab a whole phase-4 pile
 ## (max_enemies is 90) and delete the encounter, which is the thing Ben flagged first.
 const PILE_CARRY_SLOW: float = -0.35    ## he is carrying six people; move_speed bonus while held
-## Pile centre above his origin, in px. Measured against the art, not guessed: the 32px cell is
-## centred, his feet sit at cell row 19 (+3) and the hold pose's raised hands at rows 8-10 (-8 to
-## -6), so -12 puts the mass resting ON his hands with a pixel of overlap. It was -18 while the
-## carry pose was still a frozen lift frame, which left the pile visibly levitating a body's
-## width above him (caught in an in-game capture, 2026-08-17).
-const PILE_CARRY_HEIGHT: float = -12.0
-const PILE_CLUMP_RADIUS: float = 7.0    ## how tightly the carried bodies pack around that centre
-const PILE_THROW_TIME: float = 0.34     ## flight time of the hurled pile
-const PILE_THROW_ARC: float = 26.0      ## arc height of that flight
-const PILE_SCATTER: float = 12.0        ## landing spread, so they don't stack in one pixel
+## The ball. Carried bodies are packed into a flat DISC (sunflower / golden-angle layout — even
+## density, no gaps), upright, animations frozen: a plain cartoon circle of goblins, not a
+## rendered sphere (Clerveu, 2026-08-17 — a 3D Fibonacci ball with tangent-rotated bodies was
+## built and cut: at 7-8px, sprites rotated to arbitrary angles turn to mush, and the sphere read
+## as the wrong visual language for this game). The radius grows with the SQUARE root of the
+## count so the disc's AREA tracks the bodies and its silhouette stays saturated as it grows.
+## Sprites overlap heavily on purpose; a fixed draw order (outer bodies first, centre last) keeps
+## that overlap steady so it reads as one mass. Body size is MEASURED from each grabbed enemy's
+## art at grab time (_pile_measure_body_r): a fodder goblin is 7px and a brute is three times
+## that — one constant cannot seat both.
+## PILE_PACK sets neighbour spacing: the sunflower puts one body per (pi R^2 / n), so neighbours
+## sit ~R*sqrt(pi/n) = PACK*sqrt(pi)*body_r apart. 1.05 → 1.86 body radii → ~12% overlap between
+## neighbours, which is the most Clerveu wants (was 0.8 → ~30%: read as a smear past 8 bodies).
+const PILE_PACK: float = 1.05           ## R = PILE_PACK * body_r * sqrt(n); lower = tighter disc
+const PILE_BODY_R_FALLBACK: float = 4.0 ## body radius if a sprite's art can't be read back
+## The ball rests ON HIS HANDS. Its anchor is found from the art each frame (_pile_hands_anchor:
+## the topmost opaque pixels of the current carry/hoist/hurl frame), so it rides the carry idle's
+## hand bob and any redraw of the sheet for free — nothing is keyed by hand here. The centre sits
+## R + body_r + PILE_HANDS_LIFT above that anchor: the bottom body touching his palms.
+const PILE_HANDS_LIFT: float = 1.0
+const PILE_HANDS_FALLBACK: Vector2 = Vector2(0.0, -8.0)   ## Throw_Things f8 hands, if the art can't be read
+const PILE_GATHER_TIME: float = 0.2     ## the scoop: grab-to-overhead, = hoist f4→f8 at 20 fps
+const PILE_FEET_Y: float = 3.0          ## his feet below the origin (cell row 19) — the ground for the shadow
+## The throw. The disc turns about its centre as it flies — in the rolling direction, but at a
+## deliberately un-physical, slower-than-intuitive rate (PILE_ROLL_TURNS total, no distance term:
+## "basic and cartoony", Clerveu). The bodies themselves flip in QUARTER turns with it: 90-degree
+## rotations of pixel art are lossless (pixels land on pixels), anything finer is not at this
+## size. Set PILE_TUMBLE_QUARTER false to keep them upright throughout. A drop shadow slides along
+## the ground beneath the disc for depth.
+const PILE_THROW_TIME: float = 0.42     ## flight time of the hurled pile (was 0.34; more hang time)
+const PILE_THROW_ARC: float = 66.0      ## arc height of that flight (was 26 → 44 → 66: "I wanna see some air")
+const PILE_ROLL_TURNS: float = 0.8      ## full turns of the disc over the whole flight
+const PILE_TUMBLE_QUARTER: bool = true  ## bodies flip in 90-degree snaps with the disc (else stay upright)
+const PILE_LAND_SQUASH: float = 0.4     ## touchdown centre = ground - R * this: it slaps onto the floor
+const PILE_TUMBLE_RATE: Vector2 = Vector2(9.0, 15.0)   ## per-body extra spin on the BOUNCE, rad/s (sign random)
+## The bounce. On touchdown every body pops back up off the floor and out from the impact point on
+## a small parabola with jittered direction/distance/height, tumbling, and comes to rest upright
+## — so the landing reads impact → scatter, and they never re-form a perfect ring on the ground.
+const PILE_BOUNCE_DIST: Vector2 = Vector2(13.5, 25.5) ## radial travel range, px (was 9-17)
+const PILE_BOUNCE_HEIGHT: Vector2 = Vector2(7.0, 13.0) ## apex range, px
+const PILE_BOUNCE_TIME: Vector2 = Vector2(0.24, 0.32)  ## airtime range, s
+const PILE_BOUNCE_JITTER: float = 0.6   ## ± radians on the radial direction
+const PILE_DROP_TIME: float = 0.16      ## a lapsed hold: the ball slumps to the floor over this
+const PILE_Z_BASE: int = 3              ## carried bodies draw over the Ravager; + depth rank within the ball
 ## Damage. The crowd hit at the landing point is the phase's own AreaDamageEffect (mods scale it);
 ## these two are the parts that scale with how many he caught, which no static effect can know.
 const PILE_BODY_DAMAGE: float = 0.9     ## × damage, dealt to each THROWN body on impact
@@ -1276,14 +1314,16 @@ func _physics_process(delta: float) -> void:
 		velocity = velocity.move_toward(target_velocity, 1500.0 * delta)
 	velocity += knockback_velocity
 	move_and_slide()
-	# Snap sprite to pixel grid without discarding fractional physics position.
-	# Rounding position itself loses sub-pixel accumulation each frame, cutting
-	# diagonal speed by ~15% vs ~10% cardinal (diagonal per-axis step is smaller).
-	if sprite:
-		sprite.position = position.round() - position
+	## No manual sprite snap here. The project renders with `snap_2d_transforms_to_pixel`, which
+	## rounds every canvas item's transform (and the camera's) to whole pixels at draw time
+	## WITHOUT touching the physics position, so sub-pixel accumulation is preserved for free.
+	## The old `sprite.position = position.round() - position` compensation was redundant, and
+	## worse: it made `sprite.position` a per-frame fractional value that `_pile_hands_anchor`
+	## adds into the carried-pile anchor, and at an exact .5 fraction the engine's own rounding
+	## of that offset pushed the sprite one extra pixel.
 	knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 1400.0 * delta)
 	## Carried pile rides along — after move_and_slide, so it never trails a frame behind him.
-	_tick_pile()
+	_tick_pile(delta)
 
 	_dash_anim_timer = maxf(_dash_anim_timer - delta, 0.0)
 	## Spark Frost Burst: the shard aura loops for ICE_AURA_TIME, then plays its deteriorate pass.
@@ -1306,13 +1346,11 @@ func _physics_process(delta: float) -> void:
 			sprite.flip_h = input_dir.x < 0
 		if not _attack_anim_active and not _damage_anim_active and not _is_dying \
 				and _dash_anim_timer <= 0.0:
-			## Pile Driver hold: only Barbarian's hoist phase ever populates _pile (see
-			## choreo_on_phase_hit), so this never touches other kits' sprite sheets.
-			var carrying_pile: bool = not _pile.is_empty()
+			var loco: String = _locomotion_prefix + "_" if _locomotion_prefix != "" else ""
 			if input_dir.length_squared() > 0:
-				_play_anim("carry_walk" if carrying_pile else "walk")
+				_play_anim(loco + "walk")
 			else:
-				_play_anim("carry_idle" if carrying_pile else "idle")
+				_play_anim(loco + "idle")
 
 	# Combo input bookkeeping + executor tick (cheap, runs every frame so held-tracking stays exact)
 	if _combat_input:
@@ -1931,8 +1969,11 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 		elif is_hurl:
 			## Pile Driver release: the pile lands where you point, up to a hurl's reach. This
 			## burst is the CROWD hit, and it carries a per-body bonus so a fat grab lands harder
-			## on whatever it is dropped onto. _hurl_pile throws the bodies themselves.
-			center = _get_aim_target(_pile_landing_point())
+			## on whatever it is dropped onto. _hurl_pile throws the bodies themselves — and it
+			## takes the burst WITH them: the crowd is hit when the ball lands (_pile_touchdown),
+			## not on the release frame a third of a second earlier, so the damage, the stun and
+			## the finisher beat all arrive together with the bodies. Nothing is dispatched here.
+			var land: Vector2 = _pile_landing_point()
 			var pile_bonus: float = get_stat("damage") * PILE_PER_BODY_BONUS * float(_pile.size())
 			if pile_bonus > 0.0:
 				## On a DUPLICATE. At Reach 1.0 self_effects holds the phase's own resource (see
@@ -1948,8 +1989,10 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 				self_effects = boosted
 			## aoe_radius is the burst's LIVE radius — Reach and any scale_aoe mod already in it —
 			## so the crowd stun always covers exactly the circle that took the damage.
-			_hurl_pile(aoe_radius)
-		EffectDispatcher.execute_effects(self_effects, self, [center], ability, combat_manager)
+			_hurl_pile(land, aoe_radius, self_effects, ability)
+			self_effects = []
+		if not self_effects.is_empty():
+			EffectDispatcher.execute_effects(self_effects, self, [center], ability, combat_manager)
 
 	## Charged Fireball release: swap the base projectile for one scaled by how long the
 	## charge was held (damage up to ×2; blast radius and visual grow with the square root).
@@ -2074,6 +2117,7 @@ func choreo_on_phase_anim(phase: ChoreographyPhase, stage: String = "") -> void:
 	## recovery release (choreo_on_phase_recovery), which hands the body back mid-chain: the next
 	## node in the chain must take it again or _physics_process would clobber the swing.
 	_attack_anim_active = true
+	_locomotion_prefix = ""
 	## Runner calls this when a combo node's body anim starts → play the matching swing effect, sized
 	## to THIS node's hit-zone radius so the white edge marks exactly where the hitbox reaches.
 	## `stage` is set for staged channel bodies ("intro"/"loop"/"outro") — a stage may declare
@@ -2655,8 +2699,8 @@ func _spawn_sunder_cracks() -> void:
 
 ## ── Barbarian Pile Driver (E) ────────────────────────────────────────────────────────────────
 ## The whole carried-enemy system. There is no fake "ball" sprite here: the pile IS the enemies,
-## suspended out of the simulation and drawn in a clump over the Ravager's head, then thrown back
-## into it. See SkillFactory.build_barbarian_pile_driver for the two-phase graph that drives it.
+## suspended out of the simulation and drawn as a disc resting on the Ravager's hands, then thrown
+## back into it. See SkillFactory.build_barbarian_pile_driver for the two-phase graph that drives it.
 ##
 ## A carried enemy is suspended in three ways, all reversed by _release_body():
 ##   • is_untargetable      — SpatialGrid.rebuild skips it, so nothing targets or AoEs it while
@@ -2665,8 +2709,23 @@ func _spawn_sunder_cracks() -> void:
 ##                            position (its own move_and_slide would otherwise run every frame);
 ##   • "stunned"            — it is still stunned when it lands, which is the point of the throw
 ##                            and also what makes a DROPPED pile a real (if lesser) payoff.
+##
+## Life of a pile: _grab_pile (bodies scoop up from where they stood into the ball as his hands
+## rise) → _tick_pile (the ball rides his hands through carry_idle/carry_walk, shadow underneath)
+## → _hurl_pile (one flight, the ball rolling, shadow tracking) → _pile_touchdown (finisher beat,
+## crowd burst, body damage, then every body bounces outward and settles) — or _drop_pile (the
+## hold lapsed / was interrupted: the ball slumps to the floor at his feet, stunned, unhurt).
 
 var _pile: Array = []                 ## carried enemies, in grab order
+var _pile_from: Array = []            ## world position each was grabbed AT (scoop start), parallel to _pile
+var _pile_gather_t: float = 1.0       ## 0→1 over PILE_GATHER_TIME: bodies lerp from _pile_from into the ball
+var _pile_shadow: Sprite2D = null     ## drop shadow under the ball (carry + flight), built on first use
+var _pile_body_r: float = PILE_BODY_R_FALLBACK   ## largest measured body radius in the current pile
+## Hands anchor per (anim variant, frame), in sprite-local px. Static: the art is per character
+## sheet, not per player instance, and reading a texture back is not a per-frame job.
+static var _hands_cache: Dictionary = {}
+## Body visual radius per enemy frame texture (sheet path + region), same reasoning.
+static var _body_r_cache: Dictionary = {}
 
 
 ## Live cap, through the modifier system: base 6 (_base_stats.pile_capacity) plus AVALANCHE
@@ -2682,6 +2741,231 @@ func _pile_landing_point() -> Vector2:
 		aim = aim.normalized() * THROW_RANGE
 	return global_position + aim
 
+
+## ── Ball geometry ────────────────────────────────────────────────────────────────────────────
+
+## Ball radius for n bodies of visual radius body_r. Square root: the projected disc's AREA
+## tracks the count, which is what keeps the silhouette saturated as the pile grows (6 fodder →
+## R≈9, 15 → R≈14, 20 → R≈16 — a boulder, but never one that eclipses him).
+func _pile_radius(n: int, body_r: float) -> float:
+	return PILE_PACK * body_r * sqrt(float(maxi(n, 1)))
+
+
+## One enemy's visual radius: half its current frame's opaque extent (the larger of width and
+## height), read from the art and cached per frame texture. Bodies are drawn centred on their
+## origin, so this is also how far the sprite reaches from the point _pile_place moves.
+func _pile_measure_body_r(body: Node2D) -> float:
+	var sp: AnimatedSprite2D = body.get("sprite")
+	if sp == null or sp.sprite_frames == null:
+		return PILE_BODY_R_FALLBACK
+	var tex: Texture2D = sp.sprite_frames.get_frame_texture(sp.animation, sp.frame)
+	if tex == null:
+		return PILE_BODY_R_FALLBACK
+	var sscale: float = maxf(absf(sp.scale.x), absf(sp.scale.y))
+	var img: Image = null
+	var region: Rect2i = Rect2i()
+	var key: String = ""
+	if tex is AtlasTexture:
+		var atlas: AtlasTexture = tex
+		if atlas.atlas == null:
+			return PILE_BODY_R_FALLBACK
+		key = "%s|%s" % [atlas.atlas.resource_path, str(atlas.region)]
+		if _body_r_cache.has(key):
+			return float(_body_r_cache[key]) * sscale
+		img = atlas.atlas.get_image()
+		region = Rect2i(atlas.region)
+	else:
+		key = tex.resource_path
+		if key != "" and _body_r_cache.has(key):
+			return float(_body_r_cache[key]) * sscale
+		img = tex.get_image()
+		if img != null:
+			region = Rect2i(0, 0, img.get_width(), img.get_height())
+	if img == null or img.is_empty():
+		return PILE_BODY_R_FALLBACK
+	if img.is_compressed():
+		img.decompress()
+	var x0: int = region.position.x
+	var y0: int = region.position.y
+	var x1: int = mini(x0 + region.size.x, img.get_width())
+	var y1: int = mini(y0 + region.size.y, img.get_height())
+	var minx: int = x1
+	var maxx: int = -1
+	var miny: int = y1
+	var maxy: int = -1
+	for y in range(y0, y1):
+		for x in range(x0, x1):
+			if img.get_pixel(x, y).a > 0.0:
+				minx = mini(minx, x)
+				maxx = maxi(maxx, x)
+				miny = mini(miny, y)
+				maxy = maxi(maxy, y)
+	var r: float = PILE_BODY_R_FALLBACK
+	if maxx >= minx and maxy >= miny:
+		r = maxf(float(maxx - minx + 1), float(maxy - miny + 1)) * 0.5
+	if key != "":
+		_body_r_cache[key] = r
+	return r * sscale
+
+
+## Unit-disc slot for body idx of n: the sunflower layout (radius by square root of rank, golden
+## angle between neighbours) — uniform density from centre to rim, so the disc is saturated with
+## no holes and no ring structure. One body sits dead centre.
+func _pile_slot(idx: int, n: int) -> Vector2:
+	if n <= 1:
+		return Vector2.ZERO
+	var r: float = sqrt((float(idx) + 0.5) / float(n))
+	var a: float = float(idx) * 2.3999632   ## golden angle
+	return Vector2(cos(a), sin(a)) * r
+
+
+## Snap an angle to the nearest quarter turn — the only rotations that keep 7px pixel art crisp.
+func _pile_snap_quarter(angle: float) -> float:
+	return round(angle / (PI * 0.5)) * PI * 0.5
+
+
+## Draw the disc: place every body at its slot around `centre`, the whole layout turned by `spin`
+## (radians, about the centre). Bodies stay upright while carried (spin 0) and flip in quarter
+## turns with the disc in flight (PILE_TUMBLE_QUARTER). Draw order is fixed — outer bodies first,
+## centre body last — so the overlap never flickers as the disc turns. `gather` < 1 is the scoop:
+## each body is still on its way from where it was grabbed (_pile_from) into its slot. Shared by
+## carry and flight, which differ only in where the centre is and whether it spins.
+func _pile_place(bodies: Array, centre: Vector2, radius: float, spin: float, gather: float = 1.0) -> void:
+	var n: int = bodies.size()
+	var tumble: float = _pile_snap_quarter(spin) if PILE_TUMBLE_QUARTER else 0.0
+	for idx in range(n):
+		var body: Node2D = bodies[idx]
+		if not is_instance_valid(body):
+			continue
+		var pos: Vector2 = centre + (_pile_slot(idx, n) * radius).rotated(spin)
+		if gather < 1.0 and idx < _pile_from.size():
+			var from: Vector2 = _pile_from[idx]
+			pos = from.lerp(pos, gather)
+		body.global_position = pos
+		_pile_body_spin(body, tumble)
+		body.z_index = PILE_Z_BASE + (n - 1 - idx)   ## rim (high idx) under, centre (idx 0) on top
+
+
+## Where his hands are RIGHT NOW, in local px: the topmost opaque pixels of the sprite's current
+## frame, which for every carry/hoist/hurl frame is the pair of raised hands. Read once per
+## (variant, frame) and cached, so the ball follows the carry idle's 1-2px hand bob, every facing
+## row, and any redraw Ben does of the sheets, without a table of offsets going stale.
+## The hoist body itself is the exception: for its crouch frames (f0-7) the top of the sprite is
+## his helmet, not his hands, so the anchor is pinned to its LAST frame (arms overhead) — the
+## scoop lerp in _tick_pile carries the bodies up from the ground to that point over the lift.
+func _pile_hands_anchor() -> Vector2:
+	if sprite == null or sprite.sprite_frames == null:
+		return PILE_HANDS_FALLBACK
+	var anim: String = String(sprite.animation)
+	if not (anim.begins_with("carry_") or anim.begins_with("hoist") or anim.begins_with("hurl")):
+		return PILE_HANDS_FALLBACK
+	var frame: int = sprite.frame
+	if anim.begins_with("hoist"):
+		frame = sprite.sprite_frames.get_frame_count(anim) - 1
+	var key: String = "%s:%d" % [anim, frame]
+	if not _hands_cache.has(key):
+		_hands_cache[key] = _pile_read_hands(anim, frame)
+	var a: Vector2 = _hands_cache[key]
+	if sprite.flip_h:
+		a.x = -a.x
+	return a * sprite.scale + sprite.offset + sprite.position
+
+
+## The pixel read behind _pile_hands_anchor. Returns sprite-local px of the hands' centre (mean x
+## of the top two opaque rows, y of the top row) relative to the cell centre — the frame is drawn
+## centred on the sprite. Falls back to the Throw_Things f8 measurement if the texture can't be
+## read back (a streamed/VRAM-compressed import), which never happens for these lossless sheets.
+func _pile_read_hands(anim: String, frame: int) -> Vector2:
+	var tex: Texture2D = sprite.sprite_frames.get_frame_texture(anim, frame)
+	if tex == null:
+		return PILE_HANDS_FALLBACK
+	var img: Image = null
+	var region: Rect2i = Rect2i()
+	if tex is AtlasTexture:
+		var atlas: AtlasTexture = tex
+		if atlas.atlas != null:
+			img = atlas.atlas.get_image()
+		region = Rect2i(atlas.region)
+	else:
+		img = tex.get_image()
+		if img != null:
+			region = Rect2i(0, 0, img.get_width(), img.get_height())
+	if img == null or img.is_empty():
+		return PILE_HANDS_FALLBACK
+	if img.is_compressed():
+		img.decompress()
+	var x0: int = region.position.x
+	var y0: int = region.position.y
+	var x1: int = mini(x0 + region.size.x, img.get_width())
+	var y1: int = mini(y0 + region.size.y, img.get_height())
+	var top: int = -1
+	var xs: Array = []
+	for y in range(y0, y1):
+		for x in range(x0, x1):
+			if img.get_pixel(x, y).a > 0.0:
+				if top < 0:
+					top = y
+				if y <= top + 1:
+					xs.append(x)
+		if top >= 0 and y > top + 1:
+			break
+	if top < 0 or xs.is_empty():
+		return PILE_HANDS_FALLBACK
+	var sum_x: float = 0.0
+	for x in xs:
+		sum_x += float(x)
+	var cx: float = sum_x / float(xs.size()) + 0.5 - float(x0)
+	return Vector2(cx - float(region.size.x) * 0.5, float(top - y0) - float(region.size.y) * 0.5)
+
+
+## ── Shadow ───────────────────────────────────────────────────────────────────────────────────
+
+## The ball's ground shadow: a hard-edged ellipse (pixel-art style, no soft falloff) drawn under
+## every body (z -1, same layer as the floor decals). World-space child of the player, so it is
+## freed with him and never orphaned. Nothing else in the game casts one, so this is the first —
+## it exists because a ball of goblins in the air needs a floor reference to read as airborne.
+func _pile_shadow_node() -> Sprite2D:
+	if _pile_shadow != null and is_instance_valid(_pile_shadow):
+		return _pile_shadow
+	var grad := Gradient.new()
+	grad.offsets = PackedFloat32Array([0.0, 0.84, 0.86])
+	grad.colors = PackedColorArray([Color.BLACK, Color.BLACK, Color(0.0, 0.0, 0.0, 0.0)])
+	var tex := GradientTexture2D.new()
+	tex.gradient = grad
+	tex.fill = GradientTexture2D.FILL_RADIAL
+	tex.fill_from = Vector2(0.5, 0.5)
+	tex.fill_to = Vector2(1.0, 0.5)
+	tex.width = 64
+	tex.height = 64
+	_pile_shadow = Sprite2D.new()
+	_pile_shadow.name = "PileShadow"
+	_pile_shadow.texture = tex
+	_pile_shadow.top_level = true
+	_pile_shadow.z_as_relative = false
+	_pile_shadow.z_index = -1
+	_pile_shadow.visible = false
+	add_child(_pile_shadow)
+	return _pile_shadow
+
+
+## Park the shadow at `ground` for a ball of `radius` floating `height` px above it. Wider than the
+## ball and squashed to the oblique view; fainter and slightly smaller the higher the ball is.
+func _pile_shadow_update(ground: Vector2, radius: float, height: float) -> void:
+	var sh: Sprite2D = _pile_shadow_node()
+	var lift: float = clampf(height / 80.0, 0.0, 1.0)
+	var w: float = radius * 2.4 * (1.0 - 0.25 * lift)
+	sh.global_position = ground.round()
+	sh.scale = Vector2(w / 64.0, w * 0.45 / 64.0)
+	sh.modulate = Color(1.0, 1.0, 1.0, 0.42 * (1.0 - 0.45 * lift))
+	sh.visible = true
+
+
+func _pile_shadow_hide() -> void:
+	if _pile_shadow != null and is_instance_valid(_pile_shadow):
+		_pile_shadow.visible = false
+
+
+## ── Grab ─────────────────────────────────────────────────────────────────────────────────────
 
 ## The grab, fired off the hoist phase's hit frame. Breadth-first from the nearest body: each
 ## enemy already in the pile pulls in anything within PILE_LINK_RADIUS of ITSELF, so a dense
@@ -2735,8 +3019,15 @@ func _grab_pile() -> void:
 			if from_body.global_position.distance_squared_to(candidate.global_position) <= link_sq:
 				_pile.append(candidate)
 
+	## The scoop starts where they stand: _tick_pile lerps each body from here into its slot in
+	## the ball while the ball itself rises from his feet to his hands (the hoist's f4→f8 lift).
+	_pile_from = []
+	_pile_body_r = PILE_BODY_R_FALLBACK * 0.5
 	for body in _pile:
+		_pile_from.append(body.global_position)
+		_pile_body_r = maxf(_pile_body_r, _pile_measure_body_r(body))
 		_suspend_body(body)
+	_pile_gather_t = 0.0
 	## He is carrying people. Removed on every exit path (throw, drop, interrupt).
 	modifier_component.remove_by_source_prefix("pile_carry")
 	_add_modifier("move_speed", "bonus", PILE_CARRY_SLOW, "pile_carry")
@@ -2779,7 +3070,7 @@ func _suspend_body(body: Node2D) -> void:
 	if body.get("velocity") != null:
 		body.velocity = Vector2.ZERO
 	if body.get("z_index") != null:
-		body.z_index = 3               ## drawn over the Ravager while overhead
+		body.z_index = PILE_Z_BASE     ## drawn over the Ravager while overhead (_pile_place ranks it)
 	## Take it off its collision layer. Disabling physics stops the body MOVING, but it stays
 	## SOLID — and the pile is parked directly above the player's head, so his own
 	## move_and_slide() depenetrated against six overlapping bodies and shoved him steadily
@@ -2794,11 +3085,17 @@ func _suspend_body(body: Node2D) -> void:
 	var runner = body.get("_choreo_runner")
 	if runner != null and runner.is_running():
 		runner.interrupt()
+	## Frozen mid-frame while it is part of the boulder (Clerveu): a disc of goblins all still
+	## walking on the spot reads as a crowd, a frozen one reads as a lump. Its own anim selection
+	## lives in _physics_process, which is off, so nothing fights this. Thawed on touchdown (so
+	## the impact's damage anim plays through the bounce) and on every release path.
+	_pile_body_freeze(body, true)
 	## Long enough to cover carry + flight; refreshed to the real landing stun on impact.
 	_apply_stun(body, SkillFactory.PILE_HOLD_TIME + PILE_THROW_TIME)
 
 
-## Put one enemy back into the simulation, wherever it currently is.
+## Put one enemy back into the simulation, wherever it currently is. Idempotent: a body already
+## released (a DoT killed it mid-flight and the flight step let it go) is left alone.
 func _release_body(body: Node2D, stun_seconds: float) -> void:
 	if not is_instance_valid(body):
 		return
@@ -2807,14 +3104,53 @@ func _release_body(body: Node2D, stun_seconds: float) -> void:
 	if body.has_meta("pile_collision_layer"):
 		body.collision_layer = int(body.get_meta("pile_collision_layer"))
 		body.remove_meta("pile_collision_layer")
+	## Upright and animating again — the tumble is on the sprite child, never the body (its
+	## collider stays axis-aligned), so nothing but this needs undoing.
+	var body_sprite: Node2D = body.get("sprite")
+	if body_sprite != null:
+		body_sprite.rotation = 0.0
+	_pile_body_freeze(body, false)
 	body.set_physics_process(true)
 	if body.is_alive:
 		_apply_stun(body, stun_seconds)
 
 
-## Keep the carried bodies clumped over his head. Called from _physics_process AFTER
-## move_and_slide so the pile never lags a frame behind the man carrying it.
-func _tick_pile() -> void:
+## True while `body` is still lifted out of the sim by _suspend_body (i.e. not yet released).
+func _pile_body_suspended(body: Node2D) -> bool:
+	return is_instance_valid(body) and body.has_meta("pile_collision_layer")
+
+
+## Set a carried body's tumble (sprite-only rotation; see _release_body).
+func _pile_body_spin(body: Node2D, angle: float) -> void:
+	var body_sprite: Node2D = body.get("sprite")
+	if body_sprite != null:
+		body_sprite.rotation = angle
+
+
+## Freeze / thaw a carried body's sprite animation on its current frame. Speed scale rather than
+## pause(): any play() the enemy issues meanwhile (a damage anim on impact) still takes, it just
+## does not advance until thawed. The pre-freeze scale is kept so a body that ships a non-1.0
+## speed comes back exactly as it was. Idempotent in both directions.
+func _pile_body_freeze(body: Node2D, frozen: bool) -> void:
+	var sp: AnimatedSprite2D = body.get("sprite")
+	if sp == null:
+		return
+	if frozen:
+		if not body.has_meta("pile_anim_speed"):
+			body.set_meta("pile_anim_speed", sp.speed_scale)
+		sp.speed_scale = 0.0
+	elif body.has_meta("pile_anim_speed"):
+		sp.speed_scale = float(body.get_meta("pile_anim_speed"))
+		body.remove_meta("pile_anim_speed")
+
+
+## ── Carry ────────────────────────────────────────────────────────────────────────────────────
+
+## Keep the ball on his hands. Called from _physics_process AFTER move_and_slide so the pile never
+## lags a frame behind the man carrying it. During the scoop (first PILE_GATHER_TIME after the
+## grab) the ball's centre rises from his feet to his hands and each body lerps in from where it
+## stood, so the crowd visibly comes up off the floor with the lift instead of appearing overhead.
+func _tick_pile(delta: float) -> void:
 	if _pile.is_empty():
 		return
 	var i: int = _pile.size() - 1
@@ -2826,88 +3162,228 @@ func _tick_pile() -> void:
 			if is_instance_valid(body):
 				_release_body(body, 0.0)
 			_pile.remove_at(i)
+			if i < _pile_from.size():
+				_pile_from.remove_at(i)
 		i -= 1
 	if _pile.is_empty():
 		modifier_component.remove_by_source_prefix("pile_carry")
+		_pile_shadow_hide()
 		return
-	var centre: Vector2 = global_position + Vector2(0.0, PILE_CARRY_HEIGHT)
-	for idx in range(_pile.size()):
-		## Fixed golden-angle spiral, so the clump is stable frame to frame (jitter here would
-		## read as the pile vibrating) but still looks packed rather than stacked.
-		var a: float = float(idx) * 2.3999632
-		var r: float = PILE_CLUMP_RADIUS * sqrt(float(idx) / maxf(float(_pile.size()), 1.0))
-		_pile[idx].global_position = centre + Vector2(cos(a), sin(a) * 0.6) * r
+	_pile_gather_t = minf(_pile_gather_t + delta / PILE_GATHER_TIME, 1.0)
+	var g: float = 1.0 - pow(1.0 - _pile_gather_t, 3.0)     ## ease-out: fast off the floor, settles onto the hands
+	var radius: float = _pile_radius(_pile.size(), _pile_body_r)
+	var overhead: Vector2 = global_position + _pile_hands_anchor() \
+			+ Vector2(0.0, -(radius + _pile_body_r + PILE_HANDS_LIFT))
+	var floor_c: Vector2 = global_position + Vector2(0.0, PILE_FEET_Y - radius * PILE_LAND_SQUASH)
+	var centre: Vector2 = floor_c.lerp(overhead, g)
+	_pile_place(_pile, centre, radius, 0.0, g)
+	var ground: Vector2 = global_position + Vector2(0.0, PILE_FEET_Y)
+	_pile_shadow_update(ground, radius, ground.y - centre.y)
 
 
-## The release, fired off the hurl phase's hit frame: every carried body arcs to the landing
-## point, takes the impact itself, and is stunned where it lands. The crowd already standing
-## there takes the phase's own AreaDamageEffect (choreo_fire_effects re-centres it) and is
-## stunned HERE — `burst_radius` is that effect's live radius, Reach and mods included.
+## ── Throw ────────────────────────────────────────────────────────────────────────────────────
+
+## The release, fired off the hurl phase's hit frame. One flight for the whole disc: its centre
+## arcs to the landing point while the disc turns about it (PILE_ROLL_TURNS, in the rolling
+## direction) with the bodies flipping in quarter turns; the shadow slides along the ground
+## beneath it. Everything that hits — the finisher beat, the crowd burst
+## (`burst_effects`, held back from the release frame by choreo_fire_effects), the crowd stun, the
+## thrown bodies' own damage — happens in _pile_touchdown when the ball actually lands, followed by
+## the bounce. `burst_radius` is the burst's live radius, Reach and mods included, so the crowd
+## stun always covers exactly the circle that takes the damage.
 ##
 ## The stun on the landed-on crowd cannot ride the phase as an ApplyStatusEffectData: non-AoE
 ## effects are routed to the enemies around the PLAYER (see the routing at the top of
 ## choreo_fire_effects), which is the wrong end of a 120px throw entirely.
-func _hurl_pile(burst_radius: float) -> void:
+func _hurl_pile(land: Vector2, burst_radius: float, burst_effects: Array, ability: AbilityDefinition) -> void:
 	modifier_component.remove_by_source_prefix("pile_carry")
-	var land: Vector2 = _pile_landing_point()
-	## Everything standing at the landing point. The carried bodies are still overhead and still
+	var bodies: Array = []
+	for body in _pile:
+		if is_instance_valid(body):
+			bodies.append(body)
+	_pile.clear()
+	_pile_from.clear()
+	_pile_gather_t = 1.0
+	var n: int = bodies.size()
+	var body_r: float = _pile_body_r
+	var radius: float = _pile_radius(n, body_r)
+	## Where the ball is NOW (hands) and where it lands (flattened onto the floor at the point).
+	var start: Vector2 = global_position + _pile_hands_anchor() \
+			+ Vector2(0.0, -(radius + body_r + PILE_HANDS_LIFT))
+	var land_c: Vector2 = land + Vector2(0.0, -radius * PILE_LAND_SQUASH)
+	var start_ground: Vector2 = global_position + Vector2(0.0, PILE_FEET_Y)
+	var travel: Vector2 = land - global_position
+	## Rolling direction: a wheel moving right turns clockwise on screen (positive angle in
+	## Godot's y-down 2D), moving left the other way. A straight-up/down throw has no natural
+	## sense — it rolls "right".
+	var roll_sign: float = -1.0 if travel.x < -0.5 else 1.0
+	var roll: float = roll_sign * TAU * PILE_ROLL_TURNS
+	var spins: Array = []
+	for idx in range(n):
+		var rate: float = randf_range(PILE_TUMBLE_RATE.x, PILE_TUMBLE_RATE.y)
+		spins.append(rate if randf() < 0.5 else -rate)
+	var fl: Dictionary = {
+		"bodies": bodies, "start": start, "land": land, "land_c": land_c,
+		"start_ground": start_ground, "radius": radius, "roll": roll,
+		"spins": spins, "burst_radius": burst_radius, "effects": burst_effects, "ability": ability,
+	}
+	if n == 0:
+		## Nothing in hand (cannot normally happen — an empty grab aborts the ability). Land the
+		## burst immediately so a mod that somehow got here still resolves.
+		_pile_touchdown(fl)
+		return
+	var tw := create_tween()
+	tw.tween_method(func(t: float) -> void: _pile_flight_step(fl, t), 0.0, 1.0, PILE_THROW_TIME)
+	tw.tween_callback(func() -> void: _pile_touchdown(fl))
+
+
+## One frame of the flight, t in 0..1.
+func _pile_flight_step(fl: Dictionary, t: float) -> void:
+	var bodies: Array = fl["bodies"]
+	var radius: float = fl["radius"]
+	var start: Vector2 = fl["start"]
+	var land_c: Vector2 = fl["land_c"]
+	var centre: Vector2 = start.lerp(land_c, t)
+	centre.y -= 4.0 * PILE_THROW_ARC * t * (1.0 - t)
+	var spin: float = float(fl["roll"]) * t
+	## A body that died mid-air (a DoT) goes back to the sim where it is and stops flying.
+	for idx in range(bodies.size()):
+		var body: Node2D = bodies[idx]
+		if is_instance_valid(body) and not body.is_alive and _pile_body_suspended(body):
+			_release_body(body, 0.0)
+	_pile_place(bodies, centre, radius, spin)
+	var start_ground: Vector2 = fl["start_ground"]
+	var land: Vector2 = fl["land"]
+	var ground: Vector2 = start_ground.lerp(land, t)
+	_pile_shadow_update(ground, radius, ground.y - centre.y)
+
+
+## The ball lands. In order: the finisher beat (hit-stop + shake — the strongest in the game, and
+## it belongs on the impact, not the release), the crowd burst and crowd stun at the landing
+## point, each thrown body's own impact damage, then the bounce.
+func _pile_touchdown(fl: Dictionary) -> void:
+	_pile_shadow_hide()
+	var land: Vector2 = fl["land"]
+	var burst_radius: float = fl["burst_radius"]
+	var effects: Array = fl["effects"]
+	choreo_on_finisher_hit()
+	if not effects.is_empty():
+		EffectDispatcher.execute_effects(effects, self, [_get_aim_target(land)], fl["ability"], combat_manager)
+	## Everything standing at the landing point. The thrown bodies are still suspended and still
 	## untargetable, so they are not in the grid and cannot be double-stunned by this.
 	if spatial_grid != null and burst_radius > 0.0:
 		for en in spatial_grid.get_nearby_in_range(land, 1, burst_radius * burst_radius):
 			if is_instance_valid(en) and en.is_alive:
 				_apply_stun(en, SkillFactory.PILE_STUN_TIME)
-	if _pile.is_empty():
+	var bodies: Array = fl["bodies"]
+	if bodies.is_empty():
 		return
 	var dtype: String = ChainFactory._damage_type(_weapon_data)
 	var body_damage: float = get_stat("damage") * PILE_BODY_DAMAGE
-	var thrown: Array = _pile.duplicate()
-	_pile.clear()
-
-	for idx in range(thrown.size()):
-		var body = thrown[idx]
+	var spins: Array = fl["spins"]
+	for idx in range(bodies.size()):
+		var body: Node2D = bodies[idx]
 		if not is_instance_valid(body):
 			continue
-		var a: float = float(idx) * 2.3999632
-		var target: Vector2 = land + Vector2(cos(a), sin(a) * 0.6) * PILE_SCATTER
-		var start: Vector2 = body.global_position
-		## The bodies stay suspended for the flight and are released on arrival — a body that
-		## re-entered physics mid-air would start walking home through the throw.
-		var tw := create_tween()
-		tw.tween_method(func(t: float) -> void:
-			if not is_instance_valid(body):
-				return
-			var pos: Vector2 = start.lerp(target, t)
-			pos.y -= 4.0 * PILE_THROW_ARC * t * (1.0 - t)
-			body.global_position = pos
-		, 0.0, 1.0, PILE_THROW_TIME)
-		tw.tween_callback(func() -> void:
-			if not is_instance_valid(body):
-				return
+		_pile_body_freeze(body, false)   ## thaw first: the impact's damage anim plays through the bounce
+		if body.is_alive and body.has_method("take_damage"):
+			var hit: HitData = DamageCalculator.calculate_raw_hit(
+					self, body, body_damage, dtype, null,
+					combat_manager.rng if combat_manager else null)
+			if not hit.is_dodged:
+				body.take_damage(hit)
+		if not _pile_body_suspended(body):
+			continue   ## already back in the sim (died before touchdown)
+		if not body.is_alive:
+			_release_body(body, 0.0)   ## the impact killed it — its death anim owns it now
+			continue
+		_pile_bounce(body, land, float(spins[idx]))
+
+
+## One body's bounce off the floor: out from the impact point on a small parabola (direction from
+## the centre, jittered; distance/height/airtime rolled per body), tumbling, coming to rest
+## upright — the tumble ends on a whole turn. Released and stunned where it stops.
+func _pile_bounce(body: Node2D, land: Vector2, spin_rate: float) -> void:
+	var from: Vector2 = body.global_position
+	var radial: Vector2 = from - land
+	var ang: float = radial.angle() if radial.length_squared() > 0.25 else randf() * TAU
+	ang += randf_range(-PILE_BOUNCE_JITTER, PILE_BOUNCE_JITTER)
+	var dist: float = randf_range(PILE_BOUNCE_DIST.x, PILE_BOUNCE_DIST.y)
+	## Squash the scatter ring to the oblique view so it lies on the floor, not on a wall.
+	var target: Vector2 = land + Vector2(cos(ang), sin(ang) * 0.7) * dist
+	var height: float = randf_range(PILE_BOUNCE_HEIGHT.x, PILE_BOUNCE_HEIGHT.y)
+	var airtime: float = randf_range(PILE_BOUNCE_TIME.x, PILE_BOUNCE_TIME.y)
+	var body_sprite: Node2D = body.get("sprite")
+	var rot0: float = body_sprite.rotation if body_sprite != null else 0.0
+	## Keep tumbling at ~half rate and land on the nearest whole turn, so it settles upright.
+	## The tumble is quarter-snapped in flight (see _pile_place) — the same snap here, so a body
+	## flips over in clean 90-degree steps and never draws at an angle that smears its pixels.
+	var rot1: float = round((rot0 + spin_rate * 0.5 * airtime) / TAU) * TAU
+	var tw := create_tween()
+	tw.tween_method(func(t: float) -> void:
+		if not is_instance_valid(body) or not _pile_body_suspended(body):
+			return
+		if not body.is_alive:
+			_release_body(body, 0.0)
+			return
+		var pos: Vector2 = from.lerp(target, t)
+		pos.y -= 4.0 * height * t * (1.0 - t)
+		body.global_position = pos
+		var rot: float = lerpf(rot0, rot1, t)
+		_pile_body_spin(body, _pile_snap_quarter(rot) if PILE_TUMBLE_QUARTER else 0.0)
+	, 0.0, 1.0, airtime)
+	tw.tween_callback(func() -> void:
+		if is_instance_valid(body):
 			_release_body(body, SkillFactory.PILE_STUN_TIME)
-			if body.is_alive and body.has_method("take_damage"):
-				var hit: HitData = DamageCalculator.calculate_raw_hit(
-						self, body, body_damage, dtype, null,
-						combat_manager.rng if combat_manager else null)
-				if not hit.is_dodged:
-					body.take_damage(hit)
-		)
+	)
 
 
-## The grip goes: the hold window lapsed without a second press. They come down where he stands,
-## stunned but unhurt — holding is not a payoff, throwing is (Ben, 2026-08-16).
+## The grip goes: the hold window lapsed without a second press (or a hit / dash / stun cut the
+## carry). They come down where he stands, stunned but unhurt — holding is not a payoff, throwing
+## is (Ben, 2026-08-16). Not a teleport: the ball slumps to the floor at his feet over
+## PILE_DROP_TIME, spreading a little as it lands.
 func _drop_pile() -> void:
 	modifier_component.remove_by_source_prefix("pile_carry")
+	_pile_shadow_hide()
 	if _pile.is_empty():
 		return
-	var dropped: Array = _pile.duplicate()
+	var dropped: Array = []
+	for body in _pile:
+		if is_instance_valid(body):
+			dropped.append(body)
 	_pile.clear()
-	for idx in range(dropped.size()):
-		var body = dropped[idx]
-		if not is_instance_valid(body):
-			continue
+	_pile_from.clear()
+	_pile_gather_t = 1.0
+	var n: int = dropped.size()
+	var radius: float = _pile_radius(n, _pile_body_r)
+	var floor_c: Vector2 = global_position + Vector2(0.0, PILE_FEET_Y)
+	var starts: Array = []
+	var targets: Array = []
+	var rots: Array = []
+	for idx in range(n):
+		var body: Node2D = dropped[idx]
+		starts.append(body.global_position)
+		var body_sprite: Node2D = body.get("sprite")
+		rots.append(body_sprite.rotation if body_sprite != null else 0.0)
 		var a: float = float(idx) * 2.3999632
-		body.global_position = global_position + Vector2(cos(a), sin(a) * 0.6) * PILE_SCATTER
-		_release_body(body, SkillFactory.PILE_STUN_TIME)
+		var spread: float = radius * 1.4 * sqrt((float(idx) + 0.5) / float(n))
+		targets.append(floor_c + Vector2(cos(a), sin(a) * 0.6) * spread)
+	var tw := create_tween()
+	tw.tween_method(func(t: float) -> void:
+		for idx in range(n):
+			var body: Node2D = dropped[idx]
+			if not is_instance_valid(body) or not _pile_body_suspended(body):
+				continue
+			var s: Vector2 = starts[idx]
+			var e: Vector2 = targets[idx]
+			body.global_position = s.lerp(e, t * t)   ## ease-in: it falls
+			_pile_body_spin(body, _pile_snap_quarter(lerp_angle(float(rots[idx]), 0.0, t)))   ## and rights itself
+	, 0.0, 1.0, PILE_DROP_TIME)
+	tw.tween_callback(func() -> void:
+		for body in dropped:
+			if is_instance_valid(body) and _pile_body_suspended(body):
+				_release_body(body, SkillFactory.PILE_STUN_TIME)
+	)
 
 
 ## Desert Storm overlay: 8-direction barrage strips, restarted every volley beat, aimed at
@@ -3599,13 +4075,24 @@ func choreo_on_phase_hit(phase: ChoreographyPhase, phase_index: int, ability: Ab
 		_combo_window_pulse()
 
 
-func choreo_on_phase_recovery(_phase: ChoreographyPhase) -> void:
+func choreo_on_phase_recovery(phase: ChoreographyPhase) -> void:
 	## The swing is fully drawn and its hit has landed, but the cancel window is still open. Release
 	## ONLY the animation: walk/idle resumes so the player moves out of the swing like a person
 	## instead of sliding around frozen in the end-of-swing pose for the rest of the window.
 	## Everything mechanical stays exactly as it was — is_attacking, the untargetable/invulnerable
 	## flags, the phase timer and every branch are untouched, so the chain still chains. The next
 	## node takes the body back in choreo_on_phase_anim().
+	##
+	## A phase may name a locomotion SET to recover into (recovery_locomotion): the Pile Driver's
+	## hoist recovers into "carry", so he walks the six-second hold with the pile still overhead
+	## (carry_walk/carry_idle) rather than dropping his arms through a stack of goblins. If the
+	## character's frames don't carry that set, keep the body frozen on its last frame instead —
+	## the pre-carry-sheet behaviour, and better than a bare-armed walk under a floating pile.
+	var prefix: String = phase.recovery_locomotion
+	if prefix != "" and (sprite == null or sprite.sprite_frames == null \
+			or not sprite.sprite_frames.has_animation(prefix + "_idle")):
+		return
+	_locomotion_prefix = prefix
 	_attack_anim_active = false
 
 
@@ -3637,6 +4124,7 @@ func choreo_on_end() -> void:
 	AudioManager.stop_channel_loop()
 	_active_choreo_id = ""
 	_attack_anim_active = false
+	_locomotion_prefix = ""
 	is_attacking = false
 	is_untargetable = false
 	_combo_step_depth = 0
