@@ -485,13 +485,18 @@ const ALL: Dictionary = {
 				## hit_frame indices in SkillFactory are LOCAL to each slice (hurl's release = 1).
 				"hoist":    ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Throw_Things/Minifantasy_TrueHeroesBarbarianThrowThings.png",           9, 20.0, {"from": 0, "to": 8}],
 				"hurl":     ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Throw_Things/Minifantasy_TrueHeroesBarbarianThrowThings.png",           8, 20.0, {"from": 8, "to": 15}],
-				## NOTE: while a Pile Driver hold is up he stands in the frozen "hoist" frame even
-				## while walking. A spliced carry_idle/carry_walk pair was tried and cut — Ben is
-				## authoring a purpose-drawn carry sheet instead (2026-08-17). To wire one up, add
-				## "carry_idle"/"carry_walk" here, add both to CharacterSpriteFactory.LOOPING_ANIMS,
-				## and drive them from player._physics_process's locomotion block (they have to be
-				## played THERE, not by the choreography, because the hold phase keeps
-				## _attack_anim_active true for its whole six seconds).
+				## Carry locomotion (Ben, 2026-08-17): purpose-drawn 4x4 sheets, arms overhead in
+				## every frame, neutral pose matching Throw_Things frame 8. The hoist phase names
+				## them via ChoreographyPhase.recovery_locomotion = "carry": once the grab body
+				## finishes drawing, the runner's normal recovery release hands the sprite to the
+				## locomotion block, which plays "<prefix>_walk"/"<prefix>_idle" (player.gd). Both
+				## loop (CharacterSpriteFactory.LOOPING_ANIMS). The idle has a 1-2px hand bob and
+				## the walk a 1px vertical one — the carried pile follows the HANDS, found per frame
+				## from the art (player._pile_hands_anchor), so no offsets are keyed here.
+				## fps: the base Idle is 16 @ 9 (a ~1.8s cycle); 4 frames @ 4.5 keeps a slow strain.
+				## The walk matches the base Walk's 4-frame stride, slowed for the -35% carry speed.
+				"carry_idle": ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Throw_Things/Minifantasy_TrueHeroesBarbarianCarryIdle.png", 4, 4.5],
+				"carry_walk": ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Throw_Things/Minifantasy_TrueHeroesBarbarianCarryWalk.png", 4, 7.0],
 				"cry":      ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Battle_Cry/Minifantasy_TrueHeroesBarbarianBattleCry.png",              11, 14.0],
 				"cry_fx":   ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Battle_Cry/Minifantasy_TrueHeroesBarbarianBattleCryEffectFrontLayer.png", 11, 14.0],
 				"guard":        ["res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Barbarian/Special_Animations/Guard/Minifantasy_TrueHeroesBarbarianBlockGuardUp.png",   4,  8.0],

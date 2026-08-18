@@ -27,7 +27,9 @@ extends RefCounted
 
 ## Animations that loop; everything else (attack/damage/death/combo/skill) plays once.
 ## Combo channels (e.g. Whirlwind) loop via choreography phase re-entry, not a looping SpriteFrames.
-const LOOPING_ANIMS: Array[String] = ["idle", "walk"]
+## "carry_idle"/"carry_walk" are the Ravager's Pile Driver carry locomotion — a phase-scoped
+## replacement for idle/walk (ChoreographyPhase.recovery_locomotion), so they loop like them.
+const LOOPING_ANIMS: Array[String] = ["idle", "walk", "carry_idle", "carry_walk"]
 
 ## Animations player.gd plays by name — warn if a character's data omits one.
 const REQUIRED_ANIMS: Array[String] = ["idle", "walk", "attack", "damage", "death"]
