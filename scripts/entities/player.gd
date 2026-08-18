@@ -1306,10 +1306,13 @@ func _physics_process(delta: float) -> void:
 			sprite.flip_h = input_dir.x < 0
 		if not _attack_anim_active and not _damage_anim_active and not _is_dying \
 				and _dash_anim_timer <= 0.0:
+			## Pile Driver hold: only Barbarian's hoist phase ever populates _pile (see
+			## choreo_on_phase_hit), so this never touches other kits' sprite sheets.
+			var carrying_pile: bool = not _pile.is_empty()
 			if input_dir.length_squared() > 0:
-				_play_anim("walk")
+				_play_anim("carry_walk" if carrying_pile else "walk")
 			else:
-				_play_anim("idle")
+				_play_anim("carry_idle" if carrying_pile else "idle")
 
 	# Combo input bookkeeping + executor tick (cheap, runs every frame so held-tracking stays exact)
 	if _combat_input:
@@ -4080,10 +4083,16 @@ func _on_sprite_animation_finished() -> void:
 		return
 	## Clear one-shot animation flags so walk/idle logic resumes.
 	## Death is handled by its own await — don't clear _is_dying here.
+	## _play_anim() resolves a directional variant on 4-row sheets (e.g. "damage_down_right"),
+	## so this must match on the base name, not the exact string — an exact "== attack"/"==
+	## damage" check never matches a variant and left the flag stuck true forever on any
+	## character with a directional row for that anim, freezing the sprite on its last frame
+	## while movement kept sliding underneath it (bug found 2026-08-17, Ben: player "freezes
+	## and glides" after taking damage until another anim/ability starts and stomps the flag).
 	var anim: String = sprite.animation
-	if anim == "attack":
+	if anim == "attack" or anim.begins_with("attack_"):
 		_attack_anim_active = false
-	elif anim == "damage":
+	elif anim == "damage" or anim.begins_with("damage_"):
 		_damage_anim_active = false
 
 

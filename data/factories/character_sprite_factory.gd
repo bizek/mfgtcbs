@@ -27,7 +27,7 @@ extends RefCounted
 
 ## Animations that loop; everything else (attack/damage/death/combo/skill) plays once.
 ## Combo channels (e.g. Whirlwind) loop via choreography phase re-entry, not a looping SpriteFrames.
-const LOOPING_ANIMS: Array[String] = ["idle", "walk"]
+const LOOPING_ANIMS: Array[String] = ["idle", "walk", "carry_idle", "carry_walk"]
 
 ## Animations player.gd plays by name — warn if a character's data omits one.
 const REQUIRED_ANIMS: Array[String] = ["idle", "walk", "attack", "damage", "death"]
