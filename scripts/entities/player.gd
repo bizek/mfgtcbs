@@ -234,32 +234,14 @@ const AIM_ROTATED_FX_ANIMS: Array[String] = [
 ## scaling here: stretching a frame-matched pack effect up to a big hit radius reads as pixel mush
 ## (Ben 2026-07-19), and at 3x integer viewport scaling a fractional sprite scale shimmers.
 const AIM_FX_PUSH: float = 12.0
-## Rogue Bomb visuals (Throw Bomb asset package): the spinning bomb projectile arcs a short hop in
-## the facing direction during the wind-up, then "bomb_fx" (the package explosion) plays where it
-## lands. The projectile sheets are 3×3 directional grids; we slice the right-facing cell + flip_h.
-var _bomb_toss: AnimatedSprite2D = null
-var _bomb_tween: Tween = null
-var _bomb_start: Vector2 = Vector2.ZERO   ## world-space toss origin (bomb is NOT player-attached)
-var _bomb_land: Vector2 = Vector2.ZERO    ## world-space landing/detonation point
-var _bomb_atlases: Array = []             ## the spin frames' AtlasTextures (region re-aimed per toss)
 ## Four-way facing driven by the aim cursor. The True Heroes rows are DIAGONAL facings
 ## (down_left / down_right / up_left / up_right — Minifantasy oblique style);
 ## CharacterSpriteFactory slices them as "<anim>_<facing>" and _play_anim picks the variant.
 var _facing: String = "down_left"
 var _aim_dir: Vector2 = Vector2.DOWN   ## last aim/travel vector — picks the fallback facing side
 var _has_dir_anims: bool = false
-const BOMB_PROJ_SHEETS: Array[String] = [
-	"res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Rogue/Special_Animations/Throw Bomb/Minifantasy_TrueHeroesRogueBombProjectileFrame1.png",
-	"res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Rogue/Special_Animations/Throw Bomb/Minifantasy_TrueHeroesRogueBombProjectileFrame2.png",
-]
-const BOMB_EXPLOSION_SHEET: String = "res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Rogue/Special_Animations/Throw Bomb/Minifantasy_TrueHeroesRogueBombExplosion.png"
-const BOMB_THROW_MAX: float = 60.0   ## bomb lands at the cursor, clamped to this throw range
-const BOMB_TOSS_TIME: float = 0.33   ## ≈ time to hit_frame 6 @ 18fps
-const BOMB_ARC_H: float = 14.0
-## Wizard kit (The Spark): Teleport blink range, Fire Torrent forward offset, and the
-## directional 64px torrent flame sheet (4 facing rows, drawn ahead of the caster).
+## Wizard kit (The Spark): Teleport blink range.
 const TELEPORT_RANGE: float = 100.0
-const TORRENT_FORWARD: float = 36.0
 ## ── Barbarian Pile Driver (E) ────────────────────────────────────────────────────────────────
 ## Two presses: grab a chain of bodies out of the crowd and carry them overhead, then hurl the
 ## pile at the cursor. Replaced Throw Things (a cropped slab of scenery) on 2026-08-16 — see
@@ -351,9 +333,7 @@ const STORM_FX_FILES: Dictionary = {
 }
 const STORM_FORWARD: float = 52.0
 var _storm_fx: AnimatedSprite2D = null
-const TORRENT_FX_SHEET: String = "res://assets/minifantasy/Minifantasy_True_Heroes_III_v1.1/Minifantasy_True_Heroes_III_Assets/Wizard/Special_Animations/Fire_Torrent/Fire_Torrent_Effect.png"
 var _fire_familiar: Node2D = null
-var _torrent_fx: AnimatedSprite2D = null
 ## Spark Q/E overhaul (Ben 2026-07-20): Frost Burst leaves a looping ring of ice shards; Storm
 ## Call drops a two-bolt lightning strike over every enemy on the field. Sheets from the shared
 ## Spell Effects pack (32px cells; Aura sheets = row0 start / row1 loop / row2 end).
@@ -1842,11 +1822,6 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 			if eff is AreaDamageEffect or eff is SpawnProjectilesEffect or eff is DealDamageEffect:
 				status_effect_component.force_remove_status("concealed", self)
 				break
-	## Bomb detonation: this callback IS the hit_frame moment — swap the tossed bomb for the
-	## package explosion at its world landing spot.
-	var is_bomb: bool = sprite != null and String(sprite.animation).begins_with("bomb")
-	if is_bomb:
-		_detonate_bomb_fx(reach)
 	## Holy Hammer (Paladin): the slam also launches the hammerdin spiral — blessed hammers
 	## corkscrewing out from the Warden (HolyHammer nodes carry their own damage/visuals).
 	if sprite != null and String(sprite.animation).begins_with("hammer"):
@@ -1910,7 +1885,6 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 	## effects; the host just adds the Burst_Ice pop + the lingering shard aura.
 	if ability != null and ability.ability_id == "wizard_ice_burst":
 		_cast_ice_burst()
-	var is_torrent: bool = cur_anim.begins_with("torrent")
 	var is_hurl: bool = cur_anim.begins_with("hurl")
 	var is_teleport: bool = cur_anim.begins_with("teleport_out")
 	var is_extract: bool = cur_anim.begins_with("extract")
@@ -1957,16 +1931,9 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 		_vamp_hit = not _nearby_enemies(50.0 * reach).is_empty()
 
 	if not self_effects.is_empty():
-		## The bomb's blast centers on its landing point, the torrent a short way toward the
-		## cursor (aim-marker targets); every other combo AoE self-centers on the player.
+		## The hurled pile lands at the aim marker; every other combo AoE self-centers on the player.
 		var center: Node2D = self
-		if is_bomb:
-			center = _get_aim_target(_bomb_land)
-		elif is_torrent:
-			var t_aim: Vector2 = _get_aim_world_position() - global_position
-			if t_aim.length_squared() >= 1.0:
-				center = _get_aim_target(global_position + t_aim.normalized() * TORRENT_FORWARD)
-		elif is_hurl:
+		if is_hurl:
 			## Pile Driver release: the pile lands where you point, up to a hurl's reach. This
 			## burst is the CROWD hit, and it carries a per-body bonus so a fat grab lands harder
 			## on whatever it is dropped onto. _hurl_pile throws the bodies themselves — and it
@@ -2155,21 +2122,6 @@ func choreo_on_phase_anim(phase: ChoreographyPhase, stage: String = "") -> void:
 		return
 	if anim == "hammer" and _combo_fx:
 		_combo_fx.visible = false
-	## Rogue Bomb: toss the package's spinning bomb projectile during the wind-up; the explosion
-	## ("bomb_fx") is played at detonation by choreo_fire_effects, not at anim start.
-	if anim == "bomb":
-		if _combo_fx:
-			_combo_fx.visible = false
-		_start_bomb_toss()
-		return
-	## Wizard Fire Torrent: dedicated directional flame overlay ahead of the caster.
-	if anim == "torrent":
-		if _combo_fx:
-			_combo_fx.visible = false
-		_show_torrent_fx()
-		return
-	if _torrent_fx:
-		_torrent_fx.visible = false   ## any non-torrent node ends the flame
 	## Gunslinger Desert Storm: directional barrage strip ahead of the shooter.
 	if anim == "storm":
 		if _combo_fx:
@@ -2265,81 +2217,8 @@ func _play_base_layer(anim: String) -> void:
 func _on_combo_fx_finished() -> void:
 	if _combo_fx:
 		_combo_fx.visible = false
-		_combo_fx.position = Vector2.ZERO   ## undo any bomb-landing offset
+		_combo_fx.position = Vector2.ZERO   ## undo any AIM_FX_PUSH offset
 		_combo_fx.rotation = 0.0            ## undo any exact-aim spin (AIM_ROTATED_FX_ANIMS)
-
-
-func _start_bomb_toss() -> void:
-	## Toss the Throw Bomb package's spinning projectile from the player toward the cursor
-	## (clamped throw range), world-anchored so it doesn't ride along with the player. The
-	## directional cell of the 3×3 projectile grid is picked from the throw octant.
-	if _bomb_toss == null:
-		_bomb_toss = AnimatedSprite2D.new()
-		_bomb_toss.name = "BombToss"
-		_bomb_toss.top_level = true   ## world space — the bomb is NOT attached to the player
-		_bomb_toss.z_index = 1
-		_bomb_toss.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		var sf := SpriteFrames.new()
-		sf.clear_all()
-		sf.add_animation(&"spin")
-		sf.set_animation_loop(&"spin", true)
-		sf.set_animation_speed(&"spin", 12.0)   ## frame 1/2 alternate = the fuse flicker
-		_bomb_atlases.clear()
-		for path in BOMB_PROJ_SHEETS:
-			if not ResourceLoader.exists(path):
-				continue
-			var atlas := AtlasTexture.new()
-			atlas.atlas = load(path)
-			atlas.region = _bomb_cell(Vector2.DOWN)
-			atlas.filter_clip = true
-			sf.add_frame(&"spin", atlas)
-			_bomb_atlases.append(atlas)
-		## The package explosion, played at the landing point on detonation.
-		sf.add_animation(&"explode")
-		sf.set_animation_loop(&"explode", false)
-		sf.set_animation_speed(&"explode", 20.0)
-		if ResourceLoader.exists(BOMB_EXPLOSION_SHEET):
-			var ex: Texture2D = load(BOMB_EXPLOSION_SHEET)
-			for i in range(int(ex.get_width() / 32.0)):
-				var cell := AtlasTexture.new()
-				cell.atlas = ex
-				cell.region = Rect2(i * 32, 0, 32, 32)
-				cell.filter_clip = true
-				sf.add_frame(&"explode", cell)
-		_bomb_toss.sprite_frames = sf
-		_bomb_toss.animation_finished.connect(_on_bomb_anim_finished)
-		add_child(_bomb_toss)
-	var aim: Vector2 = _get_aim_world_position() - global_position
-	if aim.length_squared() < 1.0:
-		aim = Vector2.DOWN
-	_bomb_start = global_position
-	_bomb_land = global_position + aim.limit_length(BOMB_THROW_MAX)
-	for at in _bomb_atlases:
-		at.region = _bomb_cell(aim)
-	_bomb_toss.scale = Vector2.ONE
-	_bomb_toss.global_position = _bomb_start
-	_bomb_toss.visible = true
-	_bomb_toss.play(&"spin")
-	if _bomb_tween:
-		_bomb_tween.kill()
-	_bomb_tween = create_tween()
-	_bomb_tween.tween_method(_bomb_arc_step, 0.0, 1.0, BOMB_TOSS_TIME)
-
-
-func _bomb_arc_step(t: float) -> void:
-	## Parabolic hop between the world-space start and landing points.
-	if _bomb_toss:
-		_bomb_toss.global_position = _bomb_start.lerp(_bomb_land, t) \
-				+ Vector2(0.0, -BOMB_ARC_H * 4.0 * t * (1.0 - t))
-
-
-## Octant → cell of the 3×3 directional projectile grid (screen y-down: row 0 = up, row 2 = down).
-static func _bomb_cell(dir: Vector2) -> Rect2:
-	var oct: int = wrapi(roundi(atan2(dir.y, dir.x) / (PI / 4.0)), 0, 8)   ## 0=E,1=SE,…,7=NE
-	var cells: Array = [Vector2i(2, 1), Vector2i(2, 2), Vector2i(1, 2), Vector2i(0, 2),
-			Vector2i(0, 1), Vector2i(0, 0), Vector2i(1, 0), Vector2i(2, 0)]
-	var c: Vector2i = cells[oct]
-	return Rect2(c.x * 32, c.y * 32, 32, 32)
 
 
 func _spawn_fire_familiar() -> void:
@@ -2363,40 +2242,6 @@ func _do_teleport() -> void:
 	if aim.length_squared() < 1.0:
 		return
 	global_position += aim.limit_length(TELEPORT_RANGE)
-
-
-func _show_torrent_fx() -> void:
-	## Directional Fire_Torrent_Effect (64px frames, 4 facing rows) pours toward the cursor
-	## while the channel loops; repositioned/re-rowed on every tick re-entry.
-	if _torrent_fx == null:
-		_torrent_fx = AnimatedSprite2D.new()
-		_torrent_fx.name = "TorrentFx"
-		_torrent_fx.z_index = 1
-		_torrent_fx.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		var sf := SpriteFrames.new()
-		sf.clear_all()
-		var tex: Texture2D = load(TORRENT_FX_SHEET)
-		if tex:
-			for facing in CharacterSpriteFactory.DIR_ROWS:
-				var anim := StringName("t_" + facing)
-				sf.add_animation(anim)
-				sf.set_animation_loop(anim, true)
-				sf.set_animation_speed(anim, 30.0)
-				for i in range(int(tex.get_width() / 64.0)):
-					var cell := AtlasTexture.new()
-					cell.atlas = tex
-					cell.region = Rect2(i * 64, int(CharacterSpriteFactory.DIR_ROWS[facing]) * 64, 64, 64)
-					cell.filter_clip = true
-					sf.add_frame(anim, cell)
-		_torrent_fx.sprite_frames = sf
-		add_child(_torrent_fx)
-	var aim: Vector2 = _get_aim_world_position() - global_position
-	if aim.length_squared() >= 1.0:
-		_torrent_fx.position = aim.normalized() * TORRENT_FORWARD
-	_torrent_fx.visible = true
-	var anim_name := StringName("t_" + _facing)
-	if _torrent_fx.animation != anim_name or not _torrent_fx.is_playing():
-		_torrent_fx.play(anim_name)
 
 
 func _spawn_blood_elemental() -> void:
@@ -3851,27 +3696,6 @@ func _ensure_shield_bubble() -> void:
 	add_child(_shield_bubble)
 
 
-func _detonate_bomb_fx(reach: float) -> void:
-	## Swap the tossed bomb for the package explosion at its world landing spot. Starts at the
-	## sheet's native size and scales ONLY with the melee_range stat (Reach mods / level picks),
-	## matching the blast's damage radius (ChainFactory keys it to the same native size).
-	if _bomb_tween:
-		_bomb_tween.kill()
-	if _bomb_toss == null or _bomb_toss.sprite_frames == null \
-			or not _bomb_toss.sprite_frames.has_animation(&"explode"):
-		return
-	_bomb_toss.global_position = _bomb_land
-	_bomb_toss.scale = Vector2.ONE * reach
-	_bomb_toss.visible = true
-	_bomb_toss.play(&"explode")
-
-
-func _on_bomb_anim_finished() -> void:
-	if _bomb_toss and _bomb_toss.animation == &"explode":
-		_bomb_toss.visible = false
-		_bomb_toss.scale = Vector2.ONE
-
-
 ## Source art for the shockwave pop. Electric_Expansive_Shock is 56×56 over 26 frames — a ring
 ## that genuinely expands, unlike a scaled circle — and it tints cleanly to gold/green/blue for
 ## the non-electric callers (Reckoning, Second Wind, Aegis, Taunt).
@@ -4133,14 +3957,6 @@ func choreo_on_end() -> void:
 		_combo_fx.visible = false
 	if _combo_base:
 		_combo_base.visible = false
-	## An un-detonated bomb toss (combo interrupted mid-wind-up) disappears; a detonated
-	## explosion is world-anchored and finishes on its own.
-	if _bomb_toss and _bomb_toss.animation != &"explode":
-		if _bomb_tween:
-			_bomb_tween.kill()
-		_bomb_toss.visible = false
-	if _torrent_fx:
-		_torrent_fx.visible = false
 	if _vamp_fx:
 		_vamp_fx.visible = false
 	_vamp_hit = false

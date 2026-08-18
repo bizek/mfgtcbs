@@ -56,7 +56,6 @@ const SWIRL_GRIND_MULT: float = 0.20    ## per-tick damage ≈ 1.0x total for an
 const SWIRL_BURST_MULT: float = 0.60    ## per-bone damage on the outward volley
 const SWIRL_BASE_BONES: int = 3         ## pack row 0 = 3 bones; rows 1/2 add 2/1 for higher counts
 const DICTUM_TICK: float = 0.75     ## Paladin channel tick (dictum/dome: 15f @ 20fps = 0.75s)
-const TORRENT_TICK: float = 0.67    ## Wizard Fire Torrent tick (torrent: 20f @ 30fps ≈ 0.67s)
 const VAMP_TICK: float = 0.5        ## Blood Mage Vampirize half-cycle (7f @ 14fps = 0.5s)
 const VOLLEY_TICK: float = 0.85     ## Ranger Volley channel beat — slower than the light chain (sustained, not burst)
 ## Ranger Elemental Burst splash (the armed RMB finisher). Sized to catch a small cluster, not a
