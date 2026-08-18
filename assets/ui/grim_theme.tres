@@ -14,6 +14,8 @@ texture_margin_left = 6.0
 texture_margin_top = 6.0
 texture_margin_right = 6.0
 texture_margin_bottom = 6.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(80, 1088, 48, 48)
 modulate_color = Color(0.55, 0.55, 0.55, 0.75)
 
@@ -41,6 +43,8 @@ texture_margin_left = 6.0
 texture_margin_top = 6.0
 texture_margin_right = 6.0
 texture_margin_bottom = 6.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(208, 1088, 48, 48)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_osqg3"]
@@ -53,6 +57,8 @@ texture_margin_left = 6.0
 texture_margin_top = 6.0
 texture_margin_right = 6.0
 texture_margin_bottom = 6.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(80, 1088, 48, 48)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_5huwg"]
@@ -65,6 +71,8 @@ texture_margin_left = 6.0
 texture_margin_top = 6.0
 texture_margin_right = 6.0
 texture_margin_bottom = 6.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(336, 1088, 48, 48)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_dkqq8"]
@@ -145,6 +153,8 @@ texture_margin_left = 6.0
 texture_margin_top = 6.0
 texture_margin_right = 6.0
 texture_margin_bottom = 6.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(992, 1088, 48, 48)
 modulate_color = Color(0.55, 0.55, 0.55, 0.75)
 
@@ -158,6 +168,8 @@ texture_margin_left = 6.0
 texture_margin_top = 6.0
 texture_margin_right = 6.0
 texture_margin_bottom = 6.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(1120, 1088, 48, 48)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_g065d"]
@@ -170,6 +182,8 @@ texture_margin_left = 6.0
 texture_margin_top = 6.0
 texture_margin_right = 6.0
 texture_margin_bottom = 6.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(992, 1088, 48, 48)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_miefv"]
@@ -182,6 +196,8 @@ texture_margin_left = 6.0
 texture_margin_top = 6.0
 texture_margin_right = 6.0
 texture_margin_bottom = 6.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(1248, 1088, 48, 48)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_s5y7u"]
@@ -194,6 +210,8 @@ texture_margin_left = 6.0
 texture_margin_top = 6.0
 texture_margin_right = 6.0
 texture_margin_bottom = 6.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(2816, 1088, 48, 48)
 modulate_color = Color(0.55, 0.55, 0.55, 0.75)
 
@@ -207,6 +225,8 @@ texture_margin_left = 6.0
 texture_margin_top = 6.0
 texture_margin_right = 6.0
 texture_margin_bottom = 6.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(2944, 1088, 48, 48)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_tojds"]
@@ -219,6 +239,8 @@ texture_margin_left = 6.0
 texture_margin_top = 6.0
 texture_margin_right = 6.0
 texture_margin_bottom = 6.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(2816, 1088, 48, 48)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_byvah"]
@@ -231,6 +253,8 @@ texture_margin_left = 6.0
 texture_margin_top = 6.0
 texture_margin_right = 6.0
 texture_margin_bottom = 6.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(3072, 1088, 48, 48)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_e0wmm"]
@@ -239,6 +263,7 @@ corner_radius_top_left = 2
 corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
+anti_aliasing = false
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7xuij"]
 bg_color = Color(0.541, 0.408, 0.282, 1)
@@ -246,6 +271,7 @@ corner_radius_top_left = 2
 corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
+anti_aliasing = false
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pgixr"]
 bg_color = Color(0, 0, 0, 0.35)
@@ -253,6 +279,7 @@ corner_radius_top_left = 2
 corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
+anti_aliasing = false
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_khmdh"]
 content_margin_left = 0.0
@@ -284,6 +311,8 @@ texture_margin_left = 6.0
 texture_margin_top = 6.0
 texture_margin_right = 6.0
 texture_margin_bottom = 6.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(339, 740, 42, 7)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_idag6"]
@@ -296,6 +325,8 @@ texture_margin_left = 6.0
 texture_margin_top = 6.0
 texture_margin_right = 6.0
 texture_margin_bottom = 6.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(1904, 1088, 48, 48)
 modulate_color = Color(0.55, 0.55, 0.55, 0.75)
 
@@ -309,6 +340,8 @@ texture_margin_left = 6.0
 texture_margin_top = 6.0
 texture_margin_right = 6.0
 texture_margin_bottom = 6.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(2032, 1088, 48, 48)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_4nxjk"]
@@ -321,6 +354,8 @@ texture_margin_left = 6.0
 texture_margin_top = 6.0
 texture_margin_right = 6.0
 texture_margin_bottom = 6.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(1904, 1088, 48, 48)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_gyhag"]
@@ -333,6 +368,8 @@ texture_margin_left = 6.0
 texture_margin_top = 6.0
 texture_margin_right = 6.0
 texture_margin_bottom = 6.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(2160, 1088, 48, 48)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_0ccj6"]
@@ -357,6 +394,8 @@ texture_margin_left = 5.0
 texture_margin_top = 5.0
 texture_margin_right = 5.0
 texture_margin_bottom = 5.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(112, 160, 48, 48)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_hcy4w"]
@@ -369,6 +408,8 @@ texture_margin_left = 6.0
 texture_margin_top = 6.0
 texture_margin_right = 6.0
 texture_margin_bottom = 6.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(3728, 1088, 48, 48)
 modulate_color = Color(0.55, 0.55, 0.55, 0.75)
 
@@ -382,6 +423,8 @@ texture_margin_left = 6.0
 texture_margin_top = 6.0
 texture_margin_right = 6.0
 texture_margin_bottom = 6.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(3856, 1088, 48, 48)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_sokij"]
@@ -394,6 +437,8 @@ texture_margin_left = 6.0
 texture_margin_top = 6.0
 texture_margin_right = 6.0
 texture_margin_bottom = 6.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(3728, 1088, 48, 48)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_2dt6w"]
@@ -406,6 +451,8 @@ texture_margin_left = 6.0
 texture_margin_top = 6.0
 texture_margin_right = 6.0
 texture_margin_bottom = 6.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(3984, 1088, 48, 48)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_1pbho"]
@@ -418,6 +465,8 @@ texture_margin_left = 6.0
 texture_margin_top = 6.0
 texture_margin_right = 6.0
 texture_margin_bottom = 6.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(208, 1088, 48, 48)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_v0n4u"]
@@ -430,6 +479,8 @@ texture_margin_left = 6.0
 texture_margin_top = 6.0
 texture_margin_right = 6.0
 texture_margin_bottom = 6.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(80, 1088, 48, 48)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_r8uli"]
@@ -442,6 +493,8 @@ texture_margin_left = 6.0
 texture_margin_top = 6.0
 texture_margin_right = 6.0
 texture_margin_bottom = 6.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(336, 1088, 48, 48)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_3fxic"]
@@ -454,6 +507,8 @@ texture_margin_left = 9.0
 texture_margin_top = 9.0
 texture_margin_right = 9.0
 texture_margin_bottom = 9.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(112, 704, 48, 48)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_s8ilx"]
@@ -466,6 +521,8 @@ texture_margin_left = 9.0
 texture_margin_top = 9.0
 texture_margin_right = 9.0
 texture_margin_bottom = 9.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(112, 704, 48, 48)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_s0x7b"]
@@ -478,6 +535,8 @@ texture_margin_left = 5.0
 texture_margin_top = 5.0
 texture_margin_right = 5.0
 texture_margin_bottom = 5.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(112, 160, 48, 48)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_nm2wi"]
@@ -490,6 +549,8 @@ texture_margin_left = 13.0
 texture_margin_top = 13.0
 texture_margin_right = 13.0
 texture_margin_bottom = 13.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(108, 1244, 56, 56)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_vy881"]
@@ -525,6 +586,8 @@ texture_margin_left = 9.0
 texture_margin_top = 9.0
 texture_margin_right = 9.0
 texture_margin_bottom = 9.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(112, 704, 48, 48)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_s00cv"]
@@ -537,6 +600,8 @@ texture_margin_left = 13.0
 texture_margin_top = 13.0
 texture_margin_right = 13.0
 texture_margin_bottom = 13.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(108, 1244, 56, 56)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ta4kk"]
@@ -592,6 +657,8 @@ texture_margin_left = 2.0
 texture_margin_top = 2.0
 texture_margin_right = 2.0
 texture_margin_bottom = 2.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(109, 285, 22, 22)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_01fmp"]
@@ -616,6 +683,8 @@ texture_margin_left = 5.0
 texture_margin_top = 5.0
 texture_margin_right = 5.0
 texture_margin_bottom = 5.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(112, 160, 48, 48)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_crhjp"]
@@ -628,6 +697,8 @@ texture_margin_left = 6.0
 texture_margin_top = 6.0
 texture_margin_right = 6.0
 texture_margin_bottom = 6.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(544, 213, 48, 15)
 modulate_color = Color(0.72, 0.72, 0.72, 1)
 
@@ -641,6 +712,8 @@ texture_margin_left = 6.0
 texture_margin_top = 6.0
 texture_margin_right = 6.0
 texture_margin_bottom = 6.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(544, 213, 48, 15)
 modulate_color = Color(0.9, 0.9, 0.9, 1)
 
@@ -654,6 +727,8 @@ texture_margin_left = 6.0
 texture_margin_top = 6.0
 texture_margin_right = 6.0
 texture_margin_bottom = 6.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(544, 333, 48, 23)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_0f13t"]
@@ -666,6 +741,8 @@ texture_margin_left = 9.0
 texture_margin_top = 9.0
 texture_margin_right = 9.0
 texture_margin_bottom = 9.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 region_rect = Rect2(112, 704, 48, 48)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fnuqr"]
@@ -674,6 +751,7 @@ corner_radius_top_left = 2
 corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
+anti_aliasing = false
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_8sr10"]
 bg_color = Color(0.541, 0.408, 0.282, 1)
@@ -681,6 +759,7 @@ corner_radius_top_left = 2
 corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
+anti_aliasing = false
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wxg6k"]
 bg_color = Color(0, 0, 0, 0.35)
@@ -688,6 +767,7 @@ corner_radius_top_left = 2
 corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
+anti_aliasing = false
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ojqhv"]
 content_margin_left = 1.0
@@ -708,6 +788,7 @@ texture_margin_left = 6.0
 texture_margin_top = 6.0
 texture_margin_right = 6.0
 texture_margin_bottom = 6.0
+axis_stretch_horizontal = 1
 region_rect = Rect2(339, 740, 42, 7)
 
 [resource]

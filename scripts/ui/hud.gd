@@ -346,6 +346,7 @@ func _bar_track_stylebox() -> StyleBoxFlat:
 	sb.border_color = Color(0.30, 0.22, 0.14)
 	sb.set_border_width_all(1)
 	sb.set_corner_radius_all(3)
+	sb.anti_aliasing = false   ## rounded StyleBoxFlats default to AA, which feathers a sub-pixel fringe on every edge — off-grid in a 640x360 pixel UI
 	sb.set_content_margin_all(1.0)
 	return sb
 

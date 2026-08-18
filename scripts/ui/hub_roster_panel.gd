@@ -40,9 +40,13 @@ const FS_MD := 16
 const FS_SM := 16
 const FS_XS := 16
 
-## Portrait size in the detail pane (rendered with NEAREST for crisp 2× upscale).
-const PORTRAIT_DETAIL_PX := 48   ## 32px native × 1.5 (fits detail pane without scrolling)
-const PORTRAIT_CARD_PX   := 20   ## fits in the 26px card row
+## Portrait sizes. The portrait PNGs are 32x32 pixel art, so the box MUST be an integer
+## multiple of 32 — anything else resamples the art (48 was 32 × 1.5, and because the detail
+## TextureRect fills its 52px Panel it actually drew at 1.625x, with uneven 1px/2px source
+## pixels). 2x (64 + border) overflows the detail pane by ~6px on every character and forces a
+## scrollbar, so the detail portrait is 1:1; it lines up with the two-line name/class header.
+const PORTRAIT_DETAIL_PX := 32   ## 1:1 — see above; 64 (2x) only if the pane grows 16px
+const PORTRAIT_CARD_PX   := 32   ## the 38px card row already gave the thumbnail 32px; 1:1
 
 ## ── State ─────────────────────────────────────────────────────────────────────
 var _pm: Node = null
@@ -203,7 +207,9 @@ func _build_char_card(parent: VBoxContainer, char_id: String) -> void:
 		tex_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		tex_rect.custom_minimum_size = Vector2(PORTRAIT_CARD_PX, PORTRAIT_CARD_PX)
 		tex_rect.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		## KEEP_CENTERED, not KEEP_ASPECT_CENTERED: the latter scales the art to FIT the box, so
+		## any box that isn't exactly 32 resamples it. Native size, centred, whatever the box.
+		tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
 		## Locked = silhouette-style by heavy darkening; unowned = partial dim
 		if is_owned:
 			tex_rect.modulate = Color.WHITE
@@ -346,7 +352,9 @@ func _build_detail_pane(parent: HBoxContainer) -> void:
 		tex.texture = load(portrait_path) as Texture2D
 		tex.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		tex.custom_minimum_size = Vector2(PORTRAIT_DETAIL_PX, PORTRAIT_DETAIL_PX)
-		tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		## KEEP_CENTERED: the TextureRect fills the 36px Panel, and KEEP_ASPECT_CENTERED would
+		## stretch the 32px art to 36 (1.125x). Native size, centred in the 2px frame.
+		tex.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
 		tex.set_anchors_preset(Control.PRESET_FULL_RECT)
 		if not is_owned:
 			tex.modulate = Color(0.15, 0.12, 0.10, 1.0)

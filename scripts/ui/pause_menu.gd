@@ -85,6 +85,7 @@ func _build_menu() -> void:
 	var bg := StyleBoxFlat.new()
 	bg.bg_color = Color(0.06, 0.06, 0.12, 0.95)
 	bg.set_corner_radius_all(4)
+	bg.anti_aliasing = false   ## rounded StyleBoxFlats default to AA, which feathers a sub-pixel fringe on every edge — off-grid in a 640x360 pixel UI
 	bg.set_content_margin_all(12.0)
 	pc.add_theme_stylebox_override("panel", bg)
 

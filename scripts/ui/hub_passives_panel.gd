@@ -717,6 +717,7 @@ func _style_node_btn(btn: Button, bg: Color, border: Color, accent: Color, borde
 		sb.border_color = accent if state == "focus" else border
 		sb.set_border_width_all(2 if state == "focus" else border_w)
 		sb.set_corner_radius_all(2)
+		sb.anti_aliasing = false   ## rounded StyleBoxFlats default to AA, which feathers a sub-pixel fringe on every edge — off-grid in a 640x360 pixel UI
 		sb.set_content_margin_all(0)
 		btn.add_theme_stylebox_override(state, sb)
 

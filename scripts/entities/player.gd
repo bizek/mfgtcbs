@@ -214,7 +214,6 @@ var _combo_fx: AnimatedSprite2D = null
 ## Ground layer for packs' "Base" sheets — same frames, drawn UNDER the character (z -1).
 var _combo_base: AnimatedSprite2D = null
 const FX_NATIVE_RADIUS: float = 14.0   ## radius (px) the white slash reaches inside the 32px frame
-const COMBO_FX_SCALE: float = 2.4   ## fallback upscale for nodes with no AreaDamage radius
 ## Frame-matched full-body overlays that must play at NATIVE scale — never stretched to the
 ## hit radius (stretching a pack's frame-matched effect sheet reads as pixel mush; the
 ## shockwave ring marks the zone for these instead). The generic white swing slashes stay
@@ -1315,11 +1314,13 @@ func _physics_process(delta: float) -> void:
 		velocity = velocity.move_toward(target_velocity, 1500.0 * delta)
 	velocity += knockback_velocity
 	move_and_slide()
-	# Snap sprite to pixel grid without discarding fractional physics position.
-	# Rounding position itself loses sub-pixel accumulation each frame, cutting
-	# diagonal speed by ~15% vs ~10% cardinal (diagonal per-axis step is smaller).
-	if sprite:
-		sprite.position = position.round() - position
+	## No manual sprite snap here. The project renders with `snap_2d_transforms_to_pixel`, which
+	## rounds every canvas item's transform (and the camera's) to whole pixels at draw time
+	## WITHOUT touching the physics position, so sub-pixel accumulation is preserved for free.
+	## The old `sprite.position = position.round() - position` compensation was redundant, and
+	## worse: it made `sprite.position` a per-frame fractional value that `_pile_hands_anchor`
+	## adds into the carried-pile anchor, and at an exact .5 fraction the engine's own rounding
+	## of that offset pushed the sprite one extra pixel.
 	knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 1400.0 * delta)
 	## Carried pile rides along — after move_and_slide, so it never trails a frame behind him.
 	_tick_pile(delta)

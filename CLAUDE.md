@@ -200,6 +200,33 @@ All content follows the data factory pattern: `static func create() -> Resource`
   Base Camp/Map.tscn), and never auto-generate new random IDs that overwrite committed scenes.
 - **3x viewport scaling.** 640x360 renders to 1920x1080 — all UI text/font sizes must stay legible
   after the upscale.
+- **Pixel grid — what the engine snaps and what it cannot (audit 2026-08-17).**
+  `snap_2d_transforms_to_pixel` + `snap_2d_vertices_to_pixel` are on and round every canvas item's
+  origin, its parent transform (the camera included) and every vertex at draw time, so fractional
+  *positions* — odd-width panels centred at x.5, `TextureRect` centring, camera shake, the player's
+  sub-pixel physics position — are already crisp. **Never round a position by hand for crispness**;
+  `player.gd` used to and it only fed jitter into the pile anchor. What snapping cannot fix, and
+  what every new site must respect: **scale is an integer** (sprites, `TextureRect`, `Button.icon`,
+  `_draw`), **rotation is a quarter turn** (`_pile_snap_quarter`) or the art has directional rows,
+  **the window scales by integers** (`display/window/stretch/scale_mode=integer` — keep it; that
+  setting was `fractional` until 2026-08-17, which is why a maximised or dragged window rendered
+  every pixel a different size while an exact 2x/3x window looked fine). To fit pixel art in a
+  box: the largest integer multiple that fits (`hud._fit_glyph_icon`) or bake the factor into an
+  `ImageTexture` with `Image.INTERPOLATE_NEAREST` (`GameCursor._texture_for`,
+  `UIIcons.window_button_scaled`); never `Button.expand_icon`, never `STRETCH_SCALE` /
+  `STRETCH_KEEP_ASPECT*` into an arbitrary size (`KEEP_ASPECT_CENTERED` *upscales* to fit — use
+  `STRETCH_KEEP_CENTERED` for native size). To cover a rect: the smallest integer factor that
+  covers, then `KEEP_CENTERED` + `EXPAND_IGNORE_SIZE` (`main_arena._setup_floor`). Rounded
+  `StyleBoxFlat` → `anti_aliasing = false` (Godot defaults it on and feathers every edge).
+  Nine-patch `StyleBoxTexture` bands → `AXIS_STRETCH_MODE_TILE` (`_nine` in the theme builder
+  does this now; STRETCH scaled the Grim frames' dashed rivet border unevenly on every wide
+  button). Debug tools' vector font goes through `DebugUI.crisp_vector_font()` — AA off,
+  sub-pixel off, autohinter on — because an anti-aliased face at 9-14px in a 640x360 buffer is
+  what made the training room / anim lab text look blurry after the upscale. The
+  remaining fixed fractional scales are art-size calls listed for Ben in clerveu's audit report
+  (`pixel_grid_audit_2026-08-17.md`, delivered outside this repo): the enemy `sprite_scale` table
+  (~20 factories at 0.8–3.2), pickups at 0.75, guardian 2.5/0.65 + its 1.06 breathe tween, the
+  1.10 extraction zoom punch, arbitrary-angle rotations of pack art; do not "fix" those without him.
 - **Font sizes are 16 or 32. Nothing else.** `m5x7.ttf` is a 16px-native pixel font — every glyph
   coordinate sits on a 1024/16 = 64-unit grid, so one design pixel equals one screen pixel *only*
   at 16 and its integer multiples. At any other size the stems land on fractional pixels and,

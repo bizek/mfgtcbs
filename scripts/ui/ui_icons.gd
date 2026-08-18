@@ -444,24 +444,63 @@ static func window_button(kind: int = WinBtn.CLOSE, state: int = WinBtnTint.BRIG
 	return at
 
 
+## One window button pre-scaled to an INTEGER multiple as an ImageTexture (nearest-neighbour),
+## so a Button can draw it at native size with `expand_icon` OFF. `expand_icon` fits the icon to
+## the button's content rect, and the hub close button's rect is 32x29 — 6px art at ~4.2x, uneven
+## 4px/5px source pixels on every hub panel. Baking the scale into the texture is the same trick
+## GameCursor uses for the hardware cursor. Cached per (kind, state, scale). Null if the sheet is
+## missing.
+static var _win_btn_scaled: Dictionary = {}
+static var _grim_image: Image = null
+
+static func window_button_scaled(kind: int = WinBtn.CLOSE, state: int = WinBtnTint.BRIGHT,
+		scale: int = 2) -> Texture2D:
+	scale = maxi(1, scale)
+	if scale == 1:
+		return window_button(kind, state)
+	var key: String = "%d,%d,%d" % [kind, state, scale]
+	if _win_btn_scaled.has(key):
+		return _win_btn_scaled[key]
+	var sheet := _grim()
+	if sheet == null:
+		return null
+	if _grim_image == null:
+		_grim_image = sheet.get_image()
+	if _grim_image == null:
+		return window_button(kind, state)
+	var src := Rect2i(WIN_BTN_X[kind], WIN_BTN_Y[state], WIN_BTN_SIZE, WIN_BTN_SIZE)
+	var cell := Image.create(WIN_BTN_SIZE, WIN_BTN_SIZE, false, _grim_image.get_format())
+	cell.blit_rect(_grim_image, src, Vector2i.ZERO)
+	## INTERPOLATE_NEAREST is the whole point — anything else turns pixel art to mush.
+	cell.resize(WIN_BTN_SIZE * scale, WIN_BTN_SIZE * scale, Image.INTERPOLATE_NEAREST)
+	var tex := ImageTexture.create_from_image(cell)
+	_win_btn_scaled[key] = tex
+	return tex
+
+
 ## Dress a Button as a window button, replacing its text glyph with the pack's art.
 ##
 ## The art is 6x6 SOURCE pixels, so it is scaled to an integer multiple — 2x by default, giving
 ## 12x12. Never a fractional scale: it aliases pixel art exactly the way m5x7 fails off its grid,
-## and the skill-slot keycaps shipped at 1:1 for months for want of this.
+## and the skill-slot keycaps shipped at 1:1 for months for want of this. The scale is baked into
+## the texture (see window_button_scaled) and `expand_icon` stays OFF — with it on, the icon is
+## fitted to the button rect instead, which is whatever the layout gave the button (32x29 on the
+## hub title bar), not an integer multiple of 6.
 ##
 ## Returns false and leaves the button untouched when the sheet is unavailable, so a missing pack
 ## degrades to the existing "X" rather than to an unlabelled square.
 static func apply_window_button(btn: Button, kind: int = WinBtn.CLOSE, scale: int = 2) -> bool:
-	var idle := window_button(kind, WinBtnTint.BRIGHT)
+	scale = maxi(1, scale)
+	var idle := window_button_scaled(kind, WinBtnTint.BRIGHT, scale)
 	if idle == null or btn == null:
 		return false
 	btn.text = ""
 	btn.icon = idle
-	btn.expand_icon = true
+	btn.expand_icon = false
 	btn.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	btn.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
 	btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	var px: float = float(WIN_BTN_SIZE * maxi(1, scale))
+	var px: float = float(WIN_BTN_SIZE * scale)
 	btn.custom_minimum_size = Vector2(px, px)
 
 	## The pack ships the hover state as art; using it beats a modulate hack, and leaving two
@@ -470,7 +509,7 @@ static func apply_window_button(btn: Button, kind: int = WinBtn.CLOSE, scale: in
 	## Guarded with a meta flag, NOT with is_connected(): the callables below are .bind()-ed, and
 	## a bound Callable never compares equal to the bare method, so is_connected would report
 	## false every time and stack a fresh set of connections on each call.
-	var hover := window_button(kind, WinBtnTint.RAISED)
+	var hover := window_button_scaled(kind, WinBtnTint.RAISED, scale)
 	if hover != null and not btn.has_meta("win_btn_wired"):
 		btn.set_meta("win_btn_wired", true)
 		btn.mouse_entered.connect(_win_btn_swap.bind(btn, hover))

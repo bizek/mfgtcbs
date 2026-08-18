@@ -181,6 +181,14 @@ func _nine(region: Rect2, margin: int, content: int = -1) -> StyleBoxTexture:
 	for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
 		sb.set_texture_margin(side, float(margin))
 		sb.set_content_margin(side, float(margin if content < 0 else content))
+	## TILE the edge and centre bands, never STRETCH them (the default). The Grim frames carry
+	## a dashed rivet border, and stretching that band across a wide button or panel scales the
+	## dashes by a fractional factor — an uneven "- -- -" edge on every button in the game
+	## (visible on the training panel, 2026-08-17). The pack's own note: "16x16px sliced to
+	## facilitate the creation of panels of any size" — i.e. repeat at authored scale.
+	## `_slot_box` had already done this for the item slots for the same reason.
+	sb.axis_stretch_horizontal = StyleBoxTexture.AXIS_STRETCH_MODE_TILE
+	sb.axis_stretch_vertical = StyleBoxTexture.AXIS_STRETCH_MODE_TILE
 	return sb
 
 
@@ -455,16 +463,19 @@ func _build_scrollbars(theme: Theme) -> void:
 		var bg := StyleBoxFlat.new()
 		bg.bg_color = Color(0, 0, 0, 0.35)
 		bg.set_corner_radius_all(2)
+		bg.anti_aliasing = false   ## rounded StyleBoxFlats default to AA, which feathers a sub-pixel fringe on every edge — off-grid in a 640x360 pixel UI
 		theme.set_stylebox("scroll", t, bg)
 
 		var grab := StyleBoxFlat.new()
 		grab.bg_color = BROWN
 		grab.set_corner_radius_all(2)
+		grab.anti_aliasing = false   ## rounded StyleBoxFlats default to AA, which feathers a sub-pixel fringe on every edge — off-grid in a 640x360 pixel UI
 		theme.set_stylebox("grabber", t, grab)
 
 		var grab_hi := StyleBoxFlat.new()
 		grab_hi.bg_color = BONE_DIM
 		grab_hi.set_corner_radius_all(2)
+		grab_hi.anti_aliasing = false   ## rounded StyleBoxFlats default to AA, which feathers a sub-pixel fringe on every edge — off-grid in a 640x360 pixel UI
 		theme.set_stylebox("grabber_highlight", t, grab_hi)
 		theme.set_stylebox("grabber_pressed", t, grab_hi)
 

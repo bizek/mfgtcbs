@@ -127,6 +127,7 @@ func _create_panel_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.15, 0.15, 0.15, 0.95)
 	style.set_corner_radius_all(4)
+	style.anti_aliasing = false   ## rounded StyleBoxFlats default to AA, which feathers a sub-pixel fringe on every edge — off-grid in a 640x360 pixel UI
 	return style
 
 

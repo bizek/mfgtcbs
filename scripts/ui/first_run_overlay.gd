@@ -242,6 +242,7 @@ func _build_ui() -> void:
 	sb.border_color = Color(0.55, 0.38, 0.18)
 	sb.set_border_width_all(1)
 	sb.set_corner_radius_all(3)
+	sb.anti_aliasing = false   ## rounded StyleBoxFlats default to AA, which feathers a sub-pixel fringe on every edge — off-grid in a 640x360 pixel UI
 	sb.set_content_margin_all(6.0)
 	_panel.add_theme_stylebox_override("panel", sb)
 	add_child(_panel)
