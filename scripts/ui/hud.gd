@@ -145,11 +145,13 @@ func _ready() -> void:
 	_build_extraction_warning_label()
 	_build_phase_dial()
 	_build_depth_meter()
+	_build_chain_meter()
 	_build_combo_discovery_popup()
 	_build_first_run_overlay()
 	GameManager.phase_started.connect(_on_phase_started)
 	InputGlyphs.device_changed.connect(func(_v: bool): _refresh_skill_slot_keys())
 	Settings.bindings_changed.connect(_refresh_skill_slot_keys)
+	EventBus.on_combo_step.connect(_on_combo_step)
 
 func setup(player: Node2D) -> void:
 	player_ref = player
@@ -248,10 +250,21 @@ func _process(delta: float) -> void:
 			_depth_tween.tween_property(_depth_fill, "size:y",
 				METER_H * target, 0.3).set_ease(Tween.EASE_OUT)
 
+	_update_chain_meter(delta)
+	_update_low_hp(delta)
+
 func _on_health_changed(current: float, maximum: float) -> void:
 	health_bar.max_value = maximum
 	health_bar.value = current
 	health_label.text = "%d/%d" % [int(current), int(maximum)]
+	## Low-health tint on the fill itself. The bar was one fixed red at every value, so the only
+	## thing separating "fine" from "one hit from losing the haul" was the length of a 160px bar
+	## read at 1/3 scale. See _update_low_hp() for the screen-edge half of the cue.
+	var ratio: float = current / maximum if maximum > 0.0 else 0.0
+	_low_hp_strength = 0.0
+	if ratio < LOW_HP_THRESHOLD:
+		_low_hp_strength = clampf((LOW_HP_THRESHOLD - ratio) / (LOW_HP_THRESHOLD - LOW_HP_CRITICAL), 0.0, 1.0)
+	health_bar.self_modulate = Color(1.0, 1.0, 1.0).lerp(LOW_HP_BAR_TINT, _low_hp_strength)
 
 func _on_xp_changed(current: float, needed: float) -> void:
 	xp_bar.max_value = needed
@@ -277,10 +290,8 @@ func _on_instability_changed(new_value: float) -> void:
 
 	var vig_alpha: float = clampf((new_value - 50.0) / 100.0, 0.0, 1.0) * 0.32
 	var vig_col := Color(col.r * 0.7, col.g * 0.1, col.b * 0.1, vig_alpha)
-	vig_top.color    = vig_col
-	vig_bottom.color = vig_col
-	vig_left.color   = vig_col
-	vig_right.color  = vig_col
+	_vig_instability = vig_col
+	_apply_vignette()
 
 	## HAUL AT RISK label — visible at Volatile+ (71+)
 	loot_at_risk_label.visible = new_value >= 71.0
@@ -858,6 +869,189 @@ func _build_skill_slots() -> void:
 			"icon_tex": null,
 			"prev_remaining": 0.0,
 		}
+
+## ── Combo chain meter (bottom-centre, above the buff row) ────────────────────
+## Chain depth and the live cancel window — the two things a player acts on while comboing.
+##
+## Why this exists: until 2026-08-19 chain depth had exactly ONE output channel in the whole
+## game, AudioManager's pitch ladder on EventBus.on_combo_step. The player-sprite pulse fired at
+## every depth with identical brightness, so the mechanic the game is built around was legible
+## by ear only. Turn SFX down, or be hard of hearing, and it vanished.
+##
+## Pips report depth; the bar under them drains with the cancel window, which is the actionable
+## half (press NOW). Both are polled from the player rather than accumulated from signals — see
+## player.get_combo_depth() for why a signal-counting version desyncs on every interrupted chain.
+const CHAIN_PIP: float = 5.0
+const CHAIN_PIP_GAP: float = 2.0
+const CHAIN_MAX_PIPS: int = 8
+const CHAIN_BAR_H: float = 2.0
+const CHAIN_BAR_PAD: float = 2.0
+const CHAIN_Y: float = BUFF_BAR_Y - CHAIN_PIP - CHAIN_BAR_H - CHAIN_BAR_PAD - 4.0
+## Chain over: hold the shape briefly and fade rather than snapping to nothing. A chain ENDING is
+## information too, and a hard cut on the frame the graph resets reads as a glitch.
+const CHAIN_FADE_RATE: float = 3.2
+const CHAIN_PIP_LOW: Color = Color(0.86, 0.88, 0.92)    ## opener — cool, quiet
+const CHAIN_PIP_HIGH: Color = Color(1.0, 0.78, 0.29)    ## deep chain — gold, matches the body pulse
+const CHAIN_WINDOW_COLOR: Color = Color(1.0, 0.93, 0.66)
+const CHAIN_FLASH_DECAY: float = 3.6
+
+var _chain_root: Control = null
+var _chain_pips: Array[ColorRect] = []
+var _chain_track: ColorRect = null
+var _chain_fill: ColorRect = null
+var _chain_shown_depth: int = 0
+var _chain_alpha: float = 0.0
+var _chain_flash: float = 0.0     ## finisher pop, decays to 0
+
+
+func _build_chain_meter() -> void:
+	var root := Control.new()
+	root.name = "ChainMeter"
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.position = Vector2(0.0, CHAIN_Y)
+	root.visible = false
+	add_child(root)
+	_chain_root = root
+
+	for i in range(CHAIN_MAX_PIPS):
+		var pip := ColorRect.new()
+		pip.size = Vector2(CHAIN_PIP, CHAIN_PIP)
+		pip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		pip.visible = false
+		root.add_child(pip)
+		_chain_pips.append(pip)
+
+	## Track first, fill second — the fill draws over it. Both are sized per frame with the pip
+	## row so the meter reads as one object at every depth.
+	var track := ColorRect.new()
+	track.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(track)
+	_chain_track = track
+
+	var fill := ColorRect.new()
+	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(fill)
+	_chain_fill = fill
+
+
+## Finisher pop. The finisher IS the chain's payoff, and it is the one step the pip row cannot
+## express on its own — the graph resets immediately after it lands, so without this the meter's
+## last frame looks like any other step before it fades out.
+func _on_combo_step(entity: Node2D, _depth: int, is_finisher: bool) -> void:
+	if entity != player_ref or not is_finisher:
+		return
+	_chain_flash = 1.0
+
+
+func _update_chain_meter(delta: float) -> void:
+	if _chain_root == null:
+		return
+	var depth: int = 0
+	var ratio: float = 0.0
+	if player_ref != null and is_instance_valid(player_ref):
+		depth = player_ref.get_combo_depth()
+		ratio = player_ref.get_combo_window_ratio()
+
+	if depth > 0:
+		_chain_shown_depth = depth
+		_chain_alpha = 1.0
+	else:
+		_chain_alpha = maxf(_chain_alpha - delta * CHAIN_FADE_RATE, 0.0)
+	_chain_flash = maxf(_chain_flash - delta * CHAIN_FLASH_DECAY, 0.0)
+
+	if _chain_alpha <= 0.0 or _chain_shown_depth <= 0:
+		_chain_root.visible = false
+		return
+	_chain_root.visible = true
+
+	var shown: int = mini(_chain_shown_depth, CHAIN_MAX_PIPS)
+	var row_w: float = float(shown) * CHAIN_PIP + maxf(float(shown - 1), 0.0) * CHAIN_PIP_GAP
+	## No hand-rounding of x — snap_2d_transforms_to_pixel already rounds every canvas item's
+	## origin, and rounding on top of that is exactly what CLAUDE.md's pixel-grid note warns off.
+	var x0: float = 320.0 - row_w * 0.5
+
+	for i in range(CHAIN_MAX_PIPS):
+		var pip: ColorRect = _chain_pips[i]
+		if i >= shown:
+			pip.visible = false
+			continue
+		pip.visible = true
+		pip.position = Vector2(x0 + float(i) * (CHAIN_PIP + CHAIN_PIP_GAP), 0.0)
+		## Ramp across the pips actually lit, not across CHAIN_MAX_PIPS — a 3-node kit should
+		## reach its own top colour on its finisher instead of stopping a third of the way up a
+		## ramp scaled for the longest chain in the game.
+		var t: float = float(i) / maxf(float(shown - 1), 1.0)
+		var c: Color = CHAIN_PIP_LOW.lerp(CHAIN_PIP_HIGH, t)
+		if _chain_flash > 0.0:
+			c = c.lerp(Color(1.0, 1.0, 1.0), _chain_flash * 0.75)
+		c.a = _chain_alpha
+		pip.color = c
+
+	var bar_pos := Vector2(x0, CHAIN_PIP + CHAIN_BAR_PAD)
+	_chain_track.position = bar_pos
+	_chain_track.size = Vector2(row_w, CHAIN_BAR_H)
+	_chain_track.color = Color(0.0, 0.0, 0.0, 0.55 * _chain_alpha)
+	_chain_fill.position = bar_pos
+	_chain_fill.size = Vector2(row_w * ratio, CHAIN_BAR_H)
+	var fc: Color = CHAIN_WINDOW_COLOR
+	fc.a = _chain_alpha
+	_chain_fill.color = fc
+
+
+## ── Low health ───────────────────────────────────────────────────────────────
+## The health bar never changed appearance at any value until 2026-08-19: _on_health_changed()
+## set max_value, value and a label, and stopped. In an extraction game where dying costs the
+## whole haul, "you are about to die" is the highest-stakes signal there is, and it was readable
+## only by parsing a 160px bar in the top-left corner while looking at the middle of the screen.
+const LOW_HP_THRESHOLD: float = 0.35   ## cue starts here
+const LOW_HP_CRITICAL: float = 0.10    ## cue is at full strength here
+const LOW_HP_BAR_TINT: Color = Color(1.0, 0.42, 0.36)
+const LOW_HP_COLOR: Color = Color(0.72, 0.05, 0.05)
+const LOW_HP_VIG_ALPHA: float = 0.34
+const LOW_HP_PULSE_HZ: float = 1.3
+const LOW_HP_PULSE_DEPTH: float = 0.55
+
+var _vig_instability: Color = Color(0.0, 0.0, 0.0, 0.0)
+var _low_hp_strength: float = 0.0
+var _low_hp_phase: float = 0.0
+
+
+func _update_low_hp(delta: float) -> void:
+	if _low_hp_strength <= 0.0:
+		## One last compose so the red does not stick on the frame the player heals out of it.
+		if _low_hp_phase != 0.0:
+			_low_hp_phase = 0.0
+			_apply_vignette()
+		return
+	## Beat faster the closer to death it gets — the RHYTHM carries the urgency, which is what
+	## keeps this separable from the instability haze at a glance rather than by hue alone.
+	_low_hp_phase = fmod(_low_hp_phase + delta * LOW_HP_PULSE_HZ * (1.0 + _low_hp_strength * 0.6), 1.0)
+	_apply_vignette()
+
+
+## Compose the two things that tint the screen edges. They are DIFFERENT signals and must not look
+## alike: instability is a steady tier-coloured haze that creeps in across a run, low health is a
+## pulse. Same four rects, blended here rather than written directly — _on_instability_changed()
+## used to own them outright, so any second writer would have flickered against it frame by frame.
+func _apply_vignette() -> void:
+	var c: Color = _vig_instability
+	if _low_hp_strength > 0.0:
+		## Pulse DEPTH scales with the screen-flash accessibility slider; its BASE does not. Turn
+		## flashes all the way off and the warning goes STEADY rather than going away — a player
+		## who needs flashing reduced still needs to know they are dying.
+		var pulse: float = LOW_HP_PULSE_DEPTH * Settings.screen_flash_intensity
+		var beat: float = 1.0 - pulse + pulse * (0.5 + 0.5 * sin(_low_hp_phase * TAU))
+		var a: float = _low_hp_strength * LOW_HP_VIG_ALPHA * beat
+		c = Color(
+			maxf(c.r, LOW_HP_COLOR.r),
+			lerpf(c.g, LOW_HP_COLOR.g, _low_hp_strength),
+			lerpf(c.b, LOW_HP_COLOR.b, _low_hp_strength),
+			maxf(c.a, a))
+	vig_top.color = c
+	vig_bottom.color = c
+	vig_left.color = c
+	vig_right.color = c
+
 
 ## ── Buff tracker ─────────────────────────────────────────────────────────────
 ## Pooled chips; each frame the pool is laid over the player's live status snapshot.

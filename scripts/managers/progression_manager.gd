@@ -6,6 +6,13 @@ signal resources_changed(amount: int)
 
 const SAVE_PATH := "user://progression.json"
 
+## Atomic-write scratch + last-known-good copy. save_data() never truncates SAVE_PATH:
+## it writes SAVE_TMP_PATH, reads it back to confirm the bytes parse, rotates the live
+## file to SAVE_BAK_PATH, then renames the temp into place. A crash at any point in that
+## sequence leaves at least one complete file on disk, and load_data() knows where to look.
+const SAVE_TMP_PATH := "user://progression.json.tmp"
+const SAVE_BAK_PATH := "user://progression.bak.json"
+
 ## ─── Save format versioning ──────────────────────────────────────────────────
 ## Every save carries a "version" integer at its JSON root. On load, an older save
 ## is run through _migrate_save() before its fields are applied; a save from a NEWER
@@ -140,30 +147,107 @@ func save_data() -> void:
 		"passive_allocations":    passive_allocations,
 		"lifetime_passive_points": lifetime_passive_points,
 	}
-	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-	if file:
-		file.store_string(JSON.stringify(data))
-		file.close()
+	_write_save_atomic(JSON.stringify(data))
+
+
+## Write the save without ever leaving a truncated file where the game looks for one.
+##
+## FileAccess.open(path, WRITE) truncates immediately, so a direct write has a window —
+## from truncate until close — in which a crash, a kill, or power loss destroys the whole
+## of meta-progression: vault, unlocks, passives, roster, loadouts. save_data() is called
+## from 31 sites, including every passive allocate and refund, so that window opened
+## constantly rather than once a run.
+##
+## The sequence below, and what survives a crash at each step:
+##   1. write temp                  → live save untouched
+##   2. read temp back and parse    → a short or truncated write is caught here,
+##                                    BEFORE anything on disk is rotated
+##   3. live save → SAVE_BAK_PATH   → backup + temp are both complete files
+##   4. temp      → SAVE_PATH       → live save is complete
+## Step 3→4 is the only moment SAVE_PATH is absent; load_data() falls back to the backup
+## there. Every failure path returns early and leaves the existing save alone — losing one
+## save is recoverable, corrupting the live one is not.
+func _write_save_atomic(json: String) -> void:
+	var tmp := FileAccess.open(SAVE_TMP_PATH, FileAccess.WRITE)
+	if tmp == null:
+		push_error("ProgressionManager: could not open %s for writing (err %d) — save skipped, existing save intact."
+				% [SAVE_TMP_PATH, FileAccess.get_open_error()])
+		return
+	tmp.store_string(json)
+	tmp.flush()
+	tmp.close()
+
+	## Verify the bytes that actually landed, not the string we meant to write. A full disk
+	## or a short write yields a file that opens fine and parses to null.
+	var written: String = _read_text(SAVE_TMP_PATH)
+	if typeof(JSON.parse_string(written)) != TYPE_DICTIONARY:
+		push_error("ProgressionManager: temp save did not read back as JSON — save aborted, existing save intact.")
+		return
+
+	## Rotate. Measured 2026-08-19 in-engine: on Windows rename_absolute() DOES overwrite an
+	## existing target and returns OK, so the explicit remove below is not what makes this
+	## work — it is there so the sequence is the same on every platform instead of resting on
+	## each one's rename semantics. Removing the backup first is safe because SAVE_PATH is
+	## still intact at that moment; it is the NEXT line that opens the only recoverable gap.
+	if FileAccess.file_exists(SAVE_PATH):
+		if FileAccess.file_exists(SAVE_BAK_PATH):
+			DirAccess.remove_absolute(SAVE_BAK_PATH)
+		var rotated: int = DirAccess.rename_absolute(SAVE_PATH, SAVE_BAK_PATH)
+		if rotated != OK:
+			push_error("ProgressionManager: could not rotate save to %s (err %d) — save aborted, existing save intact."
+				% [SAVE_BAK_PATH, rotated])
+			return
+	var promoted: int = DirAccess.rename_absolute(SAVE_TMP_PATH, SAVE_PATH)
+	if promoted != OK:
+		## SAVE_PATH is now absent but the backup holds the previous save, which is exactly
+		## the state load_data()'s backup branch recovers from.
+		push_error("ProgressionManager: could not promote temp save to %s (err %d) — previous save preserved at %s."
+				% [SAVE_PATH, promoted, SAVE_BAK_PATH])
+
+
+## Read a file whole. Returns "" when it cannot be opened, which every caller reads as
+## "no usable save here" rather than "an empty save".
+func _read_text(path: String) -> String:
+	var f := FileAccess.open(path, FileAccess.READ)
+	if f == null:
+		return ""
+	var text := f.get_as_text()
+	f.close()
+	return text
+
 
 func load_data() -> void:
 	save_newer_than_supported = false
-	if not FileAccess.file_exists(SAVE_PATH):
+
+	## Recovery order. SAVE_PATH is missing only when the process died between the two
+	## renames in _write_save_atomic(), in which case the backup IS the last complete save.
+	var text: String = ""
+	var from_backup: bool = false
+	if FileAccess.file_exists(SAVE_PATH):
+		text = _read_text(SAVE_PATH)
+	elif FileAccess.file_exists(SAVE_BAK_PATH):
+		text = _read_text(SAVE_BAK_PATH)
+		from_backup = true
+		push_warning("ProgressionManager: no live save on disk — recovering the backup left by an interrupted write.")
+	else:
 		return
-	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
-	if not file:
+	if text == "":
 		push_warning("ProgressionManager: could not open save for reading — starting fresh.")
 		return
-	var text := file.get_as_text()
-	file.close()
 
 	var result = JSON.parse_string(text)
 	if typeof(result) != TYPE_DICTIONARY:
-		## Corrupt or unparseable save. Preserve the evidence, then start fresh —
-		## the in-memory defaults set at declaration stand, and the next save_data()
-		## writes a clean file over the (now backed-up) original.
+		## Corrupt or unparseable save. Preserve the evidence, then try the backup before
+		## giving up — the in-memory defaults set at declaration stand if that fails too,
+		## and the next save_data() writes a clean file over the (now backed-up) original.
 		_backup_corrupt_save(text)
-		push_warning("ProgressionManager: save file was corrupt — backed up and starting fresh.")
-		return
+		if not from_backup and FileAccess.file_exists(SAVE_BAK_PATH):
+			result = JSON.parse_string(_read_text(SAVE_BAK_PATH))
+			from_backup = true
+		if typeof(result) != TYPE_DICTIONARY:
+			push_warning("ProgressionManager: save file was corrupt — backed up and starting fresh.")
+			return
+		push_warning("ProgressionManager: save file was corrupt — backed up and recovered from the previous save.")
 
 	## Version gate. Missing field == 0 (pre-versioning dev saves).
 	var save_version: int = int(result.get("version", 0))

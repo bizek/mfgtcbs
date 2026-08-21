@@ -3928,14 +3928,51 @@ func choreo_on_chain_timeout(_phase: ChoreographyPhase) -> void:
 	## Pile Driver: six seconds up and no second press. His grip goes; choreo_on_end drops them.
 
 
+## Depth ramp for the cancel-window pulse. Flat 1.35 white until 2026-08-19, which meant the
+## body looked IDENTICAL on step 1 and step 5 — chain depth's only output channel in the entire
+## game was AudioManager's pitch ladder, so with SFX down the mechanic the game is built around
+## was invisible. Brightness climbs and the tint warms toward gold as the chain deepens.
+## Ceiling is deliberate: past ~2.0 the sprite blows out to a featureless white blob and depth
+## stops reading at all, which is the failure this ramp exists to fix.
+const COMBO_PULSE_BASE: float = 1.25
+const COMBO_PULSE_STEP: float = 0.14
+const COMBO_PULSE_MAX: float = 1.95
+const COMBO_PULSE_WARMTH_MAX: float = 0.30
+
 func _combo_window_pulse() -> void:
-	## One subtle brightening tick on the body sprite: "press now and it chains." Rides
-	## self_modulate so it composes with (never fights) the damage hit-flash on modulate.
+	## One brightening tick on the body sprite: "press now and it chains." Rides self_modulate
+	## so it composes with (never fights) the damage hit-flash on modulate.
 	if _combo_pulse_tween and _combo_pulse_tween.is_valid():
 		_combo_pulse_tween.kill()
-	sprite.self_modulate = Color(1.35, 1.35, 1.35, 1.0)
+	var steps: float = float(maxi(_combo_step_depth - 1, 0))
+	var gain: float = minf(COMBO_PULSE_BASE + COMBO_PULSE_STEP * steps, COMBO_PULSE_MAX)
+	## Warmth drains blue fastest and green half as fast, so the ramp runs white -> amber -> gold
+	## rather than white -> yellow -> green.
+	var warmth: float = minf(steps * 0.06, COMBO_PULSE_WARMTH_MAX)
+	sprite.self_modulate = Color(gain, gain * (1.0 - warmth * 0.45), gain * (1.0 - warmth), 1.0)
 	_combo_pulse_tween = create_tween()
 	_combo_pulse_tween.tween_property(sprite, "self_modulate", Color.WHITE, 0.10)
+
+
+## ── Chain state, for the HUD combo meter ─────────────────────────────────────────────────────
+## Both are read live from the graph rather than accumulated by the listener, because a chain can
+## end WITHOUT emitting anything a listener could hear: a dash, a hurt reaction or a stun calls
+## ChoreographyRunner.interrupt(), which routes to choreo_on_end() and zeroes the depth below.
+## Only the timeout case emits on_combo_dropped. Anything counting steps from signals alone would
+## therefore stick at the last depth after every interrupted chain.
+func get_combo_depth() -> int:
+	return _combo_step_depth
+
+
+## 0.0-1.0 of the current chain node's cancel window still open. Scoped to the LIGHT chain — the
+## heavy and the Q/E skills run their own choreographies through the same runner, and their wait
+## phases are not chain windows.
+func get_combo_window_ratio() -> float:
+	if choreography_runner == null or not choreography_runner.is_running():
+		return 0.0
+	if choreography_runner.get_ability() != _combo_ability:
+		return 0.0
+	return choreography_runner.get_cancel_window_ratio()
 
 
 func choreo_on_end() -> void:

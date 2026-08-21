@@ -119,6 +119,31 @@ func current_phase_handles(action: String) -> bool:
 	return false
 
 
+## How much of the current node's CANCEL WINDOW is still open, 0.0-1.0 (0.0 when the graph is
+## not parked on one). A "wait" phase carrying branches IS the cancel window — the span in which
+## a press chains to the next node.
+##
+## Added for the HUD chain meter, because nothing else could answer the question. EventBus's
+## on_combo_step fires at the instant a node's hit lands and says nothing about the window that
+## follows it, so a listener can know a chain got deeper but never how long it has to continue —
+## which is the half a player actually acts on.
+##
+## Held channel beats are excluded on purpose. They are also "wait" phases with branches, but
+## they re-enter themselves every beat, so their timer sawtooths; reported as a window it would
+## read as a chain window slamming shut and reopening several times a second.
+func get_cancel_window_ratio() -> float:
+	if not _running or _choreo == null:
+		return 0.0
+	if _phase_index < 0 or _phase_index >= _choreo.phases.size():
+		return 0.0
+	var phase: ChoreographyPhase = _choreo.phases[_phase_index]
+	if phase.exit_type != "wait" or phase.branches.is_empty() or phase.wait_duration <= 0.0:
+		return 0.0
+	if current_phase_is_held_channel():
+		return 0.0
+	return clampf(_timer / phase.wait_duration, 0.0, 1.0)
+
+
 ## Begin a choreography sequence. `targets` is the initial target set (host may ignore it).
 func start(ability: AbilityDefinition, targets: Array) -> void:
 	if ability == null or ability.choreography == null:
