@@ -12,6 +12,24 @@ a ported component-based combat engine with data-driven content creation.
 
 **Developer:** Solo dev (Ben) + Claude. Ben provides creative direction. Claude handles all code.
 
+## Root Cause Over Bandaids (the XY Problem)
+
+When implementing, troubleshooting, or fixing bugs: always work from the [XY Problem](https://xyproblem.info/)
+principle. Someone hits problem X, guesses that Y is the solution, and asks for help with Y — but Y
+is the wrong approach, or a symptom-level patch, and chasing it wastes effort or hides the real
+issue. Before implementing a fix:
+
+- Identify the actual root cause, not just the symptom in front of you (an error message, a single
+  failing case, the specific line a stack trace points to).
+- If a requested change (Y) looks like it's patching around a deeper problem (X), say so and propose
+  addressing X — don't silently comply with a bandaid.
+- Fix only the actual root cause. Don't layer a defensive check, fallback, or special-case branch on
+  top of broken behavior when the correct fix is to make the underlying behavior correct.
+- This project's own history is full of X/Y traps that looked like the real fix at first glance —
+  see `Logger` name shadowing, the hub-panel editor-truncation footgun, and the m5x7 font-grid saga
+  below. When something "almost works" or needs a workaround, treat that as a signal to dig one
+  level deeper before writing the workaround.
+
 - Always type array element access (avoid `:=` on untyped array access — it causes type inference crashes).
 - When modifying weapon/mod/status code, check for cooldown_base=0.0 cases that could fire effects on the player immediately.
 - Search the uncommitted working copy, not just git history, when locating code.
