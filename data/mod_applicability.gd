@@ -26,8 +26,14 @@ const KIT_CAPABILITIES: Dictionary = {
 	"fighter":    ["melee_hit"],
 	"paladin":    ["melee_hit"],
 	"ninja":      ["melee_hit"],
-	"cleric":     ["melee_hit"],
-	"druid":      ["melee_hit"],
+	## Both of these read "melee_hit" only until 2026-08-22, which was stale rather than
+	## deliberate: the Devout's light/heavy chains fire _divine_fire_bolt and the Verdant's
+	## entire moveset is _thorn_bolt / _thorn_volley, both plain SpawnProjectilesEffect
+	## (chain_factory.gd:1892, :1680). The tag's only consumer is UpgradeManager's Volley
+	## filter, so the miss silently withheld a four-rank crowd pick that works on them today —
+	## player.gd:1982 reads projectile_count for ANY kit's combo projectiles.
+	"cleric":     ["melee_hit", "projectile"],   ## Divine Fire bolt
+	"druid":      ["melee_hit", "projectile"],   ## thorn bolts + Bramble Volley
 	"necromancer": ["melee_hit", "projectile"],  ## staff-cast jabs + bone missiles
 	"ranger":     ["melee_hit", "projectile"],   ## arrow volleys + throwing knife
 	"wizard":     ["melee_hit", "projectile"],   ## bolts + charged fireball

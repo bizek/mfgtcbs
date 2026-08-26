@@ -47,6 +47,16 @@ static var glacial_guard: StatusEffectDefinition
 static var volatile_remains: StatusEffectDefinition
 static var last_stand: StatusEffectDefinition
 
+## Combo-reactive class passives (2026-08-24). The first content to use the three combo events
+## (on_finisher_hit / on_combo_step / on_combo_dropped) that TriggerComponent learned to hear.
+## These are the Fighter pilot for the level-up-layer seam: a class mod is picked in the hub and
+## says what the kit IS, so it owns the numbers; these are picked mid-run and react to how the
+## chain is actually being played, which no loadout screen can express.
+static var fighter_thunderclap: StatusEffectDefinition
+static var fighter_battle_rhythm: StatusEffectDefinition
+static var fighter_last_word: StatusEffectDefinition
+static var fighter_spite: StatusEffectDefinition
+
 ## Evolution combined statuses
 static var vampiric_blade: StatusEffectDefinition
 static var overdrive: StatusEffectDefinition
@@ -110,6 +120,11 @@ static func build_all() -> void:
 	glacial_guard = _build_glacial_guard()
 	volatile_remains = _build_volatile_remains()
 	last_stand = _build_last_stand()
+
+	fighter_thunderclap = _build_fighter_thunderclap()
+	fighter_battle_rhythm = _build_fighter_battle_rhythm()
+	fighter_last_word = _build_fighter_last_word()
+	fighter_spite = _build_fighter_spite()
 
 	vampiric_blade = _build_vampiric_blade()
 	overdrive = _build_overdrive()
@@ -198,6 +213,14 @@ static func get_by_id(status_id: String) -> StatusEffectDefinition:
 			return volatile_remains
 		"last_stand":
 			return last_stand
+		"fighter_thunderclap":
+			return fighter_thunderclap
+		"fighter_battle_rhythm":
+			return fighter_battle_rhythm
+		"fighter_last_word":
+			return fighter_last_word
+		"fighter_spite":
+			return fighter_spite
 		"vampiric_blade":
 			return vampiric_blade
 		"overdrive":
@@ -762,6 +785,142 @@ static func _build_last_stand() -> StatusEffectDefinition:
 	var def := _passive_shell("last_stand")
 	def.tags = ["Passive"]
 	_last_stand_onto(def, 5, 0.20, 0.20)
+	return def
+
+
+# ── Combo-reactive class passives (Fighter pilot, 2026-08-24) ──────────────
+##
+## All four are permanent shells applied straight to the player by the "self_status" ability-upgrade
+## op, exactly like the generic pool's procs. What is new is the EVENT they listen on: the three
+## combo signals player.gd has emitted since the cadence pass, which until now only AudioManager
+## and the HUD could hear.
+##
+## A note on why none of these carry an internal_cooldown, since every other listener in this file
+## that fires off a kill or a hit does: the combo events are already rate-limited by the animation
+## graph. A finisher takes most of a second to reach its hit frame and a combo step cannot fire
+## faster than a phase can play, so there is no dense-pack cascade to bound — the recursion risk
+## _corpse_burst_listener guards against does not exist here. AreaDamageEffect cannot re-enter a
+## combo event either: nothing it does advances a choreography.
+
+
+## Finishers detonate the ground you are standing on. Centred on the bearer, so it answers the
+## ring rather than the one enemy the finisher happened to land on.
+static func _build_fighter_thunderclap() -> StatusEffectDefinition:
+	var def := _passive_shell("fighter_thunderclap")
+	def.tags = ["Passive"]
+
+	var clap := AreaDamageEffect.new()
+	clap.damage_type = "Physical"
+	clap.base_damage = 30.0
+	clap.aoe_radius = 90.0
+
+	var listener := TriggerListenerDefinition.new()
+	listener.event = "on_finisher_hit"
+	listener.target_self = true
+	listener.effects = [clap]
+	def.trigger_listeners = [listener]
+	return def
+
+
+## Every third link sharpens the next. multiple_of rather than min_depth, so it rewards keeping a
+## chain alive through its whole length instead of paying out once and staying on.
+static func _build_fighter_battle_rhythm() -> StatusEffectDefinition:
+	var def := _passive_shell("fighter_battle_rhythm")
+	def.tags = ["Passive"]
+
+	var surge := StatusEffectDefinition.new()
+	surge.status_id = "fighter_battle_rhythm_surge"
+	surge.tags = ["Passive"]
+	surge.is_positive = true
+	surge.max_stacks = 1
+	surge.base_duration = 3.0
+	surge.duration_refresh_mode = "overwrite"
+	var haste := ModifierDefinition.new()
+	haste.target_tag = "attack_speed"
+	haste.operation = "bonus"
+	haste.value = 0.15
+	haste.source_name = surge.status_id
+	surge.modifiers = [haste]
+
+	var apply := ApplyStatusEffectData.new()
+	apply.status = surge
+	apply.stacks = 1
+	apply.apply_to_self = true
+
+	var depth := TriggerConditionComboDepth.new()
+	depth.multiple_of = 3
+
+	var listener := TriggerListenerDefinition.new()
+	listener.event = "on_combo_step"
+	listener.target_self = true
+	listener.conditions = [depth]
+	listener.effects = [apply]
+	def.trigger_listeners = [listener]
+	return def
+
+
+## Deep in the chain, less lands on you. The buff outlives one combo step (2s against a 0.75s
+## cancel window) so it holds steady while the chain continues and lapses shortly after it ends —
+## the same shape last_stand's surge uses, for the same reason.
+##
+## ("All", "damage_taken") — damage_taken is an OPERATION, never a tag (ModifierComponent
+## NEVER_A_TAG). DamageCalculator does raw *= 1.0 + sum, so the value is negative to reduce.
+static func _build_fighter_last_word() -> StatusEffectDefinition:
+	var def := _passive_shell("fighter_last_word")
+	def.tags = ["Passive"]
+
+	var surge := StatusEffectDefinition.new()
+	surge.status_id = "fighter_last_word_surge"
+	surge.tags = ["Passive"]
+	surge.is_positive = true
+	surge.max_stacks = 1
+	surge.base_duration = 2.0
+	surge.duration_refresh_mode = "overwrite"
+	var dr := ModifierDefinition.new()
+	dr.target_tag = "All"
+	dr.operation = "damage_taken"
+	dr.value = -0.25
+	dr.source_name = surge.status_id
+	surge.modifiers = [dr]
+
+	var apply := ApplyStatusEffectData.new()
+	apply.status = surge
+	apply.stacks = 1
+	apply.apply_to_self = true
+
+	var depth := TriggerConditionComboDepth.new()
+	depth.min_depth = 4
+
+	var listener := TriggerListenerDefinition.new()
+	listener.event = "on_combo_step"
+	listener.target_self = true
+	listener.conditions = [depth]
+	listener.effects = [apply]
+	def.trigger_listeners = [listener]
+	return def
+
+
+## Dropping a chain is the one moment in this kit that used to be pure loss. min_depth 2 because
+## on_combo_dropped only fires from depth >= 2 anyway (player.gd) — stating it makes the intent
+## explicit and survives that rule changing.
+static func _build_fighter_spite() -> StatusEffectDefinition:
+	var def := _passive_shell("fighter_spite")
+	def.tags = ["Passive"]
+
+	var burst := AreaDamageEffect.new()
+	burst.damage_type = "Physical"
+	burst.base_damage = 40.0
+	burst.aoe_radius = 110.0
+
+	var depth := TriggerConditionComboDepth.new()
+	depth.min_depth = 2
+
+	var listener := TriggerListenerDefinition.new()
+	listener.event = "on_combo_dropped"
+	listener.target_self = true
+	listener.conditions = [depth]
+	listener.effects = [burst]
+	def.trigger_listeners = [listener]
 	return def
 
 

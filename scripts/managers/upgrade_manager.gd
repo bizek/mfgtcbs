@@ -64,6 +64,25 @@ var ability_upgrades: Array[Dictionary] = []
 ##
 ## validate_status_ids() checks every `requires` against the live pool, so the next rename reports
 ## itself instead of quietly making a capstone unbuildable.
+##
+## ── The 2026-08-22 renumber ───────────────────────────────────────────────────
+## That same 2026-08-08 collapse left the five STAT recipes paying out against a baseline that no
+## longer existed, and nothing noticed because the ids all still resolved. `_apply_evolution`
+## STRIPS the prerequisites and reverses their stats before applying its own effects, so a recipe
+## has to out-pay its whole ingredient list just to break even. It did not:
+##
+##   JUGGERNAUT    Vitality x2 = +40 HP / +6 Armor  →  granted +40 HP / +5 Armor. Strictly worse.
+##   GLASS CANNON  dropped the +20% Atk Spd and +25% Crit Dmg the ingredients had paid for.
+##   VELOCITY      dropped +15% Damage and +30% Pickup Radius.
+##   ASSASSIN      net +15% Move Speed — three picks for less than one Swiftness rank.
+##   PHASE RUNNER  net +30% Dash Dist against -30% Pickup Radius. A wash.
+##
+## Every recipe below now covers each stat its ingredients provide and beats it. Stats the
+## ingredients do NOT provide are free for the designer — that is where Glass Cannon's -20 HP
+## lives, and the validator deliberately allows it.
+##
+## validate_evolution_math() enforces exactly that rule at startup, because this is drift, not a
+## typo: the recipes were correct when written and were invalidated from a different file.
 var EVOLUTION_RECIPES: Array[Dictionary] = [
 	## Pruned per D2: removed fortress (duplicate recipe of juggernaut), bullet_storm, titan_rounds,
 	## magnetar (all three required projectile-gated ingredients and were dead picks for melee kits),
@@ -72,46 +91,50 @@ var EVOLUTION_RECIPES: Array[Dictionary] = [
 	{
 		"id": "glass_cannon",
 		"name": "GLASS CANNON",
-		"description": "+40% Damage, +10% Crit Chance, -15 Max HP",
+		"description": "+55% Dmg, +25% Atk Spd, +10% Crit, +50% Crit Dmg, -20 HP",
 		"requires": ["might", "might", "precision"],
 		"is_evolution": true,
 		"effects": [
-			{"stat": "damage", "type": "percent", "value": 0.40},
+			{"stat": "damage", "type": "percent", "value": 0.55},
+			{"stat": "attack_speed", "type": "percent", "value": 0.25},
 			{"stat": "crit_chance", "type": "flat", "value": 0.10},
-			{"stat": "max_hp", "type": "flat", "value": -15.0},
+			{"stat": "crit_multiplier", "type": "flat", "value": 0.50},
+			{"stat": "max_hp", "type": "flat", "value": -20.0},
 		],
 	},
 	{
 		"id": "juggernaut",
 		"name": "JUGGERNAUT",
-		"description": "+40 Max HP, +5 Armor",
+		"description": "+80 Max HP, +12 Armor",
 		"requires": ["vitality", "vitality"],
 		"is_evolution": true,
 		"effects": [
-			{"stat": "max_hp", "type": "flat", "value": 40.0},
-			{"stat": "armor", "type": "flat", "value": 5.0},
+			{"stat": "max_hp", "type": "flat", "value": 80.0},
+			{"stat": "armor", "type": "flat", "value": 12.0},
 		],
 	},
 	{
 		"id": "velocity",
 		"name": "VELOCITY",
-		"description": "+25% Move Speed, +20% Attack Speed",
+		"description": "+35% Move Spd, +35% Atk Spd, +15% Dmg, +30% Pickup",
 		"requires": ["swiftness", "might"],
 		"is_evolution": true,
 		"effects": [
-			{"stat": "move_speed", "type": "percent", "value": 0.25},
-			{"stat": "attack_speed", "type": "percent", "value": 0.20},
+			{"stat": "move_speed", "type": "percent", "value": 0.35},
+			{"stat": "attack_speed", "type": "percent", "value": 0.35},
+			{"stat": "damage", "type": "percent", "value": 0.15},
+			{"stat": "pickup_radius", "type": "percent", "value": 0.30},
 		],
 	},
 	{
 		"id": "assassin",
 		"name": "ASSASSIN",
-		"description": "+10% Crit Chance, +50% Crit Damage, +15% Move Speed",
+		"description": "+20% Crit Chance, +100% Crit Dmg, +15% Move Spd",
 		"requires": ["precision", "precision"],
 		"is_evolution": true,
 		"effects": [
-			{"stat": "crit_chance", "type": "flat", "value": 0.10},
-			{"stat": "crit_multiplier", "type": "flat", "value": 0.50},
+			{"stat": "crit_chance", "type": "flat", "value": 0.20},
+			{"stat": "crit_multiplier", "type": "flat", "value": 1.00},
 			{"stat": "move_speed", "type": "percent", "value": 0.15},
 		],
 	},
@@ -128,13 +151,14 @@ var EVOLUTION_RECIPES: Array[Dictionary] = [
 	{
 		"id": "phase_runner",
 		"name": "PHASE RUNNER",
-		"description": "+1 Dash Charge, +30% Dash Dist, +15% Speed",
+		"description": "+2 Dash Charges, +50% Dash Dist, +30% Spd, +30% Pickup",
 		"requires": ["swiftness", "dash_charge_up"],
 		"is_evolution": true,
 		"effects": [
-			{"stat": "dash_charges", "type": "flat", "value": 1.0},
-			{"stat": "dash_speed", "type": "percent", "value": 0.30},
-			{"stat": "move_speed", "type": "percent", "value": 0.15},
+			{"stat": "dash_charges", "type": "flat", "value": 2.0},
+			{"stat": "dash_speed", "type": "percent", "value": 0.50},
+			{"stat": "move_speed", "type": "percent", "value": 0.30},
+			{"stat": "pickup_radius", "type": "percent", "value": 0.30},
 		],
 	},
 	{
@@ -449,6 +473,72 @@ func validate_status_ids() -> Array[String]:
 	return problems
 
 
+## Startup check: an evolution must out-pay the prerequisites it consumes.
+##
+## `_apply_evolution` removes every id in `requires` and reverses its stats, so a recipe that
+## grants less than its ingredients on any stat is a level-up pick that makes the player WEAKER.
+## Five of the nine did on 2026-08-22 — see the note on EVOLUTION_RECIPES. Nothing about that is
+## visible in play: the card reads like a reward and the numbers quietly go down.
+##
+## The rule is one-directional on purpose. For every (stat, operation) the INGREDIENTS provide,
+## the recipe must provide at least as much. Stats the ingredients never touched are untouched by
+## this check, so a deliberate downside (Glass Cannon's -20 Max HP) stays legal.
+##
+## Status-effect recipes are skipped — a StatusEffectDefinition is not comparable to a number, and
+## those four supersede their ingredients by construction.
+## Called from GameManager._validate_content in debug builds.
+func validate_evolution_math() -> Array[String]:
+	var problems: Array[String] = []
+	var by_id: Dictionary = {}
+	for entry: Dictionary in upgrade_pool:
+		by_id[entry["id"]] = entry
+
+	for recipe: Dictionary in EVOLUTION_RECIPES:
+		var ingredient: Dictionary = {}
+		var skip: bool = false
+		for req: String in recipe["requires"]:
+			var src: Dictionary = by_id.get(req, {})
+			if src.is_empty():
+				skip = true  ## already reported by validate_status_ids
+				break
+			for eff: Dictionary in _stat_effects_of(src):
+				var key: String = "%s:%s" % [eff["stat"], eff["type"]]
+				ingredient[key] = float(ingredient.get(key, 0.0)) + float(eff["value"])
+		if skip or ingredient.is_empty():
+			continue
+
+		var granted: Dictionary = {}
+		for eff: Dictionary in _stat_effects_of(recipe):
+			var key: String = "%s:%s" % [eff["stat"], eff["type"]]
+			granted[key] = float(granted.get(key, 0.0)) + float(eff["value"])
+
+		for key: String in ingredient:
+			var owed: float = float(ingredient[key])
+			var paid: float = float(granted.get(key, 0.0))
+			if paid < owed - 0.0001:
+				problems.append("evolution '%s' → grants %s of %s but its ingredients already gave %s"
+						% [recipe["id"], str(paid), key, str(owed)])
+	return problems
+
+
+## The stat-bearing effects of a pool entry or a recipe, in one shape. Pool entries carry either an
+## `effects` array (the seven rankable lines) or bare stat/type/value fields (Extra Dash Charge);
+## status entries carry neither and yield nothing.
+func _stat_effects_of(entry: Dictionary) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if entry.get("type", "") == "status":
+		return out
+	if entry.has("effects"):
+		for eff: Dictionary in entry["effects"]:
+			if eff.get("type", "") == "status" or not eff.has("stat"):
+				continue
+			out.append(eff)
+		return out
+	if entry.has("stat"):
+		out.append({"stat": entry["stat"], "type": entry["type"], "value": entry["value"]})
+	return out
+
+
 func _get_available_evolution() -> Dictionary:
 	var owned_ids: Array[String] = []
 	for u: Dictionary in player_upgrades:
@@ -524,8 +614,12 @@ func _apply_evolution(evo: Dictionary, player: Node) -> void:
 ## applied directly to the modifier component and do not need a _load_combo pass).
 func get_kit_mutation_upgrades_for_kit(kit_id: String) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
+	## "modifier" and "self_status" both apply straight to the player and never mutate a phase,
+	## so feeding them to the rebuild would make ClassModFactory look for a target dict they do
+	## not have.
 	for up: Dictionary in ability_upgrades:
-		if up.get("kit", "") == kit_id and up.get("op", "") != "modifier":
+		var op: String = up.get("op", "")
+		if up.get("kit", "") == kit_id and op != "modifier" and op != "self_status":
 			result.append(up)
 	return result
 

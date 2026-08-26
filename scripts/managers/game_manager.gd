@@ -223,6 +223,12 @@ func _validate_content() -> void:
 	## looking perfectly healthy to validate_anim_targets — its target resolves fine, the player
 	## simply can never own it. `ranger_split_quiver` had shipped this way (found 2026-08-08).
 	problems.append_array(ClassModData.validate_order())
+	## Fifth shape, and the only one that is a NUMBERS drift rather than a dead reference: an
+	## evolution consumes its prerequisites, so one that grants less than they did is a level-up
+	## that makes the player weaker. Every id resolves, so the other four validators see nothing.
+	## Five of nine recipes were in this state on 2026-08-22 — JUGGERNAUT was strictly worse than
+	## the two Vitality picks it ate.
+	problems.append_array(UpgradeManager.validate_evolution_math())
 	var log_node: Node = get_node_or_null("/root/Logger")
 	if problems.is_empty():
 		print("[content] All class-mod / ability-upgrade anim targets and upgrade statuses resolve.")

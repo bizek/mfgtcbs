@@ -114,6 +114,31 @@ func _on_ability_used(source: Node2D, ability) -> void:
 	_evaluate_and_dispatch("on_ability_used", source, source, null)
 
 
+## --- Combo events (2026-08-24) -------------------------------------------------
+## These three have been emitted by player.gd since the combo-cadence pass but nothing in the
+## gameplay layer could hear them — only AudioManager's pitch ladder, the HUD pulse and
+## main_arena. Wiring them here is what lets a level-up react to how the chain is being PLAYED
+## rather than to how big its numbers are, which is the whole seam between the level-up layer
+## and the (pre-run, loadout-defined) class mod layer.
+##
+## source and target are both the comboing entity: these are self-events, so a listener with
+## target_self, target_event_source, or neither all resolve to the same node. That is deliberate —
+## it means an authored entry cannot pick the wrong one.
+##
+## The depth payload rides as a Dictionary, matching how the status events already pass
+## {"status_id": ...}. TriggerConditionComboDepth reads it.
+
+func _on_finisher_hit(entity: Node2D) -> void:
+	_evaluate_and_dispatch("on_finisher_hit", entity, entity, null)
+
+func _on_combo_step(entity: Node2D, depth: int, is_finisher: bool) -> void:
+	_evaluate_and_dispatch("on_combo_step", entity, entity,
+			{"depth": depth, "is_finisher": is_finisher})
+
+func _on_combo_dropped(entity: Node2D, depth: int) -> void:
+	_evaluate_and_dispatch("on_combo_dropped", entity, entity, {"depth": depth})
+
+
 # --- Core evaluation + dispatch ---
 
 func _evaluate_and_dispatch(event: String, source: Node2D, target: Node2D,
@@ -212,6 +237,16 @@ func _check_trigger_conditions(conditions: Array, entity: Node2D,
 			var current_time: float = combat_manager.run_time if combat_manager else 0.0
 			if (current_time - tag_time) > condition.window:
 				return false
+		elif condition is TriggerConditionComboDepth:
+			## Fails closed on a non-combo event: the payload simply has no depth to test, and a
+			## listener asking about combo depth on on_kill is authoring nonsense, not a pass.
+			if not (hit_data is Dictionary and hit_data.has("depth")):
+				return false
+			var depth: int = int(hit_data["depth"])
+			if depth < condition.min_depth:
+				return false
+			if condition.multiple_of > 1 and depth % condition.multiple_of != 0:
+				return false
 		elif condition is TriggerConditionTargetHasAnyStatus:
 			if not is_instance_valid(target):
 				return false
@@ -261,6 +296,12 @@ func _connect_event(event: String) -> void:
 			EventBus.on_summon_death.connect(_on_summon_death)
 		"on_ability_used":
 			EventBus.on_ability_used.connect(_on_ability_used)
+		"on_finisher_hit":
+			EventBus.on_finisher_hit.connect(_on_finisher_hit)
+		"on_combo_step":
+			EventBus.on_combo_step.connect(_on_combo_step)
+		"on_combo_dropped":
+			EventBus.on_combo_dropped.connect(_on_combo_dropped)
 		_:
 			push_warning("TriggerComponent: unsupported event type '%s'" % event)
 
@@ -321,3 +362,12 @@ func _disconnect_event(event: String) -> void:
 		"on_ability_used":
 			if EventBus.on_ability_used.is_connected(_on_ability_used):
 				EventBus.on_ability_used.disconnect(_on_ability_used)
+		"on_finisher_hit":
+			if EventBus.on_finisher_hit.is_connected(_on_finisher_hit):
+				EventBus.on_finisher_hit.disconnect(_on_finisher_hit)
+		"on_combo_step":
+			if EventBus.on_combo_step.is_connected(_on_combo_step):
+				EventBus.on_combo_step.disconnect(_on_combo_step)
+		"on_combo_dropped":
+			if EventBus.on_combo_dropped.is_connected(_on_combo_dropped):
+				EventBus.on_combo_dropped.disconnect(_on_combo_dropped)

@@ -4586,6 +4586,24 @@ func apply_ability_upgrade(upgrade: Dictionary) -> void:
 	## All other ops (scale_aoe, add_status, add_projectiles, …) need a _load_combo rebuild
 	## because ClassModFactory.apply_upgrade_dicts_to_kit applies them fresh to a pristine kit.
 	var op: String = upgrade.get("op", "")
+	## "self_status" hangs a PERMANENT status on the player — the same mechanism the generic
+	## pool's procs use (apply_stat_upgrade's type=="status" branch), scoped to one kit.
+	##
+	## It deliberately does NOT rebuild the kit. A combo-reactive passive lives on the player's
+	## StatusEffectComponent and registers its trigger listeners there; routing it through
+	## _load_combo would re-run a full kit build for a change that never touches a phase, and
+	## worse, the rebuild path re-applies stored dicts to a pristine kit — which would have no
+	## effect here and leave the pick silently doing nothing.
+	if op == "self_status":
+		var sid: String = upgrade.get("status_id", "")
+		var sdef: StatusEffectDefinition = StatusFactory.get_by_id(sid)
+		if sdef == null:
+			push_warning("apply_ability_upgrade: unknown status '%s' on '%s'"
+					% [sid, upgrade.get("id", "?")])
+			return
+		if status_effect_component:
+			status_effect_component.apply_status(sdef, self)
+		return
 	if op == "modifier":
 		var stat_name: String = upgrade.get("stat", "")
 		var value: float = upgrade.get("value", 0.0)

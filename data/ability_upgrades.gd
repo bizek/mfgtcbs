@@ -42,6 +42,14 @@ const MAX_RANK_BY_OP: Dictionary = {
 	"modifier": 3,
 	"add_status": 1,
 	"add_projectile_status": 1,
+	## Level-up-layer ops (2026-08-24). extend_window multiplies, so it compounds cleanly, but
+	## it is capped at 2 rather than 3: a window is a timing budget, and 3.4x turns a combo into
+	## a menu you can walk away from. The other two are one-shot for the same reason add_status
+	## is — a second rank would set an already-true boolean, or re-apply a permanent status the
+	## player already carries. Both would be picks that visibly do nothing.
+	"extend_window": 2,
+	"add_iframes": 1,
+	"self_status": 1,
 }
 
 ## How many times this upgrade may be taken in one run. Explicit "max_rank" wins; otherwise the
@@ -53,37 +61,84 @@ static func max_rank_of(entry: Dictionary) -> int:
 
 const ALL: Dictionary = {
 
-	## ── Fighter (The Sellsword) ────────────────────────────────────────────────
-	"fighter_extended_whirlwind": {
-		"id": "fighter_extended_whirlwind",
-		"name": "Extended Whirlwind",
-		"description": "Swirl hits +30% radius, wider clearing arc",
+	## ── Fighter (The Sellsword) — level-up-layer pilot, 2026-08-24 ────────────
+	##
+	## All six entries were replaced. The old set (Extended Whirlwind, Cataclysm Aftershock,
+	## Tempest Rush, Rushing Tempest, Skullcrusher, Shoulder Charge) was five phase-scalers and a
+	## dash-distance stat stick; two of them duplicated a class mod outright (SUSTAINED WHIRLWIND,
+	## SHATTERING UPPERCUT) and Tempest Rush duplicated the generic pool's Momentum line.
+	##
+	## The seam this pilot establishes: a class MOD is equipped in the hub before the run and says
+	## what the kit IS, so it owns the numbers — scale_aoe, add_status, add_projectiles all stay
+	## there. A LEVEL-UP is picked mid-descent in reaction to how the run is going, so it owns how
+	## the kit BEHAVES: what the combo rewards, how long its windows stay open, what it costs to
+	## commit. Nothing below can be expressed by any mod op, which is what makes the collision
+	## structurally impossible rather than an authoring hazard.
+	##
+	## Four of the six are the first content anywhere to use the combo events
+	## (TriggerComponent learned to hear them the same day). Between them they cover all three:
+	## on_finisher_hit, on_combo_step with both condition modes, and on_combo_dropped.
+	"fighter_thunderclap": {
+		"id": "fighter_thunderclap",
+		"name": "Thunderclap",
+		"description": "Finishers detonate the ground around you",
 		"kit": "fighter",
 		"is_ability_upgrade": true,
-		"op": "scale_aoe",
-		"target": { "anim": "swirl" },
-		"params": { "radius_mult": 1.30 },
+		"op": "self_status",
+		"status_id": "fighter_thunderclap",
 	},
-	"fighter_cataclysm_aftershock": {
-		"id": "fighter_cataclysm_aftershock",
-		"name": "Cataclysm Aftershock",
-		"description": "Cataclysm chills all enemies hit",
+	"fighter_battle_rhythm": {
+		"id": "fighter_battle_rhythm",
+		"name": "Battle Rhythm",
+		"description": "Every 3rd strike: +15% Attack Speed (3s)",
 		"kit": "fighter",
 		"is_ability_upgrade": true,
-		"op": "add_status",
+		"op": "self_status",
+		"status_id": "fighter_battle_rhythm",
+	},
+	"fighter_last_word": {
+		"id": "fighter_last_word",
+		"name": "Last Word",
+		"description": "4+ deep in a chain: -25% damage taken",
+		"kit": "fighter",
+		"is_ability_upgrade": true,
+		"op": "self_status",
+		"status_id": "fighter_last_word",
+	},
+	"fighter_spite": {
+		"id": "fighter_spite",
+		"name": "Spite",
+		"description": "A dropped chain detonates instead of fizzling",
+		"kit": "fighter",
+		"is_ability_upgrade": true,
+		"op": "self_status",
+		"status_id": "fighter_spite",
+	},
+	## Targets the heavy opener specifically, not the light graph. Two reasons: uppercut carries
+	## the tightest window in the kit (HEAVY_WIN 0.55 against CANCEL_WIN 0.75) and it is the
+	## confirm into Cataclysm, the kit's payoff. And a graph-wide target would also have caught
+	## the Whirlwind hold phase, whose 0.22s "wait" is a TICK INTERVAL rather than a cancel
+	## window — widening that would have slowed the whirlwind while reading as a buff.
+	"fighter_patient_blade": {
+		"id": "fighter_patient_blade",
+		"name": "Patient Blade",
+		"description": "Uppercut holds its window into Cataclysm 50% longer",
+		"kit": "fighter",
+		"is_ability_upgrade": true,
+		"op": "extend_window",
+		"target": { "graph": "heavy", "anim": "uppercut" },
+		"params": { "window_mult": 1.50 },
+	},
+	## No graph key on purpose — Cataclysm is reachable from BOTH the light chain (phase 4) and
+	## the heavy (phase 1), and the pick should mean the same thing however you got there.
+	"fighter_unbroken": {
+		"id": "fighter_unbroken",
+		"name": "Unbroken",
+		"description": "Nothing can touch you during Cataclysm",
+		"kit": "fighter",
+		"is_ability_upgrade": true,
+		"op": "add_iframes",
 		"target": { "anim": "cataclysm" },
-		"params": { "status": "chilled", "stacks": 1 },
-	},
-	"fighter_tempest_rush": {
-		"id": "fighter_tempest_rush",
-		"name": "Tempest Rush",
-		"description": "+15% Dash Distance this run",
-		"kit": "fighter",
-		"is_ability_upgrade": true,
-		"op": "modifier",
-		"stat": "dash_speed",
-		"type": "percent",
-		"value": 0.15,
 	},
 
 	## ── Paladin (The Warden) ──────────────────────────────────────────────────
@@ -497,26 +552,6 @@ const ALL: Dictionary = {
 	## `blades_start`, wizard `fireball`, barbarian `guard`. Neither is a heal-only phase like the
 	## cleric's `pray_heal`: _scale_effects has no HealEffect branch, so scaling one does nothing.
 
-	## ── Fighter ───────────────────────────────────────────────────────────────
-	"fighter_rushing_tempest": {
-		"id": "fighter_rushing_tempest", "name": "Rushing Tempest",
-		"description": "Tempest sweeps +35% wider",
-		"kit": "fighter", "is_ability_upgrade": true, "op": "scale_aoe",
-		"target": { "anim": "tempest" }, "params": { "radius_mult": 1.35 },
-	},
-	"fighter_skullcrusher": {
-		"id": "fighter_skullcrusher", "name": "Skullcrusher",
-		"description": "Uppercut hits +45% damage",
-		"kit": "fighter", "is_ability_upgrade": true, "op": "scale_aoe",
-		"target": { "anim": "uppercut" }, "params": { "damage_mult": 1.45 },
-	},
-	"fighter_shoulder_charge": {
-		"id": "fighter_shoulder_charge", "name": "Shoulder Charge",
-		"description": "Rush (E) hits +30% wider and harder",
-		"kit": "fighter", "is_ability_upgrade": true, "op": "scale_aoe",
-		"target": { "anim": "rush" }, "params": { "radius_mult": 1.30, "damage_mult": 1.30 },
-	},
-
 	## ── Paladin ───────────────────────────────────────────────────────────────
 	"paladin_ringing_dictum": {
 		"id": "paladin_ringing_dictum", "name": "Ringing Dictum",
@@ -754,8 +789,8 @@ const ALL: Dictionary = {
 ## ignores ALL, so an entry missing here is authored, valid, and never offered. validate_kit_order()
 ## exists so that cannot happen quietly.
 const ORDER_BY_KIT: Dictionary = {
-	"fighter":    ["fighter_extended_whirlwind",    "fighter_cataclysm_aftershock", "fighter_tempest_rush",
-				   "fighter_rushing_tempest",       "fighter_skullcrusher",         "fighter_shoulder_charge"],
+	"fighter":    ["fighter_thunderclap",           "fighter_battle_rhythm",        "fighter_last_word",
+				   "fighter_spite",                 "fighter_patient_blade",        "fighter_unbroken"],
 	"paladin":    ["paladin_hammer_storm",          "paladin_consecrated_bash",     "paladin_iron_faith",
 				   "paladin_ringing_dictum",        "paladin_crusaders_cadence",    "paladin_searing_hammer"],
 	"ninja":      ["ninja_blade_storm_surge",       "ninja_killing_edge",           "ninja_smoke_ambush",
@@ -813,17 +848,32 @@ static func validate_kit_order() -> Array[String]:
 	for up_id: String in ALL:
 		var entry: Dictionary = ALL[up_id]
 		var op: String = entry.get("op", "")
-		if op not in ["add_status", "add_projectile_status"]:
+		if op not in ["add_status", "add_projectile_status", "add_iframes", "self_status"]:
 			continue
-		## An add_status that could rank would be a pick that visibly does nothing on rank 2.
+		## Any of these four ranking would be a pick that visibly does nothing on rank 2:
+		## appending the same status twice collapses under the stacking rules, setting an
+		## already-true boolean changes nothing, and re-applying a permanent self status
+		## re-applies what the player is already carrying.
 		if max_rank_of(entry) > 1:
-			problems.append("'%s' is op '%s' with max_rank %d — repeats would re-apply the same "
-					% [up_id, op, max_rank_of(entry)] + "status and do nothing")
+			problems.append("'%s' is op '%s' with max_rank %d — repeats would do nothing"
+					% [up_id, op, max_rank_of(entry)])
+		## add_iframes names no status, so there is nothing further to resolve.
+		if op == "add_iframes":
+			continue
 		## The status id itself. ClassModFactory._status_effect returns null on a miss and the op
 		## then appends nothing — the same invisible failure as a dead anim target, one field over.
 		## UpgradeManager.validate_status_ids() does NOT cover these: it walks the generic
 		## upgrade_pool and the evolution recipes, never an ability upgrade's params.
-		var sid: String = entry.get("params", {}).get("status", "")
+		##
+		## The two shapes are deliberate, not an inconsistency: a phase-targeting op names its
+		## status inside `params` alongside stacks and apply_to_self, the way every class mod
+		## does; "self_status" has no params at all, so it carries `status_id` at the top level
+		## the way the generic pool's entries do.
+		var sid: String = ""
+		if op == "self_status":
+			sid = entry.get("status_id", "")
+		else:
+			sid = entry.get("params", {}).get("status", "")
 		if StatusFactory.get_by_id(sid) == null:
 			problems.append("'%s' applies unknown status '%s' — the op will append nothing"
 					% [up_id, sid])

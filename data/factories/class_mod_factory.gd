@@ -79,7 +79,10 @@ static func validate_anim_targets(weapon_data: Dictionary = {}) -> Array[String]
 					continue
 				var op: String = entry.get("op", "")
 				## Same exclusions the apply paths use: these ops never touch a phase.
-				if op == "modifier" or op == "kit_flag" or op == "":
+				## "self_status" joins them — it hangs a permanent status on the PLAYER
+				## (player.apply_ability_upgrade), the same way the generic pool's procs do, and
+				## never reaches a choreography phase.
+				if op == "modifier" or op == "kit_flag" or op == "self_status" or op == "":
 					continue
 				var target: Dictionary = entry.get("target", {})
 				if target.is_empty():
@@ -89,6 +92,25 @@ static func validate_anim_targets(weapon_data: Dictionary = {}) -> Array[String]
 				if _for_each_targeted_phase(abilities, target, Callable()) == 0:
 					problems.append("%s (%s): target %s matches no phase — this entry does nothing"
 						% [entry_id, kit_id, str(target)])
+					continue
+				## Second failure shape, one level finer: the target resolves to real phases and
+				## the entry is STILL inert because none of them carries the field the op turns.
+				## Only extend_window has this property — every phase can take iframes, a status
+				## or a scale, but only a "wait" phase has a window to widen.
+				##
+				## The counter is boxed in an Array because GDScript lambdas capture locals BY
+				## VALUE; incrementing a plain int inside the callable would leave the outer copy
+				## at zero and this check would fire on everything.
+				if op == "extend_window":
+					var windowed: Array[int] = [0]
+					_for_each_targeted_phase(abilities, target,
+						func(phase: ChoreographyPhase) -> void:
+							if phase.exit_type == "wait":
+								windowed[0] += 1)
+					if windowed[0] == 0:
+						problems.append(("%s (%s): extend_window target %s matches only phases "
+							+ "with no cancel window (exit_type != \"wait\") — nothing to widen")
+							% [entry_id, kit_id, str(target)])
 	return problems
 
 
@@ -210,6 +232,27 @@ static func _apply_op_to_phase(op: String, phase: ChoreographyPhase, params: Dic
 			var add_n: int = params.get("count", 1)
 			for eff in _projectile_effects(phase):
 				eff.count += add_n
+		## ── Level-up-layer ops (2026-08-24) ──────────────────────────────────────────
+		## Neither of these is used by a class mod and neither should be. They exist to give the
+		## level-up layer a vocabulary the mod layer cannot express — see the seam note in
+		## AbilityUpgradeData. A mod is chosen in the hub before the run and is the right place
+		## for numbers; these two change how a phase FEELS to press, which is a mid-run decision.
+		"extend_window":
+			## Multiplies the cancel-and-branch window — the seconds the runner spends in "wait"
+			## letting you buffer the next input. Bigger window = the same chain is easier to
+			## confirm, which lowers the execution floor instead of raising a number.
+			##
+			## Only "wait" phases HAVE a window: for anim_finished / displacement_complete the
+			## field is unread, so multiplying it is a silent no-op. validate_anim_targets()
+			## rejects a target whose phases are all windowless rather than let that ship.
+			if phase.exit_type == "wait":
+				phase.wait_duration *= float(params.get("window_mult", 1.0))
+		"add_iframes":
+			## Turns a committed phase into a defensive option. The field and the runner support
+			## already exist (bosses use it for dodge-through windows); nothing had ever set it
+			## from data. Deliberately a boolean with no magnitude — max_rank is 1 because a
+			## second application would set an already-true flag and visibly do nothing.
+			phase.set_invulnerable = true
 
 
 ## Scale a pool of effects in place. Recurses one level into a status the phase applies, so ops still
