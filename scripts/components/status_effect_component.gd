@@ -39,6 +39,8 @@ func get_status_snapshot() -> Array[Dictionary]:
 		var a: ActiveStatus = _active[status_id]
 		if a.definition == null:
 			continue
+		if a.definition.hud_hidden:
+			continue
 		out.append({
 			"id": String(status_id),
 			"stacks": a.stacks,

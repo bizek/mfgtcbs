@@ -21,3 +21,19 @@ extends Resource
 @export var aoe_forward_offset: float = 0.0
 ## Optional per-hit effects executed on each enemy this AoE damages (e.g. Galvanized Bleed spread).
 @export var on_hit_effects: Array = []
+
+## ── Making the hit visible (2026-08-26) ──────────────────────────────────────────────────────
+## This effect had NO visual channel of its own for its entire existence: it is a SpatialGrid
+## query plus a DealDamageEffect per target, so the only thing a player ever saw was damage
+## numbers appearing on enemies. Anything whose whole identity IS the AoE was therefore invisible —
+## the Fighter's Thunderclap and Spite shipped blind on 2026-08-24, and Volatile Remains had been
+## detonating corpses unseen since 2026-08-03. StatusFactory's own cinder_skin comment had already
+## named the failure mode ("an invisible damage ring would be a guessing game") and this is the
+## same bug one layer down.
+##
+## Opt-in rather than on by default: plenty of AoEs are the tail of an ability that already draws
+## its own art (Cataclysm, Brimstone Circle), and a second ring on top of those would be noise.
+@export var vfx_shockwave: bool = false
+## Ring colour. Default is the same orange every other shockwave in the game uses
+## (player._spawn_shockwave_ring), so an AoE that opts in looks native rather than bolted on.
+@export var vfx_color: Color = Color(1.0, 0.55, 0.10, 0.9)

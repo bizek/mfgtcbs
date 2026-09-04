@@ -675,6 +675,10 @@ static func _corpse_burst_listener(dmg: float, radius: float,
 	burst.damage_type = "Fire"
 	burst.base_damage = dmg
 	burst.aoe_radius = radius
+	## Visible from 2026-08-26. This had been detonating corpses with no art since it shipped on
+	## 2026-08-03 — AreaDamageEffect had no visual channel until the hook existed.
+	burst.vfx_shockwave = true
+	burst.vfx_color = Color(1.0, 0.55, 0.10, 0.9)
 
 	var listener := TriggerListenerDefinition.new()
 	listener.event = "on_kill"
@@ -808,11 +812,16 @@ static func _build_last_stand() -> StatusEffectDefinition:
 static func _build_fighter_thunderclap() -> StatusEffectDefinition:
 	var def := _passive_shell("fighter_thunderclap")
 	def.tags = ["Passive"]
+	def.hud_hidden = true
 
 	var clap := AreaDamageEffect.new()
 	clap.damage_type = "Physical"
 	clap.base_damage = 30.0
 	clap.aoe_radius = 90.0
+	## Gold — the finisher colour the chain meter's deep-chain pips already use
+	## (hud.CHAIN_PIP_HIGH), so the burst reads as "that was the payoff".
+	clap.vfx_shockwave = true
+	clap.vfx_color = Color(1.0, 0.78, 0.29, 0.9)
 
 	var listener := TriggerListenerDefinition.new()
 	listener.event = "on_finisher_hit"
@@ -827,6 +836,7 @@ static func _build_fighter_thunderclap() -> StatusEffectDefinition:
 static func _build_fighter_battle_rhythm() -> StatusEffectDefinition:
 	var def := _passive_shell("fighter_battle_rhythm")
 	def.tags = ["Passive"]
+	def.hud_hidden = true    ## the SURGE below is the chip worth reading, not this shell
 
 	var surge := StatusEffectDefinition.new()
 	surge.status_id = "fighter_battle_rhythm_surge"
@@ -868,6 +878,7 @@ static func _build_fighter_battle_rhythm() -> StatusEffectDefinition:
 static func _build_fighter_last_word() -> StatusEffectDefinition:
 	var def := _passive_shell("fighter_last_word")
 	def.tags = ["Passive"]
+	def.hud_hidden = true    ## ditto — the surge carries the timer
 
 	var surge := StatusEffectDefinition.new()
 	surge.status_id = "fighter_last_word_surge"
@@ -906,11 +917,16 @@ static func _build_fighter_last_word() -> StatusEffectDefinition:
 static func _build_fighter_spite() -> StatusEffectDefinition:
 	var def := _passive_shell("fighter_spite")
 	def.tags = ["Passive"]
+	def.hud_hidden = true
 
 	var burst := AreaDamageEffect.new()
 	burst.damage_type = "Physical"
 	burst.base_damage = 40.0
 	burst.aoe_radius = 110.0
+	## Deliberately NOT the finisher gold. A dropped chain is a different event from a landed
+	## finisher and should not congratulate you the same way — hot red-orange reads as a vent.
+	burst.vfx_shockwave = true
+	burst.vfx_color = Color(1.0, 0.42, 0.18, 0.9)
 
 	var depth := TriggerConditionComboDepth.new()
 	depth.min_depth = 2

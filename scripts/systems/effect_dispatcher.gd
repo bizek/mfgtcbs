@@ -139,6 +139,12 @@ static func execute_effect(effect: Resource, source: Node2D, target: Node2D,
 			var aim: Vector2 = source.get_aim_direction()
 			if aim.length_squared() > 0.0:
 				aoe_center += aim.normalized() * effect.aoe_forward_offset
+		## Draw before the damage query so the ring is already expanding as the numbers pop.
+		## Duck-typed on the SOURCE: the player owns the pack sheet and the tween, and an enemy
+		## AoE simply does not draw — which is the existing behaviour for every enemy AoE in the
+		## game, so this adds nothing to their frame cost.
+		if effect.vfx_shockwave and source.has_method("spawn_shockwave_at"):
+			source.spawn_shockwave_at(aoe_center, effect.aoe_radius, effect.vfx_color)
 		var aoe_targets: Array = grid.get_nearby_in_range(aoe_center, enemy_faction, radius_sq)
 		var dmg_effect := DealDamageEffect.new()
 		dmg_effect.damage_type = effect.damage_type

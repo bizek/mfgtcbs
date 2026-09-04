@@ -37,3 +37,8 @@ extends Resource
 @export var targeting_count_threshold: int = 0            ## > 0 = apply targeting_count_status when N+ enemies target bearer
 @export var targeting_count_status: Resource = null        ## StatusEffectDefinition applied when threshold met
 @export var trigger_listeners: Array[Resource] = []      ## TriggerListenerDefinitions registered while active
+## Keep this status out of the HUD buff row. The row is eight chips wide and each one draws a
+## DRAINING TIMER, so it is built for temporary state; a permanent passive sits there at full fill
+## forever, says nothing the player does not already know, and crowds out the timed buff they
+## actually need to read. Set on the permanent "you picked this upgrade" shells, never on a surge.
+@export var hud_hidden: bool = false

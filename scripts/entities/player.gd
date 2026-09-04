@@ -3719,11 +3719,22 @@ const SHOCKWAVE_TIME: float = float(SHOCKWAVE_FRAMES) / SHOCKWAVE_FPS   ## 1.00s
 
 
 func _spawn_shockwave_ring(radius: float, color: Color = Color(1.0, 0.55, 0.10, 0.9)) -> void:
-	## Expanding ring that rings out from the player to the hit-zone edge, then fades.
+	## Centred on the player. Thin wrapper over spawn_shockwave_at so the dozen existing call
+	## sites keep their exact behaviour.
+	spawn_shockwave_at(global_position, radius, color)
+
+
+## Same ring at an ARBITRARY position, public so EffectDispatcher can draw an AreaDamageEffect
+## that opts into vfx_shockwave. Public and position-taking for one reason: an AoE is not always
+## centred on its source — Volatile Remains detonates the CORPSE while the player is the source —
+## so the caller has to say where.
+func spawn_shockwave_at(at: Vector2, radius: float,
+		color: Color = Color(1.0, 0.55, 0.10, 0.9)) -> void:
+	## Expanding ring that rings out to the hit-zone edge, then fades.
 	## Orange by default (Taunt/impact zones); green = heals, gold = Reckoning.
 	## Prefers the pack's real expanding-shock sheet; the Line2D below is the fallback when the
 	## sheet is missing, and still runs UNDER the sprite as a bright leading edge.
-	var burst: AnimatedSprite2D = _spawn_pack_fx(SHOCKWAVE_SHEET, global_position,
+	var burst: AnimatedSprite2D = _spawn_pack_fx(SHOCKWAVE_SHEET, at,
 			SHOCKWAVE_CELL, 0, SHOCKWAVE_FPS, false, 1)
 	if burst:
 		## The sheet's shock fills its 56px cell, so its native radius is half that.
@@ -3743,7 +3754,7 @@ func _spawn_shockwave_ring(radius: float, color: Color = Color(1.0, 0.55, 0.10, 
 	ring.top_level = true
 	ring.z_index = 1
 	get_tree().current_scene.add_child(ring)
-	ring.global_position = global_position
+	ring.global_position = at
 	ring.scale = Vector2(0.15, 0.15)
 	## Bound to SHOCKWAVE_TIME, not a literal: this edge is drawn UNDER the sprite ring and has to
 	## expand with it. Left at its old 0.45s it would finish half a second early and the sheet's
@@ -3840,6 +3851,19 @@ func choreo_evaluate_condition(condition: Resource, phase: ChoreographyPhase) ->
 func choreo_set_flags(untargetable: bool, invulnerable: bool) -> void:
 	is_untargetable = untargetable
 	if invulnerable:
+		## Tell the player they are protected. set_invulnerable had no visual at all until
+		## 2026-08-26 — the flag was authored on boss phases where the ENEMY being immune needs no
+		## player-facing readout, but the Fighter's UNBROKEN puts it on the player, where "am I
+		## actually safe right now" is the whole question the pick answers.
+		##
+		## Fires only on the rising edge: choreo_set_flags runs on every phase entry, and a
+		## multi-phase invulnerable stretch should read as one continuous state, not a flash per
+		## phase. is_invulnerable is cleared in choreo_on_end.
+		if not is_invulnerable and sprite:
+			sprite.self_modulate = Color(1.5, 1.6, 2.0, 1.0)
+			var inv_t := create_tween()
+			inv_t.tween_property(sprite, "self_modulate", Color.WHITE, 0.30)
+			spawn_shockwave_at(global_position, 34.0, Color(0.62, 0.80, 1.0, 0.85))
 		is_invulnerable = true
 
 
