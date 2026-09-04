@@ -145,13 +145,14 @@ func _ready() -> void:
 	_build_extraction_warning_label()
 	_build_phase_dial()
 	_build_depth_meter()
-	_build_chain_meter()
+	_build_window_bar()
+	_build_combo_counter()
 	_build_combo_discovery_popup()
 	_build_first_run_overlay()
 	GameManager.phase_started.connect(_on_phase_started)
 	InputGlyphs.device_changed.connect(func(_v: bool): _refresh_skill_slot_keys())
 	Settings.bindings_changed.connect(_refresh_skill_slot_keys)
-	EventBus.on_combo_step.connect(_on_combo_step)
+	EventBus.on_hit_dealt.connect(_on_hit_dealt_combo)
 
 func setup(player: Node2D) -> void:
 	player_ref = player
@@ -250,7 +251,8 @@ func _process(delta: float) -> void:
 			_depth_tween.tween_property(_depth_fill, "size:y",
 				METER_H * target, 0.3).set_ease(Tween.EASE_OUT)
 
-	_update_chain_meter(delta)
+	_update_window_bar(delta)
+	_update_combo_counter(delta)
 	_update_low_hp(delta)
 
 func _on_health_changed(current: float, maximum: float) -> void:
@@ -876,132 +878,218 @@ func _build_skill_slots() -> void:
 			"prev_remaining": 0.0,
 		}
 
-## ── Combo chain meter (bottom-centre, above the buff row) ────────────────────
-## Chain depth and the live cancel window — the two things a player acts on while comboing.
+## ── Cancel-window bar (bottom-centre, above the buff row) ────────────────────
+## All that remains of the first chain-meter design. The pip row that reported chain DEPTH was
+## replaced by the combo counter below (Ben, 2026-08-19) — a traditional hit counter reads what
+## players expect, and chain steps are not what a combo meter is usually counting.
 ##
-## Why this exists: until 2026-08-19 chain depth had exactly ONE output channel in the whole
-## game, AudioManager's pitch ladder on EventBus.on_combo_step. The player-sprite pulse fired at
-## every depth with identical brightness, so the mechanic the game is built around was legible
-## by ear only. Turn SFX down, or be hard of hearing, and it vanished.
-##
-## Pips report depth; the bar under them drains with the cancel window, which is the actionable
-## half (press NOW). Both are polled from the player rather than accumulated from signals — see
-## player.get_combo_depth() for why a signal-counting version desyncs on every interrupted chain.
-const CHAIN_PIP: float = 5.0
-const CHAIN_PIP_GAP: float = 2.0
-const CHAIN_MAX_PIPS: int = 8
-const CHAIN_BAR_H: float = 2.0
-const CHAIN_BAR_PAD: float = 2.0
-const CHAIN_Y: float = BUFF_BAR_Y - CHAIN_PIP - CHAIN_BAR_H - CHAIN_BAR_PAD - 4.0
-## Chain over: hold the shape briefly and fade rather than snapping to nothing. A chain ENDING is
-## information too, and a hard cut on the frame the graph resets reads as a glitch.
-const CHAIN_FADE_RATE: float = 3.2
-const CHAIN_PIP_LOW: Color = Color(0.86, 0.88, 0.92)    ## opener — cool, quiet
-const CHAIN_PIP_HIGH: Color = Color(1.0, 0.78, 0.29)    ## deep chain — gold, matches the body pulse
-const CHAIN_WINDOW_COLOR: Color = Color(1.0, 0.93, 0.66)
-const CHAIN_FLASH_DECAY: float = 3.6
+## The bar stayed because it answers a question the counter cannot: how long is left to press
+## again before the chain drops. Nothing else in the game surfaces that — EventBus's
+## on_combo_step fires the instant a node lands and says nothing about the window after it — and
+## it is the actionable half, since "press NOW" is something you can still act on.
+const WINDOW_BAR_W: float = 44.0
+const WINDOW_BAR_H: float = 2.0
+const WINDOW_BAR_Y: float = BUFF_BAR_Y - WINDOW_BAR_H - 6.0
+const WINDOW_FADE_RATE: float = 3.2
+const WINDOW_BAR_COLOR: Color = Color(1.0, 0.93, 0.66)
 
-var _chain_root: Control = null
-var _chain_pips: Array[ColorRect] = []
-var _chain_track: ColorRect = null
-var _chain_fill: ColorRect = null
-var _chain_shown_depth: int = 0
-var _chain_alpha: float = 0.0
-var _chain_flash: float = 0.0     ## finisher pop, decays to 0
+var _win_root: Control = null
+var _win_track: ColorRect = null
+var _win_fill: ColorRect = null
+var _win_alpha: float = 0.0
 
 
-func _build_chain_meter() -> void:
+func _build_window_bar() -> void:
 	var root := Control.new()
-	root.name = "ChainMeter"
+	root.name = "CancelWindowBar"
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.position = Vector2(0.0, CHAIN_Y)
+	root.position = Vector2(320.0 - WINDOW_BAR_W * 0.5, WINDOW_BAR_Y)
 	root.visible = false
 	add_child(root)
-	_chain_root = root
+	_win_root = root
 
-	for i in range(CHAIN_MAX_PIPS):
-		var pip := ColorRect.new()
-		pip.size = Vector2(CHAIN_PIP, CHAIN_PIP)
-		pip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		pip.visible = false
-		root.add_child(pip)
-		_chain_pips.append(pip)
-
-	## Track first, fill second — the fill draws over it. Both are sized per frame with the pip
-	## row so the meter reads as one object at every depth.
 	var track := ColorRect.new()
+	track.size = Vector2(WINDOW_BAR_W, WINDOW_BAR_H)
+	track.color = Color(0.0, 0.0, 0.0, 0.55)
 	track.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(track)
-	_chain_track = track
+	_win_track = track
 
 	var fill := ColorRect.new()
+	fill.size = Vector2(WINDOW_BAR_W, WINDOW_BAR_H)
 	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(fill)
-	_chain_fill = fill
+	_win_fill = fill
 
 
-## Finisher pop. The finisher IS the chain's payoff, and it is the one step the pip row cannot
-## express on its own — the graph resets immediately after it lands, so without this the meter's
-## last frame looks like any other step before it fades out.
-func _on_combo_step(entity: Node2D, _depth: int, is_finisher: bool) -> void:
-	if entity != player_ref or not is_finisher:
+func _update_window_bar(delta: float) -> void:
+	if _win_root == null:
 		return
-	_chain_flash = 1.0
-
-
-func _update_chain_meter(delta: float) -> void:
-	if _chain_root == null:
-		return
-	var depth: int = 0
 	var ratio: float = 0.0
+	var in_chain: bool = false
 	if player_ref != null and is_instance_valid(player_ref):
-		depth = player_ref.get_combo_depth()
 		ratio = player_ref.get_combo_window_ratio()
-
-	if depth > 0:
-		_chain_shown_depth = depth
-		_chain_alpha = 1.0
+		in_chain = player_ref.get_combo_depth() > 0
+	if in_chain:
+		_win_alpha = 1.0
 	else:
-		_chain_alpha = maxf(_chain_alpha - delta * CHAIN_FADE_RATE, 0.0)
-	_chain_flash = maxf(_chain_flash - delta * CHAIN_FLASH_DECAY, 0.0)
-
-	if _chain_alpha <= 0.0 or _chain_shown_depth <= 0:
-		_chain_root.visible = false
+		_win_alpha = maxf(_win_alpha - delta * WINDOW_FADE_RATE, 0.0)
+	if _win_alpha <= 0.0:
+		_win_root.visible = false
 		return
-	_chain_root.visible = true
+	_win_root.visible = true
+	_win_track.color = Color(0.0, 0.0, 0.0, 0.55 * _win_alpha)
+	_win_fill.size = Vector2(WINDOW_BAR_W * ratio, WINDOW_BAR_H)
+	var c: Color = WINDOW_BAR_COLOR
+	c.a = _win_alpha
+	_win_fill.color = c
 
-	var shown: int = mini(_chain_shown_depth, CHAIN_MAX_PIPS)
-	var row_w: float = float(shown) * CHAIN_PIP + maxf(float(shown - 1), 0.0) * CHAIN_PIP_GAP
-	## No hand-rounding of x — snap_2d_transforms_to_pixel already rounds every canvas item's
-	## origin, and rounding on top of that is exactly what CLAUDE.md's pixel-grid note warns off.
-	var x0: float = 320.0 - row_w * 0.5
 
-	for i in range(CHAIN_MAX_PIPS):
-		var pip: ColorRect = _chain_pips[i]
-		if i >= shown:
-			pip.visible = false
-			continue
-		pip.visible = true
-		pip.position = Vector2(x0 + float(i) * (CHAIN_PIP + CHAIN_PIP_GAP), 0.0)
-		## Ramp across the pips actually lit, not across CHAIN_MAX_PIPS — a 3-node kit should
-		## reach its own top colour on its finisher instead of stopping a third of the way up a
-		## ramp scaled for the longest chain in the game.
-		var t: float = float(i) / maxf(float(shown - 1), 1.0)
-		var c: Color = CHAIN_PIP_LOW.lerp(CHAIN_PIP_HIGH, t)
-		if _chain_flash > 0.0:
-			c = c.lerp(Color(1.0, 1.0, 1.0), _chain_flash * 0.75)
-		c.a = _chain_alpha
-		pip.color = c
+## ── Combo counter (top-right, under the phase dial) ──────────────────────────
+## Traditional hit counter: every enemy an attack damages adds one, and a lull of COMBO_TIMEOUT
+## clears it. Taking damage does NOT break it (Ben's call, 2026-08-19) — the meter rewards
+## aggression rather than punishing a mistake twice in a game that already takes your haul.
+##
+## Counts EventBus.on_hit_dealt, filtered two ways:
+##   • source must be the player — enemies damaging each other, and anything damaging the
+##     player, are not the player's combo;
+##   • hit_data.ability must be non-null. Status DoT ticks and ground zones dispatch damage with
+##     ability = null (StatusEffectComponent._execute_tick_effects passes null into
+##     EffectDispatcher, and so does the zone code in player.gd), while every real attack carries
+##     its AbilityDefinition down through DamageCalculator. Without this filter a burning pack
+##     pumps the counter with no input at all and the timeout can never fire — exactly backwards
+##     for a meter meant to read "what you are landing right now". It also means DoT-heavy kits
+##     like the Demon build combo from the swing that applies the burn, not from the burn.
+##
+## Placement: x486-636, y86 down. Verified clear of every other top-band element — TopLeft ends
+## at x148, TopRight at y42, the keystone/portal pills are 78x16 at x480 y2-36, the phase dial is
+## 36x36 at (602,44) so it ends at y80, and boss bars are centred at x224-416.
+const COMBO_TIMEOUT: float = 2.5
+const COMBO_MIN_SHOW: int = 2          ## a single hit is not a combo
+const COMBO_FADE_RATE: float = 3.0
+const COMBO_POP_DECAY: float = 6.0
+const COMBO_W: float = 150.0
+const COMBO_X: float = 636.0 - COMBO_W
+const COMBO_Y: float = 86.0
+## Rank ladder (Ben, 2026-08-19). Ascending; the LAST entry whose threshold is met wins, so
+## reordering or inserting a tier needs no other change. Below the first threshold the caption
+## reads HITS, so a bare number is never left unlabelled.
+const COMBO_RANKS: Array = [
+	[5,  "BLOODIED",     Color(1.00, 0.86, 0.55)],
+	[10, "SAVAGE",       Color(1.00, 0.74, 0.36)],
+	[20, "MERCILESS",    Color(1.00, 0.55, 0.26)],
+	[35, "CARNAGE",      Color(1.00, 0.38, 0.24)],
+	[50, "ANNIHILATION", Color(1.00, 0.22, 0.22)],
+]
+const COMBO_BASE_COLOR: Color = Color(0.92, 0.94, 0.96)
 
-	var bar_pos := Vector2(x0, CHAIN_PIP + CHAIN_BAR_PAD)
-	_chain_track.position = bar_pos
-	_chain_track.size = Vector2(row_w, CHAIN_BAR_H)
-	_chain_track.color = Color(0.0, 0.0, 0.0, 0.55 * _chain_alpha)
-	_chain_fill.position = bar_pos
-	_chain_fill.size = Vector2(row_w * ratio, CHAIN_BAR_H)
-	var fc: Color = CHAIN_WINDOW_COLOR
-	fc.a = _chain_alpha
-	_chain_fill.color = fc
+var _combo_root: Control = null
+var _combo_num: Label = null
+var _combo_rank_lbl: Label = null
+var _combo_count: int = 0
+var _combo_shown: int = 0     ## frozen while fading, so the final total is what you read
+var _combo_timer: float = 0.0
+var _combo_alpha: float = 0.0
+var _combo_pop: float = 0.0
+var _combo_rank: int = -2     ## -2 = unset, -1 = below the first tier, >=0 = COMBO_RANKS index
+
+
+func _build_combo_counter() -> void:
+	var root := Control.new()
+	root.name = "ComboCounter"
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.position = Vector2(COMBO_X, COMBO_Y)
+	root.visible = false
+	add_child(root)
+	_combo_root = root
+
+	## 32 and 16 are the only crisp m5x7 sizes (CLAUDE.md font note), which happens to be exactly
+	## the hierarchy this wants — a big number with a caption under it. Heights are derived from
+	## the returned size rather than hardcoded, because _ts() can snap up under the LARGE
+	## text-size setting and a fixed 34px box would clip the glyphs.
+	var num_size: int = _ts(32)
+	var rank_size: int = _ts(16)
+
+	var num := Label.new()
+	num.size = Vector2(COMBO_W, float(num_size) + 2.0)
+	num.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	num.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	num.add_theme_font_size_override("font_size", num_size)
+	num.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.9))
+	num.add_theme_constant_override("outline_size", 3)
+	num.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(num)
+	_combo_num = num
+
+	var rank := Label.new()
+	rank.position = Vector2(0.0, float(num_size))
+	rank.size = Vector2(COMBO_W, float(rank_size) + 2.0)
+	rank.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	rank.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	rank.add_theme_font_size_override("font_size", rank_size)
+	rank.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.9))
+	rank.add_theme_constant_override("outline_size", 2)
+	rank.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(rank)
+	_combo_rank_lbl = rank
+
+
+func _on_hit_dealt_combo(source: Variant, _target: Variant, hit_data: Variant) -> void:
+	if player_ref == null or source != player_ref:
+		return
+	if not (hit_data is HitData) or hit_data.ability == null:
+		return
+	_combo_count += 1
+	_combo_timer = COMBO_TIMEOUT
+	_combo_pop = 1.0
+
+
+func _update_combo_counter(delta: float) -> void:
+	if _combo_root == null:
+		return
+	if _combo_count > 0:
+		_combo_timer -= delta
+		if _combo_timer <= 0.0:
+			_combo_count = 0
+			_combo_rank = -2
+	_combo_pop = maxf(_combo_pop - delta * COMBO_POP_DECAY, 0.0)
+
+	if _combo_count >= COMBO_MIN_SHOW:
+		_combo_shown = _combo_count
+		_combo_alpha = 1.0
+	else:
+		_combo_alpha = maxf(_combo_alpha - delta * COMBO_FADE_RATE, 0.0)
+	if _combo_alpha <= 0.0 or _combo_shown < COMBO_MIN_SHOW:
+		_combo_root.visible = false
+		return
+	_combo_root.visible = true
+
+	## Highest tier the count has reached; -1 while still below the first threshold.
+	var rank_idx: int = -1
+	for i in range(COMBO_RANKS.size()):
+		if _combo_shown >= int(COMBO_RANKS[i][0]):
+			rank_idx = i
+
+	if rank_idx != _combo_rank:
+		var col: Color = COMBO_BASE_COLOR
+		var caption: String = "HITS"
+		if rank_idx >= 0:
+			col = COMBO_RANKS[rank_idx][2]
+			caption = str(COMBO_RANKS[rank_idx][1])
+		_combo_num.add_theme_color_override("font_color", col)
+		_combo_rank_lbl.add_theme_color_override("font_color", col)
+		_combo_rank_lbl.text = caption
+		## A new title should land harder than another hit, so it gets a full pop of its own.
+		if rank_idx >= 0 and rank_idx > _combo_rank:
+			_combo_pop = 1.0
+		_combo_rank = rank_idx
+
+	_combo_num.text = str(_combo_shown)
+	## Punch is a BRIGHTNESS pop on the root, never a scale tween: m5x7 is 16px-native and any
+	## fractional scale drops its stems off the pixel grid (CLAUDE.md pixel-grid note). One
+	## modulate carries both the pop and the fade, so per-frame theme overrides are avoided.
+	var b: float = 1.0 + _combo_pop * 0.9
+	_combo_root.modulate = Color(b, b, b, _combo_alpha)
 
 
 ## ── Low health ───────────────────────────────────────────────────────────────
