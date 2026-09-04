@@ -45,6 +45,9 @@ var _choreo: ChoreographyDefinition = null
 var _ability: AbilityDefinition = null
 var _phase_index: int = -1
 var _timer: float = 0.0
+## The cancel window's full length for the CURRENT phase, after the host's combo_window scale.
+## Kept because get_cancel_window_ratio has to divide by what _timer actually started at.
+var _window_full: float = 0.0
 var _phase_time: float = 0.0          ## seconds since this phase was entered (spam cap)
 var _targets: Array = []
 var _current_anim: String = ""
@@ -141,7 +144,11 @@ func get_cancel_window_ratio() -> float:
 		return 0.0
 	if current_phase_is_held_channel():
 		return 0.0
-	return clampf(_timer / phase.wait_duration, 0.0, 1.0)
+	## Against the SCALED length, not phase.wait_duration. A host that widens the window
+	## (combo_window) starts _timer above the authored duration, so dividing by the authored
+	## value would report >1.0 and the HUD bar would render past the end of its own track.
+	var full: float = _window_full if _window_full > 0.0 else phase.wait_duration
+	return clampf(_timer / full, 0.0, 1.0)
 
 
 ## Begin a choreography sequence. `targets` is the initial target set (host may ignore it).
@@ -245,7 +252,17 @@ func _enter_phase(index: int) -> void:
 
 	match phase.exit_type:
 		"wait":
-			_timer = phase.wait_duration
+			## Host-scaled cancel window. Duck-typed and defaulting to 1.0, so enemies — which run
+			## this same runner and have no such stat — keep the authored timing exactly.
+			##
+			## This is the ONE seam that widens "the bar": every kit, every phase, one multiplier.
+			## Per-phase ops (extend_window) still exist for precision work, but a player-facing
+			## "combo lasts longer" pick belongs here rather than as twelve authored per-kit copies.
+			var scale: float = 1.0
+			if _host != null and _host.has_method("combo_window_scale"):
+				scale = maxf(0.05, float(_host.combo_window_scale()))
+			_window_full = phase.wait_duration * scale
+			_timer = _window_full
 		"displacement_complete":
 			## Watchdog — a displacement that never ran (dead/invalid target, or a
 			## Displacement-negated entity) would otherwise never report completion and the phase

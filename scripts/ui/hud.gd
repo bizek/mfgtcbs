@@ -152,7 +152,6 @@ func _ready() -> void:
 	GameManager.phase_started.connect(_on_phase_started)
 	InputGlyphs.device_changed.connect(func(_v: bool): _refresh_skill_slot_keys())
 	Settings.bindings_changed.connect(_refresh_skill_slot_keys)
-	EventBus.on_hit_dealt.connect(_on_hit_dealt_combo)
 
 func setup(player: Node2D) -> void:
 	player_ref = player
@@ -946,7 +945,7 @@ func _update_window_bar(delta: float) -> void:
 
 
 ## ── Combo counter (top-right, under the phase dial) ──────────────────────────
-## Traditional hit counter: every enemy an attack damages adds one, and a lull of COMBO_TIMEOUT
+## Traditional hit counter: every enemy an attack damages adds one, and a lull of combo_timeout
 ## clears it. Taking damage does NOT break it (Ben's call, 2026-08-19) — the meter rewards
 ## aggression rather than punishing a mistake twice in a game that already takes your haul.
 ##
@@ -964,7 +963,9 @@ func _update_window_bar(delta: float) -> void:
 ## Placement: x486-636, y86 down. Verified clear of every other top-band element — TopLeft ends
 ## at x148, TopRight at y42, the keystone/portal pills are 78x16 at x480 y2-36, the phase dial is
 ## 36x36 at (602,44) so it ends at y80, and boss bars are centred at x224-416.
-const COMBO_TIMEOUT: float = 2.5
+## COMBO_TIMEOUT moved onto the player as the combo_timeout STAT (2026-09-04). It had to: a mod
+## cannot reach a const in the UI layer, and combo_timeout / combo_lock exist to be tuned by
+## content. The HUD is now a pure view — it reads player.get_combo_count() and renders it.
 const COMBO_MIN_SHOW: int = 2          ## a single hit is not a combo
 const COMBO_FADE_RATE: float = 3.0
 const COMBO_POP_DECAY: float = 6.0
@@ -986,9 +987,8 @@ const COMBO_BASE_COLOR: Color = Color(0.92, 0.94, 0.96)
 var _combo_root: Control = null
 var _combo_num: Label = null
 var _combo_rank_lbl: Label = null
-var _combo_count: int = 0
 var _combo_shown: int = 0     ## frozen while fading, so the final total is what you read
-var _combo_timer: float = 0.0
+var _combo_prev: int = 0      ## last frame's count, so a rise can trigger the punch
 var _combo_alpha: float = 0.0
 var _combo_pop: float = 0.0
 var _combo_rank: int = -2     ## -2 = unset, -1 = below the first tier, >=0 = COMBO_RANKS index
@@ -1034,28 +1034,25 @@ func _build_combo_counter() -> void:
 	_combo_rank_lbl = rank
 
 
-func _on_hit_dealt_combo(source: Variant, _target: Variant, hit_data: Variant) -> void:
-	if player_ref == null or source != player_ref:
-		return
-	if not (hit_data is HitData) or hit_data.ability == null:
-		return
-	_combo_count += 1
-	_combo_timer = COMBO_TIMEOUT
-	_combo_pop = 1.0
-
-
 func _update_combo_counter(delta: float) -> void:
 	if _combo_root == null:
 		return
-	if _combo_count > 0:
-		_combo_timer -= delta
-		if _combo_timer <= 0.0:
-			_combo_count = 0
-			_combo_rank = -2
+	## Pure view: the count, its timeout and the lock all live on the player now.
+	var combo_count: int = 0
+	if player_ref != null and is_instance_valid(player_ref):
+		combo_count = player_ref.get_combo_count()
+	## Punch on a RISE rather than on the signal, which the HUD no longer hears. An AoE that
+	## damages five enemies lands as one jump of +5 and gets one pop, which is the right read —
+	## five stacked pops in a frame was never visible as five anyway.
+	if combo_count > _combo_prev:
+		_combo_pop = 1.0
+	if combo_count == 0 and _combo_prev > 0:
+		_combo_rank = -2
+	_combo_prev = combo_count
 	_combo_pop = maxf(_combo_pop - delta * COMBO_POP_DECAY, 0.0)
 
-	if _combo_count >= COMBO_MIN_SHOW:
-		_combo_shown = _combo_count
+	if combo_count >= COMBO_MIN_SHOW:
+		_combo_shown = combo_count
 		_combo_alpha = 1.0
 	else:
 		_combo_alpha = maxf(_combo_alpha - delta * COMBO_FADE_RATE, 0.0)

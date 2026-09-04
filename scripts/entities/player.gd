@@ -47,6 +47,19 @@ var _base_stats: Dictionary = {
 	## so AVALANCHE (class mod) and GREATER PILE (level-up) raise it through the normal modifier
 	## path — see _pile_capacity(). Inert for every other character.
 	"pile_capacity":   6.0,
+	## ── Combo (2026-09-04) ────────────────────────────────────────────────────────────────
+	## All three are stats rather than constants for the same reason pile_capacity is: mods and
+	## level-up picks reach them through the ordinary ModifierComponent path and nothing bespoke
+	## is needed per entry.
+	##
+	## combo_window  — multiplier on every phase's cancel window, i.e. the BAR bottom-centre.
+	##                 ChoreographyRunner reads it through combo_window_scale().
+	## combo_timeout — seconds of no landed hit before the combo COUNTER resets. Was a HUD const
+	##                 (COMBO_TIMEOUT 2.5) until the counter moved onto the player.
+	## combo_lock    — >= 1 freezes the counter: it never decays. The legendary's whole payload.
+	"combo_window":    1.0,
+	"combo_timeout":   2.5,
+	"combo_lock":      0.0,
 }
 
 ## XP and leveling
@@ -206,6 +219,18 @@ var _hammer_splinters: bool = false      ## SHATTERING HAMMERS — first connect
 ## Combo cadence feedback (docs/combo_feedback_spec.md): pitch-ladder depth, channel-tick
 ## suppression, and the cancel-window pulse tween.
 var _combo_step_depth: int = 0        ## light-chain hits fired this run (1-based ladder depth)
+
+## ── Combo counter ────────────────────────────────────────────────────────────────────────────
+## The number the player actually sees, top-right. Lived entirely in hud.gd when Ben added it
+## (0fed49f) and moved here on 2026-09-04, because a mod cannot reach UI-layer state: the whole
+## point of combo_timeout / combo_lock is that content tunes them.
+##
+## This is NOT _combo_step_depth. Depth counts light-chain NODES (one per phase that lands);
+## this counts every enemy damaged by any ability, so one Tempest into five enemies is depth +1
+## and combo +5. They diverged the moment the pip row was replaced by the counter, and anything
+## player-facing should key off THIS one — it is the number on screen.
+var combo_count: int = 0
+var _combo_decay: float = 0.0
 var _combo_last_hit_phase: int = -1   ## last phase index that fired — a repeat = channel self-loop tick
 var _combo_pulse_tween: Tween = null
 ## Swing-effect overlay (the white slash), centered on the player and scaled per-node so the white's
@@ -523,6 +548,7 @@ func _ready() -> void:
 
 	# Blood Eruption pools: deaths inside an active pool feed the Cursed.
 	EventBus.on_death.connect(_on_any_entity_death)
+	EventBus.on_hit_dealt.connect(_on_hit_dealt_combo)
 
 	if _has_instability_siphon:
 		EventBus.on_kill.connect(_on_kill_siphon)
@@ -1234,6 +1260,8 @@ func _clear_pending_shot() -> void:
 func _physics_process(delta: float) -> void:
 	if not is_alive:
 		return
+
+	_tick_combo_counter(delta)
 
 	# Ravager Bloodrage: +30% damage below half HP (warden-style conditional passive;
 	# polled here because heals bypass player.take_damage — one compare per frame).
@@ -3991,6 +4019,62 @@ func get_combo_depth() -> int:
 ## 0.0-1.0 of the current chain node's cancel window still open. Scoped to the LIGHT chain — the
 ## heavy and the Q/E skills run their own choreographies through the same runner, and their wait
 ## phases are not chain windows.
+## Every enemy an attack damages adds one; a lull of combo_timeout clears it. Taking damage does
+## NOT break it (Ben, 2026-08-19) — the meter rewards aggression rather than punishing a mistake
+## twice in a game that already takes your haul for it.
+##
+## The two filters are load-bearing and were carried over verbatim from the HUD version:
+##   • source must be self — enemies damaging each other, and anything damaging us, are not our
+##     combo;
+##   • hit_data.ability must be non-null. Status DoT ticks and ground zones dispatch damage with
+##     ability = null, while every real attack carries its AbilityDefinition down through
+##     DamageCalculator. Without this a burning pack pumps the counter with no input at all and
+##     the timeout can never fire — worst for the Demon, the kit that burns most.
+func _on_hit_dealt_combo(source: Node2D, _target: Node2D, hit_data) -> void:
+	if source != self or not is_alive:
+		return
+	if not (hit_data is HitData) or hit_data.ability == null:
+		return
+	combo_count += 1
+	_combo_decay = get_stat("combo_timeout")
+
+
+func _tick_combo_counter(delta: float) -> void:
+	if combo_count <= 0:
+		return
+	## combo_lock: the counter simply stops decaying. Deliberately NOT implemented as an enormous
+	## timeout — a lock has to survive an arbitrarily long lull, and a big number is still a
+	## number that runs out at the worst possible moment.
+	if get_stat("combo_lock") >= 1.0:
+		return
+	_combo_decay -= delta
+	if _combo_decay <= 0.0:
+		combo_count = 0
+
+
+func get_combo_count() -> int:
+	return combo_count
+
+
+## 0..1 of the combo timeout still remaining; 1.0 while locked so nothing renders it draining.
+func get_combo_timeout_ratio() -> float:
+	if combo_count <= 0:
+		return 0.0
+	if get_stat("combo_lock") >= 1.0:
+		return 1.0
+	var full: float = maxf(get_stat("combo_timeout"), 0.01)
+	return clampf(_combo_decay / full, 0.0, 1.0)
+
+
+func is_combo_locked() -> bool:
+	return get_stat("combo_lock") >= 1.0
+
+
+## Read by ChoreographyRunner on every "wait" phase entry — the one seam that widens the bar.
+func combo_window_scale() -> float:
+	return maxf(get_stat("combo_window"), 0.05)
+
+
 func get_combo_window_ratio() -> float:
 	if choreography_runner == null or not choreography_runner.is_running():
 		return 0.0

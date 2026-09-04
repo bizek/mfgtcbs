@@ -259,6 +259,15 @@ func _build_upgrade_pool() -> void:
 				{"stat": "pierce",          "type": "flat",    "value": 1.0},
 				{"stat": "projectile_size", "type": "percent", "value": 0.25}],
 			"merges": ["projectile_count_up", "pierce_up", "projectile_size_up"]},
+		## Combo window — the BAR bottom-centre, i.e. how long you have to press again before the
+		## chain drops. Universal by nature: every kit chains, and ChoreographyRunner applies the
+		## combo_window stat to every "wait" phase, so this one line widens all of them.
+		##
+		## ROLE_POWER because what it actually buys is uptime on your own offence. It is not a
+		## crowd answer and it does not buy distance — a wider window does nothing about a ring.
+		{"id": "flow",      "name": "Flow",      "description": "+25% Combo Window", "role": ROLE_POWER,
+			"max_rank": 4, "effects": [
+				{"stat": "combo_window",    "type": "percent", "value": 0.25}]},
 		## Dash charges stayed its own pick: +1 charge is a discrete capability change, not a
 		## number going up, and folding it into Momentum would have made that line wildly uneven
 		## between rank 1 and rank 2.

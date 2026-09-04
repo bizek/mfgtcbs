@@ -67,12 +67,14 @@ static func is_class_mod(mod_id: String) -> bool:
 	return ClassModData.ALL.has(mod_id)
 
 
-## True if the mod is bound to the given character's kit.
+## True if the mod is bound to the given character's kit — or is universal.
+## Single chokepoint for the armory list, mod pickups and the progression roster, so making it
+## universal-aware covers every player-facing surface at once.
 static func class_applies(mod_id: String, char_id: String) -> bool:
 	var mod: Dictionary = ClassModData.ALL.get(mod_id, {})
 	if mod.is_empty():
 		return false
-	return mod.get("kit", "") == kit_of(char_id)
+	return ClassModData.applies_to_kit(mod, kit_of(char_id))
 
 
 ## Applicability by id. Unknown ids are not applicable.

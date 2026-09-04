@@ -75,7 +75,7 @@ static func validate_anim_targets(weapon_data: Dictionary = {}) -> Array[String]
 		for src: Dictionary in [ClassModData.ALL, ClassModData.EVOLUTIONS, AbilityUpgradeData.ALL]:
 			for entry_id: String in src:
 				var entry: Dictionary = src[entry_id]
-				if entry.get("kit", "") != kit_id:
+				if not ClassModData.applies_to_kit(entry, kit_id):
 					continue
 				var op: String = entry.get("op", "")
 				## Same exclusions the apply paths use: these ops never touch a phase.
@@ -127,7 +127,7 @@ static func build_modifiers(kit_id: String, active_ids: Array) -> Array[Modifier
 	for pair: Array in sources:
 		var src_id: String = pair[0]
 		var mod: Dictionary = pair[1]
-		if mod.get("kit", "") != kit_id or mod.get("op", "") != "modifier":
+		if not ClassModData.applies_to_kit(mod, kit_id) or mod.get("op", "") != "modifier":
 			continue
 		var params: Dictionary = mod.get("params", {})
 		var m := ModifierDefinition.new()
@@ -144,7 +144,7 @@ static func build_modifiers(kit_id: String, active_ids: Array) -> Array[Modifier
 ## Same as _apply_to_abilities but takes raw dicts (ability upgrade entries) instead of IDs.
 static func _apply_dicts_to_abilities(kit_id: String, abilities: Dictionary, dicts: Array) -> void:
 	for mod: Dictionary in dicts:
-		if mod.get("kit", "") != kit_id:
+		if not ClassModData.applies_to_kit(mod, kit_id):
 			continue
 		var op: String = mod.get("op", "")
 		if op == "modifier" or op == "kit_flag" or op == "":
@@ -168,7 +168,7 @@ static func _apply_to_abilities(kit_id: String, abilities: Dictionary, active_id
 		entries.append(ClassModData.EVOLUTIONS[evo_id])
 
 	for mod: Dictionary in entries:
-		if mod.get("kit", "") != kit_id:
+		if not ClassModData.applies_to_kit(mod, kit_id):
 			continue
 		var op: String = mod.get("op", "")
 		if op == "modifier":

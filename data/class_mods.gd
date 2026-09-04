@@ -1157,6 +1157,33 @@ const ALL: Dictionary = {
 		"op": "scale_aoe",
 		"params": { "radius_mult": 1.40, "damage_mult": 1.30 },
 	},
+	## ── Universal (any kit) ───────────────────────────────────────────────────────────────────
+	## Both tune the combo system rather than a kit, so they carry UNIVERSAL_KIT. LONG FUSE widens
+	## the cancel-window BAR through the combo_window stat, which ChoreographyRunner reads on every
+	## "wait" phase — one multiplier, every kit, every phase. COLD BLOOD is the first legendary in
+	## the roster: it freezes the counter's decay outright rather than handing out a very large
+	## timeout, because a lock has to survive an arbitrarily long lull and a big number is still a
+	## number that runs out at the worst moment.
+	"universal_long_fuse": {
+		"id": "universal_long_fuse",
+		"name": "LONG FUSE",
+		"kit": UNIVERSAL_KIT,
+		"rarity": "rare",
+		"desc": "The moment after a strike stretches. There is more time than there should be to swing again.",
+		"color": Color(1.0, 0.86, 0.45),
+		"op": "modifier",
+		"params": { "stat": "combo_window", "op": "bonus", "value": 0.40 },
+	},
+	"universal_cold_blood": {
+		"id": "universal_cold_blood",
+		"name": "COLD BLOOD",
+		"kit": UNIVERSAL_KIT,
+		"rarity": "legendary",
+		"desc": "The count does not fall. Walk away, take your time, come back - it is still waiting.",
+		"color": Color(0.62, 0.84, 1.0),
+		"op": "modifier",
+		"params": { "stat": "combo_lock", "op": "add", "value": 1.0 },
+	},
 	"gunslinger_dead_aim": {
 		"id": "gunslinger_dead_aim",
 		"name": "DEAD AIM",
@@ -1286,6 +1313,9 @@ const ORDER: Array = [
 	"gunslinger_hot_loads",
 	"gunslinger_lash_and_draw",
 	"gunslinger_dead_aim",
+	## Universal — no kit, offered to every character.
+	"universal_long_fuse",
+	"universal_cold_blood",
 ]
 
 
@@ -1496,12 +1526,34 @@ const EVOLUTIONS: Dictionary = {
 }
 
 
+## UNIVERSAL_KIT — an entry that belongs to no class and applies to every one of them.
+##
+## Added 2026-09-04 for the combo mods. Every mod until then was class-locked, which is right for
+## anything that mutates a kit's phases: a mod naming `anim: "swirl"` only means something to the
+## Sellsword. But the combo counter and its window are properties of the COMBAT SYSTEM, not of a
+## kit — every character builds combo the same way — so a mod that tunes them has no honest kit to
+## live under, and twelve near-identical copies would be a worse answer than one universal entry.
+##
+## Deliberately narrow: universal is for system-level stats, never for phase ops. A universal
+## entry with a `target` would have to name an animation that exists in all twelve kits, and
+## validate_anim_targets will (correctly) report it against every kit that lacks it.
+const UNIVERSAL_KIT: String = "any"
+
+
+## Does this entry apply to `kit_id`? The ONE place the universal rule is expressed — every
+## filter in ClassModFactory and ModApplicability routes through it, so a new caller cannot
+## accidentally reintroduce a bare `entry.kit == kit_id` test that drops universal mods.
+static func applies_to_kit(entry: Dictionary, kit_id: String) -> bool:
+	var k: String = entry.get("kit", "")
+	return k == UNIVERSAL_KIT or k == kit_id
+
+
 ## Evolutions whose requirements are ALL satisfied by `active_ids`.
 static func active_evolutions(kit_id: String, active_ids: Array) -> Array:
 	var out: Array = []
 	for evo_id: String in EVOLUTIONS:
 		var evo: Dictionary = EVOLUTIONS[evo_id]
-		if evo.get("kit", "") != kit_id:
+		if not applies_to_kit(evo, kit_id):
 			continue
 		var have_all: bool = true
 		for req: String in evo.get("requires", []):
@@ -1548,7 +1600,14 @@ static func ids_for_kit(kit_id: String) -> Array:
 ##
 ## Three tiers, not five, matching `LootTables.gear_rarity_from()` — mods and class
 ## weapons speak the same vocabulary rather than two parallel ones.
-const RARITY_TIERS: Array[String] = ["uncommon", "rare", "epic"]
+## "legendary" joined the tier list on 2026-09-04 with COLD BLOOD, the first mod above epic.
+## LootTables already carried the tier everywhere else — PHASE_RARITY_WEIGHTS gives it a 1% roll
+## from phase 3 and 15% at phase 5, RARITY_INSTABILITY prices it at 25, RARITY_COLORS has its
+## gold — so it was the mod roster, not the economy, that had never used it.
+const RARITY_TIERS: Array[String] = ["uncommon", "rare", "epic", "legendary"]
+## The per-CLASS shape, which is deliberately still 1/3/4 with no legendary in it. A legendary is
+## a chase item; giving every class one by construction would make it furniture. Universal mods
+## are exempt from this check entirely — see the loop below.
 const RARITY_SHAPE: Dictionary = { "epic": 1, "rare": 3, "uncommon": 4 }
 
 
@@ -1589,6 +1648,8 @@ static func validate_order() -> Array[String]:
 		if not listed.has(mod_id):
 			problems.append("class mod '%s' is in ALL but not in ORDER — it can never drop "
 					% mod_id + "or be equipped")
+		## An empty kit is still an error; UNIVERSAL_KIT is the explicit way to say "every kit",
+		## so a blank one is a missing field rather than an intent.
 		if ALL[mod_id].get("kit", "") == "":
 			problems.append("class mod '%s' declares no kit — it belongs to no character" % mod_id)
 		var rar: String = str(ALL[mod_id].get("rarity", ""))
@@ -1606,6 +1667,12 @@ static func validate_order() -> Array[String]:
 	for mod_id: String in ALL:
 		var kit_id: String = str(ALL[mod_id].get("kit", ""))
 		if kit_id == "":
+			continue
+		## Universal mods are not a class roster and must not be shape-checked as one. They are a
+		## deliberately small, system-level group (combo window / combo lock) that every character
+		## sees, so demanding 4 uncommon + 3 rare + 1 epic of them would be meaningless — and the
+		## check fired exactly that way the first time COLD BLOOD was added.
+		if kit_id == UNIVERSAL_KIT:
 			continue
 		if not per_kit.has(kit_id):
 			per_kit[kit_id] = {}
