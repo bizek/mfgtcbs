@@ -182,6 +182,27 @@ const ALL: Dictionary = {
 		## while spinning, which stops being a whirlwind and starts being a dash you can hold.
 		"max_rank": 2,
 	},
+	## Ben, 2026-09-05, second pass at Rolling Thunder. The first shape — a shockwave per Whirlwind
+	## tick — was dropped as a 4.5/sec strobe. A chance-gated bolt on a random nearby enemy keeps
+	## the fantasy, costs one sprite when it fires, and borrows the Spark's Electric aura since the
+	## Sellsword's pack ships no lightning of its own.
+	##
+	## A "modifier" op, so it applies with no kit rebuild. FLAT for the same reason as Whirling
+	## Dervish: whirl_bolt_chance has a 0.0 base and get_stat is add*(1+bonus).
+	"fighter_rolling_thunder": {
+		"id": "fighter_rolling_thunder",
+		"name": "Rolling Thunder",
+		"description": "Whirlwind calls lightning down on nearby enemies",
+		"kit": "fighter",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "whirl_bolt_chance",
+		"type": "flat",
+		"value": 0.20,
+		## 2 ranks = 40% per tick, about two bolts a second. Three would be a permanent storm and
+		## would start costing frames for the sprites alone.
+		"max_rank": 2,
+	},
 	"fighter_unbroken": {
 		"id": "fighter_unbroken",
 		"name": "Unbroken",
@@ -844,12 +865,13 @@ const ORDER_BY_KIT: Dictionary = {
 	## rather than rewritten: both keyed off chain depth, a quantity the player cannot see since
 	## the pip row became a hit counter, and both paid out in stat nudges too small to feel. The
 	## hole is deliberate and should be filled with picks that are legible from their own effect.
-	## 8 entries — the most of any kit, on purpose. This is the pilot for the level-up-layer
+	## 9 entries — the most of any kit, on purpose. This is the pilot for the level-up-layer
 	## seam and the place build variety gets tested before the other eleven follow.
 	"fighter":    ["fighter_thunderclap",           "fighter_spite",
 				   "fighter_patient_blade",         "fighter_unbroken",
 				   "fighter_ancestral_call",        "fighter_aftershock",
-				   "fighter_tempest_break",         "fighter_whirling_dervish"],
+				   "fighter_tempest_break",         "fighter_whirling_dervish",
+				   "fighter_rolling_thunder"],
 	"paladin":    ["paladin_hammer_storm",          "paladin_consecrated_bash",     "paladin_iron_faith",
 				   "paladin_ringing_dictum",        "paladin_crusaders_cadence",    "paladin_searing_hammer"],
 	"ninja":      ["ninja_blade_storm_surge",       "ninja_killing_edge",           "ninja_smoke_ambush",

@@ -66,6 +66,9 @@ var _base_stats: Dictionary = {
 	## The only combo movement modifier in the kit is the Taunt channel's -20% (source
 	## "combo_taunt"), so this is purely a bonus on top of normal speed.
 	"whirl_speed":     0.0,
+	## Per-Whirlwind-tick chance that a bolt falls on a random nearby enemy. Flat, for the same
+	## reason whirl_speed is: get_stat is add*(1+bonus) and a percent modifier on a 0.0 base is 0.
+	"whirl_bolt_chance": 0.0,
 	"combo_window":    1.0,
 	"combo_timeout":   2.5,
 	"combo_lock":      0.0,
@@ -380,6 +383,13 @@ const BURST_ICE_SHEET: String = SPELLFX_DIR + "Ice/Burst/Burst_Ice.png"
 const AURA_ICE_SHEET: String = SPELLFX_DIR + "Ice/Aura/Aura_Ice.png"
 const STORM_CALL_DAMAGE_MULT: float = 1.6   ## per-enemy Lightning chunk (of weapon damage)
 const STORM_CALL_RANGE: float = 1400.0       ## covers the whole arena (±800 × ±600)
+## Rolling Thunder (Fighter). Borrows the Spark's Electric aura sheet for the strike, because the
+## Sellsword's own pack has no lightning and the Spark's already reads as "the sky hit that".
+## Range is LOCAL, not Storm Call's arena-wide 1400 — this is the spin reaching out, not a cast.
+## Damage is well under Storm Call's 1.6 because it procs about once a second while held rather
+## than once per press.
+const WHIRL_BOLT_RANGE: float = 220.0
+const WHIRL_BOLT_DAMAGE_MULT: float = 0.9
 const ICE_AURA_TIME: float = 10.0            ## shards loop this long, then deteriorate (row2)
 var _ice_aura: AnimatedSprite2D = null
 var _ice_aura_timer: float = 0.0
@@ -1859,7 +1869,40 @@ func choreo_resolve_targets(_rule: TargetingRule) -> Array:
 	return [self]
 
 
+## Rolling Thunder (Ben, 2026-09-05). A chance, per Whirlwind tick, that the sky picks someone.
+##
+## Hooked on choreo_fire_effects rather than choreo_on_phase_hit, and that is not a stylistic
+## choice: choreo_on_phase_hit EARLY-RETURNS on a repeated phase index, which is exactly the
+## Whirlwind self-loop — it deliberately keeps the hold off the combo ladder and the pitch pulse.
+## A proc hung there would never fire while spinning. choreo_fire_effects runs on every tick,
+## because that is what re-applies the spin's damage.
+##
+## Chance-gated instead of every tick on purpose. Whirlwind ticks at 0.22s (4.5/sec); a bolt every
+## tick would be a strobe, and each one spawns a sprite. At the shipped 20% that is roughly one
+## bolt a second, which reads as weather rather than a machine gun.
+func _roll_whirl_bolt(ability: AbilityDefinition) -> void:
+	if not _is_whirling():
+		return
+	var chance: float = get_stat("whirl_bolt_chance")
+	if chance <= 0.0 or randf() >= chance:
+		return
+	var near: Array = _nearby_enemies(WHIRL_BOLT_RANGE)
+	if near.is_empty():
+		return
+	var victim: Node2D = near[randi() % near.size()]
+	if not is_instance_valid(victim) or not victim.is_alive:
+		return
+	## Same two beats Storm Call uses per enemy — the Electric aura popped over the target, then a
+	## Lightning chunk through the ordinary damage pipeline so resists and crits all apply.
+	_spawn_oneshot_fx(AURA_ELECTRIC_SHEET, victim.global_position + Vector2(0.0, -8.0), 14.0)
+	var bolt := DealDamageEffect.new()
+	bolt.damage_type = "Lightning"
+	bolt.base_damage = _weapon_data.get("damage", 42.0) * WHIRL_BOLT_DAMAGE_MULT
+	EffectDispatcher.execute_effects([bolt], self, [victim], ability, combat_manager)
+
+
 func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefinition) -> void:
+	_roll_whirl_bolt(ability)
 	## Route each combo/skill effect to the right target set:
 	##  • AreaDamageEffect — self-centers: fire on [self] so EffectDispatcher resolves the AoE around
 	##    the player and excludes us. Radius scales with the melee_range stat (the "Reach" hook),
