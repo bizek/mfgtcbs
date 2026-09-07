@@ -87,24 +87,6 @@ const ALL: Dictionary = {
 		"op": "self_status",
 		"status_id": "fighter_thunderclap",
 	},
-	"fighter_battle_rhythm": {
-		"id": "fighter_battle_rhythm",
-		"name": "Battle Rhythm",
-		"description": "Every 3rd strike: +15% Attack Speed (3s)",
-		"kit": "fighter",
-		"is_ability_upgrade": true,
-		"op": "self_status",
-		"status_id": "fighter_battle_rhythm",
-	},
-	"fighter_last_word": {
-		"id": "fighter_last_word",
-		"name": "Last Word",
-		"description": "4+ deep in a chain: -25% damage taken",
-		"kit": "fighter",
-		"is_ability_upgrade": true,
-		"op": "self_status",
-		"status_id": "fighter_last_word",
-	},
 	"fighter_spite": {
 		"id": "fighter_spite",
 		"name": "Spite",
@@ -789,8 +771,12 @@ const ALL: Dictionary = {
 ## ignores ALL, so an entry missing here is authored, valid, and never offered. validate_kit_order()
 ## exists so that cannot happen quietly.
 const ORDER_BY_KIT: Dictionary = {
-	"fighter":    ["fighter_thunderclap",           "fighter_battle_rhythm",        "fighter_last_word",
-				   "fighter_spite",                 "fighter_patient_blade",        "fighter_unbroken"],
+	## 4 entries — every other kit has 6. BATTLE RHYTHM and LAST WORD were cut on 2026-09-05
+	## rather than rewritten: both keyed off chain depth, a quantity the player cannot see since
+	## the pip row became a hit counter, and both paid out in stat nudges too small to feel. The
+	## hole is deliberate and should be filled with picks that are legible from their own effect.
+	"fighter":    ["fighter_thunderclap",           "fighter_spite",
+				   "fighter_patient_blade",         "fighter_unbroken"],
 	"paladin":    ["paladin_hammer_storm",          "paladin_consecrated_bash",     "paladin_iron_faith",
 				   "paladin_ringing_dictum",        "paladin_crusaders_cadence",    "paladin_searing_hammer"],
 	"ninja":      ["ninja_blade_storm_surge",       "ninja_killing_edge",           "ninja_smoke_ambush",

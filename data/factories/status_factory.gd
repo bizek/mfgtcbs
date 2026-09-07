@@ -53,8 +53,6 @@ static var last_stand: StatusEffectDefinition
 ## says what the kit IS, so it owns the numbers; these are picked mid-run and react to how the
 ## chain is actually being played, which no loadout screen can express.
 static var fighter_thunderclap: StatusEffectDefinition
-static var fighter_battle_rhythm: StatusEffectDefinition
-static var fighter_last_word: StatusEffectDefinition
 static var fighter_spite: StatusEffectDefinition
 
 ## Evolution combined statuses
@@ -122,8 +120,6 @@ static func build_all() -> void:
 	last_stand = _build_last_stand()
 
 	fighter_thunderclap = _build_fighter_thunderclap()
-	fighter_battle_rhythm = _build_fighter_battle_rhythm()
-	fighter_last_word = _build_fighter_last_word()
 	fighter_spite = _build_fighter_spite()
 
 	vampiric_blade = _build_vampiric_blade()
@@ -215,10 +211,6 @@ static func get_by_id(status_id: String) -> StatusEffectDefinition:
 			return last_stand
 		"fighter_thunderclap":
 			return fighter_thunderclap
-		"fighter_battle_rhythm":
-			return fighter_battle_rhythm
-		"fighter_last_word":
-			return fighter_last_word
 		"fighter_spite":
 			return fighter_spite
 		"vampiric_blade":
@@ -794,6 +786,13 @@ static func _build_last_stand() -> StatusEffectDefinition:
 
 # ── Combo-reactive class passives (Fighter pilot, 2026-08-24) ──────────────
 ##
+## Two of the original four were cut on 2026-09-05 (Ben): BATTLE RHYTHM (+15% attack speed every
+## 3rd chain step) and LAST WORD (-25% damage taken at chain depth 4+). Both were legible only
+## through a HUD chip, because a stat nudge on a sub-second animation is below what anyone can
+## perceive — decorating them with auras and counter pulses would have been scaffolding around an
+## effect you still could not feel. The two that remain pass the test the cut ones failed: you
+## know they happened because something visibly explodes.
+##
 ## All four are permanent shells applied straight to the player by the "self_status" ability-upgrade
 ## op, exactly like the generic pool's procs. What is new is the EVENT they listen on: the three
 ## combo signals player.gd has emitted since the cadence pass, which until now only AudioManager
@@ -831,89 +830,11 @@ static func _build_fighter_thunderclap() -> StatusEffectDefinition:
 	return def
 
 
-## Every third link sharpens the next. multiple_of rather than min_depth, so it rewards keeping a
-## chain alive through its whole length instead of paying out once and staying on.
-static func _build_fighter_battle_rhythm() -> StatusEffectDefinition:
-	var def := _passive_shell("fighter_battle_rhythm")
-	def.tags = ["Passive"]
-	def.hud_hidden = true    ## the SURGE below is the chip worth reading, not this shell
-
-	var surge := StatusEffectDefinition.new()
-	surge.status_id = "fighter_battle_rhythm_surge"
-	surge.tags = ["Passive"]
-	surge.is_positive = true
-	surge.max_stacks = 1
-	surge.base_duration = 3.0
-	surge.duration_refresh_mode = "overwrite"
-	var haste := ModifierDefinition.new()
-	haste.target_tag = "attack_speed"
-	haste.operation = "bonus"
-	haste.value = 0.15
-	haste.source_name = surge.status_id
-	surge.modifiers = [haste]
-
-	var apply := ApplyStatusEffectData.new()
-	apply.status = surge
-	apply.stacks = 1
-	apply.apply_to_self = true
-
-	var depth := TriggerConditionComboDepth.new()
-	depth.multiple_of = 3
-
-	var listener := TriggerListenerDefinition.new()
-	listener.event = "on_combo_step"
-	listener.target_self = true
-	listener.conditions = [depth]
-	listener.effects = [apply]
-	def.trigger_listeners = [listener]
-	return def
-
-
-## Deep in the chain, less lands on you. The buff outlives one combo step (2s against a 0.75s
-## cancel window) so it holds steady while the chain continues and lapses shortly after it ends —
-## the same shape last_stand's surge uses, for the same reason.
+## Dropping a chain is the one moment in this kit that used to be pure loss.
 ##
-## ("All", "damage_taken") — damage_taken is an OPERATION, never a tag (ModifierComponent
-## NEVER_A_TAG). DamageCalculator does raw *= 1.0 + sum, so the value is negative to reduce.
-static func _build_fighter_last_word() -> StatusEffectDefinition:
-	var def := _passive_shell("fighter_last_word")
-	def.tags = ["Passive"]
-	def.hud_hidden = true    ## ditto — the surge carries the timer
-
-	var surge := StatusEffectDefinition.new()
-	surge.status_id = "fighter_last_word_surge"
-	surge.tags = ["Passive"]
-	surge.is_positive = true
-	surge.max_stacks = 1
-	surge.base_duration = 2.0
-	surge.duration_refresh_mode = "overwrite"
-	var dr := ModifierDefinition.new()
-	dr.target_tag = "All"
-	dr.operation = "damage_taken"
-	dr.value = -0.25
-	dr.source_name = surge.status_id
-	surge.modifiers = [dr]
-
-	var apply := ApplyStatusEffectData.new()
-	apply.status = surge
-	apply.stacks = 1
-	apply.apply_to_self = true
-
-	var depth := TriggerConditionComboDepth.new()
-	depth.min_depth = 4
-
-	var listener := TriggerListenerDefinition.new()
-	listener.event = "on_combo_step"
-	listener.target_self = true
-	listener.conditions = [depth]
-	listener.effects = [apply]
-	def.trigger_listeners = [listener]
-	return def
-
-
-## Dropping a chain is the one moment in this kit that used to be pure loss. min_depth 2 because
-## on_combo_dropped only fires from depth >= 2 anyway (player.gd) — stating it makes the intent
-## explicit and survives that rule changing.
+## Ungated as of 2026-09-05: it carried a min_depth 2 condition that was always redundant, because
+## player.gd only emits on_combo_dropped from depth >= 2 in the first place. Removing it took the
+## last user of TriggerConditionComboDepth with it — see the cut note in AbilityUpgradeData.
 static func _build_fighter_spite() -> StatusEffectDefinition:
 	var def := _passive_shell("fighter_spite")
 	def.tags = ["Passive"]
@@ -928,13 +849,9 @@ static func _build_fighter_spite() -> StatusEffectDefinition:
 	burst.vfx_shockwave = true
 	burst.vfx_color = Color(1.0, 0.42, 0.18, 0.9)
 
-	var depth := TriggerConditionComboDepth.new()
-	depth.min_depth = 2
-
 	var listener := TriggerListenerDefinition.new()
 	listener.event = "on_combo_dropped"
 	listener.target_self = true
-	listener.conditions = [depth]
 	listener.effects = [burst]
 	def.trigger_listeners = [listener]
 	return def

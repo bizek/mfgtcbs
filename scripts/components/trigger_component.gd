@@ -125,8 +125,12 @@ func _on_ability_used(source: Node2D, ability) -> void:
 ## target_self, target_event_source, or neither all resolve to the same node. That is deliberate —
 ## it means an authored entry cannot pick the wrong one.
 ##
-## The depth payload rides as a Dictionary, matching how the status events already pass
-## {"status_id": ...}. TriggerConditionComboDepth reads it.
+## on_combo_step still carries its depth as a Dictionary, matching how the status events pass
+## {"status_id": ...}, but NOTHING reads it any more: TriggerConditionComboDepth was deleted on
+## 2026-09-05 with the two upgrades that used it. Chain depth is no longer a design surface — it
+## is not the number on screen, and content that wants to gate on combo should gate on the
+## COUNT (player.get_combo_count()). The payload stays because it costs nothing and the event
+## would be lying without it.
 
 func _on_finisher_hit(entity: Node2D) -> void:
 	_evaluate_and_dispatch("on_finisher_hit", entity, entity, null)
@@ -236,16 +240,6 @@ func _check_trigger_conditions(conditions: Array, entity: Node2D,
 			var tag_time: float = target._last_hit_time_by_tag.get(condition.tag, -1e18)
 			var current_time: float = combat_manager.run_time if combat_manager else 0.0
 			if (current_time - tag_time) > condition.window:
-				return false
-		elif condition is TriggerConditionComboDepth:
-			## Fails closed on a non-combo event: the payload simply has no depth to test, and a
-			## listener asking about combo depth on on_kill is authoring nonsense, not a pass.
-			if not (hit_data is Dictionary and hit_data.has("depth")):
-				return false
-			var depth: int = int(hit_data["depth"])
-			if depth < condition.min_depth:
-				return false
-			if condition.multiple_of > 1 and depth % condition.multiple_of != 0:
 				return false
 		elif condition is TriggerConditionTargetHasAnyStatus:
 			if not is_instance_valid(target):

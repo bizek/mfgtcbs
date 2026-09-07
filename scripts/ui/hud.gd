@@ -798,12 +798,10 @@ const BUFF_NAMES: Dictionary = {
 	## Ranger quiver stance (E). These two carry no duration, so their chip fill sits full for as
 	## long as the head is loaded — that's the intended read: a stance, not a timer.
 	"quiver_fire": "FIRE",       "quiver_frost": "FROST",
-	## Fighter combo-reactive surges. Without these the fallback is id.to_upper().left(7), and
-	## EVERY status whose id starts "fighter_" truncates to the same string — the buff row showed
-	## a wall of identical "FIGHTER" pills (found 2026-08-26, in Ben's first playtest of them).
-	## The permanent shells that grant these are hud_hidden, so only the timed surges reach a chip.
-	"fighter_battle_rhythm_surge": "RHYTHM",
-	"fighter_last_word_surge": "RESOLVE",
+	## No Fighter entries: the two surges that needed names (RHYTHM, RESOLVE) were cut with their
+	## upgrades on 2026-09-05. The truncation hazard they exposed is still real though — the
+	## fallback is id.to_upper().left(7), so any two ids sharing a 7-char prefix collapse to the
+	## same pill. Name any future status whose id starts with a kit name.
 }
 
 func _build_skill_slots() -> void:
