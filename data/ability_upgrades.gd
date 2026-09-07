@@ -50,6 +50,10 @@ const MAX_RANK_BY_OP: Dictionary = {
 	"extend_window": 2,
 	"add_iframes": 1,
 	"self_status": 1,
+	## One-shot. A second rank would append a SECOND echo effect rather than widening the first,
+	## so two copies would become four in one step — and the op clones the phase's AoEs at pick
+	## time, so the ranks would not even compound evenly. If it should scale, raise `copies`.
+	"echo_aoe": 1,
 }
 
 ## How many times this upgrade may be taken in one run. Explicit "max_rank" wins; otherwise the
@@ -110,6 +114,22 @@ const ALL: Dictionary = {
 		"op": "extend_window",
 		"target": { "graph": "heavy", "anim": "uppercut" },
 		"params": { "window_mult": 1.50 },
+	},
+	## Ben's ask, 2026-09-05: Path of Exile's Ancestral Call. Cataclysm is a single AoE (dmg x1.8,
+	## r55) centred on the Sellsword; this repeats it on two other enemies at 60% damage, so a
+	## finisher into a pack lands three slams across the fight instead of one under his feet.
+	##
+	## Graph-less for the same reason as UNBROKEN below — Cataclysm is reachable from the light
+	## chain and the heavy, and the pick should mean the same thing however you got there.
+	"fighter_ancestral_call": {
+		"id": "fighter_ancestral_call",
+		"name": "Ancestral Call",
+		"description": "Cataclysm slams twice more on nearby enemies",
+		"kit": "fighter",
+		"is_ability_upgrade": true,
+		"op": "echo_aoe",
+		"target": { "anim": "cataclysm" },
+		"params": { "copies": 2, "damage_mult": 0.60, "radius": 170.0, "separation": 40.0 },
 	},
 	## No graph key on purpose — Cataclysm is reachable from BOTH the light chain (phase 4) and
 	## the heavy (phase 1), and the pick should mean the same thing however you got there.
@@ -776,7 +796,8 @@ const ORDER_BY_KIT: Dictionary = {
 	## the pip row became a hit counter, and both paid out in stat nudges too small to feel. The
 	## hole is deliberate and should be filled with picks that are legible from their own effect.
 	"fighter":    ["fighter_thunderclap",           "fighter_spite",
-				   "fighter_patient_blade",         "fighter_unbroken"],
+				   "fighter_patient_blade",         "fighter_unbroken",
+				   "fighter_ancestral_call"],
 	"paladin":    ["paladin_hammer_storm",          "paladin_consecrated_bash",     "paladin_iron_faith",
 				   "paladin_ringing_dictum",        "paladin_crusaders_cadence",    "paladin_searing_hammer"],
 	"ninja":      ["ninja_blade_storm_surge",       "ninja_killing_edge",           "ninja_smoke_ambush",

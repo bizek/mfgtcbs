@@ -234,12 +234,64 @@ static func execute_effects(effects: Array, source: Node2D, targets: Array,
 				combat_manager.displacement_system.execute(source, ability, effect, targets)
 		elif effect is OverflowChainEffect:
 			_execute_overflow_chain(effect, source, targets, ability, combat_manager)
+		elif effect is EchoAtNearbyEffect:
+			## Source-relative, not target-relative: it finds its own positions, so dispatching it
+			## once per target would fire the whole echo set N times.
+			_execute_echo_at_nearby(effect, source, ability, combat_manager, fallback_source)
 		elif effect is ApplyStatusEffectData and effect.apply_to_self:
 			execute_effect(effect, source, source, ability, combat_manager, fallback_source)
 		else:
 			for target in targets:
 				if is_instance_valid(target) and target.is_alive:
 					execute_effect(effect, source, target, ability, combat_manager, fallback_source)
+
+
+## Ancestral Call. Replays a payload at up to `copies` other enemies near the source.
+##
+## Chosen by nearest-first with a separation gate rather than "the N closest": in a tight pack the
+## three closest enemies are often within a few pixels of each other, and three impacts landing on
+## the same spot looks like one impact with bad framerate. Spreading them is the whole read.
+##
+## The source is never its own echo target and neither is anything already picked, so the copies
+## always land somewhere the real slam did not.
+static func _execute_echo_at_nearby(effect: EchoAtNearbyEffect, source: Node2D,
+		ability, combat_manager: Node2D, fallback_source: Node2D) -> void:
+	if not is_instance_valid(source) or not source.is_alive:
+		return
+	if effect.copies <= 0 or effect.effects.is_empty():
+		return
+	var grid: SpatialGrid = combat_manager.spatial_grid if combat_manager else null
+	if grid == null:
+		return
+
+	var enemy_faction: int = _get_enemy_faction(source)
+	var radius_sq: float = effect.search_radius * effect.search_radius
+	var candidates: Array = grid.get_nearby_in_range(source.global_position, enemy_faction, radius_sq)
+
+	## Nearest first, so the echoes stay in the fight rather than wandering to the edge of range.
+	candidates.sort_custom(func(a: Node2D, b: Node2D) -> bool:
+		return source.global_position.distance_squared_to(a.global_position) \
+			< source.global_position.distance_squared_to(b.global_position))
+
+	var sep_sq: float = effect.min_separation * effect.min_separation
+	var chosen: Array = []
+	for c in candidates:
+		if chosen.size() >= effect.copies:
+			break
+		if not is_instance_valid(c) or not c.is_alive:
+			continue
+		var too_close: bool = false
+		for picked in chosen:
+			if picked.global_position.distance_squared_to(c.global_position) < sep_sq:
+				too_close = true
+				break
+		if too_close:
+			continue
+		chosen.append(c)
+
+	for c in chosen:
+		for e in effect.effects:
+			execute_effect(e, source, c, ability, combat_manager, fallback_source)
 
 
 static func _execute_overflow_chain(effect: OverflowChainEffect, source: Node2D,

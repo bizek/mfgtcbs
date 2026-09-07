@@ -101,6 +101,20 @@ static func validate_anim_targets(weapon_data: Dictionary = {}) -> Array[String]
 				## The counter is boxed in an Array because GDScript lambdas capture locals BY
 				## VALUE; incrementing a plain int inside the callable would leave the outer copy
 				## at zero and this check would fire on everything.
+				## echo_aoe has nothing to clone unless the phase carries an AreaDamageEffect, and
+				## would append an echo with an empty payload — resolvable, and silently inert.
+				if op == "echo_aoe":
+					var with_aoe: Array[int] = [0]
+					_for_each_targeted_phase(abilities, target,
+						func(phase: ChoreographyPhase) -> void:
+							for e in phase.effects:
+								if e is AreaDamageEffect:
+									with_aoe[0] += 1
+									return)
+					if with_aoe[0] == 0:
+						problems.append(("%s (%s): echo_aoe target %s matches no phase carrying "
+							+ "an AreaDamageEffect — there is nothing to echo")
+							% [entry_id, kit_id, str(target)])
 				if op == "extend_window":
 					var windowed: Array[int] = [0]
 					_for_each_targeted_phase(abilities, target,
@@ -247,6 +261,35 @@ static func _apply_op_to_phase(op: String, phase: ChoreographyPhase, params: Dic
 			## rejects a target whose phases are all windowless rather than let that ship.
 			if phase.exit_type == "wait":
 				phase.wait_duration *= float(params.get("window_mult", 1.0))
+		"echo_aoe":
+			## Ancestral Call. Clones the phase's own AreaDamageEffects into an EchoAtNearbyEffect
+			## so the copies are literally the same slam, at reduced damage, landing on other
+			## enemies. Authoring them as clones rather than hand-written numbers means a later
+			## balance pass on the phase carries into its echoes for free.
+			##
+			## vfx_shockwave is forced ON regardless of the source effect: the real slam is legible
+			## because the character plays the cataclysm animation, but an echo happens somewhere
+			## the player is NOT standing and has no body to sell it. Without a ring it would be
+			## damage numbers appearing out of nowhere — the exact failure this kit already had.
+			var echo := EchoAtNearbyEffect.new()
+			echo.copies = int(params.get("copies", 2))
+			echo.search_radius = float(params.get("radius", 170.0))
+			echo.min_separation = float(params.get("separation", 40.0))
+			var dmult2: float = float(params.get("damage_mult", 0.6))
+			var payload: Array[Resource] = []
+			for eff2 in phase.effects:
+				if eff2 is AreaDamageEffect:
+					var clone: AreaDamageEffect = eff2.duplicate(true)
+					clone.base_damage *= dmult2
+					## Centred on the echo target, never pushed along the caster's aim — the
+					## offset is authored for a swing leaving the BODY and means nothing out there.
+					clone.aoe_forward_offset = 0.0
+					clone.vfx_shockwave = true
+					clone.vfx_color = Color(1.0, 0.55, 0.10, 0.9)
+					payload.append(clone)
+			if not payload.is_empty():
+				echo.effects = payload
+				phase.effects.append(echo)
 		"add_iframes":
 			## Turns a committed phase into a defensive option. The field and the runner support
 			## already exist (bosses use it for dodge-through windows); nothing had ever set it
