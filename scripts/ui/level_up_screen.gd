@@ -194,7 +194,10 @@ func _card_height_for(choices: Array[Dictionary], pixel_font: FontFile) -> float
 func _build_choice_card(upgrade: Dictionary, pixel_font: FontFile, card_h: float) -> Button:
 	var accent: Color = C_POWER
 	var glyph: String = "+"
-	if upgrade.get("is_evolution", false):
+	## Capstones share the evolution's gold plate. They are not evolutions mechanically — nothing
+	## is consumed and apply_upgrade routes them as ordinary ability upgrades — but to the player
+	## they are the same thing: the card you only see once you have built toward it.
+	if upgrade.get("is_evolution", false) or upgrade.get("is_capstone", false):
 		accent = C_EVO
 		glyph = EVO_GLYPH
 	elif upgrade.get("is_ability_upgrade", false):

@@ -335,6 +335,12 @@ func generate_choices(count: int = 3) -> Array[Dictionary]:
 		var rank: int = _ability_rank(entry["id"])
 		if rank >= AbilityUpgradeData.max_rank_of(entry):
 			continue
+		## Capstones: an entry can name other ability upgrades it builds on, and stays out of the
+		## pool until they are owned. Neither existing evolution system could express this —
+		## EVOLUTION_RECIPES below gates on GENERIC pool ids, and ClassModData.EVOLUTIONS gates on
+		## equipped MODS. This is the same idea one layer over, for kit picks.
+		if not _ability_requirements_met(entry):
+			continue
 		ability_pool.append(_with_rank_label(entry, rank + 1))
 
 	## Weighting, in slot order:
@@ -386,6 +392,28 @@ func generate_choices(count: int = 3) -> Array[Dictionary]:
 		choices[replace_idx] = available_evo
 
 	return choices
+
+
+## Are an ability upgrade's prerequisites satisfied?
+##
+## Counted, not membership-tested — naming an id TWICE means "at rank 2", exactly the convention
+## EVOLUTION_RECIPES uses. A plain `in` check would hand out a capstone at half its cost, which is
+## the bug that convention exists to prevent.
+##
+## Unlike a generic evolution this does NOT consume its prerequisites: Rolling Thunder and its
+## capstones all add to the same stat, so removing the base pick would undo the thing the capstone
+## is meant to deepen.
+func _ability_requirements_met(entry: Dictionary) -> bool:
+	var reqs: Array = entry.get("requires", [])
+	if reqs.is_empty():
+		return true
+	var need: Dictionary = {}
+	for req: String in reqs:
+		need[req] = int(need.get(req, 0)) + 1
+	for req: String in need:
+		if _ability_rank(req) < int(need[req]):
+			return false
+	return true
 
 
 ## How many copies of one ability upgrade the player already holds this run.

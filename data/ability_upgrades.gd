@@ -203,6 +203,44 @@ const ALL: Dictionary = {
 		## would start costing frames for the sprites alone.
 		"max_rank": 2,
 	},
+	## Rolling Thunder's capstones (Ben, 2026-09-05: "the lightning bolts look so cool"). Two tiers
+	## that each raise the proc chance, gated behind the base pick at full rank so they read as a
+	## build rather than three copies of one card.
+	##
+	## 40 (Rolling Thunder x2) + 30 + 30 lands exactly on 100%, so the last one means "every turn
+	## of the spin calls a bolt" — a real end state rather than another increment.
+	##
+	## is_capstone is a DISPLAY flag only: the level-up card renders gold like an evolution, but
+	## apply_upgrade still routes on is_ability_upgrade, so nothing goes near _apply_evolution and
+	## nothing gets consumed.
+	"fighter_thunderhead": {
+		"id": "fighter_thunderhead",
+		"name": "Thunderhead",
+		"description": "Whirlwind's lightning strikes far more often",
+		"kit": "fighter",
+		"is_ability_upgrade": true,
+		"is_capstone": true,
+		"requires": ["fighter_rolling_thunder", "fighter_rolling_thunder"],
+		"op": "modifier",
+		"stat": "whirl_bolt_chance",
+		"type": "flat",
+		"value": 0.30,
+		"max_rank": 1,
+	},
+	"fighter_skyfall": {
+		"id": "fighter_skyfall",
+		"name": "Skyfall",
+		"description": "Every turn of the spin calls a bolt",
+		"kit": "fighter",
+		"is_ability_upgrade": true,
+		"is_capstone": true,
+		"requires": ["fighter_thunderhead"],
+		"op": "modifier",
+		"stat": "whirl_bolt_chance",
+		"type": "flat",
+		"value": 0.30,
+		"max_rank": 1,
+	},
 	"fighter_unbroken": {
 		"id": "fighter_unbroken",
 		"name": "Unbroken",
@@ -865,13 +903,14 @@ const ORDER_BY_KIT: Dictionary = {
 	## rather than rewritten: both keyed off chain depth, a quantity the player cannot see since
 	## the pip row became a hit counter, and both paid out in stat nudges too small to feel. The
 	## hole is deliberate and should be filled with picks that are legible from their own effect.
-	## 9 entries — the most of any kit, on purpose. This is the pilot for the level-up-layer
+	## 11 entries — the most of any kit, on purpose. This is the pilot for the level-up-layer
 	## seam and the place build variety gets tested before the other eleven follow.
 	"fighter":    ["fighter_thunderclap",           "fighter_spite",
 				   "fighter_patient_blade",         "fighter_unbroken",
 				   "fighter_ancestral_call",        "fighter_aftershock",
 				   "fighter_tempest_break",         "fighter_whirling_dervish",
-				   "fighter_rolling_thunder"],
+				   "fighter_rolling_thunder",        "fighter_thunderhead",
+				   "fighter_skyfall"],
 	"paladin":    ["paladin_hammer_storm",          "paladin_consecrated_bash",     "paladin_iron_faith",
 				   "paladin_ringing_dictum",        "paladin_crusaders_cadence",    "paladin_searing_hammer"],
 	"ninja":      ["ninja_blade_storm_surge",       "ninja_killing_edge",           "ninja_smoke_ambush",
@@ -926,6 +965,21 @@ static func validate_kit_order() -> Array[String]:
 		if not listed.has(up_id):
 			problems.append("'%s' is in ALL but no ORDER_BY_KIT list — it can never be offered"
 					% up_id)
+	## Capstone prerequisites. An unreachable one is the same silent failure as everything else in
+	## this file: the entry is authored, valid, and can never be offered because its requirement
+	## can never be met.
+	for up_id: String in ALL:
+		var entry_r: Dictionary = ALL[up_id]
+		for req: String in entry_r.get("requires", []):
+			if not ALL.has(req):
+				problems.append("'%s' requires '%s', which is not in ALL" % [up_id, req])
+			elif ALL[req].get("kit", "") != entry_r.get("kit", ""):
+				problems.append("'%s' (kit %s) requires '%s' from kit %s — a run can never hold both"
+						% [up_id, entry_r.get("kit", ""), req, ALL[req].get("kit", "")])
+			elif not listed.has(req):
+				problems.append("'%s' requires '%s', which is not in ORDER_BY_KIT and can never "
+						% [up_id, req] + "be taken")
+
 	for up_id: String in ALL:
 		var entry: Dictionary = ALL[up_id]
 		var op: String = entry.get("op", "")
