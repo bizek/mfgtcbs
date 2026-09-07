@@ -247,6 +247,8 @@ var _combo_pulse_tween: Tween = null
 var _combo_fx: AnimatedSprite2D = null
 ## Ground layer for packs' "Base" sheets — same frames, drawn UNDER the character (z -1).
 var _combo_base: AnimatedSprite2D = null
+## Whirlwind's second blade — see _sync_whirl_mirror.
+var _whirl_fx: AnimatedSprite2D = null
 const FX_NATIVE_RADIUS: float = 14.0   ## radius (px) the white slash reaches inside the 32px frame
 ## Frame-matched full-body overlays that must play at NATIVE scale — never stretched to the
 ## hit radius (stretching a pack's frame-matched effect sheet reads as pixel mush; the
@@ -662,6 +664,18 @@ func _setup_combo_fx(frames: SpriteFrames) -> void:
 		add_child(_combo_fx)
 		_combo_fx.animation_finished.connect(_on_combo_fx_finished)
 	_combo_fx.sprite_frames = frames
+
+	## The mirror layer. No animation_finished hook: it is driven entirely off the main overlay
+	## and hidden the moment the hold ends, so it has no lifecycle of its own to manage.
+	if _whirl_fx == null:
+		_whirl_fx = AnimatedSprite2D.new()
+		_whirl_fx.name = "WhirlMirrorFx"
+		_whirl_fx.centered = true
+		_whirl_fx.visible = false
+		_whirl_fx.z_index = 1
+		_whirl_fx.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		add_child(_whirl_fx)
+	_whirl_fx.sprite_frames = frames
 
 
 func _input(event: InputEvent) -> void:
@@ -2185,6 +2199,7 @@ func choreo_on_phase_anim(phase: ChoreographyPhase, stage: String = "") -> void:
 	var fx: String = _facing_variant(_combo_fx.sprite_frames, fx_base)
 	if fx == "":
 		_combo_fx.visible = false
+		_sync_whirl_mirror("")
 		return
 	_combo_fx.flip_h = sprite.flip_h if fx == fx_base else false
 	## Centered, scaled so the white's outer edge sits on the node's hit-zone radius. Nodes with
@@ -2215,6 +2230,49 @@ func choreo_on_phase_anim(phase: ChoreographyPhase, stage: String = "") -> void:
 			_combo_fx.position = _aim_dir.normalized() * AIM_FX_PUSH * reach
 	_combo_fx.visible = true
 	_combo_fx.play(fx)
+	_sync_whirl_mirror(fx)
+
+
+## Whirlwind's second blade (Ben, 2026-09-05).
+##
+## The hold branch and the ordinary Swirl share anim "swirl" in the same graph, so they drew the
+## identical overlay and were indistinguishable while playing — the same collision that forced
+## _is_whirling() to key on the runner's held-channel state instead of the animation name.
+##
+## The pack ships one spin sheet and no second one is coming, so the fix is the sheet against
+## itself: a mirrored copy over the same area reads as two blades crossing in opposite
+## directions rather than as one spin. Costs nothing but a node.
+##
+## Two details carry the illusion. The mirror inverts whatever flip the main layer settled on
+## (`not _combo_fx.flip_h`) rather than hardcoding true, so it stays opposed at every facing. And
+## it starts a half-cycle into the animation — two perfectly synchronised copies of one image read
+## as a doubling artefact, an offset pair reads as two separate blades.
+##
+## Note this is NOT the flip_h that CLAUDE.md forbids: that rule is about the character BODY
+## faking a facing the pack actually ships a row for. This is a deliberate mirrored VFX overlay,
+## and the body is untouched.
+func _sync_whirl_mirror(fx: String) -> void:
+	if _whirl_fx == null:
+		return
+	if fx == "" or not _is_whirling():
+		_whirl_fx.visible = false
+		return
+	_whirl_fx.sprite_frames = _combo_fx.sprite_frames
+	if _whirl_fx.sprite_frames == null or not _whirl_fx.sprite_frames.has_animation(fx):
+		_whirl_fx.visible = false
+		return
+	_whirl_fx.scale = _combo_fx.scale
+	_whirl_fx.position = _combo_fx.position
+	_whirl_fx.rotation = _combo_fx.rotation
+	_whirl_fx.flip_h = not _combo_fx.flip_h
+	_whirl_fx.visible = true
+	_whirl_fx.play(fx)
+	## In LOCKSTEP with the main layer, deliberately. The first version offset the mirror half a
+	## cycle on the theory that two synchronised copies would read as a doubling artefact. Checked
+	## in-engine and it is the opposite: swirl_fx is four frames and some of them are nearly empty,
+	## so an offset pair ALTERNATES — one blade at a time, jumping side to side. Synchronised, the
+	## two mirrored arcs are on screen together and close into a ring, which is the blender read.
+	_whirl_fx.frame = _combo_fx.frame
 
 
 func _node_hit_radius(phase: ChoreographyPhase) -> float:
@@ -4125,6 +4183,10 @@ func choreo_on_end() -> void:
 	_combo_last_hit_phase = -1
 	if _combo_fx:
 		_combo_fx.visible = false
+	## Belt-and-braces: the mirror is re-hidden on every phase entry that is not the hold, but a
+	## graph that ends straight out of Whirlwind never reaches another entry.
+	if _whirl_fx:
+		_whirl_fx.visible = false
 	if _combo_base:
 		_combo_base.visible = false
 	if _vamp_fx:
