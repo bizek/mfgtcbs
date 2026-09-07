@@ -101,9 +101,10 @@ static func validate_anim_targets(weapon_data: Dictionary = {}) -> Array[String]
 				## The counter is boxed in an Array because GDScript lambdas capture locals BY
 				## VALUE; incrementing a plain int inside the callable would leave the outer copy
 				## at zero and this check would fire on everything.
-				## echo_aoe has nothing to clone unless the phase carries an AreaDamageEffect, and
-				## would append an echo with an empty payload — resolvable, and silently inert.
-				if op == "echo_aoe":
+				## These three all read the targeted phase's own AreaDamageEffect to scale from.
+				## A target that resolves to phases carrying none is resolvable and silently
+				## inert — an echo with an empty payload, or a zero-damage ring/zone.
+				if op in ["echo_aoe", "add_shockwave", "add_ground_zone"]:
 					var with_aoe: Array[int] = [0]
 					_for_each_targeted_phase(abilities, target,
 						func(phase: ChoreographyPhase) -> void:
@@ -112,9 +113,9 @@ static func validate_anim_targets(weapon_data: Dictionary = {}) -> Array[String]
 									with_aoe[0] += 1
 									return)
 					if with_aoe[0] == 0:
-						problems.append(("%s (%s): echo_aoe target %s matches no phase carrying "
-							+ "an AreaDamageEffect — there is nothing to echo")
-							% [entry_id, kit_id, str(target)])
+						problems.append(("%s (%s): op '%s' target %s matches no phase carrying "
+							+ "an AreaDamageEffect — there is nothing to scale from")
+							% [entry_id, kit_id, op, str(target)])
 				if op == "extend_window":
 					var windowed: Array[int] = [0]
 					_for_each_targeted_phase(abilities, target,
@@ -290,6 +291,48 @@ static func _apply_op_to_phase(op: String, phase: ChoreographyPhase, params: Dic
 			if not payload.is_empty():
 				echo.effects = payload
 				phase.effects.append(echo)
+		"add_shockwave":
+			## Appends a NEW, wider damaging ring to the phase — not a scale of the existing hit.
+			## Deliberately its own AoE so the pick reads as "and then a shockwave goes out",
+			## with its own radius and its own visible ring, rather than the same hit being
+			## quietly bigger. Damage is scaled off the phase's own AoE so an equipped mod or a
+			## later balance pass carries into it, the same reasoning as echo_aoe.
+			var wave_base: float = 0.0
+			var wave_type: String = "Physical"
+			for e3 in phase.effects:
+				if e3 is AreaDamageEffect:
+					wave_base = e3.base_damage
+					wave_type = e3.damage_type
+					break
+			var wave := AreaDamageEffect.new()
+			wave.damage_type = wave_type
+			wave.base_damage = wave_base * float(params.get("damage_mult", 0.5))
+			wave.aoe_radius = float(params.get("radius", 110.0))
+			wave.vfx_shockwave = true
+			wave.vfx_color = params.get("color", Color(1.0, 0.55, 0.10, 0.9))
+			phase.effects.append(wave)
+		"add_ground_zone":
+			## Leaves a lingering zone where the hit landed. GroundZoneVfx already draws every zone
+			## in the game from vfx_element, so this is visible without new art.
+			var zone_base: float = 0.0
+			var zone_type: String = "Physical"
+			for e4 in phase.effects:
+				if e4 is AreaDamageEffect:
+					zone_base = e4.base_damage
+					zone_type = e4.damage_type
+					break
+			var zone := GroundZoneEffect.new()
+			zone.zone_id = str(params.get("zone_id", "upgrade_zone"))
+			zone.radius = float(params.get("radius", 60.0))
+			zone.duration = float(params.get("duration", 4.0))
+			zone.tick_interval = float(params.get("tick", 0.5))
+			zone.target_faction = "enemy"
+			zone.vfx_element = str(params.get("element", "fire"))
+			var ztick := DealDamageEffect.new()
+			ztick.damage_type = str(params.get("damage_type", zone_type))
+			ztick.base_damage = zone_base * float(params.get("damage_mult", 0.15))
+			zone.tick_effects = [ztick]
+			phase.effects.append(zone)
 		"add_iframes":
 			## Turns a committed phase into a defensive option. The field and the runner support
 			## already exist (bosses use it for dodge-through windows); nothing had ever set it

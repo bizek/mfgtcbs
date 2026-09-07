@@ -57,6 +57,15 @@ var _base_stats: Dictionary = {
 	## combo_timeout — seconds of no landed hit before the combo COUNTER resets. Was a HUD const
 	##                 (COMBO_TIMEOUT 2.5) until the counter moved onto the player.
 	## combo_lock    — >= 1 freezes the counter: it never decays. The legendary's whole payload.
+	## Move-speed bonus while holding a light-chain CHANNEL — the Sellsword's Whirlwind is the
+	## only one in the game today. FLAT, not percent: get_stat is add*(1+bonus), so a stat whose
+	## base is 0.0 would swallow a percent modifier whole (0 * 1.25 is still 0).
+	##
+	## Worth recording because the ask assumed otherwise (Ben, 2026-09-05, "whirlwind doesnt have
+	## a movement penalty"): there is no penalty to remove. Whirlwind already moves at full speed.
+	## The only combo movement modifier in the kit is the Taunt channel's -20% (source
+	## "combo_taunt"), so this is purely a bonus on top of normal speed.
+	"whirl_speed":     0.0,
 	"combo_window":    1.0,
 	"combo_timeout":   2.5,
 	"combo_lock":      0.0,
@@ -1304,6 +1313,8 @@ func _physics_process(delta: float) -> void:
 		_try_dash(input_dir)
 
 	var move_speed_val: float = get_stat("move_speed")
+	if _is_whirling():
+		move_speed_val *= 1.0 + get_stat("whirl_speed")
 	var target_velocity: Vector2 = input_dir * move_speed_val
 	if _dash_timer > 0.0:
 		_dash_timer -= delta
@@ -4071,6 +4082,20 @@ func is_combo_locked() -> bool:
 
 
 ## Read by ChoreographyRunner on every "wait" phase entry — the one seam that widens the bar.
+## True while a HELD light-chain channel is running — Whirlwind, and nothing else in this kit.
+##
+## current_phase_is_held_channel() is the discriminator rather than the animation name, and that
+## is load-bearing: Whirlwind and the ordinary Swirl share anim "swirl" in the same graph, so a
+## name test cannot tell them apart. The runner already knows the difference structurally — a
+## held channel is a phase that parks on itself behind a held-input branch.
+func _is_whirling() -> bool:
+	if choreography_runner == null or not choreography_runner.is_running():
+		return false
+	if choreography_runner.get_ability() != _combo_ability:
+		return false
+	return choreography_runner.current_phase_is_held_channel()
+
+
 func combo_window_scale() -> float:
 	return maxf(get_stat("combo_window"), 0.05)
 

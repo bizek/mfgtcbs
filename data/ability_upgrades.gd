@@ -54,6 +54,11 @@ const MAX_RANK_BY_OP: Dictionary = {
 	## so two copies would become four in one step — and the op clones the phase's AoEs at pick
 	## time, so the ranks would not even compound evenly. If it should scale, raise `copies`.
 	"echo_aoe": 1,
+	## Both append a NEW effect rather than scaling one, so a second rank would stack a second
+	## ring / a second zone rather than making the first bigger. One-shot until that is the
+	## intent; raise the radius or damage_mult instead.
+	"add_shockwave": 1,
+	"add_ground_zone": 1,
 }
 
 ## How many times this upgrade may be taken in one run. Explicit "max_rank" wins; otherwise the
@@ -133,6 +138,50 @@ const ALL: Dictionary = {
 	},
 	## No graph key on purpose — Cataclysm is reachable from BOTH the light chain (phase 4) and
 	## the heavy (phase 1), and the pick should mean the same thing however you got there.
+	## Ben, 2026-09-05, filling the rest of the roster. All three are legible from their own
+	## effect — a ring, a burning crater, and a speed you can feel — which is the bar the two cut
+	## picks failed.
+	##
+	## Aftershock and Tempest Break deliberately land on DIFFERENT buttons. Thunderclap, Unbroken
+	## and Ancestral Call all fire on Cataclysm, so the light chain had no payoff of its own;
+	## Tempest is the light finisher and now ends in something.
+	"fighter_aftershock": {
+		"id": "fighter_aftershock",
+		"name": "Aftershock",
+		"description": "Cataclysm leaves the crater burning",
+		"kit": "fighter",
+		"is_ability_upgrade": true,
+		"op": "add_ground_zone",
+		"target": { "anim": "cataclysm" },
+		"params": { "zone_id": "fighter_aftershock", "radius": 62.0, "duration": 4.0,
+					"tick": 0.5, "damage_mult": 0.16, "element": "fire", "damage_type": "Fire" },
+	},
+	"fighter_tempest_break": {
+		"id": "fighter_tempest_break",
+		"name": "Tempest Break",
+		"description": "Tempest throws out a wide shockwave",
+		"kit": "fighter",
+		"is_ability_upgrade": true,
+		"op": "add_shockwave",
+		"target": { "graph": "light", "anim": "tempest" },
+		"params": { "radius": 115.0, "damage_mult": 0.55 },
+	},
+	## A "modifier" op, so it applies instantly with no kit rebuild. FLAT because whirl_speed's
+	## base is 0.0 and get_stat is add*(1+bonus) — a percent modifier on a zero base is zero.
+	"fighter_whirling_dervish": {
+		"id": "fighter_whirling_dervish",
+		"name": "Whirling Dervish",
+		"description": "+35% Move Speed while whirlwinding",
+		"kit": "fighter",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "whirl_speed",
+		"type": "flat",
+		"value": 0.35,
+		## Capped at 2 rather than the modifier default of 3. Three ranks is +105% move speed
+		## while spinning, which stops being a whirlwind and starts being a dash you can hold.
+		"max_rank": 2,
+	},
 	"fighter_unbroken": {
 		"id": "fighter_unbroken",
 		"name": "Unbroken",
@@ -795,9 +844,12 @@ const ORDER_BY_KIT: Dictionary = {
 	## rather than rewritten: both keyed off chain depth, a quantity the player cannot see since
 	## the pip row became a hit counter, and both paid out in stat nudges too small to feel. The
 	## hole is deliberate and should be filled with picks that are legible from their own effect.
+	## 8 entries — the most of any kit, on purpose. This is the pilot for the level-up-layer
+	## seam and the place build variety gets tested before the other eleven follow.
 	"fighter":    ["fighter_thunderclap",           "fighter_spite",
 				   "fighter_patient_blade",         "fighter_unbroken",
-				   "fighter_ancestral_call"],
+				   "fighter_ancestral_call",        "fighter_aftershock",
+				   "fighter_tempest_break",         "fighter_whirling_dervish"],
 	"paladin":    ["paladin_hammer_storm",          "paladin_consecrated_bash",     "paladin_iron_faith",
 				   "paladin_ringing_dictum",        "paladin_crusaders_cadence",    "paladin_searing_hammer"],
 	"ninja":      ["ninja_blade_storm_surge",       "ninja_killing_edge",           "ninja_smoke_ambush",
