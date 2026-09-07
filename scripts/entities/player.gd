@@ -69,6 +69,24 @@ var _base_stats: Dictionary = {
 	## Per-Whirlwind-tick chance that a bolt falls on a random nearby enemy. Flat, for the same
 	## reason whirl_speed is: get_stat is add*(1+bonus) and a percent modifier on a 0.0 base is 0.
 	"whirl_bolt_chance": 0.0,
+	## ── Warden (2026-09-06) ───────────────────────────────────────────────────────────────
+	## All five FLAT and 0.0-based, for the reason whirl_speed records: get_stat is
+	## add*(1+bonus), so a percent modifier on a zero base resolves to zero.
+	##
+	## The first three reach the hammerdin spiral — HolyHammer *entities* spawned by
+	## _spawn_holy_hammers, not effects on the Hammer phase. That distinction is the whole
+	## reason these stats exist: no phase op can touch a hammer, which is why every Warden
+	## upgrade that claimed to improve Holy Hammer was really scaling the small dmg*0.8 r30
+	## slam the throw is wrapped in, and not the thing the player is watching.
+	"hammer_count":     0.0,  ## EXTRA hammers per throw (the base throw is always 1)
+	"hammer_damage":    0.0,  ## bonus on each hammer's damage_mult
+	"hammer_burst":     0.0,  ## >0: a hammer detonates where its spiral runs out
+	## Reckoning (RMB-hold dome) and Aegis Shield (Q) are both host-side pools with hard-coded
+	## constants; these are the modifier seam onto them. Added to the constant, not multiplied,
+	## so the pick reads as a stated number (x1.5 -> x2.25) rather than a percentage of a
+	## percentage.
+	"reckoning_reflect": 0.0, ## + DOME_REFLECT_MULT
+	"aegis_bonus":       0.0, ## + ABSORB_SHIELD_FRAC
 	"combo_window":    1.0,
 	"combo_timeout":   2.5,
 	"combo_lock":      0.0,
@@ -3701,23 +3719,34 @@ func _spawn_holy_hammers(reach: float) -> void:
 	## golden-angle step per press so mashed hammers fan around the Warden instead of stacking.
 	## Max spiral radius scales with melee_range; damage reads the live damage stat per hammer.
 	var dtype: String = ChainFactory._damage_type(_weapon_data)
-	var hammer := HolyHammer.new()
-	hammer.player_ref = self
-	hammer.damage_type = dtype
-	hammer.start_angle = _hammer_angle_cycle
-	## Reach still widens the spiral, but only up to 1.5x. Because the spiral IS the hammer's clock
-	## (see holy_hammer.gd), letting a fully Reach-modded Warden multiply this by the 2.0 cap gave an
-	## 8.5s hammer orbiting 300px out — most of a 640x360 screen away from the fight he is in.
-	## 1.5x tops out at 225px / ~6.3s, which still reads as a reward for stacking Reach.
-	hammer.max_radius = 150.0 * minf(reach, 1.5)
-	## Class mods (both kit_flag — see _hammer_bound_spiral's declaration for why they can't be
-	## phase ops). BOUND SPIRAL re-anchors the spiral on the Warden every frame; SHATTERING
-	## HAMMERS arms the first-connect splinter shed.
-	hammer.follow_player = _hammer_bound_spiral
-	if _hammer_splinters:
-		hammer.splits = HolyHammer.SPLIT_COUNT
-	get_tree().current_scene.add_child(hammer)
-	_hammer_angle_cycle = fmod(_hammer_angle_cycle + TAU * 0.382, TAU)
+	## HAMMERDIN and its capstones (2026-09-06) add hammers to the throw. The angle cycle already
+	## advances by a golden-angle step per hammer, so a throw of five fans out on its own with no
+	## extra spacing logic — the same mechanism that stopped mashed single hammers from stacking.
+	var count: int = 1 + int(round(get_stat("hammer_count")))
+	var dmg_mult: float = HolyHammer.BASE_DAMAGE_MULT * (1.0 + get_stat("hammer_damage"))
+	var burst: float = get_stat("hammer_burst")
+	for _i in range(count):
+		var hammer := HolyHammer.new()
+		hammer.player_ref = self
+		hammer.damage_type = dtype
+		hammer.damage_mult = dmg_mult
+		## WRATH OF HEAVEN. Passed as the detonation's damage fraction rather than a bool so the
+		## number lives with the pick; holy_hammer.gd treats <= 0 as "off".
+		hammer.burst_on_expire = burst
+		hammer.start_angle = _hammer_angle_cycle
+		## Reach still widens the spiral, but only up to 1.5x. Because the spiral IS the hammer's
+		## clock (see holy_hammer.gd), letting a fully Reach-modded Warden multiply this by the 2.0
+		## cap gave an 8.5s hammer orbiting 300px out — most of a 640x360 screen away from the fight
+		## he is in. 1.5x tops out at 225px / ~6.3s, still a reward for stacking Reach.
+		hammer.max_radius = 150.0 * minf(reach, 1.5)
+		## Class mods (both kit_flag — see _hammer_bound_spiral's declaration for why they can't be
+		## phase ops). BOUND SPIRAL re-anchors the spiral on the Warden every frame; SHATTERING
+		## HAMMERS arms the first-connect splinter shed.
+		hammer.follow_player = _hammer_bound_spiral
+		if _hammer_splinters:
+			hammer.splits = HolyHammer.SPLIT_COUNT
+		get_tree().current_scene.add_child(hammer)
+		_hammer_angle_cycle = fmod(_hammer_angle_cycle + TAU * 0.382, TAU)
 
 
 # --- Blood Eruption pools (Blood Mage E) ---
@@ -3762,7 +3791,9 @@ func _detonate_reckoning() -> void:
 	var reach: float = _melee_range()
 	var burst := AreaDamageEffect.new()
 	burst.damage_type = ChainFactory._damage_type(_weapon_data)
-	burst.base_damage = stored * DOME_REFLECT_MULT
+	## JUDGEMENT adds to the multiplier rather than scaling it, so the pick is the sentence on the
+	## card: x1.5 -> x2.25 -> x3.0.
+	burst.base_damage = stored * (DOME_REFLECT_MULT + get_stat("reckoning_reflect"))
 	burst.aoe_radius = DOME_BURST_RADIUS * reach
 	EffectDispatcher.execute_effects([burst], self, [self], _combo_channel, combat_manager)
 	_spawn_shockwave_ring(DOME_BURST_RADIUS * reach, Color(1.0, 0.85, 0.25, 0.95))
@@ -3786,7 +3817,9 @@ func _dome_flash() -> void:
 ## turn on the persistent DomeCycle bubble. It stays until the pool is spent (no timer);
 ## re-casting re-tops the pool.
 func _grant_absorb_shield() -> void:
-	_absorb_shield = health.max_hp * ABSORB_SHIELD_FRAC
+	## UNBREAKABLE OATH widens the pool. Added to the fraction for the same reason JUDGEMENT is
+	## added to the reflect multiplier — 25% -> 40% -> 55% of max HP is a number you can state.
+	_absorb_shield = health.max_hp * (ABSORB_SHIELD_FRAC + get_stat("aegis_bonus"))
 	_ensure_shield_bubble()
 	if _shield_bubble:
 		_shield_bubble.visible = true

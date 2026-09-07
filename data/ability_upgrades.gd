@@ -251,37 +251,118 @@ const ALL: Dictionary = {
 		"target": { "anim": "cataclysm" },
 	},
 
-	## ── Paladin (The Warden) ──────────────────────────────────────────────────
+	## ── Paladin (The Warden) — level-up-layer pass, 2026-09-06 ────────────────
+	##
+	## Same pass the Fighter got, and it found one thing the Fighter's did not: HAMMER STORM was
+	## scaling the wrong object. "Holy Hammer hits +40% damage" was a scale_aoe on the hammer
+	## PHASE, whose only effect is a dmg*0.8 r30 slam under the Warden's feet. The blessed hammers
+	## are HolyHammer *entities* spawned host-side (player._spawn_holy_hammers) with their own
+	## damage_mult, and no phase op can reach an entity — so the kit's flagship pick barely touched
+	## the thing the pick is named after. It is a modifier now, on a real hammer stat.
+	##
+	## Cut: IRON FAITH (+4 armor — a generic stat stick the generic pool already sells three ways)
+	## and SEARING HAMMER (burning on `hammer`, the same pick as CONSECRATED BASH one anim over).
+	## CONSECRATED BASH went too: RETRIBUTION DOME (epic class mod) already owns "the Warden sets
+	## things alight", and this layer is for things mods cannot express.
+	##
+	## What the old set never touched at all: the hammerdin spiral, Reckoning's absorb pool, and
+	## Aegis Shield — i.e. all three of the Warden's signature systems, because all three are
+	## host-side and the pool only spoke phase-op. Six of the eleven below reach them.
 	"paladin_hammer_storm": {
 		"id": "paladin_hammer_storm",
 		"name": "Hammer Storm",
-		"description": "Holy Hammer hits +40% damage",
-		"kit": "paladin",
-		"is_ability_upgrade": true,
-		"op": "scale_aoe",
-		"target": { "anim": "hammer" },
-		"params": { "damage_mult": 1.40 },
-	},
-	"paladin_consecrated_bash": {
-		"id": "paladin_consecrated_bash",
-		"name": "Consecrated Bash",
-		"description": "Shield Bash ignites enemies hit",
-		"kit": "paladin",
-		"is_ability_upgrade": true,
-		"op": "add_status",
-		"target": { "anim": "bash" },
-		"params": { "status": "burning", "stacks": 1 },
-	},
-	"paladin_iron_faith": {
-		"id": "paladin_iron_faith",
-		"name": "Iron Faith",
-		"description": "+4 Armor this run",
+		"description": "Blessed hammers strike +35% harder",
 		"kit": "paladin",
 		"is_ability_upgrade": true,
 		"op": "modifier",
-		"stat": "armor",
+		"stat": "hammer_damage",
+		## FLAT, like every host-side kit stat: the base is 0.0 and get_stat is add*(1+bonus),
+		## so a percent modifier on it would resolve to zero.
 		"type": "flat",
-		"value": 4.0,
+		"value": 0.35,
+	},
+	## The hammerdin line, and the kit's capstone chain. Chosen for it over Reckoning because the
+	## spiral is the Warden's spectacle the way the bolts are the Sellsword's — and `count` scales
+	## the spectacle directly, with no new art and no new motion: the golden-angle cycle in
+	## _spawn_holy_hammers already fans successive hammers apart, so a throw of five arranges
+	## itself.
+	"paladin_hammerdin": {
+		"id": "paladin_hammerdin",
+		"name": "Hammerdin",
+		"description": "Holy Hammer throws an extra blessed hammer",
+		"kit": "paladin",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "hammer_count",
+		"type": "flat",
+		"value": 1.0,
+		## 2 ranks = 3 hammers a throw. Each lives ~4.1s, so a mashed RMB already keeps a dozen
+		## in the air; 3 ranks plus the capstones below would be a node-count problem before it
+		## was a balance one.
+		"max_rank": 2,
+	},
+	"paladin_blessed_storm": {
+		"id": "paladin_blessed_storm",
+		"name": "Blessed Storm",
+		"description": "Two more hammers join every throw",
+		"kit": "paladin",
+		"is_ability_upgrade": true,
+		"is_capstone": true,
+		"requires": ["paladin_hammerdin", "paladin_hammerdin"],
+		"op": "modifier",
+		"stat": "hammer_count",
+		"type": "flat",
+		"value": 2.0,
+		"max_rank": 1,
+	},
+	## The end state, and deliberately not another number: the spiral itself becomes the delivery.
+	## Every hammer detonates where it runs out, so a throw blooms a ring of judgement around the
+	## Warden a beat later — see holy_hammer.burst_on_expire for why the END of the spiral is the
+	## trigger rather than a timer or the cast point.
+	"paladin_wrath_of_heaven": {
+		"id": "paladin_wrath_of_heaven",
+		"name": "Wrath of Heaven",
+		"description": "Every hammer detonates where its spiral ends",
+		"kit": "paladin",
+		"is_ability_upgrade": true,
+		"is_capstone": true,
+		"requires": ["paladin_blessed_storm"],
+		"op": "modifier",
+		"stat": "hammer_burst",
+		"type": "flat",
+		## Fraction of the damage stat per detonation. At the full chain that is 5 blasts a throw,
+		## which is why it is well under the 0.9 a hammer already deals on contact.
+		"value": 0.55,
+		"max_rank": 1,
+	},
+	## Reckoning (RMB-hold) had no pick at all despite being the kit's most distinctive button.
+	## Adds to DOME_REFLECT_MULT rather than scaling it, so the card is a stated number.
+	"paladin_judgement": {
+		"id": "paladin_judgement",
+		"name": "Judgement",
+		"description": "Reckoning detonates for far more of what it drank",
+		"kit": "paladin",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "reckoning_reflect",
+		"type": "flat",
+		"value": 0.75,
+		## x1.5 base -> x2.25 -> x3.0. A third rank would out-scale the 30%-max-HP absorb cap
+		## that feeds it, so the pick would stop meaning anything.
+		"max_rank": 2,
+	},
+	## Aegis Shield (Q) likewise. 25% of max HP -> 40% -> 55%.
+	"paladin_unbreakable_oath": {
+		"id": "paladin_unbreakable_oath",
+		"name": "Unbreakable Oath",
+		"description": "Aegis Shield absorbs far more before it breaks",
+		"kit": "paladin",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "aegis_bonus",
+		"type": "flat",
+		"value": 0.15,
+		"max_rank": 2,
 	},
 
 	## ── Ninja (The Whisper) ───────────────────────────────────────────────────
@@ -663,6 +744,8 @@ const ALL: Dictionary = {
 	## cleric's `pray_heal`: _scale_effects has no HealEffect branch, so scaling one does nothing.
 
 	## ── Paladin ───────────────────────────────────────────────────────────────
+	## The two survivors of the 2026-09-06 pass (SEARING HAMMER was cut as a duplicate of
+	## CONSECRATED BASH), plus the two picks that give Shield Bash and Lay on Hands something.
 	"paladin_ringing_dictum": {
 		"id": "paladin_ringing_dictum", "name": "Ringing Dictum",
 		"description": "Dictum rings out +35% wider",
@@ -675,11 +758,42 @@ const ALL: Dictionary = {
 		"kit": "paladin", "is_ability_upgrade": true, "op": "scale_aoe",
 		"target": { "anim": "attack_2" }, "params": { "damage_mult": 1.30 },
 	},
-	"paladin_searing_hammer": {
-		"id": "paladin_searing_hammer", "name": "Searing Hammer",
-		"description": "Holy Hammer sets enemies burning",
-		"kit": "paladin", "is_ability_upgrade": true, "op": "add_status",
-		"target": { "anim": "hammer" }, "params": { "status": "burning", "stacks": 1 },
+	## Shield Bash is the light chain's finisher and had one pick, which was a status. A zone the
+	## shield leaves behind is legible from its own art (GroundZoneVfx draws every zone in the game
+	## from vfx_element) and turns the bash into a piece of area denial you place.
+	##
+	## `fire` because there is no holy tileable in either Spell Effects pack — and consecrated
+	## flame is already the Warden's idiom, per RETRIBUTION DOME.
+	##
+	## Ticks are 0.13 of the bash's own damage, NOT Aftershock's 0.16: the bash lands at dmg*0.9
+	## against Cataclysm's dmg*1.8, so the same fraction would put a far larger share of the hit
+	## into the floor. (Aftershock itself still wants a look — see its note.)
+	"paladin_hallowed_ground": {
+		"id": "paladin_hallowed_ground", "name": "Hallowed Ground",
+		"description": "Shield Bash consecrates the ground it breaks",
+		"kit": "paladin", "is_ability_upgrade": true, "op": "add_ground_zone",
+		"target": { "anim": "bash" },
+		"params": { "zone_id": "paladin_hallowed_ground", "radius": 58.0, "duration": 4.0,
+					"tick": 0.5, "damage_mult": 0.13, "element": "fire", "damage_type": "Fire" },
+	},
+	## The hammerdin spiral is built by MASHING: every RMB press inside the Hammer node throws
+	## another and re-enters the node. So the window is the build's real ceiling — how long the
+	## Warden has to confirm the next press before the graph drops him out. This is the only pick
+	## in the kit that makes the other four hammer picks easier to actually use.
+	"paladin_zeal": {
+		"id": "paladin_zeal", "name": "Zeal",
+		"description": "Holy Hammer holds its window 50% longer",
+		"kit": "paladin", "is_ability_upgrade": true, "op": "extend_window",
+		"target": { "anim": "hammer" }, "params": { "window_mult": 1.50 },
+	},
+	## Lay on Hands (E) is a 20%-max-HP mend with an 11-frame wind-up, and the Warden spends it
+	## standing in whatever made him need it. i-frames for the cast are the pick that makes the
+	## heal usable at the moment you actually reach for it.
+	"paladin_sanctuary": {
+		"id": "paladin_sanctuary", "name": "Sanctuary",
+		"description": "Nothing can touch you while you mend",
+		"kit": "paladin", "is_ability_upgrade": true, "op": "add_iframes",
+		"target": { "graph": "skill_e", "anim": "heal_word" },
 	},
 
 	## ── Ninja ─────────────────────────────────────────────────────────────────
@@ -911,8 +1025,13 @@ const ORDER_BY_KIT: Dictionary = {
 				   "fighter_tempest_break",         "fighter_whirling_dervish",
 				   "fighter_rolling_thunder",        "fighter_thunderhead",
 				   "fighter_skyfall"],
-	"paladin":    ["paladin_hammer_storm",          "paladin_consecrated_bash",     "paladin_iron_faith",
-				   "paladin_ringing_dictum",        "paladin_crusaders_cadence",    "paladin_searing_hammer"],
+	## 11 entries — the second kit through the level-up-layer pass (the Fighter was the pilot).
+	"paladin":    ["paladin_hammer_storm",          "paladin_hammerdin",
+				   "paladin_blessed_storm",         "paladin_wrath_of_heaven",
+				   "paladin_judgement",             "paladin_unbreakable_oath",
+				   "paladin_ringing_dictum",        "paladin_crusaders_cadence",
+				   "paladin_hallowed_ground",       "paladin_zeal",
+				   "paladin_sanctuary"],
 	"ninja":      ["ninja_blade_storm_surge",       "ninja_killing_edge",           "ninja_smoke_ambush",
 				   "ninja_final_cut",               "ninja_twin_fangs",             "ninja_shadow_step"],
 	"cleric":     ["cleric_divine_wrath",           "cleric_greater_word",          "cleric_sanctified_smite",

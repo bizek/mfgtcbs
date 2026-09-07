@@ -26,7 +26,9 @@ const OCTANT_ANIMS: Array[String] = ["e", "se", "s", "sw", "w", "nw", "n", "ne"]
 ## Set by player.gd before add_child
 var player_ref: Node2D = null      ## live damage stat source (and anchor when follow_player)
 var damage_type: String = "Physical"
-var damage_mult: float = 0.9       ## × the player's live damage stat, per enemy hit
+## Named so the spawner can scale it without instantiating a throwaway hammer to read the default.
+const BASE_DAMAGE_MULT: float = 0.9
+var damage_mult: float = BASE_DAMAGE_MULT  ## × the player's live damage stat, per enemy hit
 var start_angle: float = 0.0       ## radians; spawner staggers multiple hammers evenly
 var spin_speed: float = 0.7        ## revolutions per second (1.1 read too fast — Ben 2026-07-20)
 var radius_start: float = 10.0
@@ -71,6 +73,19 @@ const SPLIT_SPREAD: float = 0.7        ## radians between splinters, centred on 
 var splits: int = 0                    ## splinters shed on first contact (0 = mod not equipped)
 var is_splinter: bool = false
 var scale_mult: float = 1.0
+## ── WRATH OF HEAVEN (level-up capstone, 2026-09-06) ───────────────────────────────────────────
+## Fraction of the Warden's damage stat this hammer detonates for when its spiral runs out.
+## 0 = off, which is every hammer in the game until the capstone is taken.
+##
+## The END of the spiral is the trigger, not a timer, because the spiral IS the clock (see
+## max_radius) — so the detonations bloom in a ring at the spiral's edge, all around the Warden,
+## a beat after the throw. That ring is the reward; a burst at the cast point would just be a
+## second copy of the slam that is already there.
+##
+## Splinters never inherit it (_shed_splinters leaves it at 0): a hammer that sheds two splinters
+## which each also detonate turns one readable ring into nine overlapping ones.
+var burst_on_expire: float = 0.0
+const BURST_RADIUS: float = 46.0
 
 var _angle: float = 0.0
 var _radius: float = 0.0
@@ -125,6 +140,8 @@ func _process(delta: float) -> void:
 	_angle += spin_speed * TAU * delta
 	_radius += radius_growth * delta
 	if _radius > max_radius:
+		if burst_on_expire > 0.0:
+			_detonate()
 		queue_free()
 		return
 	var prev: Vector2 = global_position
@@ -190,6 +207,41 @@ func _shed_splinters(at: Vector2) -> void:
 		s.max_radius = SPLIT_MAX_RADIUS
 		s.scale_mult = SPLIT_SCALE
 		get_tree().current_scene.add_child.call_deferred(s)
+
+
+## WRATH OF HEAVEN: judgement lands where the hammer's spiral ends.
+##
+## Queried and dealt here rather than dispatched as an AreaDamageEffect, because the dispatcher
+## anchors an AoE on a TARGET ENTITY (`execute_effects` reads `target.is_alive`, and the AoE branch
+## centres on `target.global_position`) and this blast is anchored on a place — a hammer, which is
+## an Area2D and no entity at all. Passing the hammer as its own target is what the first cut of
+## this did, and it threw on every detonation.
+##
+## Everything that matters still routes properly: the grid query is the same one the dispatcher's
+## AoE branch runs, and each hit goes through DamageCalculator with the WARDEN as attacker, so
+## crit, armour, resists and dodge all apply exactly as they do for a contact hit. Only the AoE
+## branch's leech clause is skipped, which is already true of `_on_body_entered` above.
+func _detonate() -> void:
+	if not is_instance_valid(player_ref):
+		return
+	var cm: Node2D = player_ref.combat_manager
+	if cm == null or cm.spatial_grid == null:
+		return
+	## The ring first, so it is already expanding as the numbers pop (the dispatcher orders it the
+	## same way). Drawn by the Warden because he owns the pack sheet and the tween.
+	if player_ref.has_method("spawn_shockwave_at"):
+		player_ref.spawn_shockwave_at(global_position, BURST_RADIUS, Color(1.0, 0.92, 0.45, 0.95))
+	_spawn_impact(global_position)
+
+	var dmg: float = player_ref.get_stat("damage") * burst_on_expire
+	var faction: int = 1 if int(player_ref.faction) == 0 else 0
+	for body in cm.spatial_grid.get_nearby_in_range(
+			global_position, faction, BURST_RADIUS * BURST_RADIUS):
+		if not is_instance_valid(body) or not body.is_alive:
+			continue
+		var hit := DamageCalculator.calculate_raw_hit(player_ref, body, dmg, damage_type)
+		if not hit.is_dodged:
+			body.take_damage(hit)
 
 
 ## One-shot golden burst (the package's Impact sheet) at the hit position.
