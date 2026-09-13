@@ -17,6 +17,8 @@ const ASSET_DIR: String = "res://assets/minifantasy/Minifantasy_True_Heroes_III_
 ## Facing → sheet row (same diagonal-facing convention as CharacterSpriteFactory.DIR_ROWS).
 const DIR_ROWS: Dictionary = {"down_right": 0, "down_left": 1, "up_right": 2, "up_left": 3}
 
+## Base seconds aloft. EVERFLAME (level-up) raises the per-instance `lifetime` below; this stays
+## the floor every familiar starts from.
 const LIFETIME: float = 15.0
 const FLY_SPEED: float = 62.0            ## own wings — constant-speed flight, never lerp-glued (deliberate-pacing rebalance 2 2026-07-07, was 75)
 const CATCHUP_MULT: float = 1.8          ## wing-boost when left far behind
@@ -31,6 +33,9 @@ const HOME_RADIUS: float = 30.0          ## lazy roam orbit around the player wh
 
 var player_ref: Node2D = null
 var damage_type: String = "Fire"
+## Set by the spawner before add_child, HolyHammer-style. Read once in _ready into _life, because
+## _life's initialiser runs at construction - before the spawner has had a chance to set this.
+var lifetime: float = LIFETIME
 
 var _sprite: AnimatedSprite2D = null
 var _fx: AnimatedSprite2D = null         ## frame-matched Attack_Effect overlay
@@ -49,6 +54,7 @@ static var _frames_cache: SpriteFrames = null
 
 
 func _ready() -> void:
+	_life = lifetime
 	z_index = 1
 	_sprite = AnimatedSprite2D.new()
 	_sprite.sprite_frames = _get_frames()

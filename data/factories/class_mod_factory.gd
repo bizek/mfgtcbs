@@ -116,6 +116,30 @@ static func validate_anim_targets(weapon_data: Dictionary = {}) -> Array[String]
 						problems.append(("%s (%s): op '%s' target %s matches no phase carrying "
 							+ "an AreaDamageEffect — there is nothing to scale from")
 							% [entry_id, kit_id, op, str(target)])
+				## A scale_aoe param that reaches NOTHING. Distinct from the target check above:
+				## the target resolves, the phase has effects, and the multiplier still lands on
+				## no field — a radius_mult aimed at a phase whose only effect is a projectile,
+				## say. The pick then ships as a card that reads "+35% blast radius" and does
+				## nothing at all, which is exactly what WIZARD FIREBALL EXPANSION did until
+				## 2026-09-12.
+				##
+				## Asks _scale_effects itself rather than re-deriving which fields it touches
+				## (rmult = dmult = 1.0, so this mutates nothing and the pristine kit built above
+				## stays pristine).
+				if op == "scale_aoe":
+					var reach: Array[Vector2i] = [Vector2i.ZERO]
+					_for_each_targeted_phase(abilities, target,
+						func(phase: ChoreographyPhase) -> void:
+							reach[0] += _scale_effects(phase.effects, 1.0, 1.0))
+					var p: Dictionary = entry.get("params", {})
+					if float(p.get("radius_mult", 1.0)) != 1.0 and reach[0].x == 0:
+						problems.append(("%s (%s): radius_mult targets %s, which carries no radius "
+							+ "_scale_effects can reach — the pick does nothing")
+							% [entry_id, kit_id, str(target)])
+					if float(p.get("damage_mult", 1.0)) != 1.0 and reach[0].y == 0:
+						problems.append(("%s (%s): damage_mult targets %s, which carries no damage "
+							+ "_scale_effects can reach — the pick does nothing")
+							% [entry_id, kit_id, str(target)])
 				if op == "extend_window":
 					var windowed: Array[int] = [0]
 					_for_each_targeted_phase(abilities, target,
@@ -348,38 +372,70 @@ static func _apply_op_to_phase(op: String, phase: ChoreographyPhase, params: Dic
 ##
 ## The status is DUPLICATED before mutation: `add_status` hands out shared StatusFactory singletons,
 ## and scaling one in place would leak the buff into every other user of that status for the session.
-static func _scale_effects(effects: Array, rmult: float, dmult: float, depth: int = 0) -> void:
+## Apply a scale_aoe to a phase's effects, and REPORT what it actually reached:
+## Vector2i(radius fields touched, damage fields touched).
+##
+## The report exists so validate_anim_targets can prove a param is not inert without
+## reimplementing these branches — called with rmult = dmult = 1.0 it mutates nothing and still
+## returns honest counts. That matters because a hand-written copy of this logic WILL drift: the
+## first survey written against it (2026-09-12) forgot the ApplyStatusEffectData branch and
+## reported two working Necromancer entries as dead.
+##
+## Callers that only want the mutation can ignore the return value.
+static func _scale_effects(effects: Array, rmult: float, dmult: float, depth: int = 0) -> Vector2i:
+	var reach := Vector2i.ZERO                   ## x = radius fields, y = damage fields
 	if depth > 2:
-		return                                   ## guard: a status that re-applies itself
+		return reach                             ## guard: a status that re-applies itself
 	for i in effects.size():
 		var eff: Resource = effects[i]
 		if eff is AreaDamageEffect:
 			eff.aoe_radius  *= rmult
 			eff.base_damage *= dmult
+			reach += Vector2i(1, 1)
 		elif eff is DealDamageEffect:
 			eff.base_damage *= dmult
+			reach.y += 1
 		elif eff is GroundZoneEffect:
 			eff.radius *= rmult
+			reach.x += 1
 			## …and the burn itself. Without this a "damage_mult" op widened a zone but left every
 			## tick at base — the Demonologist's Brimstone Circle and the Cleric's Word of Pain both
 			## keep their real damage on tick_effects, not on the phase.
-			_scale_effects(eff.tick_effects, rmult, dmult, depth + 1)
+			reach += _scale_effects(eff.tick_effects, rmult, dmult, depth + 1)
 		elif eff is SpawnProjectilesEffect:
 			if eff.projectile != null:
+				## The BLAST radii, not just the numbers. Until 2026-09-12 this branch scaled only
+				## damage, so a radius_mult aimed at a projectile phase was silently inert — which
+				## is the entire life story of WIZARD FIREBALL EXPANSION ("Fireball +35% blast
+				## radius"), a pick that had never once done anything. impact_aoe_radius is where a
+				## Fireball's blast actually lives.
+				##
+				## Safe to scale the config in place: apply_upgrade_dicts_to_kit rebuilds the kit
+				## from the factories on every mod/upgrade change, so ranks never compound here.
+				if eff.projectile.impact_aoe_radius > 0.0:
+					eff.projectile.impact_aoe_radius *= rmult
+					reach.x += 1
+				if eff.projectile.on_bounce_aoe_radius > 0.0:
+					eff.projectile.on_bounce_aoe_radius *= rmult
+					reach.x += 1
 				for hit in eff.projectile.on_hit_effects:
 					if hit is DealDamageEffect:
 						hit.base_damage *= dmult
+						reach.y += 1
 				for hit in eff.projectile.impact_aoe_effects:
 					if hit is DealDamageEffect:
 						hit.base_damage *= dmult
+						reach.y += 1
 		elif eff is ApplyStatusEffectData and eff.status != null:
 			var st: StatusEffectDefinition = eff.status.duplicate(true)
 			eff.status = st
 			if st.aura_radius > 0.0:
 				st.aura_radius *= rmult
-			_scale_effects(st.aura_tick_effects, rmult, dmult, depth + 1)
-			_scale_effects(st.tick_effects, rmult, dmult, depth + 1)
-			_scale_effects(st.on_expire_effects, rmult, dmult, depth + 1)
+				reach.x += 1
+			reach += _scale_effects(st.aura_tick_effects, rmult, dmult, depth + 1)
+			reach += _scale_effects(st.tick_effects, rmult, dmult, depth + 1)
+			reach += _scale_effects(st.on_expire_effects, rmult, dmult, depth + 1)
+	return reach
 
 
 ## Every SpawnProjectilesEffect a phase can loose — directly, or via the expiry of a status it

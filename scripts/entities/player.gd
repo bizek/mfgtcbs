@@ -87,6 +87,22 @@ var _base_stats: Dictionary = {
 	## percentage.
 	"reckoning_reflect": 0.0, ## + DOME_REFLECT_MULT
 	"aegis_bonus":       0.0, ## + ABSORB_SHIELD_FRAC
+	## -- Spark (2026-09-12) -----------------------------------------------------------------
+	## Flat and 0.0-based like every other host-side kit stat (get_stat is add*(1+bonus), so a
+	## percent modifier on a zero base is zero).
+	##
+	## All four reach things no phase op can: Storm Call's per-enemy strike is dealt right here in
+	## _storm_strike, the familiar is an entity, the ice aura was a pure VFX child, and the blink
+	## is a position change. The `storm_cast` phase the old TEMPEST CALL pick scaled carries only a
+	## dmg*0.2 r40 self-pulse that exists to make choreo_fire_effects run the host hook - so that
+	## pick was moving about 2% of the ability it was named after.
+	"storm_damage":     0.0,  ## + STORM_CALL_DAMAGE_MULT
+	"storm_waves":      0.0,  ## EXTRA full-field strikes after the first
+	"storm_linger":     0.0,  ## seconds the sky keeps picking single targets after the last wave
+	"familiar_count":   0.0,  ## EXTRA familiars per summon
+	"familiar_life":    0.0,  ## + FireFamiliar.LIFETIME seconds
+	"ice_aura_damage":  0.0,  ## fraction of damage, per tick, to anything inside the shard ring
+	"blink_nova":       0.0,  ## fraction of damage detonated where the blink STARTED
 	"combo_window":    1.0,
 	"combo_timeout":   2.5,
 	"combo_lock":      0.0,
@@ -390,7 +406,8 @@ const STORM_FX_FILES: Dictionary = {
 }
 const STORM_FORWARD: float = 52.0
 var _storm_fx: AnimatedSprite2D = null
-var _fire_familiar: Node2D = null
+## The Spark's familiars. An ARRAY since 2026-09-12 (EMBER BROOD) — it was a single slot before.
+var _fire_familiars: Array[Node2D] = []
 ## Spark Q/E overhaul (Ben 2026-07-20): Frost Burst leaves a looping ring of ice shards; Storm
 ## Call drops a two-bolt lightning strike over every enemy on the field. Sheets from the shared
 ## Spell Effects pack (32px cells; Aura sheets = row0 start / row1 loop / row2 end).
@@ -408,6 +425,24 @@ const STORM_CALL_RANGE: float = 1400.0       ## covers the whole arena (±800 ×
 ## than once per press.
 const WHIRL_BOLT_RANGE: float = 220.0
 const WHIRL_BOLT_DAMAGE_MULT: float = 0.9
+## Spark level-up seams (2026-09-12).
+## ROLLING FRONT staggers its extra field-wide strikes rather than stacking them on one frame: at
+## 0 gap every bolt sprite spawns in the same tick and reads as one brighter flash instead of a
+## storm rolling over the field.
+const STORM_WAVE_GAP: float = 0.28
+## EYE OF THE STORM's afterglow: one bolt on one random enemy at this cadence, which is slow
+## enough to read as individual strikes and not a strobe (the same reasoning as WHIRL_BOLT_RANGE's).
+const STORM_LINGER_GAP: float = 0.30
+const BURST_FIRE_SHEET: String = SPELLFX_DIR + "Fire/Burst/Burst_Fire.png"
+## SHARDSTORM: the Frost Burst aura is a VFX child of the player, so its bite is centred on him.
+const ICE_AURA_RADIUS: float = 34.0
+const ICE_AURA_BITE_GAP: float = 0.5
+## FLASHPOINT: the nova left behind at the departure point.
+const BLINK_NOVA_RADIUS: float = 46.0
+var _storm_linger_left: float = 0.0
+var _storm_linger_gap: float = 0.0
+var _storm_linger_ability: AbilityDefinition = null
+var _ice_bite_gap: float = 0.0
 const ICE_AURA_TIME: float = 10.0            ## shards loop this long, then deteriorate (row2)
 var _ice_aura: AnimatedSprite2D = null
 var _ice_aura_timer: float = 0.0
@@ -1404,6 +1439,9 @@ func _physics_process(delta: float) -> void:
 		_ice_aura_timer -= delta
 		if _ice_aura_timer <= 0.0 and _ice_aura.animation == &"loop":
 			_ice_aura.play(&"end")
+	## Spark level-up seams: both no-op instantly unless their stat is above zero.
+	_tick_storm_linger(delta)
+	_tick_ice_aura_bite(delta)
 	## Refresh the auto-aim lock BEFORE facing — every aim consumer this frame (facing, swings,
 	## skills, VFX) then reads the same target.
 	_update_auto_target()
@@ -2392,16 +2430,31 @@ func _on_combo_fx_finished() -> void:
 
 
 func _spawn_fire_familiar() -> void:
-	## One familiar at a time — resummon replaces (the old one disperses).
-	if is_instance_valid(_fire_familiar):
-		_fire_familiar.disperse()
-	var fam := FireFamiliar.new()
-	fam.player_ref = self
-	fam.damage_type = ChainFactory._damage_type(_weapon_data)
-	get_tree().current_scene.add_child(fam)
+	## One BROOD at a time — resummon replaces the whole set (the old ones disperse). EMBER BROOD
+	## raises the count; EVERFLAME raises how long they stay. Both are stats rather than constants
+	## because a familiar is an entity and no phase op can reach one — which is why the old
+	## FAMILIAR FURY pick ("the summon's burst hits +35%") was really scaling the dmg*0.4 r24 puff
+	## the cast makes, and never once touched the familiar.
+	for old in _fire_familiars:
+		if is_instance_valid(old):
+			old.disperse()
+	_fire_familiars.clear()
+	var count: int = 1 + int(round(get_stat("familiar_count")))
+	var life: float = FireFamiliar.LIFETIME + get_stat("familiar_life")
+	var dtype: String = ChainFactory._damage_type(_weapon_data)
 	var side: float = -1.0 if _facing.ends_with("left") else 1.0
-	fam.global_position = global_position + Vector2(18.0 * side, -14.0)
-	_fire_familiar = fam
+	for i in range(count):
+		var fam := FireFamiliar.new()
+		fam.player_ref = self
+		fam.damage_type = dtype
+		fam.lifetime = life
+		get_tree().current_scene.add_child(fam)
+		## Fan them out so a brood of three does not spawn inside itself. They fly autonomously
+		## (CLAUDE.md pet standard) and scatter on their own within a frame or two anyway; this is
+		## only about the spawn instant reading as several creatures rather than one.
+		var spread: float = float(i) * 14.0 - float(count - 1) * 7.0
+		fam.global_position = global_position + Vector2(18.0 * side + spread, -14.0)
+		_fire_familiars.append(fam)
 
 
 func _do_teleport() -> void:
@@ -2411,7 +2464,9 @@ func _do_teleport() -> void:
 	var aim: Vector2 = _get_aim_world_position() - global_position
 	if aim.length_squared() < 1.0:
 		return
+	var from: Vector2 = global_position
 	global_position += aim.limit_length(TELEPORT_RANGE)
+	_blink_nova(from)
 
 
 func _spawn_blood_elemental() -> void:
@@ -3626,15 +3681,107 @@ func _spawn_oneshot_fx(sheet_path: String, at: Vector2, fps: float) -> void:
 ## (Aura_Electric row 0 dropped over them) + a Lightning chunk; the caster crackles with an
 ## electric pulse. Screen-wide — the long cooldown is the balance.
 func _cast_storm_call(ability) -> void:
-	var chunk: float = _weapon_data.get("damage", 42.0) * STORM_CALL_DAMAGE_MULT
+	_storm_strike(ability)
+	## ROLLING FRONT: the storm comes back over the field. Scheduled rather than looped so the
+	## waves are spread in TIME - see STORM_WAVE_GAP.
+	var extra: int = int(round(get_stat("storm_waves")))
+	for w in range(1, extra + 1):
+		get_tree().create_timer(STORM_WAVE_GAP * float(w)).timeout.connect(
+				_storm_strike.bind(ability))
+	## EYE OF THE STORM: after the waves, the sky keeps picking targets on its own.
+	var linger: float = get_stat("storm_linger")
+	if linger > 0.0:
+		_storm_linger_left = STORM_WAVE_GAP * float(extra) + linger
+		_storm_linger_gap = 0.0
+		_storm_linger_ability = ability
+
+
+## One field-wide strike. Split out of _cast_storm_call so ROLLING FRONT's extra waves and EYE OF
+## THE STORM's afterglow are literally the same strike, not a reimplementation of it.
+func _storm_strike(ability) -> void:
+	if not is_alive:
+		return
+	var chunk: float = _storm_chunk()
 	for en in _nearby_enemies(STORM_CALL_RANGE):
-		_spawn_oneshot_fx(AURA_ELECTRIC_SHEET, en.global_position + Vector2(0.0, -8.0), 14.0)
-		var hit := DealDamageEffect.new()
-		hit.damage_type = "Lightning"
-		hit.base_damage = chunk
-		EffectDispatcher.execute_effects([hit], self, [en], ability, combat_manager)
+		_storm_bolt(en, chunk, ability)
 	_spawn_oneshot_fx(BURST_ELECTRIC_SHEET, global_position, 15.0)
 	_spawn_shockwave_ring(64.0, Color(0.55, 0.8, 1.0, 0.95))
+
+
+## RISING STORM adds to the multiplier rather than scaling it, so the card states a number.
+func _storm_chunk() -> float:
+	return _weapon_data.get("damage", 42.0) * (STORM_CALL_DAMAGE_MULT + get_stat("storm_damage"))
+
+
+func _storm_bolt(en: Node2D, chunk: float, ability) -> void:
+	if not is_instance_valid(en) or not en.is_alive:
+		return
+	_spawn_oneshot_fx(AURA_ELECTRIC_SHEET, en.global_position + Vector2(0.0, -8.0), 14.0)
+	var hit := DealDamageEffect.new()
+	hit.damage_type = "Lightning"
+	hit.base_damage = chunk
+	EffectDispatcher.execute_effects([hit], self, [en], ability, combat_manager)
+
+
+## EYE OF THE STORM: one bolt, one random enemy, every STORM_LINGER_GAP, until the afterglow runs
+## out. Single-target rather than field-wide on purpose - a field-wide strike three times a second
+## is the whole ability again, and the read we want is "the storm has not finished with you yet".
+func _tick_storm_linger(delta: float) -> void:
+	if _storm_linger_left <= 0.0:
+		return
+	_storm_linger_left -= delta
+	_storm_linger_gap -= delta
+	if _storm_linger_gap > 0.0:
+		return
+	_storm_linger_gap = STORM_LINGER_GAP
+	var near: Array = _nearby_enemies(STORM_CALL_RANGE)
+	if near.is_empty():
+		return
+	_storm_bolt(near[randi() % near.size()], _storm_chunk(), _storm_linger_ability)
+
+
+## SHARDSTORM: the Frost Burst shard ring stops being decoration.
+##
+## Centred on the player via the ordinary AoE path (the aura is a CHILD of the body, so "target =
+## self" is the true anchor here - unlike the blink nova below, which is anchored on a place the
+## player has already left). The dispatcher skips `target` itself when collecting victims, so the
+## Spark is never caught by his own shards.
+func _tick_ice_aura_bite(delta: float) -> void:
+	var frac: float = get_stat("ice_aura_damage")
+	if frac <= 0.0 or _ice_aura == null or not _ice_aura.visible or _ice_aura_timer <= 0.0:
+		return
+	_ice_bite_gap -= delta
+	if _ice_bite_gap > 0.0:
+		return
+	_ice_bite_gap = ICE_AURA_BITE_GAP
+	var bite := AreaDamageEffect.new()
+	bite.damage_type = "Ice"
+	bite.base_damage = get_stat("damage") * frac
+	bite.aoe_radius = ICE_AURA_RADIUS * _melee_range()
+	EffectDispatcher.execute_effects([bite], self, [self], null, combat_manager)
+
+
+## FLASHPOINT: the blink leaves a detonation behind at the point of departure.
+##
+## Queried here rather than dispatched as an AreaDamageEffect for the reason HolyHammer._detonate
+## records: the dispatcher anchors an AoE on a target ENTITY and centres it on that entity's
+## position, and this blast is anchored on a PLACE the Spark is no longer standing in. Damage
+## still runs through DamageCalculator with the Spark as attacker, so crit and resists apply.
+func _blink_nova(at: Vector2) -> void:
+	var frac: float = get_stat("blink_nova")
+	if frac <= 0.0 or combat_manager == null or combat_manager.spatial_grid == null:
+		return
+	_spawn_oneshot_fx(BURST_FIRE_SHEET, at, 15.0)
+	spawn_shockwave_at(at, BLINK_NOVA_RADIUS, Color(1.0, 0.60, 0.20, 0.95))
+	var dmg: float = get_stat("damage") * frac
+	var dtype: String = ChainFactory._damage_type(_weapon_data)
+	for body in combat_manager.spatial_grid.get_nearby_in_range(
+			at, 1 if int(faction) == 0 else 0, BLINK_NOVA_RADIUS * BLINK_NOVA_RADIUS):
+		if not is_instance_valid(body) or not body.is_alive:
+			continue
+		var hit := DamageCalculator.calculate_raw_hit(self, body, dmg, dtype)
+		if not hit.is_dodged:
+			body.take_damage(hit)
 
 
 ## Frost Burst (Spark Q): the Burst_Ice pop, then the lingering ice-shard aura. The nova's

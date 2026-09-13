@@ -557,6 +557,31 @@ const ALL: Dictionary = {
 	},
 
 	## ── Wizard (The Spark) ────────────────────────────────────────────────────
+	##
+	## Third kit through the pass, and the worst roster found so far: 5 scale_aoe + 1 stat stick,
+	## of which only TWO did what their card said.
+	##
+	##   FIREBALL EXPANSION ("+35% blast radius") did NOTHING AT ALL. _scale_effects' projectile
+	##     branch scaled damage and never radius, so a radius_mult aimed at a Fireball could not
+	##     reach impact_aoe_radius — the field the blast actually lives in. Fixed at the root in
+	##     class_mod_factory (the branch now scales blast radii, and validate_anim_targets asks
+	##     _scale_effects what a param reached so an inert one cannot ship again). The pick is
+	##     kept verbatim: it finally means what it always claimed.
+	##   TEMPEST CALL ("Storm (E) hits +40% damage") scaled the `storm_cast` phase, whose only
+	##     effect is a dmg*0.2 r40 self-pulse that exists to make choreo_fire_effects run the host
+	##     hook. Storm Call's real payload is STORM_CALL_DAMAGE_MULT 1.6 per enemy, arena-wide, in
+	##     player._storm_strike. The pick moved about 2% of the ability it was named after. It also
+	##     shared its id AND its name with the class mod TEMPEST CALL, so the player could be shown
+	##     two different "Tempest Call"s in one run.
+	##   FAMILIAR FURY ("the summon's burst hits +35%") scaled the dmg*0.4 r24 puff the cast makes.
+	##     The familiar is a FireFamiliar entity dealing damage*0.5 of its own; no phase op reaches
+	##     an entity. Same bug the Warden's HAMMER STORM had.
+	##
+	## Cut outright: BURST MASTERY (fireburst radius x1.40 — the uncommon class mod BURST SURGE is
+	## the same pick at x1.5) and ARCANE SURGE (+15% damage, which the generic pool sells already).
+	##
+	## Four host-side seams the old set could not touch: Storm Call's strike, the familiar, the
+	## Frost Burst shard aura (pure decoration until now) and the blink.
 	"wizard_fireball_expansion": {
 		"id": "wizard_fireball_expansion",
 		"name": "Fireball Expansion",
@@ -567,26 +592,83 @@ const ALL: Dictionary = {
 		"target": { "anim": "fireball_2" },
 		"params": { "radius_mult": 1.35 },
 	},
-	"wizard_torrent_mastery": {
-		"id": "wizard_torrent_mastery",
-		"name": "Burst Mastery",
-		"description": "Fire Burst AoE +40% radius",
-		"kit": "wizard",
-		"is_ability_upgrade": true,
-		"op": "scale_aoe",
-		"target": { "anim": "fireburst" },
-		"params": { "radius_mult": 1.40 },
-	},
-	"wizard_arcane_surge": {
-		"id": "wizard_arcane_surge",
-		"name": "Arcane Surge",
-		"description": "+15% Damage this run",
+	## The Storm Call line, and the kit's capstone chain. Chosen for it because the sky-strike is
+	## the Spark's signature and the best-looking effect in the game (Ben, 2026-09-05, on borrowing
+	## it for the Sellsword: "the lightning bolts look so cool") — and because a 16s cooldown makes
+	## a big capstone payoff read as earned rather than spammed.
+	"wizard_rising_storm": {
+		"id": "wizard_rising_storm",
+		"name": "Rising Storm",
+		"description": "Storm Call strikes +40% harder",
 		"kit": "wizard",
 		"is_ability_upgrade": true,
 		"op": "modifier",
-		"stat": "damage",
-		"type": "percent",
-		"value": 0.15,
+		"stat": "storm_damage",
+		## FLAT, like every host-side kit stat: base 0.0, and get_stat is add*(1+bonus).
+		## Added to STORM_CALL_DAMAGE_MULT, so the chain reads x1.6 -> x2.0 -> x2.4 -> x2.8.
+		"type": "flat",
+		"value": 0.40,
+		"max_rank": 3,
+	},
+	"wizard_rolling_front": {
+		"id": "wizard_rolling_front",
+		"name": "Rolling Front",
+		"description": "The storm sweeps back over the field again",
+		"kit": "wizard",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "storm_waves",
+		"type": "flat",
+		"value": 1.0,
+		## 2 ranks = 3 field-wide strikes, staggered STORM_WAVE_GAP apart so they read as a front
+		## rolling through rather than one brighter flash.
+		"max_rank": 2,
+	},
+	## The end state: the storm stops being an instant and becomes weather. After the last wave the
+	## sky keeps picking single targets for 3s — deliberately single-target, because a field-wide
+	## strike three times a second is just the whole ability again on a loop.
+	"wizard_eye_of_the_storm": {
+		"id": "wizard_eye_of_the_storm",
+		"name": "Eye of the Storm",
+		"description": "The storm refuses to leave - bolts keep falling",
+		"kit": "wizard",
+		"is_ability_upgrade": true,
+		"is_capstone": true,
+		"requires": ["wizard_rolling_front", "wizard_rolling_front"],
+		"op": "modifier",
+		"stat": "storm_linger",
+		"type": "flat",
+		"value": 3.0,
+		"max_rank": 1,
+	},
+	## The familiar, finally reachable. Both are modifiers because a familiar is an ENTITY.
+	"wizard_ember_brood": {
+		"id": "wizard_ember_brood",
+		"name": "Ember Brood",
+		"description": "Summon an extra fire familiar",
+		"kit": "wizard",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "familiar_count",
+		"type": "flat",
+		"value": 1.0,
+		## 2 ranks = a brood of 3. They hunt independently inside a 150px leash, so a fourth stops
+		## adding anything you can follow and starts adding nodes.
+		"max_rank": 2,
+	},
+	"wizard_everflame": {
+		"id": "wizard_everflame",
+		"name": "Everflame",
+		"description": "Familiars burn +10s longer",
+		"kit": "wizard",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "familiar_life",
+		"type": "flat",
+		"value": 10.0,
+		## 15s base -> 25 -> 35. A third rank would outlast the RMB cooldown entirely and turn a
+		## summon into a permanent, which is a different design.
+		"max_rank": 2,
 	},
 
 	## ── Blood Mage (The Cursed) ───────────────────────────────────────────────
@@ -897,23 +979,47 @@ const ALL: Dictionary = {
 	},
 
 	## ── Wizard ────────────────────────────────────────────────────────────────
+	## The one survivor of the 2026-09-12 pass, plus the four picks that give the Fire Burst
+	## finisher, the Frost Burst aura and the blink something of their own.
 	"wizard_glacial_cast": {
 		"id": "wizard_glacial_cast", "name": "Glacial Cast",
 		"description": "Ice (Q) freezes a +35% wider circle",
 		"kit": "wizard", "is_ability_upgrade": true, "op": "scale_aoe",
 		"target": { "anim": "ice_cast" }, "params": { "radius_mult": 1.35 },
 	},
-	"wizard_tempest_call": {
-		"id": "wizard_tempest_call", "name": "Tempest Call",
-		"description": "Storm (E) hits +40% damage",
-		"kit": "wizard", "is_ability_upgrade": true, "op": "scale_aoe",
-		"target": { "anim": "storm_cast" }, "params": { "damage_mult": 1.40 },
+	## The Fire Burst finisher already sprays 8 radial bolts; this makes the ring visibly denser.
+	## Distinct from the class mod ARCANE MULTIPLICITY, which adds ONE bolt to the chain's OPENER.
+	"wizard_cinder_ring": {
+		"id": "wizard_cinder_ring", "name": "Cinder Ring",
+		"description": "Fire Burst throws 3 more bolts",
+		"kit": "wizard", "is_ability_upgrade": true, "op": "add_projectiles",
+		"target": { "graph": "light", "anim": "fireburst" }, "params": { "count": 3 },
 	},
-	"wizard_familiar_fury": {
-		"id": "wizard_familiar_fury", "name": "Familiar Fury",
-		"description": "The summon's burst hits +35% damage",
-		"kit": "wizard", "is_ability_upgrade": true, "op": "scale_aoe",
-		"target": { "anim": "summon" }, "params": { "damage_mult": 1.35 },
+	## …and the nova it fires from leaves the floor burning. Ticks are 0.12 of the nova's own
+	## damage: the nova is dmg*0.9, so this sits below the Warden's HALLOWED GROUND (0.13 off a
+	## dmg*0.9 bash) rather than inheriting Aftershock's still-open over-tuning.
+	"wizard_ashfall": {
+		"id": "wizard_ashfall", "name": "Ashfall",
+		"description": "Fire Burst leaves the floor burning",
+		"kit": "wizard", "is_ability_upgrade": true, "op": "add_ground_zone",
+		"target": { "graph": "light", "anim": "fireburst" },
+		"params": { "zone_id": "wizard_ashfall", "radius": 54.0, "duration": 4.0,
+					"tick": 0.5, "damage_mult": 0.12, "element": "fire", "damage_type": "Fire" },
+	},
+	## Frost Burst's shard ring loops on the Spark for 10s and, until now, did NOTHING — it was
+	## pure decoration. This is the pick that makes standing your ground mean something.
+	"wizard_shardstorm": {
+		"id": "wizard_shardstorm", "name": "Shardstorm",
+		"description": "The ice shards bite anything that closes in",
+		"kit": "wizard", "is_ability_upgrade": true, "op": "modifier",
+		"stat": "ice_aura_damage", "type": "flat", "value": 0.15, "max_rank": 2,
+	},
+	## The Spark's dash is a blink, and it was the only class dash in the kit that left no mark.
+	"wizard_flashpoint": {
+		"id": "wizard_flashpoint", "name": "Flashpoint",
+		"description": "Blinking detonates the spot you left",
+		"kit": "wizard", "is_ability_upgrade": true, "op": "modifier",
+		"stat": "blink_nova", "type": "flat", "value": 0.60, "max_rank": 2,
 	},
 
 	## ── Blood Mage ────────────────────────────────────────────────────────────
@@ -1046,8 +1152,13 @@ const ORDER_BY_KIT: Dictionary = {
 					"necro_marrow_rot"],
 	"ranger":     ["ranger_triple_volley",          "ranger_keen_blade",            "ranger_eagle_eye",
 				   "ranger_double_down",            "ranger_riposte",               "ranger_venom_tips"],
-	"wizard":     ["wizard_fireball_expansion",     "wizard_torrent_mastery",       "wizard_arcane_surge",
-				   "wizard_glacial_cast",           "wizard_tempest_call",          "wizard_familiar_fury"],
+	## 11 entries — the third kit through the level-up-layer pass.
+	"wizard":     ["wizard_fireball_expansion",     "wizard_rising_storm",
+				   "wizard_rolling_front",          "wizard_eye_of_the_storm",
+				   "wizard_ember_brood",            "wizard_everflame",
+				   "wizard_glacial_cast",           "wizard_cinder_ring",
+				   "wizard_ashfall",                "wizard_shardstorm",
+				   "wizard_flashpoint"],
 	"blood_mage": ["blood_mage_hemorrhage_wave",    "blood_mage_spike_field",       "blood_mage_blood_frenzy",
 				   "blood_mage_crimson_slam",       "blood_mage_gluttony",          "blood_mage_thrall"],
 	"demonologist": ["demon_conflagration",         "demon_wider_circle",           "demon_hellfire_heart",
