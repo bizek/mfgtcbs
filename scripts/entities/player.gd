@@ -103,6 +103,21 @@ var _base_stats: Dictionary = {
 	"familiar_life":    0.0,  ## + FireFamiliar.LIFETIME seconds
 	"ice_aura_damage":  0.0,  ## fraction of damage, per tick, to anything inside the shard ring
 	"blink_nova":       0.0,  ## fraction of damage detonated where the blink STARTED
+	## -- Cursed (2026-09-12) ----------------------------------------------------------------
+	## Flat, 0.0-based, same reasoning as every other host-side kit stat.
+	##
+	## The Cursed had the worst roster in the game before this pass: THREE of six picks
+	## duplicated a class mod outright, and two more were named after things a phase op cannot
+	## reach - THRALL scaled the summon CAST's dmg*0.4 r24 puff rather than the BloodElemental,
+	## and GLUTTONY ("Consume drains +40% harder") scaled the consume beat's dmg*0.15 burst while
+	## the drain itself - VAMP_HEAL_FRAC, the thing that makes Vampirize a drain - went untouched.
+	"thrall_damage":    0.0,  ## + BloodElemental.DAMAGE_MULT
+	"thrall_feed_cap":  0.0,  ## + BloodElemental.FEED_MAX (kills it can keep growing on)
+	"thrall_count":     0.0,  ## EXTRA elementals per summon
+	"thrall_immortal":  0.0,  ## >0: the vessel stops aging
+	"pool_heal":        0.0,  ## + BLOOD_POOL_HEAL_FRAC per enemy dying in a blood pool
+	"vamp_heal":        0.0,  ## + VAMP_HEAL_FRAC per consume beat
+	"blood_cost":       0.0,  ## + BLOOD_COST_FRAC (negative makes Extract Power cheaper)
 	"combo_window":    1.0,
 	"combo_timeout":   2.5,
 	"combo_lock":      0.0,
@@ -453,7 +468,8 @@ const VAMP_HEAL_FRAC: float = 0.02       ## Consume beat heals 2% max HP if the 
 const SPIKES_AOE_SHEET: String = "res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Blood_Mage/Special_Animations/Blood_Spikes/Blood_Spikes_AOE.png"
 const FLOATING_BLOOD_SHEET: String = "res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Blood_Mage/Special_Animations/Vampirize/Floating_Blood.png"
 const DRAIN_WISP_SHEET: String = "res://assets/minifantasy/Minifantasy_True_Heroes_IV_v1.1/Minifantasy_True_Heroes_IV_Assets/Blood_Mage/Special_Animations/Vampirize/Drain_Effect.png"
-var _blood_elemental: Node2D = null
+## The Cursed's vessels. An ARRAY since 2026-09-12 (SECOND VESSEL) — a single slot before.
+var _blood_elementals: Array[Node2D] = []
 var _vamp_fx: AnimatedSprite2D = null
 var _vamp_hit: bool = false              ## last extract beat found blood to drink
 ## Druid kit (The Verdant) + Cleric kit (The Devout): the Root/Word-of-Pain ground decals and the
@@ -2193,16 +2209,23 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 			if z is GroundZoneEffect:
 				z_radius = z.radius * reach
 				break
-		if is_spikes:
-			for z in zone_effects:
-				if z is GroundZoneEffect:
-					_register_blood_pool(z_pos, z.radius * reach, z.duration)
-					break
-		elif is_brimstone:
+		## A blood pool is a zone whose ID says so — NOT "a zone dropped by the spikes anim".
+		## Keyed on the anim until 2026-09-12, which meant a pool placed by any other phase (e.g.
+		## EXSANGUINATE, which hangs one on the Blood Slam) would draw and bleed but never feed
+		## the Cursed, because the heal rides _register_blood_pool. Every pool now feeds.
+		var pooled: bool = false
+		for z in zone_effects:
+			if z is GroundZoneEffect and z.zone_id == "blood_pool":
+				_register_blood_pool(z_pos, z.radius * reach, z.duration)
+				pooled = true
+				break
+		## A pool draws its own tileable, so it takes no decal - which is what the old
+		## `is_spikes` branch was really expressing.
+		if is_brimstone:
 			_spawn_brimstone_sigil(z_pos, z_radius)
 		elif is_archdemon:
 			_spawn_archdemon_spell(z_pos, z_radius)
-		else:
+		elif not pooled:
 			_spawn_oneshot_fx(ROOT_DECAL_SHEET if cur_anim.begins_with("root_cast") else PAIN_DECAL_SHEET, z_pos, 12.0)
 
 	## Teleport blinks AFTER its departure burst has resolved at the old position.
@@ -2216,7 +2239,8 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 		_spawn_spikes_ground(aoe_radius)
 	## Vampirize consume beat: drink the blood the extract beat found (heal + drain wisp).
 	if is_vamp_drink and _vamp_hit:
-		health.apply_healing(health.max_hp * VAMP_HEAL_FRAC)
+		## GLUTTONY, which is finally about the DRAIN rather than the consume beat's small burst.
+		health.apply_healing(health.max_hp * (VAMP_HEAL_FRAC + get_stat("vamp_heal")))
 		var victims: Array = _nearby_enemies(50.0 * reach)
 		if not victims.is_empty():
 			_spawn_drain_wisp(victims[0].global_position)
@@ -2470,16 +2494,29 @@ func _do_teleport() -> void:
 
 
 func _spawn_blood_elemental() -> void:
-	## One elemental at a time — resummon replaces (the old one banishes).
-	if is_instance_valid(_blood_elemental):
-		_blood_elemental.banish()
-	var ele := BloodElemental.new()
-	ele.player_ref = self
-	ele.damage_type = ChainFactory._damage_type(_weapon_data)
-	get_tree().current_scene.add_child(ele)
+	## One SET at a time — resummon replaces the lot (the old ones banish). SECOND VESSEL raises
+	## the count; THRALL and BLOOD GORGED raise what each one is worth. All stats rather than
+	## constants because an elemental is an entity and no phase op reaches one.
+	for old in _blood_elementals:
+		if is_instance_valid(old):
+			old.banish()
+	_blood_elementals.clear()
+	var count: int = 1 + int(round(get_stat("thrall_count")))
+	var dtype: String = ChainFactory._damage_type(_weapon_data)
 	var side: float = -1.0 if _facing.ends_with("left") else 1.0
-	ele.global_position = global_position + Vector2(22.0 * side, 4.0)
-	_blood_elemental = ele
+	for i in range(count):
+		var ele := BloodElemental.new()
+		ele.player_ref = self
+		ele.damage_type = dtype
+		ele.damage_bonus = get_stat("thrall_damage")
+		ele.feed_max = BloodElemental.FEED_MAX + int(round(get_stat("thrall_feed_cap")))
+		ele.immortal = get_stat("thrall_immortal") > 0.0
+		get_tree().current_scene.add_child(ele)
+		## Offset so a pair does not stand up inside itself; they walk on their own legs within a
+		## frame or two (CLAUDE.md pet standard), so this is only about the summon instant.
+		var spread: float = float(i) * 18.0 - float(count - 1) * 9.0
+		ele.global_position = global_position + Vector2(22.0 * side + spread, 4.0)
+		_blood_elementals.append(ele)
 
 
 func _spawn_spirit_guardian() -> void:
@@ -2683,7 +2720,10 @@ func _consume_summon_empower() -> bool:
 func _pay_blood_cost() -> void:
 	## Extract Power's price: flat cut of max HP, never lethal, outside the damage pipeline
 	## (no dodge/armor/i-frames — a pact, not an attack).
-	var cost: float = maxf(1.0, health.max_hp * BLOOD_COST_FRAC)
+	## SANGUINE PACT lowers the price (a negative blood_cost). Clamped at zero so the pact can
+	## never HEAL the Cursed, which would invert the whole point of the button.
+	var frac: float = maxf(0.0, BLOOD_COST_FRAC + get_stat("blood_cost"))
+	var cost: float = maxf(1.0, health.max_hp * frac) if frac > 0.0 else 0.0
 	health.current_hp = maxf(1.0, health.current_hp - cost)
 	health.health_changed.emit(health.current_hp, health.max_hp)
 
@@ -3939,8 +3979,10 @@ func _on_any_entity_death(entity) -> void:
 		live_pools.append(pool)
 		if not fed and entity.global_position.distance_squared_to(pool.pos) <= pool.r_sq:
 			fed = true
-			health.apply_healing(health.max_hp * BLOOD_POOL_HEAL_FRAC)
-			EventBus.on_heal.emit(self, self, health.max_hp * BLOOD_POOL_HEAL_FRAC)
+			## BLOODLETTING adds to the fraction, so the card states a number: 3% -> 6% -> 9%.
+			var frac: float = BLOOD_POOL_HEAL_FRAC + get_stat("pool_heal")
+			health.apply_healing(health.max_hp * frac)
+			EventBus.on_heal.emit(self, self, health.max_hp * frac)
 			_spawn_drain_wisp(entity.global_position)
 	_blood_pools = live_pools
 

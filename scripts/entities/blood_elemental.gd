@@ -37,7 +37,7 @@ const DAMAGE_MULT: float = 0.6           ## × the player's live damage stat
 ## Growth is capped at FEED_MAX kills so a good pull can't snowball it into the real damage dealer.
 ## Fully fed it is +50% damage (0.6 -> 0.9 of the player's stat), +20s of life, and 1.3x its size —
 ## a clear payoff for keeping it alive in a pack, still a companion rather than a second character.
-const FEED_MAX: int = 8                  ## kills past this stop feeding it
+const FEED_MAX: int = 8                  ## kills past this stop feeding it (BLOOD GORGED raises `feed_max`)
 const FEED_LIFE: float = 2.5             ## seconds of extra life per kill
 const FEED_DAMAGE: float = 0.0375        ## damage-mult gained per kill (8 x 0.0375 = +0.30)
 const FEED_SCALE: float = 0.0375         ## sprite growth per kill (8 x 0.0375 = 1.30x)
@@ -57,7 +57,13 @@ var _hunt_target: Node2D = null
 var _rescan: float = 0.0
 var _trudging: bool = false              ## currently walking home (hysteresis state)
 var _home_side: float = 1.0              ## fixed at spawn — no side-flipping teleport anchors
-var _kills: int = 0                      ## fed kills, clamped to FEED_MAX
+var _kills: int = 0                      ## fed kills, clamped to `feed_max`
+## Set by the spawner before add_child (HolyHammer/FireFamiliar pattern). These are the level-up
+## seams: no phase op can reach a summoned ENTITY, which is why the old THRALL pick ("Blood summon
+## (Q) hits +35% damage") was really scaling the dmg*0.4 r24 ignition puff of the CAST.
+var damage_bonus: float = 0.0            ## + DAMAGE_MULT, before the per-kill feed
+var feed_max: int = FEED_MAX             ## how many kills it can still grow on
+var immortal: bool = false               ## UNDYING VESSEL - _life stops ticking down
 
 static var _frames_cache: SpriteFrames = null
 
@@ -88,7 +94,10 @@ func _process(delta: float) -> void:
 	if _state == "die" or _state == "spawn":
 		return
 
-	_life -= delta
+	## UNDYING VESSEL: the vessel simply does not age. Re-summoning still replaces it (16s
+	## cooldown), so this is "you never lose it", not an unbounded stack.
+	if not immortal:
+		_life -= delta
 	if _life <= 0.0:
 		banish()
 		return
@@ -186,12 +195,12 @@ func _resolve_strike() -> void:
 
 ## Its live damage multiplier — base plus whatever it has eaten.
 func _damage_mult() -> float:
-	return DAMAGE_MULT + FEED_DAMAGE * _kills
+	return DAMAGE_MULT + damage_bonus + FEED_DAMAGE * _kills
 
 
 ## One kill drunk: more time on the clock, a harder pound, and a visibly bigger golem.
 func _feed() -> void:
-	if _kills >= FEED_MAX:
+	if _kills >= feed_max:
 		return
 	_kills += 1
 	_life += FEED_LIFE

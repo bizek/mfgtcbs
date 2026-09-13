@@ -352,6 +352,11 @@ static func _apply_op_to_phase(op: String, phase: ChoreographyPhase, params: Dic
 			zone.tick_interval = float(params.get("tick", 0.5))
 			zone.target_faction = "enemy"
 			zone.vfx_element = str(params.get("element", "fire"))
+			## Optional palette shift on the shared tileable, the way Blood Eruption recolours the
+			## poison sheet to arterial red (docs/asset_inventory.md). Without this a Cursed pool
+			## placed by an upgrade would come out green next to the one her own E drops.
+			if params.has("tint"):
+				zone.vfx_tint = params["tint"]
 			var ztick := DealDamageEffect.new()
 			ztick.damage_type = str(params.get("damage_type", zone_type))
 			ztick.base_damage = zone_base * float(params.get("damage_mult", 0.15))

@@ -672,6 +672,27 @@ const ALL: Dictionary = {
 	},
 
 	## ── Blood Mage (The Cursed) ───────────────────────────────────────────────
+	## Level-up-layer pass, 2026-09-12. The worst roster found in the game so far: THREE of the
+	## six picks duplicated a class mod outright, and two more were named after things no phase
+	## op can reach.
+	##
+	##   SPIKE FIELD (spikes radius x1.40) vs BLOODQUAKE (rare mod, x1.45 + damage)
+	##   CRIMSON SLAM (slam radius x1.35)  vs RUPTURE    (rare mod, x1.40 + damage)
+	##   BLOOD FRENZY (+20% damage)        vs DEEPER PACT (uncommon mod, +20% damage)
+	##   All three cut. The mods are strictly better versions of the same sentence.
+	##
+	##   THRALL ("Blood summon (Q) hits +35% damage") scaled the summon CAST's dmg*0.4 r24
+	##     ignition puff. The BloodElemental is an entity with its own DAMAGE_MULT and its own
+	##     kill-feed growth; no phase op reaches it. Same bug as the Warden's HAMMER STORM and
+	##     the Spark's FAMILIAR FURY.
+	##   GLUTTONY ("Consume drains +40% harder") scaled the consume beat's dmg*0.15 burst. The
+	##     DRAIN - the thing that makes Vampirize a drain - is VAMP_HEAL_FRAC, host-side, and the
+	##     pick never touched it.
+	##
+	## Both keep their names below and finally mean them.
+	##
+	## Four host-side systems the old set never reached: the vessel, the blood pools' feed, the
+	## Vampirize drink, and Extract Power's price.
 	"blood_mage_hemorrhage_wave": {
 		"id": "blood_mage_hemorrhage_wave",
 		"name": "Hemorrhage Wave",
@@ -682,26 +703,111 @@ const ALL: Dictionary = {
 		"target": { "anim": "shards" },
 		"params": { "damage_mult": 1.30 },
 	},
-	"blood_mage_spike_field": {
-		"id": "blood_mage_spike_field",
-		"name": "Spike Field",
-		"description": "Blood Spikes zone +40% radius",
-		"kit": "blood_mage",
-		"is_ability_upgrade": true,
-		"op": "scale_aoe",
-		"target": { "anim": "spikes" },
-		"params": { "radius_mult": 1.40 },
-	},
-	"blood_mage_blood_frenzy": {
-		"id": "blood_mage_blood_frenzy",
-		"name": "Blood Frenzy",
-		"description": "+20% Damage this run",
+	## The vessel line, and the kit's capstone chain. Chosen for it over the pools because the
+	## BloodElemental already GROWS - FEED_SCALE swells the sprite 3.75% per kill - so every pick
+	## on this line is visible on the creature itself rather than in a damage number.
+	"blood_mage_thrall": {
+		"id": "blood_mage_thrall",
+		"name": "Thrall",
+		"description": "The blood vessel strikes +30% harder",
 		"kit": "blood_mage",
 		"is_ability_upgrade": true,
 		"op": "modifier",
-		"stat": "damage",
-		"type": "percent",
-		"value": 0.20,
+		"stat": "thrall_damage",
+		## FLAT: base 0.0, and get_stat is add*(1+bonus). Added to BloodElemental.DAMAGE_MULT,
+		## so the chain reads x0.60 -> x0.90 -> x1.20 -> x1.50 of the Cursed's damage per pound.
+		"type": "flat",
+		"value": 0.30,
+		"max_rank": 3,
+	},
+	"blood_mage_blood_gorged": {
+		"id": "blood_mage_blood_gorged",
+		"name": "Blood Gorged",
+		"description": "The vessel keeps growing on 4 more kills",
+		"kit": "blood_mage",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "thrall_feed_cap",
+		"type": "flat",
+		"value": 4.0,
+		## FEED_MAX 8 -> 12 -> 16. At 16 the sprite is 1.60x and the feed has handed it +0.60
+		## damage on top of THRALL, which is the point: a fed vessel should look frightening.
+		"max_rank": 2,
+	},
+	"blood_mage_second_vessel": {
+		"id": "blood_mage_second_vessel",
+		"name": "Second Vessel",
+		"description": "The blood stands up twice",
+		"kit": "blood_mage",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "thrall_count",
+		"type": "flat",
+		"value": 1.0,
+		## One-shot. Two vessels each feeding to their own cap is already the kit's whole screen;
+		## a third would be a node-count decision, not a design one.
+		"max_rank": 1,
+	},
+	## The end state, and not another number: the vessel stops being temporary. Re-summoning still
+	## replaces it (16s cooldown), so this reads as "you never lose it" rather than a stack.
+	"blood_mage_undying_vessel": {
+		"id": "blood_mage_undying_vessel",
+		"name": "Undying Vessel",
+		"description": "The vessel does not die",
+		"kit": "blood_mage",
+		"is_ability_upgrade": true,
+		"is_capstone": true,
+		"requires": ["blood_mage_blood_gorged", "blood_mage_blood_gorged"],
+		"op": "modifier",
+		"stat": "thrall_immortal",
+		"type": "flat",
+		"value": 1.0,
+		"max_rank": 1,
+	},
+	## Blood Eruption's pools are the E's whole identity and had no pick at all. The heal is
+	## host-side (player._on_any_entity_death), so this could only ever be a stat.
+	"blood_mage_bloodletting": {
+		"id": "blood_mage_bloodletting",
+		"name": "Bloodletting",
+		"description": "Dying in your blood feeds you far more",
+		"kit": "blood_mage",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "pool_heal",
+		"type": "flat",
+		"value": 0.03,
+		## 3% -> 6% -> 9% of max HP per enemy that dies in a pool.
+		"max_rank": 2,
+	},
+	"blood_mage_gluttony": {
+		"id": "blood_mage_gluttony",
+		"name": "Gluttony",
+		"description": "Vampirize drinks far deeper",
+		"kit": "blood_mage",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "vamp_heal",
+		"type": "flat",
+		"value": 0.02,
+		## 2% -> 4% -> 6% of max HP per consume beat, which at VAMP_TICK cadence is the
+		## difference between a trickle and actually out-healing a pack.
+		"max_rank": 2,
+	},
+	## Extract Power is a pact you PAY for - 5% max HP on every cast. Nothing in either layer
+	## had ever touched the price.
+	"blood_mage_sanguine_pact": {
+		"id": "blood_mage_sanguine_pact",
+		"name": "Sanguine Pact",
+		"description": "The pact takes half as much",
+		"kit": "blood_mage",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "blood_cost",
+		"type": "flat",
+		"value": -0.025,
+		## One-shot on purpose: a second rank would zero the price, and a pact that costs nothing
+		## is just a buff button. _pay_blood_cost clamps at zero regardless.
+		"max_rank": 1,
 	},
 
 	## ── Demonologist (The Demon) ──────────────────────────────────────────────
@@ -1023,23 +1129,37 @@ const ALL: Dictionary = {
 	},
 
 	## ── Blood Mage ────────────────────────────────────────────────────────────
-	"blood_mage_crimson_slam": {
-		"id": "blood_mage_crimson_slam", "name": "Crimson Slam",
-		"description": "Slam lands +35% wider",
-		"kit": "blood_mage", "is_ability_upgrade": true, "op": "scale_aoe",
-		"target": { "anim": "slam" }, "params": { "radius_mult": 1.35 },
+	## The three picks that give the Blood Slam, the drain beat and the pact something of their
+	## own. THRALL and GLUTTONY moved up into the main block when they were rebuilt as stats.
+	##
+	## EXSANGUINATE is the reason _register_blood_pool is keyed on the zone's ID now rather than
+	## on the spikes anim: a pool dropped by any other phase used to draw and bleed but never
+	## feed, because the heal rides that registration.
+	"blood_mage_exsanguinate": {
+		"id": "blood_mage_exsanguinate", "name": "Exsanguinate",
+		"description": "Blood Slam leaves a feeding pool",
+		"kit": "blood_mage", "is_ability_upgrade": true, "op": "add_ground_zone",
+		"target": { "graph": "heavy", "anim": "slam" },
+		"params": { "zone_id": "blood_pool", "radius": 44.0, "duration": 5.0,
+					"tick": 0.5, "damage_mult": 0.14, "element": "poison",
+					"tint": Color(1.0, 0.28, 0.30) },
 	},
-	"blood_mage_gluttony": {
-		"id": "blood_mage_gluttony", "name": "Gluttony",
-		"description": "Consume drains +40% harder",
-		"kit": "blood_mage", "is_ability_upgrade": true, "op": "scale_aoe",
-		"target": { "anim": "consume" }, "params": { "damage_mult": 1.40 },
+	## The extract beat throws a wider ring than it drains. Distinct from THIRSTING VORTEX
+	## (uncommon mod), which widens the drain itself rather than adding a second, visible hit.
+	"blood_mage_arterial_spray": {
+		"id": "blood_mage_arterial_spray", "name": "Arterial Spray",
+		"description": "The drain bursts outward as it rips",
+		"kit": "blood_mage", "is_ability_upgrade": true, "op": "add_shockwave",
+		"target": { "graph": "channel", "anim": "vampirize" },
+		"params": { "radius": 96.0, "damage_mult": 0.55, "color": Color(0.85, 0.12, 0.20, 0.9) },
 	},
-	"blood_mage_thrall": {
-		"id": "blood_mage_thrall", "name": "Thrall",
-		"description": "Blood summon (Q) hits +35% damage",
-		"kit": "blood_mage", "is_ability_upgrade": true, "op": "scale_aoe",
-		"target": { "anim": "summon_blood" }, "params": { "damage_mult": 1.35 },
+	## Extract Power pays 5% max HP on the hit frame and leaves the Cursed standing in whatever
+	## made her need the damage. i-frames for the cast are what make the pact usable in a pack.
+	"blood_mage_blood_ward": {
+		"id": "blood_mage_blood_ward", "name": "Blood Ward",
+		"description": "Nothing can touch you while you pay",
+		"kit": "blood_mage", "is_ability_upgrade": true, "op": "add_iframes",
+		"target": { "graph": "light", "anim": "extract" },
 	},
 
 	## ── Demonologist ──────────────────────────────────────────────────────────
@@ -1159,8 +1279,13 @@ const ORDER_BY_KIT: Dictionary = {
 				   "wizard_glacial_cast",           "wizard_cinder_ring",
 				   "wizard_ashfall",                "wizard_shardstorm",
 				   "wizard_flashpoint"],
-	"blood_mage": ["blood_mage_hemorrhage_wave",    "blood_mage_spike_field",       "blood_mage_blood_frenzy",
-				   "blood_mage_crimson_slam",       "blood_mage_gluttony",          "blood_mage_thrall"],
+	## 11 entries — the fourth kit through the level-up-layer pass.
+	"blood_mage": ["blood_mage_hemorrhage_wave",    "blood_mage_thrall",
+				   "blood_mage_blood_gorged",       "blood_mage_second_vessel",
+				   "blood_mage_undying_vessel",     "blood_mage_bloodletting",
+				   "blood_mage_gluttony",           "blood_mage_sanguine_pact",
+				   "blood_mage_exsanguinate",       "blood_mage_arterial_spray",
+				   "blood_mage_blood_ward"],
 	"demonologist": ["demon_conflagration",         "demon_wider_circle",           "demon_hellfire_heart",
 					 "demon_wider_breach",          "demon_sustained_hellfire",     "demon_archdemon_wrath"],
 	## 7 entries — the extra one is GREATER PILE, the level-up half of Pile Driver's expandable
