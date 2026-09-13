@@ -7,8 +7,10 @@
 
 # Large asset bundles (source files, not tracked in git)
 *.zip
+*.rar
 assets/minifantasy/
-assets/Custom/    ## licensed-pack derivatives (hand-edited Minifantasy sprites) — same rule as assets/minifantasy/
+## licensed-pack derivatives (hand-edited Minifantasy sprites) — same rule as assets/minifantasy/
+assets/Custom/
 
 # LDtk auto-backups (per-project backup folders)
 **/backups/
