@@ -244,7 +244,9 @@ func _nearest_prey() -> Node2D:
 func _face_toward(v: Vector2) -> void:
 	if v.length_squared() < 1.0:
 		return
-	_facing = ("down" if v.y >= 0.0 else "up") + ("_right" if v.x >= 0.0 else "_left")
+	## Shared X split (CharacterSpriteFactory): back rows only inside the top 90-degree wedge,
+	## so an ally drifting slightly north of the camera still shows its face.
+	_facing = CharacterSpriteFactory.diagonal_for_vector(v)
 
 
 func _play_dir(base: StringName) -> void:

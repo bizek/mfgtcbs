@@ -90,9 +90,11 @@ func _ready() -> void:
 	add_child(_sprite)
 	if is_instance_valid(player_ref):
 		_home_side = -1.0 if global_position.x < player_ref.global_position.x else 1.0
-		_facing = player_ref.get("_facing") if player_ref.get("_facing") != null else "down_right"
-		if not DIR_ROWS.has(_facing):
-			_facing = "down_right"
+		## Borrow the player's aim rather than its facing STRING: the player also resolves
+		## cardinal rows for the few 8-way sheets, and those are not keys in this diagonal-only
+		## DIR_ROWS — matching on the string snapped every one of them to down_right.
+		var aim: Vector2 = player_ref.get_aim_direction()
+		_facing = CharacterSpriteFactory.diagonal_for_vector(aim)
 	## One arrow template, reused: only its damage and spawn offset change per shot.
 	_arrow = ChainFactory._arrow_volley("Physical", 1.0, 1, 0.0)
 	_play_dir(&"idle")
@@ -247,7 +249,9 @@ func _nearest_prey() -> Node2D:
 func _face_toward(v: Vector2) -> void:
 	if v.length_squared() < 1.0:
 		return
-	_facing = ("down" if v.y >= 0.0 else "up") + ("_right" if v.x >= 0.0 else "_left")
+	## Shared X split (CharacterSpriteFactory): back rows only inside the top 90-degree wedge,
+	## so an ally drifting slightly north of the camera still shows its face.
+	_facing = CharacterSpriteFactory.diagonal_for_vector(v)
 
 
 func _play_dir(base: StringName, restart: bool = false) -> void:

@@ -55,6 +55,28 @@ const DIR_ROWS: Dictionary = {"down_right": 0, "down_left": 1, "up_right": 2, "u
 ## (dirs.<cardinal>.row in anim_overrides.json), exactly like the diagonals.
 const CARDINAL_ROWS: Dictionary = {"right": 0, "left": 1, "down": 2, "up": 3}
 
+## ── Which way is "away from the camera" ──────────────────────────────────────
+## Half-width, in degrees, of the wedge around straight-up in which an entity is drawn from
+## BEHIND. 45 makes the boundaries an "X": the back rows appear only inside the top quarter of
+## the circle, so aiming east/west — or anything shallower than 45 degrees above the horizon —
+## still shows the face. Ben, 2026-09-12: "if they're going up at all I see their backs".
+## Was effectively 90 (a "+" split straight down the screen axes), which turned the body around
+## the instant the cursor crossed the horizontal.
+const BACK_WEDGE_HALF_DEG: float = 45.0
+
+## True when an aim/travel vector points far enough north to warrant a back-facing row.
+static func is_back_aim(v: Vector2) -> bool:
+	if v == Vector2.ZERO:
+		return false
+	return rad_to_deg(absf(v.angle_to(Vector2.UP))) < BACK_WEDGE_HALF_DEG
+
+## The DIAGONAL row (DIR_ROWS key) a direction should use. Single source of truth for the player
+## and every autonomous ally — they all read the same 4-row sheets, so they must agree on where
+## the seams are. Front rows cover the remaining 270 degrees, split on the vertical axis.
+static func diagonal_for_vector(v: Vector2) -> String:
+	var side: String = "_right" if v.x >= 0.0 else "_left"
+	return ("up" if is_back_aim(v) else "down") + side
+
 ## ── Ben's Animation Lab overrides ────────────────────────────────────────────
 ## Per-character, per-anim tweaks authored in-game with the Animation Lab (F6, debug mode):
 ##   { "<char_id>": { "<anim>": { "from": int, "to": int, "fps": float, "hit_frame": int } } }

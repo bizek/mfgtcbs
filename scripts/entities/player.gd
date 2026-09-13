@@ -834,8 +834,9 @@ func get_auto_aim_target() -> Node2D:
 
 
 ## Facing follows the aim cursor, not movement — combat reads from where you're pointing.
-## The cursor's QUADRANT picks the row (the rows are diagonal facings): south of the player
-## always shows a front row, north always a back row — never inverted.
+## The rows are diagonal facings, and the seams form an X, not a "+": the back rows are used only
+## inside the 90-degree wedge around straight up (CharacterSpriteFactory.diagonal_for_vector), so
+## east/west aim keeps the face toward the camera. Never inverted.
 func _update_facing() -> void:
 	var to_mouse: Vector2 = _get_aim_world_position() - global_position
 	if to_mouse.length_squared() < 4.0:
@@ -844,16 +845,23 @@ func _update_facing() -> void:
 	_facing = _facing_from_vector(to_mouse)
 
 
-## 8-way facing: bucket a direction into one of 8 sectors (screen space: +x right, +y down).
-## The four CARDINAL facings are only rendered by anims that ship an orthogonal companion sheet;
-## every other anim falls back to the nearest DIAGONAL at play time, which resolves to exactly
-## the same row the old 4-quadrant split picked — so 4-row sheets are visually unchanged.
+## 8-way facing: bucket a direction into one of 8 sectors (screen space: +x right, +y down),
+## then clamp the back rows to the top wedge. The four CARDINAL facings are only rendered by anims
+## that ship an orthogonal companion sheet; every other anim falls back to the nearest DIAGONAL at
+## play time — see _facing_fallback_order, which applies the same X split.
 func _facing_from_vector(v: Vector2) -> String:
 	var a: float = rad_to_deg(atan2(v.y, v.x))   ## 0 = right, 90 = down
 	if a < 0.0:
 		a += 360.0
 	var sector: int = int(round(a / 45.0)) % 8
-	return FACING_SECTORS[sector]
+	var f: String = FACING_SECTORS[sector]
+	## Back rows live ONLY inside the top wedge (CharacterSpriteFactory.BACK_WEDGE_HALF_DEG).
+	## The up-diagonal SECTORS overhang it — "up_right" runs down to 22.5 degrees above the
+	## horizon — so demote those to their cardinal, or an 8-way sheet would turn its back at a
+	## shallow angle where the 4-row sheets (correctly) do not.
+	if f.begins_with("up_") and not CharacterSpriteFactory.is_back_aim(v):
+		return "right" if v.x >= 0.0 else "left"
+	return f
 const FACING_SECTORS: Array[String] = ["right", "down_right", "down", "down_left",
 		"left", "up_left", "up", "up_right"]
 ## Resolve "<base>_<facing>" to an animation that actually exists: exact facing row → nearest
@@ -890,15 +898,19 @@ func _facing_angle(facing: String) -> float:
 
 
 ## Neighbouring facings to try for the current facing, ordered by the live aim so the side
-## matches where the cursor actually is (no left/right flip near the axes).
+## matches where the cursor actually is (no left/right flip near the axes). Cardinals resolve
+## through the shared X split; diagonals fall back to their two cardinals (nearer axis first)
+## for the cardinal-only sheets, e.g. Paladin Shield_Bash.
 func _facing_fallback_order() -> Array:
 	var ax: float = _aim_dir.x
 	var ay: float = _aim_dir.y
 	match _facing:
-		"down":  return ["down_right", "down_left"] if ax >= 0.0 else ["down_left", "down_right"]
-		"up":    return ["up_right", "up_left"] if ax >= 0.0 else ["up_left", "up_right"]
-		"left":  return ["down_left", "up_left"] if ay >= 0.0 else ["up_left", "down_left"]
-		"right": return ["down_right", "up_right"] if ay >= 0.0 else ["up_right", "down_right"]
+		## A cardinal on a diagonal-only sheet takes the X-split row, never the sign of y: aiming
+		## east with the cursor a hair above the player is still a FRONT view.
+		"down", "up", "left", "right":
+			var diag: String = CharacterSpriteFactory.diagonal_for_vector(_aim_dir)
+			var side: String = "_right" if ax >= 0.0 else "_left"
+			return [diag, ("down" if diag.begins_with("up") else "up") + side]
 		"down_right": return ["down", "right"] if absf(ay) >= absf(ax) else ["right", "down"]
 		"down_left":  return ["down", "left"] if absf(ay) >= absf(ax) else ["left", "down"]
 		"up_right":   return ["up", "right"] if absf(ay) >= absf(ax) else ["right", "up"]
@@ -3579,7 +3591,9 @@ func _spawn_corpse_ground(at: Vector2) -> void:
 ## (32px) — plays the row matching the Shade's current facing at each end of the blink.
 func _spawn_planeshift_burst(sheet: String, at: Vector2) -> void:
 	var rows := {"down_right": 0, "down_left": 1, "up_right": 2, "up_left": 3}
-	var row: int = int(rows.get(_facing, 0))
+	## Diagonal-only sheet — resolve through the shared X split so a cardinal facing (aiming
+	## straight up/left) picks its real row instead of silently falling to row 0.
+	var row: int = int(rows.get(CharacterSpriteFactory.diagonal_for_vector(_aim_dir), 0))
 	_spawn_pack_fx(sheet, at, 32, row, 24.0, false, 1)
 
 
