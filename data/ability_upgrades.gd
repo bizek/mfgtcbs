@@ -811,39 +811,128 @@ const ALL: Dictionary = {
 	},
 
 	## ── Demonologist (The Demon) ──────────────────────────────────────────────
-	"demon_conflagration": {
-		"id": "demon_conflagration",
-		"name": "Conflagration",
-		"description": "Hellfire +35% damage, +20% radius",
-		"kit": "demonologist",
-		"is_ability_upgrade": true,
-		"op": "scale_aoe",
-		## "hellfire_2" is the heavy's poke phase — the Demon's body sheet is "hellfire" but the
-		## phase carries a distinct NAME so it can re-fire back-to-back (chain_factory.build_demon_heavy).
-		## Targeting "hellfire" matched nothing and this upgrade did nothing at all.
-		"target": { "anim": "hellfire_2" },
-		"params": { "damage_mult": 1.35, "radius_mult": 1.20 },
-	},
-	"demon_wider_circle": {
-		"id": "demon_wider_circle",
-		"name": "Wider Circle",
-		"description": "Brimstone Circle +40% radius, +20% damage",
-		"kit": "demonologist",
-		"is_ability_upgrade": true,
-		"op": "scale_aoe",
-		"target": { "anim": "brimstone" },
-		"params": { "radius_mult": 1.40, "damage_mult": 1.20 },
-	},
-	"demon_hellfire_heart": {
-		"id": "demon_hellfire_heart",
-		"name": "Hellfire Heart",
-		"description": "+20% Damage this run",
+	## Level-up-layer pass, 2026-09-14. The first kit where NOTHING from the old set survives,
+	## because the old set was the class-mod list in miniature - five of six picks duplicated a
+	## mod on the same anim with the same op, four of them strictly worse:
+	##
+	##   CONFLAGRATION      hellfire_2   dmg x1.35 r x1.20  vs SEARING HELLFIRE  (rare)  r x1.35 dmg x1.20
+	##   WIDER CIRCLE       brimstone    r x1.40 dmg x1.20  vs NINEFOLD CIRCLE   (rare)  r x1.40 dmg x1.25
+	##   WIDER BREACH       hell_breach  r x1.35            vs BREACH WAKE       (rare)  r x1.40 dmg x1.20
+	##   ARCHDEMON'S WRATH  archdemon    r/dmg x1.30        vs ARCHDEMON'S TOLL  (unc.)  r x1.45 dmg x1.25
+	##   SUSTAINED HELLFIRE hellfire_ch  dmg x1.35          vs the kit's own EVOLUTION, r x1.30 dmg x1.25
+	##   HELLFIRE HEART     +20% damage                     vs GREATER PACT      (unc.)  +15% damage
+	##
+	## CONFLAGRATION and SEARING HELLFIRE are the same op on the same phase with 1.35 and 1.20
+	## assigned to opposite parameters, which is as close to an accident as this layer gets.
+	##
+	## What neither layer had ever touched: the bound demon (the kit's whole fantasy), the Hell
+	## Breach fissure (drawn since it was authored, and dealing nothing), and Ashen Step's burning
+	## trail. All three are host-side, which is why a phase-op roster could not see them.
+	##
+	## The capstone sits on SHARED AGONY because the pact's shared pain is the most distinctive
+	## mechanic in the kit and, until now, purely a downside: AngryDemon._poll_pact_pain staggers
+	## the bound demon every time the Demon is wounded. The capstone turns that over.
+	"demon_bound_elite": {
+		"id": "demon_bound_elite",
+		"name": "Bound Elite",
+		"description": "The bound demon strikes +35% harder",
 		"kit": "demonologist",
 		"is_ability_upgrade": true,
 		"op": "modifier",
-		"stat": "damage",
-		"type": "percent",
-		"value": 0.20,
+		"stat": "demon_damage",
+		## FLAT: base 0.0, get_stat is add*(1+bonus). Added to AngryDemon.damage_mult, which starts
+		## at a full x1.0 because it is an elite rather than a mook - so this reads x1.00 -> x2.05.
+		"type": "flat",
+		"value": 0.35,
+		"max_rank": 3,
+	},
+	"demon_ninefold_pact": {
+		"id": "demon_ninefold_pact",
+		"name": "Ninefold Pact",
+		"description": "A second pit opens beside the first",
+		"kit": "demonologist",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "demon_count",
+		"type": "flat",
+		"value": 1.0,
+		## One-shot. The Demon is deliberately the single-elite summoner (the Shade is the swarm);
+		## two is the most that can be true while the fantasy still reads.
+		"max_rank": 1,
+	},
+	"demon_binding_held": {
+		"id": "demon_binding_held",
+		"name": "Binding Held",
+		"description": "The binding holds +12s longer",
+		"kit": "demonologist",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "demon_life",
+		"type": "flat",
+		"value": 12.0,
+		## 30s base -> 42 -> 54. The Q is on a 16s cooldown, so a third rank would make the demon
+		## permanent by accident rather than by design.
+		"max_rank": 2,
+	},
+	## The end state, and not another number: the pact stops costing the demon and starts feeding
+	## it. Every wound the Demon takes drives his elite into a frenzy instead of a stagger.
+	"demon_shared_agony": {
+		"id": "demon_shared_agony",
+		"name": "Shared Agony",
+		"description": "Your wounds enrage the bound demon instead of staggering it",
+		"kit": "demonologist",
+		"is_ability_upgrade": true,
+		"is_capstone": true,
+		"requires": ["demon_bound_elite", "demon_bound_elite"],
+		"op": "modifier",
+		"stat": "demon_rage",
+		"type": "flat",
+		"value": 1.0,
+		"max_rank": 1,
+	},
+	"demon_infernal_rebirth": {
+		"id": "demon_infernal_rebirth",
+		"name": "Infernal Rebirth",
+		"description": "The binding ends in a detonation",
+		"kit": "demonologist",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "demon_burst",
+		"type": "flat",
+		"value": 0.80,
+		## Fires on banish, which is BOTH the lifetime running out and a resummon replacing it -
+		## so recasting the Q is itself a detonation, which is the read we want.
+		"max_rank": 1,
+	},
+	## The Hell Breach crack has been drawn since the day it was authored and has never dealt a
+	## point of damage: the slam's AoE is centred on the landing, and the fissure races out past it
+	## as pure art. This is the pick that makes the long thin part of the move mean something.
+	"demon_sundered_earth": {
+		"id": "demon_sundered_earth",
+		"name": "Sundered Earth",
+		"description": "The crack bites what the slam could not reach",
+		"kit": "demonologist",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "fissure_damage",
+		"type": "flat",
+		"value": 0.50,
+		"max_rank": 2,
+	},
+	## Ashen Step (the dash) already leaves burning ground; nothing had ever scaled it.
+	"demon_cinder_trail": {
+		"id": "demon_cinder_trail",
+		"name": "Cinder Trail",
+		"description": "The ground you leave burns far hotter",
+		"kit": "demonologist",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "ashen_power",
+		"type": "flat",
+		"value": 0.50,
+		## x0.18 of weapon damage a beat -> x0.68 -> x1.18. It is chip damage on a 3s zone you
+		## place by retreating, so it can afford to climb.
+		"max_rank": 2,
 	},
 
 	## ── Barbarian (The Ravager) ───────────────────────────────────────────────
@@ -1163,23 +1252,38 @@ const ALL: Dictionary = {
 	},
 
 	## ── Demonologist ──────────────────────────────────────────────────────────
-	"demon_wider_breach": {
-		"id": "demon_wider_breach", "name": "Wider Breach",
-		"description": "Hell Breach tears open +35% wider",
-		"kit": "demonologist", "is_ability_upgrade": true, "op": "scale_aoe",
-		"target": { "anim": "hell_breach" }, "params": { "radius_mult": 1.35 },
+	## The four phase-op picks that survive the mod diff, all on ops no Demon mod uses.
+	## Brimstone, Hell Breach and the hellfire poke each keep exactly one.
+	"demon_brimstone_toll": {
+		"id": "demon_brimstone_toll", "name": "Brimstone Toll",
+		"description": "The circle slams a shockwave out with it",
+		"kit": "demonologist", "is_ability_upgrade": true, "op": "add_shockwave",
+		"target": { "anim": "brimstone" },
+		"params": { "radius": 104.0, "damage_mult": 0.55, "color": Color(1.0, 0.35, 0.12, 0.9) },
 	},
-	"demon_sustained_hellfire": {
-		"id": "demon_sustained_hellfire", "name": "Sustained Hellfire",
-		"description": "Channelled hellfire burns +35% harder",
-		"kit": "demonologist", "is_ability_upgrade": true, "op": "scale_aoe",
-		"target": { "anim": "hellfire_ch" }, "params": { "damage_mult": 1.35 },
+	## The heavy is Hellfire poke -> Brimstone, and the poke's window is the only thing between
+	## them. Widening it is the pick that makes the kit's one real chain reliable.
+	"demon_pact_haste": {
+		"id": "demon_pact_haste", "name": "Pact Haste",
+		"description": "Hellfire holds its window into Brimstone 50% longer",
+		"kit": "demonologist", "is_ability_upgrade": true, "op": "extend_window",
+		"target": { "graph": "heavy", "anim": "hellfire_2" }, "params": { "window_mult": 1.50 },
 	},
-	"demon_archdemon_wrath": {
-		"id": "demon_archdemon_wrath", "name": "Archdemon's Wrath",
-		"description": "Archdemon (E) scorches +30% wider and harder",
-		"kit": "demonologist", "is_ability_upgrade": true, "op": "scale_aoe",
-		"target": { "anim": "archdemon_call" }, "params": { "radius_mult": 1.30, "damage_mult": 1.30 },
+	## Hell Breach is a LEAP - frames 2-4 are airborne (chain_factory's frame notes). i-frames for
+	## the jump are the rules of the animation rather than a new promise.
+	"demon_unbound": {
+		"id": "demon_unbound", "name": "Unbound",
+		"description": "Nothing can touch you mid-leap",
+		"kit": "demonologist", "is_ability_upgrade": true, "op": "add_iframes",
+		"target": { "graph": "light", "anim": "hell_breach" },
+	},
+	"demon_ember_wake": {
+		"id": "demon_ember_wake", "name": "Ember Wake",
+		"description": "Hellfire leaves embers on the floor",
+		"kit": "demonologist", "is_ability_upgrade": true, "op": "add_ground_zone",
+		"target": { "graph": "heavy", "anim": "hellfire_2" },
+		"params": { "zone_id": "demon_ember_wake", "radius": 50.0, "duration": 4.0,
+					"tick": 0.5, "damage_mult": 0.14, "element": "fire", "damage_type": "Fire" },
 	},
 
 	## ── Barbarian ─────────────────────────────────────────────────────────────
@@ -1286,8 +1390,14 @@ const ORDER_BY_KIT: Dictionary = {
 				   "blood_mage_gluttony",           "blood_mage_sanguine_pact",
 				   "blood_mage_exsanguinate",       "blood_mage_arterial_spray",
 				   "blood_mage_blood_ward"],
-	"demonologist": ["demon_conflagration",         "demon_wider_circle",           "demon_hellfire_heart",
-					 "demon_wider_breach",          "demon_sustained_hellfire",     "demon_archdemon_wrath"],
+	## 11 entries — the fifth kit through the level-up-layer pass, and a full replacement:
+	## every one of the old six duplicated a class mod or was a generic stat stick.
+	"demonologist": ["demon_bound_elite",           "demon_ninefold_pact",
+					 "demon_binding_held",          "demon_shared_agony",
+					 "demon_infernal_rebirth",      "demon_sundered_earth",
+					 "demon_cinder_trail",          "demon_brimstone_toll",
+					 "demon_pact_haste",            "demon_unbound",
+					 "demon_ember_wake"],
 	## 7 entries — the extra one is GREATER PILE, the level-up half of Pile Driver's expandable
 	## chain cap (AVALANCHE is the class-mod half). Same deliberate overshoot as the Shade above.
 	"barbarian":  ["barbarian_seismic_sunder",      "barbarian_thunder_amp",        "barbarian_battle_rage",

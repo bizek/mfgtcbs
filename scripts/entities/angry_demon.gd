@@ -49,8 +49,25 @@ const FLINCH_TIME: float = 4.0 / 14.0    ## Dmg anim length — inert for exactl
 ## Set by the host before adding to the tree.
 var player_ref: Node2D = null
 var damage_type: String = "Fire"
-var lifetime: float = 30.0               ## the binding holds this long
+## Named so the spawner can extend the binding without instantiating a throwaway demon to
+## read the default (the HolyHammer.BASE_DAMAGE_MULT pattern).
+const BASE_LIFETIME: float = 30.0
+var lifetime: float = BASE_LIFETIME      ## the binding holds this long
 var damage_mult: float = 1.0             ## × the player's live damage stat — an elite, not a mook
+## Level-up seams, set by the spawner before add_child (the HolyHammer / FireFamiliar pattern).
+## A bound demon is an ENTITY, so no phase op can reach it - which is why the old roster, five of
+## whose six picks duplicated a class mod, had nothing at all for the kit's own companion.
+var damage_bonus: float = 0.0            ## + damage_mult
+## SHARED AGONY inverts _poll_pact_pain: the Demon's wounds drive the bound demon into a frenzy
+## instead of staggering it. The stagger is the kit's most distinctive mechanic and it was purely
+## a DOWNSIDE; this is the capstone that turns it over.
+var rage_enabled: bool = false
+var burst_on_banish: float = 0.0         ## INFERNAL REBIRTH: fraction of the Demon's damage, on exit
+const RAGE_TIME: float = 3.0             ## seconds of frenzy per wound taken
+const RAGE_DAMAGE: float = 0.60          ## + damage_mult while raging
+const RAGE_HASTE: float = 0.55           ## × ATTACK_COOLDOWN while raging
+const BURST_RADIUS: float = 52.0
+var _rage_timer: float = 0.0
 
 var _sprite: AnimatedSprite2D = null
 var _facing: String = "down_left"
@@ -98,6 +115,7 @@ func _process(delta: float) -> void:
 	if _life <= 0.0:
 		banish()
 		return
+	_rage_timer = maxf(_rage_timer - delta, 0.0)
 
 	## The pact bites both ways: a hit on the Demon staggers his bound demon too.
 	_poll_pact_pain()
@@ -158,10 +176,16 @@ func _poll_pact_pain() -> void:
 		return
 	var hp: float = player_ref.health.current_hp
 	if _last_player_hp >= 0.0 and hp < _last_player_hp - 0.01:
-		_flinch_timer = FLINCH_TIME
-		_strike_timer = -1.0
-		_strike_target = null
-		_play_dir(&"hurt")
+		if rage_enabled:
+			## SHARED AGONY: no stagger, no interrupted thrust - it just gets angrier. Refreshed
+			## rather than accumulated, so a flurry of small hits keeps the frenzy up instead of
+			## banking minutes of it.
+			_rage_timer = RAGE_TIME
+		else:
+			_flinch_timer = FLINCH_TIME
+			_strike_timer = -1.0
+			_strike_target = null
+			_play_dir(&"hurt")
 	_last_player_hp = hp
 
 
@@ -181,7 +205,7 @@ func _walk_toward(dest: Vector2, delta: float) -> void:
 func _start_strike(target: Node2D) -> void:
 	_strike_target = target
 	_strike_timer = STRIKE_DELAY
-	_cooldown = ATTACK_COOLDOWN
+	_cooldown = ATTACK_COOLDOWN * (RAGE_HASTE if _rage_timer > 0.0 else 1.0)
 	_face_toward(target.global_position - global_position)
 	_play_dir(&"attack")
 
@@ -197,11 +221,45 @@ func _resolve_strike() -> void:
 	var dmg: float = 24.0
 	var attacker: Node2D = self
 	if is_instance_valid(player_ref):
-		dmg = player_ref.get_stat("damage") * damage_mult
+		dmg = player_ref.get_stat("damage") * _live_damage_mult()
 		attacker = player_ref
 	var hit := DamageCalculator.calculate_raw_hit(attacker, target, dmg, damage_type)
 	if not hit.is_dodged:
 		target.take_damage(hit)
+
+
+## What one thrust is worth right now, frenzy included.
+func _live_damage_mult() -> float:
+	return damage_mult + damage_bonus + (RAGE_DAMAGE if _rage_timer > 0.0 else 0.0)
+
+
+func is_raging() -> bool:
+	return _rage_timer > 0.0
+
+
+## INFERNAL REBIRTH: the binding ends in a detonation where the demon stood.
+##
+## Queried against the grid here rather than dispatched as an AreaDamageEffect, for the reason
+## HolyHammer._detonate records: the dispatcher anchors an AoE on a target ENTITY and centres it
+## there, and this blast belongs to a PLACE the demon is about to stop occupying. Damage still
+## runs through DamageCalculator with the Demon as attacker, so crit and resists apply.
+func _detonate() -> void:
+	if burst_on_banish <= 0.0 or not is_instance_valid(player_ref):
+		return
+	var cm: Node2D = player_ref.combat_manager
+	if cm == null or cm.spatial_grid == null:
+		return
+	if player_ref.has_method("spawn_shockwave_at"):
+		player_ref.spawn_shockwave_at(global_position, BURST_RADIUS, Color(1.0, 0.35, 0.12, 0.95))
+	var dmg: float = player_ref.get_stat("damage") * burst_on_banish
+	var faction: int = 1 if int(player_ref.faction) == 0 else 0
+	for body in cm.spatial_grid.get_nearby_in_range(
+			global_position, faction, BURST_RADIUS * BURST_RADIUS):
+		if not is_instance_valid(body) or not body.get("is_alive"):
+			continue
+		var hit := DamageCalculator.calculate_raw_hit(player_ref, body, dmg, damage_type)
+		if not hit.is_dodged:
+			body.take_damage(hit)
 
 
 ## Early dismissal (resummon or lifetime end): Die outro, then free.
@@ -209,6 +267,7 @@ func banish() -> void:
 	if _state == "die":
 		return
 	_state = "die"
+	_detonate()
 	_play_dir(&"die")
 
 

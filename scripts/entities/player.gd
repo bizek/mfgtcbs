@@ -118,6 +118,21 @@ var _base_stats: Dictionary = {
 	"pool_heal":        0.0,  ## + BLOOD_POOL_HEAL_FRAC per enemy dying in a blood pool
 	"vamp_heal":        0.0,  ## + VAMP_HEAL_FRAC per consume beat
 	"blood_cost":       0.0,  ## + BLOOD_COST_FRAC (negative makes Extract Power cheaper)
+	## -- Demon (2026-09-14) -----------------------------------------------------------------
+	## Flat, 0.0-based, same reasoning as every other host-side kit stat.
+	##
+	## The Demon's old roster was the class-mod list in miniature: FIVE of six picks duplicated a
+	## mod on the same anim with the same op, four of them strictly worse (CONFLAGRATION and
+	## SEARING HELLFIRE were the same scale_aoe on hellfire_2 with 1.35 and 1.20 assigned to
+	## opposite parameters). Meanwhile nothing in either layer touched the bound demon, the Hell
+	## Breach fissure was pure decoration, and Ashen Step's burning trail had no pick either.
+	"demon_damage":     0.0,  ## + AngryDemon.damage_mult
+	"demon_life":       0.0,  ## + AngryDemon.lifetime seconds
+	"demon_count":      0.0,  ## EXTRA bound demons per ritual
+	"demon_rage":       0.0,  ## >0: the pact inverts - your wounds enrage it instead of staggering it
+	"demon_burst":      0.0,  ## fraction of damage detonated where the binding ends
+	"fissure_damage":   0.0,  ## fraction of damage along the Hell Breach crack (0 = pure VFX)
+	"ashen_power":      0.0,  ## + ASHENSTEP_TICK_MULT on the dash trail's burn
 	"combo_window":    1.0,
 	"combo_timeout":   2.5,
 	"combo_lock":      0.0,
@@ -578,6 +593,10 @@ const HELLBREACH_FISSURE_FPS: float = 24.0
 ## by this much; ChainFactory.HELLBREACH_FORWARD moves the phase's damage by the same amount so the
 ## bite and the art stay on top of each other.
 const HELLBREACH_FISSURE_PUSH: float = 20.0
+## SUNDERED EARTH's bite, centred on the fissure sprite rather than the body. Wider than the
+## HELLBREACH_RADIUS slam because the crack is the long, thin part of the move that reaches past
+## where he landed — the pick is "the crack reaches people the slam did not".
+const HELLBREACH_FISSURE_BITE_RADIUS: float = 58.0
 const HELLBREACH_RADIUS: float = 54.0       ## the fissure's bite; == ChainFactory.HELLBREACH_RADIUS
 ## Ashen Step (the Demon's dash, replacing Hell Breach): he hops clear on the pack's unused Jump
 ## sheet and the ground he left keeps burning, so disengaging also denies the ground. A ground
@@ -586,7 +605,8 @@ const ASHENSTEP_ZONE_RADIUS: float = 26.0
 const ASHENSTEP_ZONE_TIME: float = 3.0
 const ASHENSTEP_ZONE_TICK: float = 0.5
 const ASHENSTEP_TICK_MULT: float = 0.18     ## × weapon damage per burn beat — chip, not a nuke
-var _angry_demon: Node2D = null
+## The Demon's bound elites. An ARRAY since 2026-09-14 (NINEFOLD PACT) — a single slot before.
+var _angry_demons: Array[Node2D] = []
 var _mirror_archer: Node2D = null
 ## Control-scheme pass (2026-07-05): kit id + class dash + Wizard charge.
 var _kit_id: String = ""
@@ -2591,16 +2611,29 @@ func _spawn_angry_demon() -> void:
 	## Summon Angry Demon (Q): ONE bound elite, not a swarm — resummon banishes the old one. It rises
 	## on its own Summon_Angry_Demon emerge (welded to the entity, so it can't be left behind as a
 	## remnant) and then fights autonomously (AngryDemon owns its locomotion; CLAUDE.md pet standard).
-	if is_instance_valid(_angry_demon):
-		_angry_demon.banish()
-	var d := AngryDemon.new()
-	d.player_ref = self
-	d.damage_type = ChainFactory._damage_type(_weapon_data)
-	get_tree().current_scene.add_child(d)
-	## Place it a short way along the aim direction so the pit opens where he's pointing.
+	for old in _angry_demons:
+		if is_instance_valid(old):
+			old.banish()
+	_angry_demons.clear()
+	var count: int = 1 + int(round(get_stat("demon_count")))
+	var dtype: String = ChainFactory._damage_type(_weapon_data)
+	## Place them a short way along the aim direction so the pit opens where he's pointing.
 	var ang: float = _aim_dir.angle() if _aim_dir.length_squared() > 0.01 else 0.0
-	d.global_position = global_position + Vector2(cos(ang), sin(ang)) * 30.0
-	_angry_demon = d
+	for i in range(count):
+		var d := AngryDemon.new()
+		d.player_ref = self
+		d.damage_type = dtype
+		d.damage_bonus = get_stat("demon_damage")
+		d.lifetime = AngryDemon.BASE_LIFETIME + get_stat("demon_life")
+		d.rage_enabled = get_stat("demon_rage") > 0.0
+		d.burst_on_banish = get_stat("demon_burst")
+		get_tree().current_scene.add_child(d)
+		## Fan the pits apart so a pair does not climb out of the same hole. They walk on their
+		## own legs within a frame or two (CLAUDE.md pet standard).
+		var off: float = float(i) * 26.0 - float(count - 1) * 13.0
+		d.global_position = global_position + Vector2(cos(ang), sin(ang)) * 30.0 \
+				+ Vector2(-sin(ang), cos(ang)) * off
+		_angry_demons.append(d)
 
 
 func _spawn_mirror_archer(ability: AbilityDefinition) -> void:
@@ -2677,6 +2710,31 @@ func _spawn_hellbreach_fissure(dir: Vector2) -> void:
 			HELLBREACH_FISSURE_ROWS[best], HELLBREACH_FISSURE_FPS, false, 1)
 	if fx:
 		fx.rotation = wrapf(aim_ang - HELLBREACH_FISSURE_ANGLES[best], -PI, PI)
+	_fissure_bite(at)
+
+
+## SUNDERED EARTH: the crack stops being decoration.
+##
+## The fissure sprite has drawn and dealt NOTHING since it was authored — Hell Breach's damage is
+## the phase's own AoE, centred on the landing, and the crack races out past it purely as art.
+## This bites along the crack, i.e. at the fissure sprite's own anchor rather than the body's.
+##
+## Grid-queried for the same reason AngryDemon._detonate is: the blast belongs to a PLACE, and the
+## dispatcher's AoE branch anchors on a target entity.
+func _fissure_bite(at: Vector2) -> void:
+	var frac: float = get_stat("fissure_damage")
+	if frac <= 0.0 or combat_manager == null or combat_manager.spatial_grid == null:
+		return
+	var r: float = HELLBREACH_FISSURE_BITE_RADIUS * _melee_range()
+	var dmg: float = get_stat("damage") * frac
+	var dtype: String = ChainFactory._damage_type(_weapon_data)
+	for body in combat_manager.spatial_grid.get_nearby_in_range(
+			at, 1 if int(faction) == 0 else 0, r * r):
+		if not is_instance_valid(body) or not body.is_alive:
+			continue
+		var hit := DamageCalculator.calculate_raw_hit(self, body, dmg, dtype)
+		if not hit.is_dodged:
+			body.take_damage(hit)
 
 
 ## Ashen Step (Demonologist dash): he hops out on the pack's Jump frames and the ground he was
@@ -2694,7 +2752,9 @@ func _spawn_ashenstep_trail(at: Vector2) -> void:
 	z.vfx_element = "fire"
 	var burn := DealDamageEffect.new()
 	burn.damage_type = ChainFactory._damage_type(_weapon_data)
-	burn.base_damage = _weapon_data.get("damage", 42.0) * ASHENSTEP_TICK_MULT
+	## CINDER TRAIL adds to the multiplier, so the card states a number: x0.18 -> x0.68 -> x1.18
+	## of weapon damage a beat.
+	burn.base_damage = _weapon_data.get("damage", 42.0) * (ASHENSTEP_TICK_MULT + get_stat("ashen_power"))
 	z.tick_effects = [burn]
 	if combat_manager:
 		combat_manager.spawn_ground_zone(z, self, at)
