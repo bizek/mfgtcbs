@@ -63,6 +63,10 @@ const FADE_TIME: float = 0.4              ## despawn dissolve (no Die sheet in e
 
 ## Set by player.gd before add_child.
 var species: String = "bear"
+## Level-up seams, set by the spawner before add_child. The SPECIES table stays the shipped
+## per-animal identity; these ride on top of whichever row this companion is.
+var damage_bonus: float = 0.0            ## + the species damage_mult
+var lifetime_bonus: float = 0.0          ## + the species lifetime, in seconds
 var player_ref: Node2D = null
 var damage_type: String = "Physical"
 ## Where this animal idles relative to the player, in local pixels. The SPAWNER assigns it, because
@@ -91,7 +95,7 @@ static var _frames_cache: Dictionary = {}  ## species → SpriteFrames
 func _ready() -> void:
 	z_index = 1
 	_cfg = SPECIES.get(species, SPECIES["bear"])
-	_life = float(_cfg["lifetime"])
+	_life = float(_cfg["lifetime"]) + lifetime_bonus
 	_sprite = AnimatedSprite2D.new()
 	_sprite.sprite_frames = _get_frames(species)
 	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -215,7 +219,7 @@ func _resolve_strike() -> void:
 	var attacker: Node2D = player_ref if is_instance_valid(player_ref) else self
 	var dmg: float = 20.0
 	if is_instance_valid(player_ref):
-		dmg = player_ref.get_stat("damage") * float(_cfg["damage_mult"])
+		dmg = player_ref.get_stat("damage") * (float(_cfg["damage_mult"]) + damage_bonus)
 
 	## The bear's swipe catches everything in front of it; a hound's bite is one throat.
 	var radius: float = float(_cfg["aoe_radius"])

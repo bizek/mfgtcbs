@@ -365,59 +365,102 @@ const ALL: Dictionary = {
 		"max_rank": 2,
 	},
 
-	## ── Ninja (The Whisper) ───────────────────────────────────────────────────
-	"ninja_blade_storm_surge": {
-		"id": "ninja_blade_storm_surge",
-		"name": "Blade Storm Surge",
-		"description": "Thousand Blades +40% radius",
-		"kit": "ninja",
-		"is_ability_upgrade": true,
-		"op": "scale_aoe",
-		"target": { "anim": "blades" },
-		"params": { "radius_mult": 1.40 },
-	},
-	"ninja_killing_edge": {
-		"id": "ninja_killing_edge",
-		"name": "Killing Edge",
-		"description": "+10% Crit Chance this run",
-		"kit": "ninja",
+
+	## Level-up-layer pass, 2026-09-21. Four of six duplicated a class mod, one by LITERAL NAME:
+	##   DIVINE WRATH         divine_fire d1.30 vs PURIFYING FIRE (rare) d1.35
+	##   GREATER WORD OF PAIN pray_pain r1.40   vs WORDS OF AGONY (rare) r1.50
+	##   GUARDIAN'S WRATH     pray_guardian     vs GUARDIAN'S WRATH (mod) - the same name
+	##   KINDLED FIRE         divine_fire burn  vs CENSER EMBERS - same status, same anim
+	## SANCTIFIED SMITE and LITANY survive: RADIANT SMITE scales `attack` rather than statusing
+	## it, and attack_2 is the one anim no Devout mod touches.
+	##
+	## The Spirit Guardian - a SpiritGuardian entity with its own DAMAGE_MULT - had nothing in
+	## either layer that reached it. The cut GUARDIAN'S WRATH was scaling the summoning prayer.
+	"cleric_warden_spirit": {
+		"id": "cleric_warden_spirit",
+		"name": "Warden Spirit",
+		"description": "The guardian smites +25% harder",
+		"kit": "cleric",
 		"is_ability_upgrade": true,
 		"op": "modifier",
-		"stat": "crit_chance",
+		"stat": "guardian_damage",
+		## FLAT: base 0.0, get_stat is add*(1+bonus). Added to SpiritGuardian.DAMAGE_MULT, so the
+		## chain reads x0.50 -> x0.75 -> x1.00 -> x1.25 of the Devout's damage per smite.
 		"type": "flat",
-		"value": 0.10,
+		"value": 0.25,
+		"max_rank": 3,
 	},
-	"ninja_smoke_ambush": {
-		"id": "ninja_smoke_ambush",
-		"name": "Smoke Ambush",
-		"description": "Smoke Bomb chills all nearby enemies",
-		"kit": "ninja",
-		"is_ability_upgrade": true,
-		"op": "add_status",
-		"target": { "anim": "smoke" },
-		"params": { "status": "chilled", "stacks": 1 },
-	},
-
-	## ── Cleric (The Devout) ───────────────────────────────────────────────────
-	"cleric_divine_wrath": {
-		"id": "cleric_divine_wrath",
-		"name": "Divine Wrath",
-		"description": "Divine Fire bolt +30% damage",
+	"cleric_long_vigil": {
+		"id": "cleric_long_vigil",
+		"name": "Long Vigil",
+		"description": "The guardian keeps its watch +8s longer",
 		"kit": "cleric",
 		"is_ability_upgrade": true,
-		"op": "scale_aoe",
-		"target": { "anim": "divine_fire" },
-		"params": { "damage_mult": 1.30 },
+		"op": "modifier",
+		"stat": "guardian_life",
+		"type": "flat",
+		"value": 8.0,
+		## 15s -> 23 -> 31.
+		"max_rank": 2,
 	},
-	"cleric_greater_word": {
-		"id": "cleric_greater_word",
-		"name": "Greater Word of Pain",
-		"description": "Word of Pain zone +40% radius",
+	## The end state: the prayer is answered twice. A second guardian breaks the single-elite rule
+	## on purpose, which is why it costs the whole damage line.
+	"cleric_choir_of_spears": {
+		"id": "cleric_choir_of_spears",
+		"name": "Choir of Spears",
+		"description": "A second guardian answers the prayer",
 		"kit": "cleric",
 		"is_ability_upgrade": true,
-		"op": "scale_aoe",
-		"target": { "anim": "pray_pain" },
-		"params": { "radius_mult": 1.40 },
+		"is_capstone": true,
+		"requires": ["cleric_warden_spirit", "cleric_warden_spirit"],
+		"op": "modifier",
+		"stat": "guardian_count",
+		"type": "flat",
+		"value": 1.0,
+		"max_rank": 1,
+	},
+	## Phase-op picks on ops no Devout mod uses. Devout mods occupy divine_fire (scale +
+	## add_projectile_status x2), pray_pain (scale), attack (scale) and pray_guardian (scale).
+	"cleric_censer_sweep": {
+		"id": "cleric_censer_sweep", "name": "Censer Sweep",
+		"description": "The guardian lands in a ring of holy fire",
+		"kit": "cleric", "is_ability_upgrade": true, "op": "add_shockwave",
+		"target": { "graph": "skill_e", "anim": "pray_guardian" },
+		"params": { "radius": 96.0, "damage_mult": 0.55, "color": Color(1.0, 0.92, 0.55, 0.9) },
+	},
+	"cleric_consecration": {
+		"id": "cleric_consecration", "name": "Consecration",
+		"description": "Your smite leaves the ground burning",
+		"kit": "cleric", "is_ability_upgrade": true, "op": "add_ground_zone",
+		"target": { "graph": "light", "anim": "attack" },
+		"params": { "zone_id": "cleric_consecration", "radius": 50.0, "duration": 4.0,
+					"tick": 0.5, "damage_mult": 0.12, "element": "fire", "damage_type": "Fire" },
+	},
+	## The Q is a mend the Devout spends standing still in whatever made her need it.
+	"cleric_steadfast": {
+		"id": "cleric_steadfast", "name": "Steadfast",
+		"description": "Nothing can touch you while you pray",
+		"kit": "cleric", "is_ability_upgrade": true, "op": "add_iframes",
+		"target": { "graph": "skill_q", "anim": "pray_heal" },
+	},
+	"cleric_cadence_of_faith": {
+		"id": "cleric_cadence_of_faith", "name": "Cadence of Faith",
+		"description": "The second strike holds its window 50% longer",
+		"kit": "cleric", "is_ability_upgrade": true, "op": "extend_window",
+		"target": { "graph": "light", "anim": "attack_2" }, "params": { "window_mult": 1.50 },
+	},
+	"cleric_judgement_echo": {
+		"id": "cleric_judgement_echo", "name": "Echo of Judgement",
+		"description": "The guardian's arrival repeats on two more of them",
+		"kit": "cleric", "is_ability_upgrade": true, "op": "echo_aoe",
+		"target": { "graph": "skill_e", "anim": "pray_guardian" },
+		"params": { "copies": 2, "damage_mult": 0.60, "radius": 170.0, "separation": 40.0 },
+	},
+	"cleric_radiant_volley": {
+		"id": "cleric_radiant_volley", "name": "Radiant Volley",
+		"description": "Divine Fire looses two more motes",
+		"kit": "cleric", "is_ability_upgrade": true, "op": "add_projectiles",
+		"target": { "anim": "divine_fire" }, "params": { "count": 2 },
 	},
 	"cleric_sanctified_smite": {
 		"id": "cleric_sanctified_smite",
@@ -430,77 +473,131 @@ const ALL: Dictionary = {
 		"params": { "status": "burning", "stacks": 1 },
 	},
 
-	## ── Druid (The Verdant) ───────────────────────────────────────────────────
-	## Retargeted 2026-08-02. These were written for the shapeshift kit, which is gone
-	## (0f5dfed — Ben: "i dont like the transformations at all"). "beast_attack" and
-	## "hound_attack" stopped being phase animations anywhere in the game, so Wild Maul and
-	## Pack Frenzy matched no phase and silently did nothing — the Verdant ran on ONE live
-	## ability upgrade out of three. Rewritten against the thorn-caster kit, one per graph:
-	## light opener · heavy root zone · channel barrage.
-	##
-	## Note there is deliberately no summon-scaling upgrade here: ForestCompanion reads the
-	## player's live damage stat at strike time (forest_companion.gd:218), so the only lever
-	## this system has on the bear/hounds is a global +damage stat stick. A real pet dial is
-	## rework territory — see docs/mod_levelup_rework_plan.md §3.
-	"druid_seedstorm": {
-		"id": "druid_seedstorm",
-		"name": "Seedstorm",
-		"description": "Thorn looses a second seed",
-		"kit": "druid",
-		"is_ability_upgrade": true,
-		"op": "add_projectiles",
-		## Light phase 0 is the only "attack" phase in the kit. aimed_single fans the extra
-		## shot 6° off the aim line and keeps shot #0 dead on the cursor.
-		"target": { "graph": "light", "anim": "attack" },
-		"params": { "count": 1 },
-	},
-	"druid_strangling_roots": {
-		"id": "druid_strangling_roots",
-		"name": "Strangling Roots",
-		"description": "Root Summoning zone +40% radius",
-		"kit": "druid",
-		"is_ability_upgrade": true,
-		"op": "scale_aoe",
-		"target": { "anim": "root_cast" },
-		"params": { "radius_mult": 1.40 },
-	},
-	"druid_wild_barrage": {
-		"id": "druid_wild_barrage",
-		"name": "Wild Barrage",
-		"description": "Bramble Barrage beats +30% damage",
-		"kit": "druid",
-		"is_ability_upgrade": true,
-		"op": "scale_aoe",
-		## graph pins this to the channel — "attack_2" is also light phases 1 and 2.
-		## radius_mult is omitted deliberately: the beat looses a projectile, and _scale_effects
-		## has no radius to scale on a SpawnProjectilesEffect.
-		"target": { "graph": "channel", "anim": "attack_2" },
-		"params": { "damage_mult": 1.30 },
-	},
 
-	## ── Necromancer (The Shade) ───────────────────────────────────────────────
-	"necro_bone_barrage": {
-		"id": "necro_bone_barrage",
-		"name": "Bone Barrage",
-		"description": "Bone Missile looses +1 splinter",
-		"kit": "necromancer",
-		"is_ability_upgrade": true,
-		"op": "add_projectiles",
-		"target": { "anim": "bone_cast" },
-		"params": { "count": 1 },
-	},
-	"necro_greater_swirl": {
-		"id": "necro_greater_swirl",
-		"name": "Greater Swirl",
-		"description": "Bone Swirl +35% damage, +20% radius",
-		"kit": "necromancer",
-		"is_ability_upgrade": true,
-		"op": "scale_aoe",
-		"target": { "anim": "bone_swirl" },
-		"params": { "damage_mult": 1.35, "radius_mult": 1.20 },
-	},
 	## The bone-count dial. Bone Swirl's orbiting bones ARE its outgoing volley, so one op grows
 	## both: an extra bone rides the ring (player.gd draws the count) and an extra bolt flies out.
+	## ── Shade — level-up-layer pass, 2026-09-21 ─────────────────────────────
+	##
+	## The Shade is the roster's SWARM SUMMONER and not one of the old seven picks reached a
+	## skeleton. RISEN HORROR ("Rise Corpse hits +40%") and LEGION SWELL both scaled the dmg*0.3
+	## cast pulse that exists only to make choreo_fire_effects run the spawn hook - the same bug as
+	## the Warden's HAMMER STORM, twice in one kit. Soul Harvest, the kit's own resource, had
+	## nothing in either layer.
+	##
+	## Cut as class-mod duplicates: GREATER SWIRL (vs SPLINTERING SWIRL, rare, strictly wider),
+	## BONE BARRAGE (+1 bone on bone_cast vs ENDLESS BONES and THE OSSUARY, both +2), MARROW ROT
+	## (vs MARROW SHARDS - the same status on the same anim), GRAVE VIGOR (+12% max HP vs GRAVE
+	## BOND's identical +12%).
+	##
+	## BONE CHOIR survives: it is the only pick in either layer that reaches the SWIRL's outgoing
+	## volley rather than its nova.
+	"necro_risen_horror": {
+		"id": "necro_risen_horror",
+		"name": "Risen Horror",
+		"description": "Risen champions cleave +30% harder",
+		"kit": "necromancer",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "champion_damage",
+		## FLAT: base 0.0, get_stat is add*(1+bonus). Added to SkeletalChampion.BASE_DAMAGE_MULT,
+		## so the chain reads x0.60 -> x0.90 -> x1.20 -> x1.50 of the Shade's damage per cleave.
+		"type": "flat",
+		"value": 0.30,
+		"max_rank": 3,
+	},
+	"necro_mass_grave": {
+		"id": "necro_mass_grave",
+		"name": "Mass Grave",
+		"description": "Rise Corpse raises another champion",
+		"kit": "necromancer",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "squad_size",
+		"type": "flat",
+		"value": 1.0,
+		## 4 base -> 6. They fan across ~120 degrees at ~34px, so a squad of six still reads as a
+		## rank of risen dead rather than a pile.
+		"max_rank": 2,
+	},
+	## The Bone Legion line, and the kit's capstone chain. Chosen for it over the persistent squad
+	## because the legion is the Shade's spectacle - five volatile skeletons sprinting into a pack
+	## and going off - and because `count` and `blast` both scale that directly.
+	"necro_legion_swell": {
+		"id": "necro_legion_swell",
+		"name": "Legion Swell",
+		"description": "Two more volatile dead rise with the legion",
+		"kit": "necromancer",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "legion_size",
+		"type": "flat",
+		"value": 2.0,
+		## 5 base -> 9. They are raised in a ring and scatter outward, so the count is the read.
+		"max_rank": 2,
+	},
+	"necro_volatile_marrow": {
+		"id": "necro_volatile_marrow",
+		"name": "Volatile Marrow",
+		"description": "The dead go off far harder",
+		"kit": "necromancer",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "legion_blast",
+		"type": "flat",
+		"value": 0.40,
+		## x0.80 of the Shade's damage per blast -> x1.20 -> x1.60. The blast IS the legion's whole
+		## payload (damage_mult is pinned to 0 for volatiles), so this is the line's damage dial.
+		"max_rank": 2,
+	},
+	## The end state, and not another number: the legion stops being a thing you spend. Every blast
+	## claws one more skeleton out of its own crater.
+	##
+	## FINITE BY CONSTRUCTION - SkeletalChampion.chain_raises decrements as it passes down, so one
+	## rank is exactly one extra generation. An unbounded chain here is a hang, not a build.
+	"necro_chain_of_the_dead": {
+		"id": "necro_chain_of_the_dead",
+		"name": "Chain of the Dead",
+		"description": "Every blast raises one more of them",
+		"kit": "necromancer",
+		"is_ability_upgrade": true,
+		"is_capstone": true,
+		"requires": ["necro_legion_swell", "necro_legion_swell"],
+		"op": "modifier",
+		"stat": "legion_chain",
+		"type": "flat",
+		"value": 1.0,
+		"max_rank": 1,
+	},
+	## Soul Harvest (the kit passive) banks every kill into a heal and, every third soul, an
+	## empowered summon. Neither half had a pick in either layer.
+	"necro_reapers_due": {
+		"id": "necro_reapers_due",
+		"name": "Reaper's Due",
+		"description": "Every soul reaped mends far more",
+		"kit": "necromancer",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "soul_heal",
+		"type": "flat",
+		"value": 2.0,
+		## 2 HP a kill -> 4 -> 6. Against a horde that is the difference between a trickle and a
+		## reason to stand in it.
+		"max_rank": 2,
+	},
+	"necro_grave_hunger": {
+		"id": "necro_grave_hunger",
+		"name": "Grave Hunger",
+		"description": "Souls empower the next raising sooner",
+		"kit": "necromancer",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "soul_threshold",
+		"type": "flat",
+		"value": -1.0,
+		## 3 souls -> 2. One-shot: _on_kill_soul_harvest clamps the bar at 1, and a threshold of 1
+		## would empower every single summon, which is a different design.
+		"max_rank": 1,
+	},
 	"necro_bone_choir": {
 		"id": "necro_bone_choir",
 		"name": "Bone Choir",
@@ -511,19 +608,168 @@ const ALL: Dictionary = {
 		"target": { "anim": "bone_swirl" },
 		"params": { "count": 1 },
 	},
-	"necro_grave_vigor": {
-		"id": "necro_grave_vigor",
-		"name": "Grave Vigor",
-		"description": "+12% Max HP this run",
-		"kit": "necromancer",
-		"is_ability_upgrade": true,
-		"op": "modifier",
-		"stat": "max_hp",
-		"type": "percent",
-		"value": 0.12,
-	},
 
 	## ── Ranger (The Scavenger) ────────────────────────────────────────────────
+	## ── Verdant — level-up-layer pass, 2026-09-21 ────────────────────────
+	##
+	## A full replacement: all six duplicated a class mod, two of them by LITERAL NAME.
+	##   STRANGLING ROOTS  root_cast r1.40   vs STRANGLING ROOTS (rare) r1.50 - same name
+	##   THORNED SEEDS     attack bleed      vs THORNED SEEDS (mod) - same name, same status
+	##   SEEDSTORM         attack +1 proj    vs BRISTLING VOLLEY / BRAMBLE TIDE (+1 / +2)
+	##   WILD BARRAGE      channel d1.30     vs ENDLESS BRAMBLE d1.20
+	##   GREATER BEAR      summon_bear scale vs URSINE FURY
+	##   PACK LEADER       summon_hounds     vs PACK HUNTER and WILD HUNT
+	##
+	## The last two are the Warden's HAMMER STORM bug again: a bear and a hound are
+	## ForestCompanion ENTITIES with their own per-species damage_mult, and both picks were
+	## scaling the summon CAST instead. The animals are the kit - nothing in either layer had
+	## ever touched one.
+	"druid_ursine_might": {
+		"id": "druid_ursine_might",
+		"name": "Ursine Might",
+		"description": "The bear mauls +30% harder",
+		"kit": "druid",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "bear_damage",
+		## FLAT: base 0.0, get_stat is add*(1+bonus). Added to the bear's species damage_mult,
+		## so the chain reads x0.75 -> x1.05 -> x1.35 -> x1.65 of the Verdant's damage per swipe.
+		"type": "flat",
+		"value": 0.30,
+		"max_rank": 3,
+	},
+	"druid_pack_fangs": {
+		"id": "druid_pack_fangs",
+		"name": "Pack Fangs",
+		"description": "Hounds bite +20% harder",
+		"kit": "druid",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "hound_damage",
+		## A hound is deliberately slight (x0.28) and bites twice for every bear swipe, so its
+		## dial is smaller: x0.28 -> x0.48 -> x0.68.
+		"type": "flat",
+		"value": 0.20,
+		"max_rank": 2,
+	},
+	"druid_wild_hunt": {
+		"id": "druid_wild_hunt",
+		"name": "Wild Hunt",
+		"description": "Another hound runs with the pack",
+		"kit": "druid",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "hound_count",
+		"type": "flat",
+		"value": 1.0,
+		## A pair -> four. They fan across ~70 degrees and take their own idle spots, so the pack
+		## still reads as individual animals rather than one smear.
+		"max_rank": 2,
+	},
+	"druid_deep_roots": {
+		"id": "druid_deep_roots",
+		"name": "Deep Roots",
+		"description": "Your animals stay +10s longer",
+		"kit": "druid",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "companion_life",
+		"type": "flat",
+		"value": 10.0,
+		## Bear 20s -> 40, hounds 14s -> 34. One dial for both: they are summoned from the same
+		## grove and the pick reads as "the grove holds them longer".
+		"max_rank": 2,
+	},
+	## Level-up-layer pass, 2026-09-21. Four of six duplicated a class mod:
+	##   KEEN BLADE  knife d1.50  vs IMPALING KNIFE (rare) d1.50 - the identical number
+	##   VENOM TIPS  attack bleed vs BARBED ARROWS, bleed across the whole light graph
+	##   RIPOSTE     melee d1.40  vs CLOSE QUARTERS (rare) r1.35 d1.30
+	##   EAGLE EYE   a crit stat  vs HUNTER'S FOCUS (+10% crit)
+	## TRIPLE VOLLEY and DOUBLE DOWN survive: EXPLOSIVE TIPS and PINNING SHOT status those anims
+	## rather than scaling them.
+	##
+	## The Mirror Archer - a MirrorArcher entity drawing its own bow at damage_mult 0.5 - had no
+	## pick in either layer.
+	"ranger_mirror_focus": {
+		"id": "ranger_mirror_focus",
+		"name": "Mirror Focus",
+		"description": "The reflection draws +25% harder",
+		"kit": "ranger",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "archer_damage",
+		## FLAT: base 0.0, get_stat is add*(1+bonus). Added to MirrorArcher.BASE_DAMAGE_MULT, so
+		## the chain reads x0.50 -> x0.75 -> x1.00 -> x1.25 per arrow.
+		"type": "flat",
+		"value": 0.25,
+		"max_rank": 3,
+	},
+	"ranger_lingering_reflection": {
+		"id": "ranger_lingering_reflection",
+		"name": "Lingering Reflection",
+		"description": "The reflection holds +6s longer",
+		"kit": "ranger",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "archer_life",
+		"type": "flat",
+		"value": 6.0,
+		## 10s -> 16 -> 22.
+		"max_rank": 2,
+	},
+	## The end state: one reflection becomes a firing line. The pair brackets her aim, one either
+	## side, so it reads as being flanked by yourself rather than as a brighter single archer.
+	"ranger_hall_of_mirrors": {
+		"id": "ranger_hall_of_mirrors",
+		"name": "Hall of Mirrors",
+		"description": "A second reflection steps out on the other side",
+		"kit": "ranger",
+		"is_ability_upgrade": true,
+		"is_capstone": true,
+		"requires": ["ranger_mirror_focus", "ranger_mirror_focus"],
+		"op": "modifier",
+		"stat": "archer_count",
+		"type": "flat",
+		"value": 1.0,
+		"max_rank": 1,
+	},
+	## Phase-op picks on ops no Scavenger mod uses. Her mods occupy the light graph
+	## (add_projectile_status x3), knife (scale x2), double_shot / triple_shot (status) and
+	## heavy/melee (scale).
+	"ranger_knife_work": {
+		"id": "ranger_knife_work", "name": "Knife Work",
+		"description": "The second knife throws a shockwave out with it",
+		"kit": "ranger", "is_ability_upgrade": true, "op": "add_shockwave",
+		"target": { "graph": "heavy", "anim": "melee_2" },
+		"params": { "radius": 84.0, "damage_mult": 0.55, "color": Color(0.80, 0.85, 0.95, 0.9) },
+	},
+	"ranger_caltrops": {
+		"id": "ranger_caltrops", "name": "Caltrops",
+		"description": "The close-quarters strike leaves the ground barbed",
+		"kit": "ranger", "is_ability_upgrade": true, "op": "add_ground_zone",
+		"target": { "graph": "heavy", "anim": "melee" },
+		"params": { "zone_id": "ranger_caltrops", "radius": 46.0, "duration": 4.0,
+					"tick": 0.5, "damage_mult": 0.13, "element": "poison" },
+	},
+	"ranger_quickstep": {
+		"id": "ranger_quickstep", "name": "Quickstep",
+		"description": "Nothing can touch you mid-knife",
+		"kit": "ranger", "is_ability_upgrade": true, "op": "add_iframes",
+		"target": { "graph": "light", "anim": "knife" },
+	},
+	"ranger_steady_draw": {
+		"id": "ranger_steady_draw", "name": "Steady Draw",
+		"description": "The double shot holds its window 50% longer",
+		"kit": "ranger", "is_ability_upgrade": true, "op": "extend_window",
+		"target": { "graph": "light", "anim": "double_shot" }, "params": { "window_mult": 1.50 },
+	},
+	## The CHANNEL's volley, not the light chain's - the mod layer only reaches light/triple_shot.
+	"ranger_split_volley": {
+		"id": "ranger_split_volley", "name": "Split Volley",
+		"description": "The held volley looses two more arrows a beat",
+		"kit": "ranger", "is_ability_upgrade": true, "op": "add_projectiles",
+		"target": { "graph": "channel", "anim": "triple_shot" }, "params": { "count": 2 },
+	},
 	"ranger_triple_volley": {
 		"id": "ranger_triple_volley",
 		"name": "Triple Volley",
@@ -533,27 +779,6 @@ const ALL: Dictionary = {
 		"op": "scale_aoe",
 		"target": { "anim": "triple_shot" },
 		"params": { "damage_mult": 1.40 },
-	},
-	"ranger_keen_blade": {
-		"id": "ranger_keen_blade",
-		"name": "Keen Blade",
-		"description": "Throwing Knife +50% damage",
-		"kit": "ranger",
-		"is_ability_upgrade": true,
-		"op": "scale_aoe",
-		"target": { "anim": "knife" },
-		"params": { "damage_mult": 1.50 },
-	},
-	"ranger_eagle_eye": {
-		"id": "ranger_eagle_eye",
-		"name": "Eagle Eye",
-		"description": "+5% Crit Chance this run",
-		"kit": "ranger",
-		"is_ability_upgrade": true,
-		"op": "modifier",
-		"stat": "crit_chance",
-		"type": "flat",
-		"value": 0.05,
 	},
 
 	## ── Wizard (The Spark) ────────────────────────────────────────────────────
@@ -935,38 +1160,6 @@ const ALL: Dictionary = {
 		"max_rank": 2,
 	},
 
-	## ── Barbarian (The Ravager) ───────────────────────────────────────────────
-	"barbarian_seismic_sunder": {
-		"id": "barbarian_seismic_sunder",
-		"name": "Seismic Sunder",
-		"description": "Sunder cleave +40% radius",
-		"kit": "barbarian",
-		"is_ability_upgrade": true,
-		"op": "scale_aoe",
-		"target": { "anim": "sunder" },
-		"params": { "radius_mult": 1.40 },
-	},
-	"barbarian_thunder_amp": {
-		"id": "barbarian_thunder_amp",
-		"name": "Thunder Amp",
-		"description": "Thunder Blade hits +35% damage",
-		"kit": "barbarian",
-		"is_ability_upgrade": true,
-		"op": "scale_aoe",
-		"target": { "anim": "thunder" },
-		"params": { "damage_mult": 1.35 },
-	},
-	"barbarian_battle_rage": {
-		"id": "barbarian_battle_rage",
-		"name": "Battle Rage",
-		"description": "+20% Damage this run",
-		"kit": "barbarian",
-		"is_ability_upgrade": true,
-		"op": "modifier",
-		"stat": "damage",
-		"type": "percent",
-		"value": 0.20,
-	},
 
 	## ── Gunslinger (The Deadeye) ──────────────────────────────────────────────
 	"gunslinger_hair_trigger": {
@@ -1073,12 +1266,90 @@ const ALL: Dictionary = {
 		"target": { "graph": "skill_e", "anim": "heal_word" },
 	},
 
-	## ── Ninja ─────────────────────────────────────────────────────────────────
-	"ninja_final_cut": {
-		"id": "ninja_final_cut", "name": "Final Cut",
-		"description": "Blade Storm's finisher hits +45% damage",
-		"kit": "ninja", "is_ability_upgrade": true, "op": "scale_aoe",
-		"target": { "anim": "blades_end" }, "params": { "damage_mult": 1.45 },
+	## Level-up-layer pass, 2026-09-21. Four of six duplicated a class mod:
+	##   BLADE STORM SURGE blades r1.40    vs ENDLESS STORM (rare) r1.50 on the same storm
+	##   FINAL CUT         blades_end d1.45 vs FINISHING FLOURISH (rare) r1.35 d1.30
+	##   SMOKE AMBUSH      smoke chilled    vs BLINDING SMOKE - the same status on the same anim
+	##   KILLING EDGE      a crit stat      vs HONED EDGE, DEEP CUT and SHADOWKILL, all crit
+	## TWIN FANGS and SHADOW STEP survive: attack_2 and the dash are untouched by the mod layer.
+	##
+	## The Whisper is the roster's crit assassin and holds a channel, and nothing joined those
+	## two facts - her mods sell crit you carry everywhere. BLADE STORM FOCUS is crit that only
+	## exists while the storm is up, which is a reason to hold it.
+	"ninja_blade_storm_focus": {
+		"id": "ninja_blade_storm_focus",
+		"name": "Blade Storm Focus",
+		"description": "+15% Crit while the storm is held",
+		"kit": "ninja",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "storm_crit",
+		## FLAT: base 0.0, get_stat is add*(1+bonus). Applied as a tagged modifier on the
+		## channel's edges, so it is gone the moment she lets go.
+		"type": "flat",
+		"value": 0.15,
+		"max_rank": 3,
+	},
+	## The end state: inside the storm there is no roll left to make.
+	"ninja_perfect_silence": {
+		"id": "ninja_perfect_silence",
+		"name": "Perfect Silence",
+		"description": "Every blade lands true while the storm is held",
+		"kit": "ninja",
+		"is_ability_upgrade": true,
+		"is_capstone": true,
+		"requires": ["ninja_blade_storm_focus", "ninja_blade_storm_focus"],
+		"op": "modifier",
+		"stat": "storm_crit",
+		"type": "flat",
+		## +100 on top of the line: whatever crit she carries, holding the storm guarantees it.
+		"value": 1.00,
+		"max_rank": 1,
+	},
+	## The storm's DURATION dial. ENDLESS STORM widens the ring; nothing lengthened the beat it
+	## spends spinning, and extend_window on the channel's own looping phase is exactly that.
+	"ninja_endless_edge": {
+		"id": "ninja_endless_edge", "name": "Endless Edge",
+		"description": "The storm holds each beat 50% longer",
+		"kit": "ninja", "is_ability_upgrade": true, "op": "extend_window",
+		"target": { "graph": "channel", "anim": "blades" }, "params": { "window_mult": 1.50 },
+	},
+	## Phase-op picks on ops no Whisper mod uses. Her mods occupy the light graph (add_status),
+	## blades (scale + add_status), blades_end (scale), smoke and sharpen (add_status).
+	"ninja_shadowburst": {
+		"id": "ninja_shadowburst", "name": "Shadowburst",
+		"description": "The storm ends in a ring of steel",
+		"kit": "ninja", "is_ability_upgrade": true, "op": "add_shockwave",
+		"target": { "anim": "blades_end" },
+		"params": { "radius": 92.0, "damage_mult": 0.55, "color": Color(0.70, 0.75, 0.85, 0.9) },
+	},
+	"ninja_bloodgrass": {
+		"id": "ninja_bloodgrass", "name": "Bloodgrass",
+		"description": "Your opener leaves the ground slick",
+		"kit": "ninja", "is_ability_upgrade": true, "op": "add_ground_zone",
+		"target": { "graph": "light", "anim": "attack" },
+		"params": { "zone_id": "ninja_bloodgrass", "radius": 46.0, "duration": 4.0,
+					"tick": 0.5, "damage_mult": 0.13, "element": "poison" },
+	},
+	"ninja_mirror_cuts": {
+		"id": "ninja_mirror_cuts", "name": "Mirror Cuts",
+		"description": "The storm's last cut repeats on two more of them",
+		"kit": "ninja", "is_ability_upgrade": true, "op": "echo_aoe",
+		"target": { "anim": "blades_end" },
+		"params": { "copies": 2, "damage_mult": 0.60, "radius": 170.0, "separation": 40.0 },
+	},
+	## The smoke bomb is her disengage and she is standing in the open while it goes off.
+	"ninja_vanishing_act": {
+		"id": "ninja_vanishing_act", "name": "Vanishing Act",
+		"description": "Nothing can touch you in the smoke",
+		"kit": "ninja", "is_ability_upgrade": true, "op": "add_iframes",
+		"target": { "graph": "skill_e", "anim": "smoke" },
+	},
+	"ninja_killing_tempo": {
+		"id": "ninja_killing_tempo", "name": "Killing Tempo",
+		"description": "The second strike holds its window 50% longer",
+		"kit": "ninja", "is_ability_upgrade": true, "op": "extend_window",
+		"target": { "graph": "light", "anim": "attack_2" }, "params": { "window_mult": 1.50 },
 	},
 	"ninja_twin_fangs": {
 		"id": "ninja_twin_fangs", "name": "Twin Fangs",
@@ -1093,84 +1364,106 @@ const ALL: Dictionary = {
 		"stat": "dash_cooldown", "type": "percent", "value": -0.20,
 	},
 
-	## ── Cleric ────────────────────────────────────────────────────────────────
-	"cleric_guardians_wrath": {
-		"id": "cleric_guardians_wrath", "name": "Guardian's Wrath",
-		"description": "Guardian (E) strikes +30% wider and harder",
-		"kit": "cleric", "is_ability_upgrade": true, "op": "scale_aoe",
-		"target": { "anim": "pray_guardian" }, "params": { "radius_mult": 1.30, "damage_mult": 1.30 },
-	},
 	"cleric_litany": {
 		"id": "cleric_litany", "name": "Litany",
 		"description": "Second chain strike hits +30% damage",
 		"kit": "cleric", "is_ability_upgrade": true, "op": "scale_aoe",
 		"target": { "anim": "attack_2" }, "params": { "damage_mult": 1.30 },
 	},
-	"cleric_kindled_fire": {
-		"id": "cleric_kindled_fire", "name": "Kindled Fire",
-		"description": "Divine Fire sets what it hits burning",
-		"kit": "cleric", "is_ability_upgrade": true, "op": "add_projectile_status",
-		"target": { "anim": "divine_fire" }, "params": { "status": "burning", "stacks": 1 },
-	},
 
-	## ── Druid ─────────────────────────────────────────────────────────────────
-	"druid_greater_bear": {
-		"id": "druid_greater_bear", "name": "Greater Bear",
-		"description": "Bear (Q) mauls +35% wider and harder",
-		"kit": "druid", "is_ability_upgrade": true, "op": "scale_aoe",
-		"target": { "anim": "summon_bear" }, "params": { "radius_mult": 1.35, "damage_mult": 1.35 },
-	},
-	"druid_pack_leader": {
-		"id": "druid_pack_leader", "name": "Pack Leader",
-		"description": "Hounds (E) hit +40% damage",
-		"kit": "druid", "is_ability_upgrade": true, "op": "scale_aoe",
-		"target": { "anim": "summon_hounds" }, "params": { "damage_mult": 1.40 },
-	},
-	"druid_thorned_seeds": {
-		"id": "druid_thorned_seeds", "name": "Thorned Seeds",
-		"description": "Seeds make enemies bleed",
-		"kit": "druid", "is_ability_upgrade": true, "op": "add_projectile_status",
-		"target": { "anim": "attack" }, "params": { "status": "bleed", "stacks": 1 },
-	},
 
-	## ── Necromancer ───────────────────────────────────────────────────────────
-	"necro_risen_horror": {
-		"id": "necro_risen_horror", "name": "Risen Horror",
-		"description": "Rise Corpse (Q) hits +40% damage",
-		"kit": "necromancer", "is_ability_upgrade": true, "op": "scale_aoe",
-		"target": { "anim": "rise_corpse" }, "params": { "damage_mult": 1.40 },
+
+	## The three phase-op picks that survive the mod diff. Shade mods occupy bone_cast
+	## (add_projectiles x2, add_projectile_status), bone_swirl (scale_aoe) and bone_legion
+	## (scale_aoe), so these use ops no Shade mod touches.
+	## Targeted at the LEGION's raising, not the swirl: bone_swirl carries only its orbiting aura
+	## status and no AreaDamageEffect, so add_ground_zone had nothing to scale from there - caught
+	## by validate_anim_targets rather than shipped inert.
+	"necro_bone_field": {
+		"id": "necro_bone_field", "name": "Bone Field",
+		"description": "The raising leaves the ground splintered",
+		"kit": "necromancer", "is_ability_upgrade": true, "op": "add_ground_zone",
+		"target": { "graph": "skill_e", "anim": "bone_legion" },
+		"params": { "zone_id": "necro_bone_field", "radius": 52.0, "duration": 4.0,
+					"tick": 0.5, "damage_mult": 0.13, "element": "shadow" },
 	},
-	"necro_legion_swell": {
-		"id": "necro_legion_swell", "name": "Legion Swell",
-		"description": "Bone Legion (E) hits +30% wider and harder",
-		"kit": "necromancer", "is_ability_upgrade": true, "op": "scale_aoe",
-		"target": { "anim": "bone_legion" }, "params": { "radius_mult": 1.30, "damage_mult": 1.30 },
+	## Rise Corpse is a 9-frame ritual the Shade spends standing still in front of whatever he is
+	## raising the dead to deal with.
+	"necro_deathless": {
+		"id": "necro_deathless", "name": "Deathless",
+		"description": "Nothing can touch you while the dead climb out",
+		"kit": "necromancer", "is_ability_upgrade": true, "op": "add_iframes",
+		"target": { "graph": "skill_q", "anim": "rise_corpse" },
 	},
-	"necro_marrow_rot": {
-		"id": "necro_marrow_rot", "name": "Marrow Rot",
-		"description": "Bone missiles make enemies bleed",
-		"kit": "necromancer", "is_ability_upgrade": true, "op": "add_projectile_status",
-		"target": { "anim": "bone_cast" }, "params": { "status": "bleed", "stacks": 1 },
+	## The light chain is Cast -> Cast II -> Bone Missile with Swirl hanging off the second beat;
+	## the window on Cast II is the only thing gating both branches.
+	"necro_patient_dead": {
+		"id": "necro_patient_dead", "name": "Patient Dead",
+		"description": "The second cast holds its window 50% longer",
+		"kit": "necromancer", "is_ability_upgrade": true, "op": "extend_window",
+		"target": { "graph": "light", "anim": "attack_2" }, "params": { "window_mult": 1.50 },
 	},
 
 	## ── Ranger ────────────────────────────────────────────────────────────────
+	## The phase-op picks that survive the mod diff. Verdant mods occupy attack / attack_2
+	## (scale + add_projectiles), root_cast (scale), summon_bear and summon_hounds (scale), so
+	## these use ops no Verdant mod touches.
+	## The end state, and not another number: the Verdant stops being one bear and a pack. A second
+	## bear is the single-elite rule broken on purpose, which is why it costs the whole hound line.
+	"druid_second_grove": {
+		"id": "druid_second_grove",
+		"name": "Second Grove",
+		"description": "A second bear answers the call",
+		"kit": "druid",
+		"is_ability_upgrade": true,
+		"is_capstone": true,
+		"requires": ["druid_wild_hunt", "druid_wild_hunt"],
+		"op": "modifier",
+		"stat": "bear_count",
+		"type": "flat",
+		"value": 1.0,
+		"max_rank": 1,
+	},
+	"druid_verdant_surge": {
+		"id": "druid_verdant_surge", "name": "Verdant Surge",
+		"description": "The bear arrives hard enough to shake the ground",
+		"kit": "druid", "is_ability_upgrade": true, "op": "add_shockwave",
+		"target": { "graph": "skill_q", "anim": "summon_bear" },
+		"params": { "radius": 98.0, "damage_mult": 0.55, "color": Color(0.45, 0.85, 0.35, 0.9) },
+	},
+	## The CHANNEL's volley, not the light chain's — BRISTLING VOLLEY and BRAMBLE TIDE both sit on
+	## light/attack_2, and the barrage is a separate graph nothing in the mod layer touches.
+	"druid_thorn_volley": {
+		"id": "druid_thorn_volley", "name": "Thorn Volley",
+		"description": "The barrage throws two more seeds a beat",
+		"kit": "druid", "is_ability_upgrade": true, "op": "add_projectiles",
+		"target": { "graph": "channel", "anim": "attack_2" }, "params": { "count": 2 },
+	},
+	"druid_bramble_bed": {
+		"id": "druid_bramble_bed", "name": "Bramble Bed",
+		"description": "The pack tears up the ground it rises from",
+		"kit": "druid", "is_ability_upgrade": true, "op": "add_ground_zone",
+		"target": { "graph": "skill_e", "anim": "summon_hounds" },
+		"params": { "zone_id": "druid_bramble_bed", "radius": 58.0, "duration": 5.0,
+					"tick": 0.5, "damage_mult": 0.12, "element": "poison" },
+	},
+	"druid_grove_guard": {
+		"id": "druid_grove_guard", "name": "Grove Guard",
+		"description": "Nothing can touch you while the grove answers",
+		"kit": "druid", "is_ability_upgrade": true, "op": "add_iframes",
+		"target": { "graph": "skill_q", "anim": "summon_bear" },
+	},
+	"druid_patient_growth": {
+		"id": "druid_patient_growth", "name": "Patient Growth",
+		"description": "The second volley holds its window 50% longer",
+		"kit": "druid", "is_ability_upgrade": true, "op": "extend_window",
+		"target": { "graph": "light", "anim": "attack_2" }, "params": { "window_mult": 1.50 },
+	},
 	"ranger_double_down": {
 		"id": "ranger_double_down", "name": "Double Down",
 		"description": "Double Shot fires +1 arrow",
 		"kit": "ranger", "is_ability_upgrade": true, "op": "add_projectiles",
 		"target": { "anim": "double_shot" }, "params": { "count": 1 },
-	},
-	"ranger_riposte": {
-		"id": "ranger_riposte", "name": "Riposte",
-		"description": "Close-quarters strikes hit +40% damage",
-		"kit": "ranger", "is_ability_upgrade": true, "op": "scale_aoe",
-		"target": { "anim": "melee" }, "params": { "damage_mult": 1.40 },
-	},
-	"ranger_venom_tips": {
-		"id": "ranger_venom_tips", "name": "Venom Tips",
-		"description": "Arrows make enemies bleed",
-		"kit": "ranger", "is_ability_upgrade": true, "op": "add_projectile_status",
-		"target": { "anim": "attack" }, "params": { "status": "bleed", "stacks": 1 },
 	},
 
 	## ── Wizard ────────────────────────────────────────────────────────────────
@@ -1286,22 +1579,92 @@ const ALL: Dictionary = {
 					"tick": 0.5, "damage_mult": 0.14, "element": "fire", "damage_type": "Fire" },
 	},
 
-	## ── Barbarian ─────────────────────────────────────────────────────────────
-	"barbarian_hurled_doom": {
-		"id": "barbarian_hurled_doom", "name": "Hurled Doom",
-		"description": "Pile Driver (E) lands +30% wider and harder",
-		"kit": "barbarian", "is_ability_upgrade": true, "op": "scale_aoe",
-		## Retargeted "throw" -> "hurl" with the Pile Driver rebuild (2026-08-16).
-		"target": { "anim": "hurl" }, "params": { "radius_mult": 1.30, "damage_mult": 1.30 },
+	## ── Ravager — level-up-layer pass, 2026-09-21 ─────────────────────────
+	##
+	## Six of seven picks duplicated a class mod, four of them strictly worse:
+	##   SEISMIC SUNDER  sunder r1.40     vs EARTHSPLITTER (rare) r1.45 d1.25, and RAGNAROK too
+	##   THUNDER AMP     thunder d1.35    vs CHAINED LIGHTNING (rare) d1.40
+	##   HURLED DOOM     hurl r/d 1.30    vs HURLED RUIN (rare) r1.40 d1.30
+	##   STORMCALLER     thunder +2 bolts vs STORM VOLLEY and STORMHEART, both +2 on the same anim
+	##   GREATER PILE    pile_capacity    vs AVALANCHE (+3 on the identical stat)
+	##   BATTLE RAGE     a flat damage stat stick
+	## CLEAVING BLOW is the only survivor - attack_2 is the one anim no Ravager mod touches.
+	##
+	## What nothing in either layer reached: Pile Driver's own numbers (every one a const) and
+	## Guard, which blocks a frontal hit OUTRIGHT and deals nothing back - a whole channel with no
+	## pick attached, the same cosmetic-only shape as the Spark's ice aura.
+	"barbarian_strongman": {
+		"id": "barbarian_strongman",
+		"name": "Strongman",
+		"description": "Thrown bodies land far harder",
+		"kit": "barbarian",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "pile_body_damage",
+		## FLAT: base 0.0, get_stat is add*(1+bonus). Added to PILE_BODY_DAMAGE, so the chain
+		## reads x0.90 -> x1.30 -> x1.70 of the Ravager's damage per body.
+		"type": "flat",
+		"value": 0.40,
+		"max_rank": 2,
 	},
-	"barbarian_greater_pile": {
-		"id": "barbarian_greater_pile", "name": "Greater Pile",
-		"description": "Pile Driver (E) carries +2 more enemies",
-		## "modifier" op on the pile_capacity stat — same seam AVALANCHE uses, so a run can stack
-		## the mod and up to three ranks of this (6 base → 15 at the ceiling). Rankable because
-		## MAX_RANK_BY_OP allows modifier x3 and the picks genuinely compound here.
-		"kit": "barbarian", "is_ability_upgrade": true, "op": "modifier",
-		"stat": "pile_capacity", "type": "flat", "value": 2.0,
+	"barbarian_crushing_weight": {
+		"id": "barbarian_crushing_weight",
+		"name": "Crushing Weight",
+		"description": "Every body you carry adds far more to the landing",
+		"kit": "barbarian",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "pile_burst",
+		"type": "flat",
+		"value": 0.15,
+		## x0.25 per carried body -> x0.40 -> x0.55. With AVALANCHE equipped that is nine bodies
+		## feeding one burst, which is exactly the fantasy.
+		"max_rank": 2,
+	},
+	## The end state, and not another number: the bodies stop being cargo and become munitions.
+	## Each one goes off where IT came down rather than at the pile's centre, so a wide throw reads
+	## as several separate impacts - the reason to carry six in the first place.
+	"barbarian_bodies_as_ordnance": {
+		"id": "barbarian_bodies_as_ordnance",
+		"name": "Bodies as Ordnance",
+		"description": "Every body you throw detonates where it lands",
+		"kit": "barbarian",
+		"is_ability_upgrade": true,
+		"is_capstone": true,
+		"requires": ["barbarian_strongman", "barbarian_strongman"],
+		"op": "modifier",
+		"stat": "pile_blast",
+		"type": "flat",
+		"value": 0.70,
+		"max_rank": 1,
+	},
+	## Guard, finally worth holding for a reason other than not dying.
+	"barbarian_wall_of_iron": {
+		"id": "barbarian_wall_of_iron",
+		"name": "Wall of Iron",
+		"description": "The sword answers what it stops",
+		"kit": "barbarian",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "guard_riposte",
+		"type": "flat",
+		"value": 0.60,
+		## Aimed at whoever actually swung, not an area: a block is a one-on-one event.
+		"max_rank": 2,
+	},
+	"barbarian_immovable": {
+		"id": "barbarian_immovable",
+		"name": "Immovable",
+		"description": "The guard covers far more ground",
+		"kit": "barbarian",
+		"is_ability_upgrade": true,
+		"op": "modifier",
+		"stat": "guard_arc",
+		"type": "flat",
+		"value": 0.70,
+		## 150 degrees -> ~190. One-shot: _is_guard_blocking clamps at a full circle, and "blocks
+		## everything from every direction" is a different ability, not a bigger version of this one.
+		"max_rank": 1,
 	},
 	"barbarian_cleaving_blow": {
 		"id": "barbarian_cleaving_blow", "name": "Cleaving Blow",
@@ -1309,11 +1672,48 @@ const ALL: Dictionary = {
 		"kit": "barbarian", "is_ability_upgrade": true, "op": "scale_aoe",
 		"target": { "anim": "attack_2" }, "params": { "damage_mult": 1.35 },
 	},
-	"barbarian_stormcaller": {
-		"id": "barbarian_stormcaller", "name": "Stormcaller",
-		"description": "Thunder Blade throws +2 bolts",
-		"kit": "barbarian", "is_ability_upgrade": true, "op": "add_projectiles",
-		"target": { "anim": "thunder" }, "params": { "count": 2 },
+
+	## The four phase-op picks that survive the mod diff. Ravager mods occupy sunder (scale x2),
+	## thunder (scale + add_projectiles x2), hurl (scale) and cry (add_status), so these use ops
+	## no Ravager mod touches.
+	"barbarian_fault_line": {
+		"id": "barbarian_fault_line", "name": "Fault Line",
+		"description": "Sunder leaves the ground split and burning",
+		"kit": "barbarian", "is_ability_upgrade": true, "op": "add_ground_zone",
+		"target": { "anim": "sunder" },
+		"params": { "zone_id": "barbarian_fault_line", "radius": 56.0, "duration": 4.0,
+					"tick": 0.5, "damage_mult": 0.12, "element": "fire", "damage_type": "Fire" },
+	},
+	## Ancestral-Call shaped, on the ground-breaker rather than a slam: the crack repeats under
+	## two other enemies. No Ravager mod uses echo_aoe.
+	"barbarian_seismic_echo": {
+		"id": "barbarian_seismic_echo", "name": "Seismic Echo",
+		"description": "Sunder cracks the ground under two more of them",
+		"kit": "barbarian", "is_ability_upgrade": true, "op": "echo_aoe",
+		"target": { "anim": "sunder" },
+		"params": { "copies": 2, "damage_mult": 0.60, "radius": 170.0, "separation": 40.0 },
+	},
+	"barbarian_thunderstruck": {
+		"id": "barbarian_thunderstruck", "name": "Thunderstruck",
+		"description": "Thunder Blade throws a shockwave out with it",
+		"kit": "barbarian", "is_ability_upgrade": true, "op": "add_shockwave",
+		"target": { "anim": "thunder" },
+		"params": { "radius": 96.0, "damage_mult": 0.55, "color": Color(0.60, 0.80, 1.0, 0.9) },
+	},
+	## Pile Driver spends a long beat with his hands full and six people over his head.
+	"barbarian_braced": {
+		"id": "barbarian_braced", "name": "Braced",
+		"description": "Nothing can touch you with your hands full",
+		"kit": "barbarian", "is_ability_upgrade": true, "op": "add_iframes",
+		"target": { "graph": "skill_e", "anim": "hurl" },
+	},
+	## The chain is Cleave -> Cleave II -> Sunder with Thunder hanging off the second beat, so the
+	## window on Cleave II gates both finishers.
+	"barbarian_warpath": {
+		"id": "barbarian_warpath", "name": "Warpath",
+		"description": "The second cleave holds its window 50% longer",
+		"kit": "barbarian", "is_ability_upgrade": true, "op": "extend_window",
+		"target": { "graph": "light", "anim": "attack_2" }, "params": { "window_mult": 1.50 },
 	},
 
 	## ── Gunslinger ────────────────────────────────────────────────────────────
@@ -1362,20 +1762,41 @@ const ORDER_BY_KIT: Dictionary = {
 				   "paladin_ringing_dictum",        "paladin_crusaders_cadence",
 				   "paladin_hallowed_ground",       "paladin_zeal",
 				   "paladin_sanctuary"],
-	"ninja":      ["ninja_blade_storm_surge",       "ninja_killing_edge",           "ninja_smoke_ambush",
-				   "ninja_final_cut",               "ninja_twin_fangs",             "ninja_shadow_step"],
-	"cleric":     ["cleric_divine_wrath",           "cleric_greater_word",          "cleric_sanctified_smite",
-				   "cleric_guardians_wrath",        "cleric_litany",                "cleric_kindled_fire"],
-	"druid":      ["druid_seedstorm",               "druid_strangling_roots",       "druid_wild_barrage",
-				   "druid_greater_bear",            "druid_pack_leader",            "druid_thorned_seeds"],
+	## 10 entries — the eleventh kit through the level-up-layer pass.
+	"ninja":      ["ninja_blade_storm_focus",       "ninja_perfect_silence",
+				   "ninja_endless_edge",            "ninja_twin_fangs",
+				   "ninja_shadow_step",             "ninja_shadowburst",
+				   "ninja_bloodgrass",              "ninja_mirror_cuts",
+				   "ninja_vanishing_act",           "ninja_killing_tempo"],
+	## 11 entries — the ninth kit through the level-up-layer pass.
+	"cleric":     ["cleric_warden_spirit",          "cleric_long_vigil",
+				   "cleric_choir_of_spears",        "cleric_sanctified_smite",
+				   "cleric_litany",                 "cleric_censer_sweep",
+				   "cleric_consecration",           "cleric_steadfast",
+				   "cleric_cadence_of_faith",       "cleric_judgement_echo",
+				   "cleric_radiant_volley"],
+	## 10 entries — the eighth kit through the level-up-layer pass.
+	"druid":      ["druid_ursine_might",            "druid_pack_fangs",
+				   "druid_wild_hunt",               "druid_second_grove",
+				   "druid_deep_roots",              "druid_verdant_surge",
+				   "druid_thorn_volley",            "druid_bramble_bed",
+				   "druid_grove_guard",             "druid_patient_growth"],
 	## 7 entries — every other kit has 6. The Shade keeps the extra class-flavored pick it has
 	## always had (necro_greater_swirl overlaps the SPLINTERING SWIRL class mod almost exactly, so
 	## it stays the natural trim if Ben ever wants parity).
-	"necromancer": ["necro_bone_barrage",           "necro_greater_swirl",          "necro_grave_vigor",
-					"necro_bone_choir",             "necro_risen_horror",           "necro_legion_swell",
-					"necro_marrow_rot"],
-	"ranger":     ["ranger_triple_volley",          "ranger_keen_blade",            "ranger_eagle_eye",
-				   "ranger_double_down",            "ranger_riposte",               "ranger_venom_tips"],
+	## 11 entries — the sixth kit through the level-up-layer pass.
+	"necromancer": ["necro_risen_horror",           "necro_mass_grave",
+					"necro_legion_swell",           "necro_volatile_marrow",
+					"necro_chain_of_the_dead",      "necro_reapers_due",
+					"necro_grave_hunger",           "necro_bone_choir",
+					"necro_bone_field",             "necro_deathless",
+					"necro_patient_dead"],
+	## 10 entries — the tenth kit through the level-up-layer pass.
+	"ranger":     ["ranger_mirror_focus",           "ranger_lingering_reflection",
+				   "ranger_hall_of_mirrors",        "ranger_triple_volley",
+				   "ranger_double_down",            "ranger_knife_work",
+				   "ranger_caltrops",               "ranger_quickstep",
+				   "ranger_steady_draw",            "ranger_split_volley"],
 	## 11 entries — the third kit through the level-up-layer pass.
 	"wizard":     ["wizard_fireball_expansion",     "wizard_rising_storm",
 				   "wizard_rolling_front",          "wizard_eye_of_the_storm",
@@ -1398,11 +1819,13 @@ const ORDER_BY_KIT: Dictionary = {
 					 "demon_cinder_trail",          "demon_brimstone_toll",
 					 "demon_pact_haste",            "demon_unbound",
 					 "demon_ember_wake"],
-	## 7 entries — the extra one is GREATER PILE, the level-up half of Pile Driver's expandable
-	## chain cap (AVALANCHE is the class-mod half). Same deliberate overshoot as the Shade above.
-	"barbarian":  ["barbarian_seismic_sunder",      "barbarian_thunder_amp",        "barbarian_battle_rage",
-				   "barbarian_hurled_doom",         "barbarian_cleaving_blow",      "barbarian_stormcaller",
-				   "barbarian_greater_pile"],
+	## 11 entries — the seventh kit through the level-up-layer pass.
+	"barbarian":  ["barbarian_strongman",           "barbarian_crushing_weight",
+				   "barbarian_bodies_as_ordnance",  "barbarian_wall_of_iron",
+				   "barbarian_immovable",           "barbarian_cleaving_blow",
+				   "barbarian_fault_line",          "barbarian_thunderstruck",
+				   "barbarian_braced",              "barbarian_warpath",
+				   "barbarian_seismic_echo"],
 	"gunslinger": ["gunslinger_hair_trigger",       "gunslinger_storm_surge",       "gunslinger_cold_steel",
 				   "gunslinger_whipcrack",          "gunslinger_double_tap",        "gunslinger_hollow_points"],
 }

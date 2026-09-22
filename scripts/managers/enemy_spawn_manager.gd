@@ -185,6 +185,7 @@ func configure_level(level_id: int) -> void:
 
 
 func start_spawning(player: Node2D, bounds: Rect2) -> void:
+	apply_balance_overrides()
 	player_ref = player
 	arena_bounds = bounds
 	spawn_enabled = true
@@ -264,7 +265,7 @@ func _spawn_wave() -> void:
 
 	var difficulty: float = GameManager.difficulty_multiplier
 	var phase_idx: int = clampi(GameManager.get_effective_phase() - 1, 0, 4)
-	var count: int = mini(int(enemies_per_spawn * difficulty * PHASE_SPAWN_MULT[phase_idx]), max_enemies - active_enemies)
+	var count: int = mini(int(enemies_per_spawn * difficulty * _spawn_mult(phase_idx)), max_enemies - active_enemies)
 
 	for _i in range(count):
 		if active_enemies >= max_enemies:
@@ -518,7 +519,31 @@ func _get_scene_for_id(enemy_id: String) -> PackedScene:
 
 func _get_effective_difficulty() -> float:
 	var phase_idx: int = clampi(GameManager.get_effective_phase() - 1, 0, 4)
-	return GameManager.difficulty_multiplier * GameManager.get_instability_multiplier() * PHASE_HP_MULT[phase_idx]
+	return GameManager.difficulty_multiplier * GameManager.get_instability_multiplier() * _hp_mult(phase_idx)
+
+
+## ── Balance-override accessors ───────────────────────────────────────────────
+## The PHASE_* constants are the shipped curve; the run reads it through here so the Unit
+## Editor's DIFFICULTY section reaches it.
+##
+## PHASE_DMG_MULT deliberately has no accessor: nothing in the game reads it. Enemy damage
+## does not scale per phase today, only HP does. Exposing a tuner for a dead constant would
+## ship a control that silently does nothing — the exact failure this layer exists to avoid.
+
+func _hp_mult(phase_idx: int) -> float:
+	var i: int = clampi(phase_idx, 0, PHASE_HP_MULT.size() - 1)
+	return BalanceOverrides.difficulty("hp_mult_%d" % i, float(PHASE_HP_MULT[i]))
+
+
+func _spawn_mult(phase_idx: int) -> float:
+	var i: int = clampi(phase_idx, 0, PHASE_SPAWN_MULT.size() - 1)
+	return BalanceOverrides.difficulty("spawn_mult_%d" % i, float(PHASE_SPAWN_MULT[i]))
+
+
+## Re-read the tunables that are plain vars rather than reads-per-use. Called at run start
+## and by the Unit Editor's live-apply.
+func apply_balance_overrides() -> void:
+	max_enemies = BalanceOverrides.get_int(BalanceOverrides.difficulty_path("max_enemies"), 90)
 
 
 ## ── Spawn position helpers ────────────────────────────────────────────────────

@@ -5,6 +5,20 @@ class_name CharacterData
 
 ## Unlock order and costs match systems_design_part3.md.
 ## The Drifter is always unlocked (unlock_cost: 0, always in unlocked_characters).
+## ── Balance-override accessor ────────────────────────────────────────────────
+##
+## The three numbers below that touch balance — base_hp, base_armor, base_move_speed —
+## are read through here rather than straight off ALL, so the Unit Editor's override layer
+## reaches them. ALL stays the shipped source of truth and is never mutated (Godot 4 const
+## dictionaries are read-only anyway); this just decides which value a caller sees.
+##
+## Everything else in an entry (display_name, sprite, melee_kit, passive_id) is identity,
+## not balance, and is still read directly.
+static func balance(char_id: String, field: String, fallback: float) -> float:
+	var cd: Dictionary = ALL.get(char_id, {})
+	return BalanceOverrides.character_field(char_id, field, float(cd.get(field, fallback)))
+
+
 const ALL: Dictionary = {
 
 	## ─── The Drifter ──────────────────────────────────────────────────────────

@@ -27,7 +27,11 @@ const HOME_FAR_SQ: float = 44.0 * 44.0   ## starts trudging after the player bey
 const HOME_NEAR_SQ: float = 24.0 * 24.0  ## settles once back within this (hysteresis — no jitter)
 const ATTACK_COOLDOWN: float = 1.6
 const STRIKE_DELAY: float = 2.0 / 14.0   ## attack anim frame 2 @ 14fps = the smite
-const DAMAGE_MULT: float = 0.5           ## × the player's live damage stat
+const DAMAGE_MULT: float = 0.5           ## × the player's live damage stat (the floor)
+## Level-up seams, set by the spawner before add_child (HolyHammer / FireFamiliar pattern).
+## A guardian is an ENTITY, so no phase op reaches it.
+var damage_bonus: float = 0.0            ## + DAMAGE_MULT
+var lifetime: float = LIFETIME           ## the prayer holds this long
 
 var player_ref: Node2D = null
 var damage_type: String = "Fire"         ## holy fire by default
@@ -35,7 +39,7 @@ var damage_type: String = "Fire"         ## holy fire by default
 var _sprite: AnimatedSprite2D = null
 var _facing: String = "down_left"
 var _state: String = "spawn"             ## "spawn" → "walk" → "die"
-var _life: float = LIFETIME
+var _life: float = LIFETIME              ## seeded from `lifetime` in _ready
 var _cooldown: float = 0.0
 var _strike_timer: float = -1.0
 var _strike_target: Node2D = null
@@ -48,6 +52,7 @@ static var _frames_cache: SpriteFrames = null
 
 
 func _ready() -> void:
+	_life = lifetime
 	z_index = 1
 	_sprite = AnimatedSprite2D.new()
 	_sprite.sprite_frames = _get_frames()
@@ -149,7 +154,7 @@ func _resolve_strike() -> void:
 	var dmg: float = 25.0
 	var attacker: Node2D = self
 	if is_instance_valid(player_ref):
-		dmg = player_ref.get_stat("damage") * DAMAGE_MULT
+		dmg = player_ref.get_stat("damage") * (DAMAGE_MULT + damage_bonus)
 		attacker = player_ref
 	var hit := DamageCalculator.calculate_raw_hit(attacker, target, dmg, damage_type)
 	if not hit.is_dodged:

@@ -103,6 +103,8 @@ var _ldtk_director: LdtkLevelDirector = null
 var _ldtk_exit: LdtkExitZone = null
 var _block_manager: BlockManager = null
 var _depth_tracker: DepthTracker = null
+## Unit Editor (F12, debug mode). Its own OS window; hidden rather than freed on close.
+var _unit_editor: Window = null
 var _event_spawn_manager: EventSpawnManager = null
 var _depth_canvas_mod: CanvasModulate = null
 
@@ -240,6 +242,16 @@ func _ready() -> void:
 		var anim_lab: CanvasLayer = AnimLabScript.new()
 		add_child(anim_lab)
 		anim_lab.setup(player)
+
+		## Unit Editor (F12): the balance-tuning app. Lives in its own OS window rather than
+		## this 640x360 viewport — see the header of unit_editor_window.gd for why. Created
+		## hidden; _unhandled_input below opens it, and it hides rather than frees on close
+		## so state (selection, search, unsaved edits) survives being toggled.
+		var UnitEditorScript := preload("res://scripts/debug/unit_editor/unit_editor_window.gd")
+		_unit_editor = UnitEditorScript.new()
+		add_child(_unit_editor)
+		_unit_editor.setup(player)
+		_unit_editor.hide()
 
 	## Run telemetry — ALWAYS on, not debug-gated: it is the data source behind the results
 	## screen (damage per ability, damage taken, healing, depth). Signal-driven with no _process,
@@ -760,6 +772,15 @@ func _on_extraction_window_opened() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("town_portal"):
 		_try_town_portal()
+		return
+	## F12 toggles the Unit Editor. Not an InputMap action on purpose — it is a dev tool, and
+	## the other four (F1/F5/F10/F11) are raw keycodes for the same reason.
+	if _unit_editor == null or not (event is InputEventKey):
+		return
+	var key: InputEventKey = event
+	if key.pressed and not key.echo and key.keycode == KEY_F12:
+		_unit_editor.toggle()
+		get_viewport().set_input_as_handled()
 
 
 ## Spend a bought town portal. The free gateway is a bus — it arrives on the phase clock and you

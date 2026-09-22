@@ -90,6 +90,25 @@ func get_effective_phase() -> int:
 ## Difficulty scaling — time-based for prototype
 const DIFFICULTY_SCALE_PERIOD: float = 30.0
 const DIFFICULTY_SCALE_RATE: float = 0.15
+
+
+## ── Balance-override accessors ───────────────────────────────────────────────
+## The three constants above are the shipped curve; these are what the run actually reads,
+## so the Unit Editor's DIFFICULTY section reaches them without anything being mutable.
+
+func phase_duration_for(idx: int) -> float:
+	var i: int = clampi(idx, 0, PHASE_DURATIONS.size() - 1)
+	return BalanceOverrides.difficulty("phase_duration_%d" % i, float(PHASE_DURATIONS[i]))
+
+
+func scale_period() -> float:
+	## Guarded against zero: it is a divisor, and a 0 typed into the editor would make the
+	## difficulty multiplier INF on the next frame.
+	return maxf(BalanceOverrides.difficulty("scale_period", DIFFICULTY_SCALE_PERIOD), 0.01)
+
+
+func scale_rate() -> float:
+	return BalanceOverrides.difficulty("scale_rate", DIFFICULTY_SCALE_RATE)
 var difficulty_multiplier: float = 1.0
 
 ## Loot and instability (decoupled — instability tracks per-item weights, not raw loot value)
@@ -257,7 +276,7 @@ func _process(delta: float) -> void:
 	phase_timer_updated.emit(phase_duration - phase_timer)
 
 	## Update difficulty over time
-	difficulty_multiplier = 1.0 + (run_time / DIFFICULTY_SCALE_PERIOD) * DIFFICULTY_SCALE_RATE
+	difficulty_multiplier = 1.0 + (run_time / scale_period()) * scale_rate()
 	
 	## Check if phase timer reached duration — open extraction window
 	if phase_timer >= phase_duration and not extraction_window_active:
@@ -277,7 +296,7 @@ func start_run() -> void:
 	current_state = GameState.RUN_ACTIVE
 	phase_number = 1
 	phase_timer = 0.0
-	phase_duration = PHASE_DURATIONS[0]
+	phase_duration = phase_duration_for(0)
 	run_time = 0.0
 	kills = 0
 	difficulty_multiplier = 1.0
@@ -568,7 +587,7 @@ func _close_extraction_window() -> void:
 func _advance_phase() -> void:
 	phase_number += 1
 	phase_timer = 0.0
-	phase_duration = PHASE_DURATIONS[clampi(phase_number - 1, 0, PHASE_DURATIONS.size() - 1)]
+	phase_duration = phase_duration_for(phase_number - 1)
 	guardian_killed_this_phase = false
 	player_has_keystone = false
 	if phase_number < MAX_PHASES:

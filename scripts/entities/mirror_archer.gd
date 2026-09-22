@@ -60,8 +60,11 @@ const TINT: Color = Color(0.55, 0.8, 1.0, 0.62)   ## cold, translucent — a ref
 ## Set by the host before adding to the tree.
 var player_ref: Node2D = null
 var ability_ref: AbilityDefinition = null   ## routed onto the arrows so on-hit triggers keep context
-var lifetime: float = 10.0
-var damage_mult: float = 0.5                ## × the player's live damage stat, per arrow
+## Named so the spawner can scale them without instantiating a throwaway archer.
+const BASE_LIFETIME: float = 10.0
+const BASE_DAMAGE_MULT: float = 0.5
+var lifetime: float = BASE_LIFETIME
+var damage_mult: float = BASE_DAMAGE_MULT   ## × the player's live damage stat, per arrow
 
 var _sprite: AnimatedSprite2D = null
 var _facing: String = "down_right"

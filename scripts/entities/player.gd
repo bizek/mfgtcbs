@@ -25,8 +25,12 @@ var combat_manager: Node2D = null
 var spatial_grid: SpatialGrid = null
 var combat_role: String = "MELEE"
 
-## Base stats — initial values, modified by ModifierComponent
-var _base_stats: Dictionary = {
+## Base stats — the values every character starts from, before CharacterData and the
+## balance-override layer speak. A `const` rather than a plain initializer so the shipped
+## numbers stay readable as data: BalanceRegistry reads this table to build the Unit
+## Editor's player-stat section and to show what each stat's value is in source. Godot 4
+## makes const collections read-only, so nothing can scribble on it by accident.
+const BASE_STATS: Dictionary = {
 	"max_hp":          100.0,
 	"damage":          18.0,
 	"attack_speed":    1.0,
@@ -133,10 +137,61 @@ var _base_stats: Dictionary = {
 	"demon_burst":      0.0,  ## fraction of damage detonated where the binding ends
 	"fissure_damage":   0.0,  ## fraction of damage along the Hell Breach crack (0 = pure VFX)
 	"ashen_power":      0.0,  ## + ASHENSTEP_TICK_MULT on the dash trail's burn
+	## -- Shade (2026-09-21) -----------------------------------------------------------------
+	## Flat, 0.0-based, same reasoning as every other host-side kit stat.
+	##
+	## The Shade is the roster's swarm summoner and NOT ONE of its six picks reached a skeleton:
+	## RISEN HORROR and LEGION SWELL both scaled the dmg*0.3 cast pulse that exists to make
+	## choreo_fire_effects run the spawn hook, exactly like the Warden's HAMMER STORM. Soul
+	## Harvest - the kit's own resource, banking kills into heals and empowered summons - had
+	## nothing in either layer.
+	"squad_size":       0.0,  ## + RISE_CORPSE_SQUAD (persistent champions per Q)
+	"champion_damage":  0.0,  ## + SkeletalChampion.damage_mult on the persistent squad
+	"legion_size":      0.0,  ## + the Bone Legion's volatile count
+	"legion_blast":     0.0,  ## + SkeletalChampion.detonate_mult on volatile skeletons
+	"legion_chain":     0.0,  ## >0: a volatile blast raises a successor (finite, see chain_raises)
+	"soul_heal":        0.0,  ## + SOUL_HARVEST_HEAL per soul reaped
+	"soul_threshold":   0.0,  ## - SOUL_HARVEST_THRESHOLD (negative = empower sooner)
+	## -- Ravager (2026-09-21) ---------------------------------------------------------------
+	## Flat, 0.0-based, same reasoning as every other host-side kit stat.
+	##
+	## Pile Driver is the most physical thing in the game - he picks six people up and throws
+	## them - and every number in it was a const. Guard was worse: it blocks a frontal hit
+	## OUTRIGHT and deals nothing back, so holding it was pure defence with no pick attached,
+	## the same "cosmetic-only system" the Spark's ice aura and the Demon's fissure were.
+	"pile_body_damage": 0.0,  ## + PILE_BODY_DAMAGE, dealt to each THROWN body on impact
+	"pile_burst":       0.0,  ## + PILE_PER_BODY_BONUS, added to the landing burst per body
+	"pile_blast":       0.0,  ## >0: each thrown body detonates where it comes to rest
+	"guard_riposte":    0.0,  ## fraction of damage thrown back at whoever the sword stopped
+	"guard_arc":        0.0,  ## + GUARD_BLOCK_ARC radians of frontal cover
+	## -- Verdant / Devout / Scavenger (2026-09-21) --------------------------------------------
+	## Flat, 0.0-based. Three more kits whose companions no phase op could reach: the Druid's
+	## bear and hounds, the Cleric's Spirit Guardian, and the Ranger's Mirror Archer. Every old
+	## pick aimed at one of them was scaling the summon CAST's pulse instead.
+	"bear_damage":      0.0,  ## + the bear's species damage_mult
+	"bear_count":       0.0,  ## EXTRA bears per call (SECOND GROVE breaks the single-elite rule)
+	"hound_damage":     0.0,  ## + a hound's species damage_mult
+	"hound_count":      0.0,  ## + DRUID_HOUND_PAIR
+	"companion_life":   0.0,  ## + either species' lifetime, in seconds
+	"guardian_damage":  0.0,  ## + SpiritGuardian.DAMAGE_MULT
+	"guardian_life":    0.0,  ## + SpiritGuardian.LIFETIME seconds
+	"guardian_count":   0.0,  ## EXTRA guardians per prayer
+	"archer_damage":    0.0,  ## + MirrorArcher.damage_mult
+	"archer_life":      0.0,  ## + MirrorArcher.lifetime seconds
+	"archer_count":     0.0,  ## EXTRA mirror archers
+	## -- Whisper (2026-09-21) ---------------------------------------------------------------
+	## Blade Storm is a HELD channel and the Whisper is the roster's crit assassin, but nothing
+	## in either layer connected those two facts - her mods just add crit all the time. This is
+	## crit that only exists while the storm is up, which is a reason to hold it.
+	"storm_crit":       0.0,  ## + crit_chance while the blade storm is held
 	"combo_window":    1.0,
 	"combo_timeout":   2.5,
 	"combo_lock":      0.0,
 }
+
+## The live working copy, seeded from the read-only table above. `_load_character_stats()`
+## then overwrites entries from CharacterData and BalanceOverrides.
+var _base_stats: Dictionary = BASE_STATS.duplicate(true)
 
 ## XP and leveling
 var xp: float = 0.0
@@ -491,7 +546,8 @@ var _vamp_hit: bool = false              ## last extract beat found blood to dri
 ## Cleric's summoned Spirit Guardian companion (pet standard, mirrors BloodElemental).
 const ROOT_DECAL_SHEET: String = "res://assets/minifantasy/Minifantasy_TrueHeroes_v1.0/Minifantasy_TrueHeroes_Assets/Druid/Special_Animations/Root_Summoning/Minifantasy_TrueHeroesDruidRootAttack.png"
 const PAIN_DECAL_SHEET: String = "res://assets/minifantasy/Minifantasy_True_Heroes_II_v1.0/Minifantasy_True_Heroes_II_Assets/Cleric/Special_Animations/Prayers/Word_Of_Pain/WordOfPain.png"
-var _spirit_guardian: Node2D = null
+## The Devout's guardians. An ARRAY since 2026-09-21 (CHOIR OF SPEARS) — a single slot before.
+var _spirit_guardians: Array[Node2D] = []
 ## Necromancer kit (The Shade): the persistent Skeletal Champion companion (pet standard) + Soul
 ## Harvest state — kills bank souls that heal and, every SOUL_HARVEST_THRESHOLD, empower the next summon.
 ## Rise Corpse (Q) raises a whole squad — the Shade is up against hordes, so one skeleton isn't
@@ -607,7 +663,8 @@ const ASHENSTEP_ZONE_TICK: float = 0.5
 const ASHENSTEP_TICK_MULT: float = 0.18     ## × weapon damage per burn beat — chip, not a nuke
 ## The Demon's bound elites. An ARRAY since 2026-09-14 (NINEFOLD PACT) — a single slot before.
 var _angry_demons: Array[Node2D] = []
-var _mirror_archer: Node2D = null
+## The Scavenger's reflections. An ARRAY since 2026-09-21 (HALL OF MIRRORS) — one slot before.
+var _mirror_archers: Array[Node2D] = []
 ## Control-scheme pass (2026-07-05): kit id + class dash + Wizard charge.
 var _kit_id: String = ""
 var _dash_style: String = ""             ## "" = standard dash; "teleport" = Spark blink
@@ -626,7 +683,8 @@ const MELEE_RANGE_MAX: float = 2.0
 ## Q raises ONE bear, and resummoning replaces it (the single-elite rule the Angry Demon follows);
 ## E raises a PAIR of hounds. Both are ForestCompanion nodes — per-species numbers live there.
 const DRUID_HOUND_PAIR: int = 2
-var _forest_bear: Node2D = null
+## The Verdant's bears. An ARRAY since 2026-09-21 (SECOND GROVE) — a single slot before.
+var _forest_bears: Array[Node2D] = []
 var _forest_hounds: Array[Node2D] = []
 
 var skill_component: SkillComponent = null   ## Q/E skill slots (SkillFactory per kit)
@@ -646,6 +704,7 @@ func _ready() -> void:
 	_load_weapon_ability()
 	_load_combo()
 	_update_pickup_radius()
+	_apply_hitbox_overrides()
 	_reset_dash_state()
 	health_changed.emit(health.current_hp, health.max_hp)
 	pickup_area.area_entered.connect(_on_pickup_area_entered)
@@ -720,12 +779,59 @@ func _setup_components() -> void:
 func _load_character_stats() -> void:
 	var char_id: String = ProgressionManager.selected_character
 	var char_data: Dictionary = CharacterData.ALL.get(char_id, CharacterData.ALL["The Drifter"])
-	_base_stats["max_hp"]     = char_data.get("base_hp", 100.0)
-	_base_stats["move_speed"] = char_data.get("base_move_speed", 200.0)
-	_passive_id               = char_data.get("passive_id", "none")
+	_passive_id = char_data.get("passive_id", "none")
+
+	## Balance layer, in resolution order (later wins):
+	##   1. BASE_STATS            — the shipped baseline for every character
+	##   2. BalanceOverrides      — per-character override, else global override
+	##   3. CharacterData         — the character's own hp/speed, unless tuned above
+	##
+	## Order matters. CharacterData only speaks for max_hp/move_speed, and it has to lose to
+	## an override of those two or the Unit Editor's CHARACTERS > Max HP field would write a
+	## value that this line stomps a frame later — the classic "the tool does nothing" bug.
+	for stat: String in BASE_STATS.keys():
+		_base_stats[stat] = BalanceOverrides.player_stat(char_id, stat, float(BASE_STATS[stat]))
+	_base_stats["max_hp"] = CharacterData.balance(char_id, "base_hp",
+			float(char_data.get("base_hp", 100.0)))
+	_base_stats["move_speed"] = CharacterData.balance(char_id, "base_move_speed",
+			float(char_data.get("base_move_speed", 200.0)))
+
 	for mod in CharacterFactory.build_base_modifiers(char_id, _base_stats):
 		modifier_component.add_modifier(mod)
 	health.setup(_base_stats["max_hp"])
+
+
+## Stamp the Unit Editor's hitbox overrides onto the live collision shapes.
+##
+## These three shapes are SubResources inside `scenes/player.tscn`, and CLAUDE.md forbids
+## hand-editing .tscn files — so the scene keeps the shipped geometry and this writes over
+## it at runtime. Shapes are duplicated first: a SubResource is shared by every instance of
+## the scene, and resizing the shared one would leak the tuned size into any other player
+## the session builds.
+##
+## Called from _ready after components exist, and again by the editor's live-apply.
+func _apply_hitbox_overrides() -> void:
+	var hurt_shape: CollisionShape2D = get_node_or_null("Hurtbox/CollisionShape")
+	if hurt_shape and hurt_shape.shape is RectangleShape2D:
+		var r: RectangleShape2D = (hurt_shape.shape as RectangleShape2D).duplicate()
+		r.size = BalanceOverrides.get_vector2(BalanceOverrides.hitbox_path("hurtbox_size"),
+				BalanceRegistry.HITBOX_BASE["hurtbox_size"])
+		hurt_shape.shape = r
+	var body_shape: CollisionShape2D = get_node_or_null("CollisionShape")
+	if body_shape and body_shape.shape is RectangleShape2D:
+		var b: RectangleShape2D = (body_shape.shape as RectangleShape2D).duplicate()
+		b.size = BalanceOverrides.get_vector2(BalanceOverrides.hitbox_path("body_size"),
+				BalanceRegistry.HITBOX_BASE["body_size"])
+		body_shape.shape = b
+	## The collector circle gets no override: _update_pickup_radius() derives its radius
+	## from the pickup_radius STAT, so anything written here would be overwritten before it
+	## could be observed. The stat is the control (see BalanceRegistry._hitbox_fields).
+	## It is still duplicated, for the same un-sharing reason as the two shapes above —
+	## _update_pickup_radius writes the radius straight onto the shape, and the shipped
+	## SubResource is shared by every instance of player.tscn.
+	if pickup_shape and pickup_shape.shape is CircleShape2D:
+		pickup_shape.shape = (pickup_shape.shape as CircleShape2D).duplicate()
+	_update_pickup_radius()
 
 
 # --- Character sprite ---
@@ -1031,7 +1137,10 @@ func _load_equipped_weapon() -> void:
 		weapon_id = char_data.get("starting_weapon", "Hurled Steel")
 
 	_weapon_id   = weapon_id
-	_weapon_data = WeaponData.ALL.get(weapon_id, WeaponData.ALL["Hurled Steel"])
+	## Tuned entry, not the raw const table — the Unit Editor's weapon numbers live here.
+	_weapon_data = WeaponData.tuned(weapon_id)
+	if _weapon_data.is_empty():
+		_weapon_data = WeaponData.tuned("Hurled Steel")
 
 	# Weapon stats override base damage/attack_speed/projectile_count
 	_set_base_stat("damage", _weapon_data.get("damage", 18.0))
@@ -1240,7 +1349,10 @@ func switch_weapon(weapon_id: String) -> void:
 
 	## Load new weapon data
 	_weapon_id   = weapon_id
-	_weapon_data = WeaponData.ALL.get(weapon_id, WeaponData.ALL["Hurled Steel"])
+	## Tuned entry, not the raw const table — the Unit Editor's weapon numbers live here.
+	_weapon_data = WeaponData.tuned(weapon_id)
+	if _weapon_data.is_empty():
+		_weapon_data = WeaponData.tuned("Hurled Steel")
 	_set_base_stat("damage",          _weapon_data.get("damage", 18.0))
 	_set_base_stat("attack_speed",    _weapon_data.get("attack_speed", 1.0))
 	_set_base_stat("projectile_count", _weapon_data.get("projectile_count", 1))
@@ -1478,6 +1590,7 @@ func _physics_process(delta: float) -> void:
 	## Spark level-up seams: both no-op instantly unless their stat is above zero.
 	_tick_storm_linger(delta)
 	_tick_ice_aura_bite(delta)
+	_tick_blade_storm_crit()
 	## Refresh the auto-aim lock BEFORE facing — every aim consumer this frame (facing, swings,
 	## skills, VFX) then reads the same target.
 	_update_auto_target()
@@ -1675,6 +1788,10 @@ func _load_combo() -> void:
 		var kit: Dictionary = ChainFactory.build_kit(kit_id, _weapon_data)
 		ClassModFactory.apply_to_kit(kit_id, kit, class_mods)
 		ClassModFactory.apply_upgrade_dicts_to_kit(kit_id, kit, ability_up_dicts)
+		## Unit Editor phase tuning. Applied AFTER mods/upgrades so a tuned base is what
+		## those layers multiply — the editor sets what a phase IS, a mod still means
+		## "+35% of whatever it is".
+		BalanceChain.apply(kit_id, kit)
 		_apply_hit_frame_overrides(char_id, kit.values())
 		set_combo_ability(kit.get("light"))
 		_combo_heavy = kit.get("heavy")
@@ -1710,6 +1827,7 @@ func _load_combo() -> void:
 			var skills: Dictionary = SkillFactory.build_kit_skills(kit_id, _weapon_data)
 			ClassModFactory.apply_to_skills(kit_id, skills, class_mods)
 			ClassModFactory.apply_upgrade_dicts_to_skills(kit_id, skills, ability_up_dicts)
+			BalanceChain.apply(kit_id, skills)
 			_apply_hit_frame_overrides(char_id, skills.values())
 			for slot in skills:
 				skill_component.set_skill(slot, skills[slot])
@@ -2141,7 +2259,9 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 			## not on the release frame a third of a second earlier, so the damage, the stun and
 			## the finisher beat all arrive together with the bodies. Nothing is dispatched here.
 			var land: Vector2 = _pile_landing_point()
-			var pile_bonus: float = get_stat("damage") * PILE_PER_BODY_BONUS * float(_pile.size())
+			## CRUSHING WEIGHT: each carried body is worth more on the landing.
+			var pile_bonus: float = get_stat("damage") \
+					* (PILE_PER_BODY_BONUS + get_stat("pile_burst")) * float(_pile.size())
 			if pile_bonus > 0.0:
 				## On a DUPLICATE. At Reach 1.0 self_effects holds the phase's own resource (see
 				## the branch above), and adding to that would compound the burst on every cast.
@@ -2542,15 +2662,24 @@ func _spawn_blood_elemental() -> void:
 func _spawn_spirit_guardian() -> void:
 	## One guardian at a time — resummon replaces (the old one is unsummoned). Mirrors the
 	## BloodElemental/FireFamiliar pet standard (autonomous locomotion + leash; CLAUDE.md).
-	if is_instance_valid(_spirit_guardian):
-		_spirit_guardian.banish()
-	var g := SpiritGuardian.new()
-	g.player_ref = self
-	g.damage_type = ChainFactory._damage_type(_weapon_data)
-	get_tree().current_scene.add_child(g)
+	for old in _spirit_guardians:
+		if is_instance_valid(old):
+			old.banish()
+	_spirit_guardians.clear()
+	var count: int = 1 + int(round(get_stat("guardian_count")))
+	var dtype: String = ChainFactory._damage_type(_weapon_data)
 	var side: float = -1.0 if _facing.ends_with("left") else 1.0
-	g.global_position = global_position + Vector2(22.0 * side, 4.0)
-	_spirit_guardian = g
+	for i in range(count):
+		var g := SpiritGuardian.new()
+		g.player_ref = self
+		g.damage_type = dtype
+		g.damage_bonus = get_stat("guardian_damage")
+		g.lifetime = SpiritGuardian.LIFETIME + get_stat("guardian_life")
+		get_tree().current_scene.add_child(g)
+		## Fan a pair apart so they do not answer the prayer standing inside each other.
+		var off: float = float(i) * 20.0 - float(count - 1) * 10.0
+		g.global_position = global_position + Vector2(22.0 * side + off, 4.0)
+		_spirit_guardians.append(g)
 
 
 func _spawn_skeletal_champion() -> void:
@@ -2564,7 +2693,9 @@ func _spawn_skeletal_champion() -> void:
 			old.banish()
 	_skeletal_champions.clear()
 	var dtype: String = ChainFactory._damage_type(_weapon_data)
-	var count: int = RISE_CORPSE_SQUAD + (1 if _consume_summon_empower() else 0)
+	var count: int = RISE_CORPSE_SQUAD + int(round(get_stat("squad_size"))) \
+			+ (1 if _consume_summon_empower() else 0)
+	var champ_mult: float = SkeletalChampion.BASE_DAMAGE_MULT + get_stat("champion_damage")
 	## Spread them in a shallow fan ahead of the Shade so the emerges read as a rank of risen dead,
 	## not a stack. Centered on the aim direction, fanned across ~120°, ~34px out.
 	var base_ang: float = _aim_dir.angle() if _aim_dir.length_squared() > 0.01 else 0.0
@@ -2572,6 +2703,7 @@ func _spawn_skeletal_champion() -> void:
 		var champ := SkeletalChampion.new()
 		champ.player_ref = self
 		champ.damage_type = dtype
+		champ.damage_mult = champ_mult
 		get_tree().current_scene.add_child(champ)
 		var t: float = (float(i) / float(maxi(count - 1, 1))) - 0.5   # -0.5 .. 0.5
 		var ang: float = base_ang + t * (TAU / 3.0)                    # fan across ~120°
@@ -2590,7 +2722,10 @@ func _spawn_bone_legion() -> void:
 	## Q's 4 (Ben 2026-08-01), so the pack is now bigger AND spent in one go: Q is the bodyguard you
 	## keep alive, E is the grenade you throw into a crowd. `damage_mult` is left at its floor
 	## because a volatile skeleton never swings — the blast is the whole payload.
-	var count: int = 6 if _consume_summon_empower() else 5
+	var count: int = 5 + int(round(get_stat("legion_size"))) \
+			+ (1 if _consume_summon_empower() else 0)
+	var blast: float = SkeletalChampion.BASE_DETONATE_MULT + get_stat("legion_blast")
+	var chain: int = int(round(get_stat("legion_chain")))
 	var dtype: String = ChainFactory._damage_type(_weapon_data)
 	for i in range(count):
 		var sk := SkeletalChampion.new()
@@ -2599,6 +2734,8 @@ func _spawn_bone_legion() -> void:
 		sk.volatile = true
 		sk.lifetime = 6.0
 		sk.damage_mult = 0.0
+		sk.detonate_mult = blast
+		sk.chain_raises = chain
 		get_tree().current_scene.add_child(sk)
 		## Raised in a ring around the Shade so they scatter outward toward different targets
 		## instead of stacking into one blast.
@@ -2639,16 +2776,25 @@ func _spawn_angry_demon() -> void:
 func _spawn_mirror_archer(ability: AbilityDefinition) -> void:
 	## Mirror Archer (Q): ONE reflection at a time — recasting disperses the old one rather than
 	## stacking a firing squad, the same single-elite rule the Angry Demon follows.
-	if is_instance_valid(_mirror_archer):
-		_mirror_archer.disperse()
-	var m := MirrorArcher.new()
-	m.player_ref = self
-	m.ability_ref = ability
-	get_tree().current_scene.add_child(m)
+	for old in _mirror_archers:
+		if is_instance_valid(old):
+			old.disperse()
+	_mirror_archers.clear()
+	var count: int = 1 + int(round(get_stat("archer_count")))
 	## It steps out BESIDE her, square to the aim line, so it never blocks the shot she is taking.
 	var ang: float = _aim_dir.angle() if _aim_dir.length_squared() > 0.01 else 0.0
-	m.global_position = global_position + Vector2(cos(ang + PI * 0.5), sin(ang + PI * 0.5)) * 30.0
-	_mirror_archer = m
+	var perp: Vector2 = Vector2(cos(ang + PI * 0.5), sin(ang + PI * 0.5))
+	for i in range(count):
+		var m := MirrorArcher.new()
+		m.player_ref = self
+		m.ability_ref = ability
+		m.damage_mult = MirrorArcher.BASE_DAMAGE_MULT + get_stat("archer_damage")
+		m.lifetime = MirrorArcher.BASE_LIFETIME + get_stat("archer_life")
+		get_tree().current_scene.add_child(m)
+		## A second reflection steps out on the OTHER side, so the pair brackets her firing line.
+		var side: float = 1.0 if i % 2 == 0 else -1.0
+		m.global_position = global_position + perp * 30.0 * side
+		_mirror_archers.append(m)
 
 
 ## Brimstone Circle (Demonologist finisher): the pack's Standalone_Summon sigil — the circle draws
@@ -3449,7 +3595,9 @@ func _pile_touchdown(fl: Dictionary) -> void:
 	if bodies.is_empty():
 		return
 	var dtype: String = ChainFactory._damage_type(_weapon_data)
-	var body_damage: float = get_stat("damage") * PILE_BODY_DAMAGE
+	## STRONGMAN adds to the multiplier, so the card states a number.
+	var body_damage: float = get_stat("damage") * (PILE_BODY_DAMAGE + get_stat("pile_body_damage"))
+	var body_blast: float = get_stat("pile_blast")
 	var spins: Array = fl["spins"]
 	for idx in range(bodies.size()):
 		var body: Node2D = bodies[idx]
@@ -3462,12 +3610,37 @@ func _pile_touchdown(fl: Dictionary) -> void:
 					combat_manager.rng if combat_manager else null)
 			if not hit.is_dodged:
 				body.take_damage(hit)
+		## BODIES AS ORDNANCE (capstone): the body itself is the munition. Fired at the point it
+		## came down rather than at the pile's centre, so a wide throw reads as several separate
+		## impacts instead of one — which is the whole reason to carry six.
+		if body_blast > 0.0:
+			_pile_body_detonate(body.global_position, body_blast, dtype)
 		if not _pile_body_suspended(body):
 			continue   ## already back in the sim (died before touchdown)
 		if not body.is_alive:
 			_release_body(body, 0.0)   ## the impact killed it — its death anim owns it now
 			continue
 		_pile_bounce(body, land, float(spins[idx]))
+
+
+## BODIES AS ORDNANCE: one thrown body going off where it landed.
+##
+## Grid-queried rather than dispatched as an AreaDamageEffect, for the reason HolyHammer._detonate
+## records: the dispatcher anchors an AoE on a target ENTITY and centres it there, and this blast
+## belongs to a PLACE. Damage still runs through DamageCalculator with the Ravager as attacker.
+const PILE_BLAST_RADIUS: float = 40.0
+func _pile_body_detonate(at: Vector2, frac: float, dtype: String) -> void:
+	if combat_manager == null or combat_manager.spatial_grid == null:
+		return
+	spawn_shockwave_at(at, PILE_BLAST_RADIUS, Color(0.85, 0.45, 0.20, 0.9))
+	var dmg: float = get_stat("damage") * frac
+	for b in combat_manager.spatial_grid.get_nearby_in_range(
+			at, 1 if int(faction) == 0 else 0, PILE_BLAST_RADIUS * PILE_BLAST_RADIUS):
+		if not is_instance_valid(b) or not b.is_alive:
+			continue
+		var hit := DamageCalculator.calculate_raw_hit(self, b, dmg, dtype)
+		if not hit.is_dodged:
+			b.take_damage(hit)
 
 
 ## One body's bounce off the floor: out from the impact point on a small parabola (direction from
@@ -3838,6 +4011,36 @@ func _tick_storm_linger(delta: float) -> void:
 	if near.is_empty():
 		return
 	_storm_bolt(near[randi() % near.size()], _storm_chunk(), _storm_linger_ability)
+
+
+## BLADE STORM FOCUS (Whisper): crit that exists only while the storm is held.
+##
+## Maintained as a tagged ModifierDefinition added and removed on the channel's edges rather than
+## folded into crit_chance permanently, because "while you hold it" is the whole pick - her class
+## mods (HONED EDGE, DEEP CUT, SHADOWKILL) already sell crit you carry everywhere.
+##
+## Keyed on the runner's held-channel state, not the animation name: blades plays in the light and
+## heavy graphs too, and only the channel is a hold (the same discriminator _is_whirling uses).
+const STORM_CRIT_SOURCE: String = "blade_storm_focus"
+var _storm_crit_on: bool = false
+func _tick_blade_storm_crit() -> void:
+	var want: float = get_stat("storm_crit")
+	var holding: bool = false
+	if want > 0.0 and choreography_runner != null and choreography_runner.is_running() \
+			and choreography_runner.get_ability() == _combo_channel:
+		holding = choreography_runner.current_phase_is_held_channel()
+	if holding == _storm_crit_on:
+		return
+	_storm_crit_on = holding
+	if holding:
+		var m := ModifierDefinition.new()
+		m.target_tag = "crit_chance"
+		m.operation = "add"
+		m.value = want
+		m.source_name = STORM_CRIT_SOURCE
+		modifier_component.add_modifier(m)
+	else:
+		modifier_component.remove_modifiers_by_source(STORM_CRIT_SOURCE)
 
 
 ## SHARDSTORM: the Frost Burst shard ring stops being decoration.
@@ -4863,7 +5066,7 @@ func take_damage(hit_data) -> void:
 		return
 	## Ravager Guard: while the sword is up (RMB-hold channel), frontal hits are stopped cold.
 	if _is_guard_blocking(hit_data):
-		_on_guard_block()
+		_on_guard_block(hit_data.source if hit_data is HitData else null)
 		return
 	## Warden Reckoning: while the Dome channel is up, hits from ANY direction are drunk into
 	## the pool instead of landing. At the cap the dome bursts on its own (interrupt() ends the
@@ -4933,11 +5136,22 @@ func _is_guard_blocking(hit_data) -> bool:
 	var facing: Vector2 = _get_aim_world_position() - global_position
 	if to_attacker.length_squared() < 1.0 or facing.length_squared() < 1.0:
 		return true   ## point-blank overlap — the sword is up, call it blocked
-	return absf(facing.angle_to(to_attacker)) <= GUARD_BLOCK_ARC * 0.5
+	## IMMOVABLE widens the cover. Clamped at a full circle — an arc past TAU would make the
+	## half-angle test always true, which is "blocks everything" by accident rather than design.
+	var arc: float = minf(GUARD_BLOCK_ARC + get_stat("guard_arc"), TAU)
+	return absf(facing.angle_to(to_attacker)) <= arc * 0.5
 
 
 ## Blocked-hit feedback: the pack's BlockImpact sheet flashes on the ComboFx overlay.
-func _on_guard_block() -> void:
+func _on_guard_block(attacker: Node2D = null) -> void:
+	## WALL OF IRON: the sword does not just stop the blow, it answers it. Aimed at whoever
+	## actually swung rather than at an area — a block is a one-on-one event.
+	var riposte: float = get_stat("guard_riposte")
+	if riposte > 0.0 and is_instance_valid(attacker) and attacker.get("is_alive"):
+		var hit := DamageCalculator.calculate_raw_hit(self, attacker,
+				get_stat("damage") * riposte, ChainFactory._damage_type(_weapon_data))
+		if not hit.is_dodged:
+			attacker.take_damage(hit)
 	if _combo_fx == null or _combo_fx.sprite_frames == null:
 		return
 	var anim: String = _facing_variant(_combo_fx.sprite_frames, "guard_impact")
@@ -5005,9 +5219,13 @@ func _on_kill_soul_harvest(killer: Node, victim: Node) -> void:
 	if killer != self or not victim.is_in_group("enemies"):
 		return
 	if is_alive and health.current_hp < health.max_hp:
-		health.apply_healing(SOUL_HARVEST_HEAL)
+		## REAPER'S DUE adds to the per-soul trickle.
+		health.apply_healing(SOUL_HARVEST_HEAL + get_stat("soul_heal"))
 	_soul_charges += 1
-	if _soul_charges >= SOUL_HARVEST_THRESHOLD:
+	## GRAVE HUNGER lowers the bar. Clamped at 1 - a threshold of zero would empower every
+	## summon AND leave _soul_charges permanently over the line.
+	var need: int = maxi(1, SOUL_HARVEST_THRESHOLD + int(round(get_stat("soul_threshold"))))
+	if _soul_charges >= need:
 		_soul_charges = 0
 		_next_summon_empowered = true
 
@@ -5324,11 +5542,20 @@ func reset_stats() -> void:
 ## and the Mirror Archer follow, so Q is a "keep it alive" button rather than a stacking one.
 ## It rises out of the pack's own root eruption, which is why the decal lands before the animal.
 func _spawn_forest_bear() -> void:
-	if is_instance_valid(_forest_bear):
-		_forest_bear.banish()
+	for old_b in _forest_bears:
+		if is_instance_valid(old_b):
+			old_b.banish()
+	_forest_bears.clear()
 	var ang: float = _aim_dir.angle() if _aim_dir.length_squared() > 0.01 else 0.0
-	var at: Vector2 = global_position + Vector2(cos(ang), sin(ang)) * 30.0
-	_forest_bear = _spawn_forest_companion("bear", at)
+	var bears: int = 1 + int(round(get_stat("bear_count")))
+	for i in range(bears):
+		## Side by side rather than nose to tail, so a pair reads as two animals.
+		var off: float = float(i) * 30.0 - float(bears - 1) * 15.0
+		var at: Vector2 = global_position + Vector2(cos(ang), sin(ang)) * 30.0 \
+				+ Vector2(-sin(ang), cos(ang)) * off
+		var b: Node2D = _spawn_forest_companion("bear", at)
+		if b != null:
+			_forest_bears.append(b)
 
 
 ## Summon Hounds (E): a PAIR (DRUID_HOUND_PAIR), raised to either side of the aim so they fan out
@@ -5339,10 +5566,11 @@ func _spawn_forest_hounds() -> void:
 			old.banish()
 	_forest_hounds.clear()
 	var base_ang: float = _aim_dir.angle() if _aim_dir.length_squared() > 0.01 else 0.0
-	for i in range(DRUID_HOUND_PAIR):
+	for i in range(DRUID_HOUND_PAIR + int(round(get_stat("hound_count")))):
 		## Spread across ~70 degrees centred on the aim; with two hounds that is one either side.
 		var spread: float = deg_to_rad(70.0)
-		var t: float = 0.5 if DRUID_HOUND_PAIR <= 1 else float(i) / float(DRUID_HOUND_PAIR - 1)
+		var pack: int = DRUID_HOUND_PAIR + int(round(get_stat("hound_count")))
+		var t: float = 0.5 if pack <= 1 else float(i) / float(pack - 1)
 		var ang: float = base_ang - spread * 0.5 + spread * t
 		var at: Vector2 = global_position + Vector2(cos(ang), sin(ang)) * 28.0
 		var h: Node2D = _spawn_forest_companion("hound", at)
@@ -5361,6 +5589,11 @@ func _spawn_forest_companion(species: String, at: Vector2) -> Node2D:
 	c.species = species
 	c.player_ref = self
 	c.damage_type = ChainFactory._damage_type(_weapon_data)
+	## URSINE MIGHT and PACK FANGS are per-SPECIES, so the bonus is picked by which animal this is
+	## rather than applied to both — the bear is the heavy hitter (x0.75) and a hound is a
+	## deliberately slight x0.28, and one shared dial would flatten that difference.
+	c.damage_bonus = get_stat("bear_damage" if species == "bear" else "hound_damage")
+	c.lifetime_bonus = get_stat("companion_life")
 	get_tree().current_scene.add_child(c)
 	c.global_position = at
 	_spawn_oneshot_fx(ROOT_DECAL_SHEET, at + Vector2(0, 2), 16.0)
@@ -5383,6 +5616,51 @@ func debug_reload_mods(_mod_ids: Array = []) -> void:
 	_load_combo()
 	if _weapon_ability != null:
 		behavior_component.setup(modifier_component, _weapon_ability.cooldown_base)
+
+
+## Rebuild everything the balance layer feeds, in place — the Unit Editor's live-apply.
+##
+## In-place rather than a scene reload because tuning is an iterative loop: you want the
+## number to change while you are standing in front of the dummy you were just hitting, not
+## to be teleported back to spawn every nudge. The training room's class swap reloads the
+## scene for a reason — re-running the load steps would STACK every source-tagged modifier
+## — so this strips the two source groups those steps re-add before re-running them:
+##
+##   "base"    — covers "base" and "base_armor", added fresh by CharacterFactory
+##   "passive" — covers passive_* from both the character passive and the passive tree
+##
+## Every other group already strips itself on re-entry (`_set_base_stat` swaps its own
+## "base" entry, `_apply_gear_bonuses` clears "gear_"/"gearunique_", `_load_combo` clears
+## "classmod_"), which is why those are safe to simply call again.
+##
+## Current HP is preserved as a FRACTION: tuning Max HP from 100 to 150 mid-session should
+## leave you at the same relative health, not suddenly wounded or suddenly topped up.
+func debug_reload_balance() -> void:
+	var hp_frac: float = 1.0
+	if health != null and health.max_hp > 0.0:
+		hp_frac = clampf(health.current_hp / health.max_hp, 0.0, 1.0)
+
+	modifier_component.remove_by_source_prefix("base")
+	modifier_component.remove_by_source_prefix("passive")
+	## Both are threshold-toggled and re-add themselves only on a CROSSING, so a stale flag
+	## would leave the character permanently without its passive after a rebuild.
+	_bloodrage_on = false
+	_calm_hands_on = false
+
+	_load_character_stats()
+	_load_equipped_weapon()
+	_apply_passive_mods()
+	_apply_passive_tree()
+	_load_weapon_ability()
+	_load_combo()
+	_update_pickup_radius()
+	_apply_hitbox_overrides()
+
+	if _weapon_ability != null:
+		behavior_component.setup(modifier_component, _weapon_ability.cooldown_base)
+	if health != null:
+		health.current_hp = clampf(health.max_hp * hp_frac, 1.0, health.max_hp)
+		health_changed.emit(health.current_hp, health.max_hp)
 
 
 func _spawn_burn_patch(pos: Vector2, dmg_per_sec: float, radius: float, duration: float, scene_root: Node) -> void:

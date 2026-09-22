@@ -95,6 +95,12 @@ static func build_all() -> void:
 	_definitions["th_warg"]        = ThresholdEnemyData.create_th_warg()
 	_definitions["th_troll"]       = ThresholdEnemyData.create_th_troll()
 
+	## Capture the shipped numbers, then stamp on whatever the Unit Editor has tuned.
+	## Runs here so a tuned value is live from the first enemy the game spawns, with no
+	## caller having to remember to ask for it.
+	_snapshot()
+	apply_balance_overrides()
+
 
 static func get_def(enemy_id: String) -> EnemyDefinition:
 	build_all()
@@ -104,3 +110,74 @@ static func get_def(enemy_id: String) -> EnemyDefinition:
 static func get_all() -> Dictionary:
 	build_all()
 	return _definitions
+
+
+## ── Balance-override layer ───────────────────────────────────────────────────
+##
+## This registry is the ONE place every enemy definition is created, so it is also the one
+## place a tuned value has to reach — 24 factories, one seam. Definitions are built once
+## and cached, and the entities that read them hold no copy of the numbers, so mutating
+## the cached definition in place is what "apply" means here.
+##
+## `_pristine` is the shipped value of every tunable, captured BEFORE the first apply. It
+## is what BalanceRegistry shows as the anchor, and what a revert restores — without it,
+## re-applying after an edit would compound onto the already-tuned value and the shipped
+## number would be gone for the rest of the session.
+##
+## Tunable properties are listed here rather than discovered, because EnemyDefinition also
+## carries SpriteFrames, ability graphs and group arrays that are not balance.
+const TUNABLE: Array[String] = [
+	"contact_damage", "move_speed", "base_armor", "xp_value", "health_drop_chance",
+	"aggro_range", "engage_distance", "preferred_range", "retarget_interval",
+	"aa_interval_override", "knockback_multiplier",
+]
+
+static var _pristine: Dictionary = {}
+
+
+static func _snapshot() -> void:
+	if not _pristine.is_empty():
+		return
+	for eid: String in _definitions.keys():
+		var def: EnemyDefinition = _definitions[eid]
+		if def == null:
+			continue
+		var row: Dictionary = {}
+		for prop: String in TUNABLE:
+			row[prop] = def.get(prop)
+		row["max_hp"] = float(def.base_stats.get("max_hp", 0.0))
+		_pristine[eid] = row
+
+
+## The shipped value of one field, or NAN when the enemy or field is unknown. NAN rather
+## than 0.0 so BalanceRegistry can tell "this enemy has no such field" from "it is zero".
+static func base_value(enemy_id: String, field: String) -> float:
+	build_all()
+	var row: Variant = _pristine.get(enemy_id, null)
+	if not (row is Dictionary):
+		return NAN
+	var v: Variant = (row as Dictionary).get(field, null)
+	if v is float or v is int:
+		return float(v)
+	return NAN
+
+
+## Restore every definition to its shipped numbers, then stamp the active overrides on.
+## Restore-then-apply (rather than apply-on-top) is what makes this safe to call repeatedly
+## from the Unit Editor while tuning.
+static func apply_balance_overrides() -> void:
+	build_all()
+	_snapshot()
+	for eid: String in _definitions.keys():
+		var def: EnemyDefinition = _definitions[eid]
+		if def == null:
+			continue
+		var row: Dictionary = _pristine.get(eid, {})
+		for prop: String in TUNABLE:
+			if not row.has(prop):
+				continue
+			def.set(prop, BalanceOverrides.get_float(
+					BalanceOverrides.enemy_path(eid, prop), float(row[prop])))
+		if row.has("max_hp"):
+			def.base_stats["max_hp"] = BalanceOverrides.get_float(
+					BalanceOverrides.enemy_path(eid, "max_hp"), float(row["max_hp"]))

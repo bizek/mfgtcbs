@@ -11,6 +11,36 @@
 ##   melee      — arc swing hitbox around the player
 class_name WeaponData
 
+## ── Balance-override accessor ────────────────────────────────────────────────
+##
+## Returns a weapon entry with the Unit Editor's tuned numbers merged over the shipped
+## ones. Call this instead of `ALL.get(id)` anywhere the VALUES matter (the player builds
+## its ability from this); listing and display code can keep reading ALL directly.
+##
+## The merge is a copy, so nothing mutates the const table, and only keys that already
+## exist in the entry are considered — an override for a key the weapon does not have is
+## ignored rather than inventing a field the WeaponFactory will never read.
+static func tuned(weapon_id: String) -> Dictionary:
+	var base: Dictionary = ALL.get(weapon_id, {})
+	if base.is_empty():
+		return {}
+	var out: Dictionary = base.duplicate(true)
+	for key: String in base.keys():
+		var v: Variant = base[key]
+		if not (v is float or v is int or v is bool):
+			continue
+		var path: String = BalanceOverrides.weapon_path(weapon_id, key)
+		if not BalanceOverrides.has_override(path):
+			continue
+		if v is bool:
+			out[key] = BalanceOverrides.get_bool(path, v)
+		elif v is int:
+			out[key] = BalanceOverrides.get_int(path, v)
+		else:
+			out[key] = BalanceOverrides.get_float(path, v)
+	return out
+
+
 const ALL: Dictionary = {
 
 	## ─── Hurled Steel ────────────────────────────────────────────────────────

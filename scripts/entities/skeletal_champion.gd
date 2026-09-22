@@ -59,10 +59,18 @@ const VOLATILE_TINT: Color = Color(0.72, 1.0, 0.68)   ## sickly corpse-light —
 var player_ref: Node2D = null
 var damage_type: String = "Void"
 var lifetime: float = 25.0               ## persistent; Bone Legion overrides to a few seconds
-var damage_mult: float = 0.6             ## × the player's live damage stat
+## Named so the spawner can scale them without instantiating a throwaway skeleton to read the
+## default (the HolyHammer.BASE_DAMAGE_MULT pattern).
+const BASE_DAMAGE_MULT: float = 0.6
+const BASE_DETONATE_MULT: float = 0.8
+var damage_mult: float = BASE_DAMAGE_MULT   ## × the player's live damage stat
 var volatile: bool = false               ## Bone Legion mode: charge + detonate instead of cleave
 var detonate_radius: float = 34.0        ## blast radius when volatile
-var detonate_mult: float = 0.8           ## blast damage × the player's live damage stat
+var detonate_mult: float = BASE_DETONATE_MULT  ## blast damage × the player's live damage stat
+## CHAIN OF THE DEAD (level-up capstone): a volatile blast raises a fresh volatile skeleton where it
+## died. Decremented as it passes down, so a chain is FINITE by construction - one generation deep
+## at rank 1. An unbounded version of this is a hang, not a build.
+var chain_raises: int = 0
 
 var _sprite: AnimatedSprite2D = null
 var _facing: String = "down_left"
@@ -234,7 +242,29 @@ func _detonate() -> void:
 		if not hit.is_dodged:
 			e.take_damage(hit)
 	_spawn_blast_vfx()
+	if chain_raises > 0:
+		_raise_successor()
 	queue_free()
+
+
+## One more volatile skeleton, clawing up out of the blast crater with one less chain left.
+##
+## Added directly, not deferred. Both _detonate callers are in _process (the fuse running out, and
+## the charge reaching its prey) — never a physics callback — so there is no flush to wait for, and
+## _spawn_bone_legion adds its whole ring the same way. A deferred add here was untestable caution:
+## it left the one link in the chain that could not be observed synchronously.
+func _raise_successor() -> void:
+	var sk := SkeletalChampion.new()
+	sk.player_ref = player_ref
+	sk.damage_type = damage_type
+	sk.volatile = true
+	sk.lifetime = lifetime
+	sk.damage_mult = 0.0
+	sk.detonate_mult = detonate_mult
+	sk.detonate_radius = detonate_radius
+	sk.chain_raises = chain_raises - 1
+	sk.global_position = global_position
+	get_tree().current_scene.add_child(sk)
 
 
 ## The pack's own Bone_Impact one-shot, scaled to the blast radius. Parented to the scene rather than

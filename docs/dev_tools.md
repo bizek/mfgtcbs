@@ -1,7 +1,125 @@
-# Dev Tools — Animation Lab & Training Room
+# Dev Tools — Unit Editor, Animation Lab & Training Room
 
-Both are debug-mode only (`GameManager.debug_mode`). Neither ships enabled, but the
-Animation Lab's *output* does: `data/anim_overrides.json` is read by exported builds.
+All three are debug-mode only (`GameManager.debug_mode`). None ships enabled, but two of them
+produce *output* that does: `data/anim_overrides.json` (Animation Lab) and
+`data/balance_overrides.json` (Unit Editor) are both read by exported builds.
+
+---
+
+## Unit Editor (F12)
+
+**The balance-tuning application.** Opens in its **own OS window** at 1440x900, alongside the
+running game — tune a number on one monitor, watch it land on the other. Debug mode only.
+
+### Why it is a separate window
+
+The game renders at 640x360 and integer-upscales to 1920x1080. Every other dev tool lives
+inside that buffer, which is why they size text at 9-14px and scroll heavily (the training
+panel is 170px wide because that is what fits). A comprehensive editor does not fit in
+640x360 at any readable font size. A `Window` is not subject to the main viewport's stretch,
+so it gets ordinary anti-aliased vector text at native resolution — and the pixel-grid rules
+in CLAUDE.md (m5x7 at 16/32, integer scale) do not apply inside it, because they are about
+the 640x360 buffer and this is not in it.
+
+### What it edits
+
+Six categories, **~1,970 tunables**, all *enumerated from live data* rather than hand-listed —
+add a 13th character or a 25th enemy and it appears with no edit to the tool:
+
+| Category | Covers |
+|---|---|
+| **CHARACTERS** | Per character: HP / armor / move speed, plus that character's whole stat sheet (crit, reach, dash, combo window, and its kit's own stats — the Warden's five hammer stats, the Spark's storm/familiar stats, etc.) |
+| **PLAYER** | The global baseline every character starts from, and the hurtbox / body collision shapes |
+| **COMBOS** | Every phase of every kit's light / heavy / channel graph and Q/E skills: cancel window, hit frame, telegraph speed, AoE damage / radius / forward offset, projectile count / speed / pierce / range, ground-zone radius / duration / tick, heals, shields |
+| **WEAPONS** | All 42: damage, attack speed, projectile speed / lifetime / count / spread, AoE, mod slots, drop weight |
+| **ENEMIES** | All 71: HP, contact damage, move speed, armor, XP, drop chance, aggro / engage / preferred range, retarget and attack intervals, knockback taken |
+| **DIFFICULTY** | Phase durations, the difficulty ramp, per-phase HP and spawn multipliers, the enemy cap |
+
+### How a change reaches the game
+
+Edits go to `data/balance_overrides.json`, which is read at load and applied over the static
+`const` tables at the few seams that consume them. Same shape as `anim_overrides.json`: it
+ships with the build, and the game plays the tuned numbers.
+
+Each row is tagged with what it takes to see the change:
+
+- *(blank)* — live immediately.
+- **rebuild** — needs the player rebuilt. With **live apply** on (default) that happens
+  automatically on every edit, in place: you keep your position and your dummies.
+- **restart** — affects entities spawned *after* the change. Existing enemies keep their old
+  numbers; press CLEAR then PACK in the training panel to see it.
+
+### Reading a row
+
+The **base** column always shows the shipped value, so you can see how far you have moved.
+An overridden row turns amber and reads `100 → 140`. `↺` restores shipped. Typing the shipped
+value back in also clears the override, so nudging a spinbox up and down does not leave a
+permanent entry in the change list.
+
+Ranges are **guidance, not walls** — spinboxes allow going past them, because finding out what
+an absurd value feels like is a legitimate thing to want.
+
+### Dimmed rows are DERIVED, not broken
+
+A greyed row with an amber pointer (`set by the equipped WEAPON · Damage`) is a value that
+something downstream overwrites on every rebuild, so an override on it could never be
+observed. It is shown rather than hidden so the stat is still findable — the pointer names
+where the real control is. Five stats are like this: `max_hp` and `move_speed` (owned by
+CHARACTERS) and `damage`, `attack_speed`, `projectile_count` (owned by the equipped weapon).
+
+The pickup-collector *radius* is a related case handled the other way: it is derived from the
+`pickup_radius` stat every rebuild, so there is no hitbox field for it at all — the stat is
+the control.
+
+### Profiles
+
+The file holds several named sets of values plus one active selection, so a tuning pass can be
+A/B'd against the shipped numbers without losing either. `default` always exists and is what an
+exported build reads. `+` creates a copy of the current one.
+
+### BAKE TO SOURCE
+
+Writes the tuned values back into the `.gd` files they came from and clears those overrides, so
+a tuning pass becomes a normal reviewable `git diff` instead of an opaque JSON blob — and
+`data/characters.gd` keeps telling the truth about what the game actually plays.
+
+Bakeable: `character/*` → `characters.gd` · `weapon/*` → `weapons.gd` ·
+`player_stat/_global/*` → `player.gd BASE_STATS` · `enemy/*` → the owning enemy factory ·
+`difficulty/*` → `game_manager.gd` + `enemy_spawn_manager.gd`.
+
+**Not** bakeable, and reported in the status line rather than dropped:
+
+- `chain/*` — combo phase numbers are built by code in `chain_factory.gd`, not written as a
+  table; there is no literal to rewrite.
+- `player_stat/<character>/*` — source has no per-character stat sheet (CharacterData carries
+  only hp/armor/speed).
+- `hitbox/*` — lives in `scenes/player.tscn`, and CLAUDE.md forbids hand-editing `.tscn`.
+
+Anything not baked **stays in the override file and keeps working**, so baking never silently
+loses tuning. Every rewrite requires exactly one unambiguous match or it is skipped and
+reported — `git diff` after a bake is the real review step. Godot may offer *"Files have been
+modified outside Godot"* afterwards; choose **Reload from disk**.
+
+### PRUNE
+
+Drops overrides that cannot do anything: paths matching no field (a renamed combo phase, a
+deleted weapon) and paths whose value equals shipped or sits on a derived field. This is how an
+override file avoids slowly filling with lies about what is tuned.
+
+### Two things worth knowing before a damage pass
+
+- **Combo phase damage is absolute, not a multiplier.** `hit.base_damage = dmg * MULT` is
+  computed at kit-build time from the equipped weapon. Overriding a phase's damage therefore
+  *pins* that hit to a fixed number and it stops tracking the weapon. To move a kit's damage
+  while keeping the weapon relationship, tune the **weapon**, or the player's `damage` stat.
+- **`PHASE_DMG_MULT` is dead.** `enemy_spawn_manager.gd` declares it and nothing reads it —
+  enemy *damage* does not scale per phase today, only HP does. There is deliberately no tuner
+  for it; a control for a dead constant would silently do nothing.
+
+### Hotkeys
+
+`F12` toggles · `Ctrl+S` saves · `Esc` closes. Closing hides the window and keeps your state
+(selection, search, unsaved edits).
 
 ---
 

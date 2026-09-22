@@ -89,7 +89,7 @@ behavior from `_physics_process` because it is input-driven.
 | `docs/boss_authoring_reference.md` | Boss/miniboss authoring: choreography patterns, telegraphs, phase structure |
 | `docs/spell_effects_inventory.md` | Spell Effects packs I+II coverage record: every sheet's layout, fps, and engine home |
 | `docs/ui_pack_inventory.md` | Minifantasy UI Overhaul coverage record: every sheet's layout + atlas bands, what the game actually uses (one file), and the ranked gap list. Read before any UI/theme/glyph/cursor work |
-| `docs/dev_tools.md` | Training Room (flat sandbox: dummies, live class swap, DPS meter, slow-mo) and Animation Lab (F10: trim/retime anims, re-pin hit frames, author intro/loop/outro staging for held abilities) |
+| `docs/dev_tools.md` | **Unit Editor (F12: the balance-tuning app, own OS window, ~1970 tunables across characters/player-hitbox/combos/weapons/enemies/difficulty, live-apply + bake-to-source)**, Training Room (flat sandbox: dummies, live class swap, DPS meter, slow-mo) and Animation Lab (F10: trim/retime anims, re-pin hit frames, author intro/loop/outro staging for held abilities) |
 | `docs/audio_pipeline.md` + `docs/audio_asset_manifest.md` | AudioManager/SoundTable wiring, REAPER forge tooling, per-sound manifest |
 | `docs/release_pipeline.md` | Export presets, `build.ps1`, itch.io/Steam packaging |
 | `docs/asset_inventory.md` | Free asset sources, palette-shift strategy, license tracking |
@@ -158,6 +158,34 @@ Entry procedure:
   `source == player` regardless.
 - Restart the played scene only when GDScript changed — the running process caches compiled
   scripts, so edits are invisible until a fresh `play_scene`.
+
+## Balance Numbers Are An Editable Layer (2026-09-20)
+
+Every balance value now resolves through `BalanceOverrides` (`scripts/balance/`) before the
+game reads it: `data/balance_overrides.json` is loaded at startup, applied over the `const`
+tables at a handful of seams, and **ships with the build**. The Unit Editor (F12) is the
+authoring tool; `docs/dev_tools.md` is the reference.
+
+Consequences for any future work on balance-adjacent code:
+
+- **Read through the accessor, not the table.** `CharacterData.balance(id, field, fallback)`
+  and `WeaponData.tuned(id)` exist for this. `CharacterData.ALL` / `WeaponData.ALL` stay the
+  shipped source of truth and are fine for display and listing, but a new site that reads a
+  VALUE from them bypasses the tuning layer silently.
+- **The seams are:** `player._load_character_stats` (stats) · `player._apply_hitbox_overrides`
+  (collision shapes) · `player._load_combo` via `BalanceChain.apply` (combo phases) ·
+  `EnemyRegistry.apply_balance_overrides` (all 24 factories, one seam) ·
+  `GameManager.phase_duration_for/scale_period/scale_rate` and
+  `EnemySpawnManager._hp_mult/_spawn_mult/apply_balance_overrides` (difficulty).
+- **`BalanceChain` owns phase addressing for BOTH the registry and the applier.** They must
+  compute the same address or an override ships inert. Do not re-derive it in a third place.
+- **A tunable that something downstream overwrites is worse than no tunable.** Five stats
+  (`max_hp`, `move_speed`, `damage`, `attack_speed`, `projectile_count`) and the pickup
+  collector radius are all re-assigned after the stat is set; they are marked DERIVED in the
+  registry rather than shipped as controls that do nothing. If you add a write that clobbers
+  a stat, mark it there too.
+- **`player.BASE_STATS` is a `const`**, and `_base_stats` is a working copy of it. The const
+  is what the editor shows as "shipped" — keep it as the honest default.
 
 ## Content Creation — The Pattern
 
@@ -375,5 +403,5 @@ All content follows the data factory pattern: `static func create() -> Resource`
 - SpatialGrid: cell-based proximity queries, rebuilt every frame
 - Resistance formula: `raw * (1.0 - resist / (resist + 100.0))`
 - XP formula: `base(10) * (1.0 + (level - 1) * 0.3)`
-- Debug mode: `GameManager.debug_mode = true` enables the debug panel and entity inspector. Hotkeys: F1 panel, F2 god mode, F3 level-up, F4 skip extraction, F5 test telegraph / inspector toggle, F6 spawn miniboss, F7 spawn final boss, F10 Animation Lab, F11 Training Room panel. (F8/F9 are Godot's own Stop/Pause — never bind them.)
+- Debug mode: `GameManager.debug_mode = true` enables the debug panel and entity inspector. Hotkeys: F1 panel, F2 god mode, F3 level-up, F4 skip extraction, F5 test telegraph / inspector toggle, F6 spawn miniboss, F7 spawn final boss, F10 Animation Lab, F11 Training Room panel, F12 Unit Editor. (F8/F9 are Godot's own Stop/Pause — never bind them.)
 - Run modes on `GameManager`: `use_descent_mode` (block-based vertical descent, the default path) and `training_mode` (flat sandbox, no waves/clock/extraction). Combat and loot scaling read `get_effective_phase()` — spatial depth in descent mode, wall-clock `phase_number` otherwise.
