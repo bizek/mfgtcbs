@@ -102,6 +102,25 @@ var flow_field: FlowField = null
 
 const _DENSITY_WEIGHTS: Dictionary = {"Low": 1.0, "Medium": 2.0, "High": 4.0}
 
+## ── Spawn locality (2026-09-23) ──────────────────────────────────────────────
+## Zone spawns used to pick from EVERY registered zone in the level, weighted by density alone,
+## with only a minimum distance from the player. In descent that is ten block-sized zones over a
+## ~4800px stack, so roughly 70% of spawns landed two or more blocks away and spent the next
+## minute walking the flow field toward the player — occupying the enemy cap while being nowhere
+## near the fight. Spawns now land in a RING around the camera view: outside the view (plus
+## OFFSCREEN_MARGIN, so nothing pops in on screen) and within SPAWN_REACH beyond it.
+const OFFSCREEN_MARGIN: float = 24.0
+const SPAWN_REACH: float = 220.0
+const ZONE_SPAWN_ATTEMPTS: int = 24
+## Wave enemies this far from the player are moved to a fresh ring spawn point instead of
+## trudging back — the standard survivor-like leash, so the cap measures pressure near the
+## player. Only enemies spawned by the wave loop are eligible (meta WAVE_SPAWN_META); bosses,
+## carriers, summons, altar elites and debug spawns keep their positions.
+const RECYCLE_DISTANCE: float = 720.0
+const RECYCLE_INTERVAL: float = 1.0
+const WAVE_SPAWN_META: StringName = &"wave_spawn"
+var _recycle_timer: float = RECYCLE_INTERVAL
+
 
 func register_spawn_zone(rect: Rect2, phase: String, density: String,
 		pool_override: String, min_dist: float) -> void:
@@ -127,7 +146,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	if not spawn_enabled or debug_spawning_disabled or player_ref == null:
+	if not spawn_enabled or debug_spawning_disabled or not is_instance_valid(player_ref):
 		return
 	if GameManager.current_state != GameManager.GameState.RUN_ACTIVE:
 		return
@@ -139,6 +158,11 @@ func _process(delta: float) -> void:
 		var difficulty: float = GameManager.difficulty_multiplier
 		var channel_pressure: float = 2.0 if ExtractionManager.is_channeling else 1.0
 		spawn_timer = base_spawn_interval / (difficulty * channel_pressure)
+
+	_recycle_timer -= delta
+	if _recycle_timer <= 0.0:
+		_recycle_timer = RECYCLE_INTERVAL
+		_recycle_stragglers()
 
 	## ── Carrier spawn (solo runs, scarce) ────────────────────────────────────
 	var effective_phase_now: int = GameManager.get_effective_phase()
@@ -298,7 +322,7 @@ func _spawn_single_enemy() -> void:
 	if scene == null:
 		## Scene not yet assigned in editor — fall back to fodder
 		if fodder_scene != null:
-			_spawn_from_def("fodder", fodder_scene, spawn_pos, effective_difficulty, true)
+			_mark_wave(_spawn_from_def("fodder", fodder_scene, spawn_pos, effective_difficulty, true))
 		return
 
 	## Swarmer-role IDs always spawn as packs of 3–5.
@@ -308,10 +332,36 @@ func _spawn_single_enemy() -> void:
 		for _j in range(pack_size):
 			if active_enemies >= max_enemies:
 				break
-			_spawn_from_def(enemy_id, scene, _pick_pack_offset(spawn_pos, 22.0), effective_difficulty, true)
+			_mark_wave(_spawn_from_def(enemy_id, scene, _pick_pack_offset(spawn_pos, 22.0),
+					effective_difficulty, true))
 	else:
 		var can_elite: bool = enemy_id in ["fodder", "brute", "guardian", "cave_fodder", "cave_brute"]
-		_spawn_from_def(enemy_id, scene, spawn_pos, effective_difficulty, can_elite)
+		_mark_wave(_spawn_from_def(enemy_id, scene, spawn_pos, effective_difficulty, can_elite))
+
+
+func _mark_wave(enemy: Node2D) -> void:
+	if enemy != null:
+		enemy.set_meta(WAVE_SPAWN_META, true)
+
+
+## Move wave enemies that have fallen RECYCLE_DISTANCE behind to a fresh ring spawn point.
+## Both ends are off-screen, so the jump is never seen. Stats, HP and elite status carry over —
+## it is the same enemy, just brought back into the fight.
+func _recycle_stragglers() -> void:
+	var ppos: Vector2 = player_ref.global_position
+	var limit_sq: float = RECYCLE_DISTANCE * RECYCLE_DISTANCE
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if not is_instance_valid(e) or not e.get("is_alive") or not e.has_meta(WAVE_SPAWN_META):
+			continue
+		if e.global_position.distance_squared_to(ppos) <= limit_sq:
+			continue
+		var pos: Vector2 = _get_zone_spawn_position() if not _spawn_zones.is_empty() \
+				else Vector2(NAN, NAN)
+		if is_nan(pos.x):
+			continue  ## no ring point this pass — try again next interval
+		e.global_position = pos
+		if e is CharacterBody2D:
+			(e as CharacterBody2D).velocity = Vector2.ZERO
 
 
 func _spawn_enemy_at_edge(enemy_id: String, scene: PackedScene, can_be_elite: bool) -> void:
@@ -424,8 +474,8 @@ func _spawn_herald_pack() -> void:
 		return
 	var effective_difficulty: float = _get_effective_difficulty()
 	## Spawn herald first
-	_spawn_from_def("herald", herald_scene, _get_spawn_position(),
-		effective_difficulty, false)
+	_mark_wave(_spawn_from_def("herald", herald_scene, _get_spawn_position(),
+		effective_difficulty, false))
 	## Then 4–6 companions near it
 	var pack_scene: PackedScene = swarmer_scene if swarmer_scene != null else fodder_scene
 	var pack_id: String = "swarmer" if swarmer_scene != null else "fodder"
@@ -436,8 +486,8 @@ func _spawn_herald_pack() -> void:
 	for _i in range(pack_size):
 		if active_enemies >= max_enemies:
 			break
-		_spawn_from_def(pack_id, pack_scene, _pick_pack_offset(base_pos, 30.0),
-			effective_difficulty, false)
+		_mark_wave(_spawn_from_def(pack_id, pack_scene, _pick_pack_offset(base_pos, 30.0),
+			effective_difficulty, false))
 
 
 ## Spawn a guaranteed-elite enemy at a specific world position.
@@ -613,7 +663,13 @@ func _get_spawn_position() -> Vector2:
 
 
 func _get_zone_spawn_position() -> Vector2:
-	## Build weighted list of zones eligible for the current phase.
+	## The ring: inside `outer`, outside `inner`. See "Spawn locality" at the top of the file.
+	var view: Rect2 = _view_rect()
+	var inner: Rect2 = view.grow(OFFSCREEN_MARGIN)
+	var outer: Rect2 = inner.grow(SPAWN_REACH)
+
+	## Weighted list of phase-eligible zones that reach into the ring. Weight is density times
+	## the overlap area, so a zone barely clipping the ring doesn't draw as often as one filling it.
 	var phase_tag: String = "Phase" + str(GameManager.get_effective_phase())
 	var eligible: Array = []
 	var total_weight: float = 0.0
@@ -621,27 +677,30 @@ func _get_zone_spawn_position() -> Vector2:
 		var zphase: String = z.phase
 		if zphase != "Any" and zphase != phase_tag:
 			continue
-		var w: float = _DENSITY_WEIGHTS.get(z.density, 2.0)
-		eligible.append({"zone": z, "weight": w})
-		total_weight += w
+		var zrect: Rect2 = z.rect
+		for slice: Rect2 in _ring_slices(zrect.intersection(outer), inner):
+			var w: float = _DENSITY_WEIGHTS.get(z.density, 2.0) * slice.get_area()
+			eligible.append({"zone": z, "weight": w, "rect": slice})
+			total_weight += w
 	if eligible.is_empty():
 		return Vector2(NAN, NAN)
 
 	## Weighted random select.
 	var roll: float = randf() * total_weight
 	var cumulative: float = 0.0
-	var picked: Dictionary = eligible[0].zone
+	var picked: Dictionary = eligible[0]
 	for entry in eligible:
 		cumulative += entry.weight
 		if roll <= cumulative:
-			picked = entry.zone
+			picked = entry
 			break
 
-	## Try up to 16 random points inside the zone rect, checking min_dist and walkability.
+	## Random points in that slice (already wholly off-screen), checking the zone's own min
+	## distance and walkability.
 	var rect: Rect2 = picked.rect
-	var min_dist: float = picked.min_distance_from_player
+	var min_dist: float = picked.zone.min_distance_from_player
 	var ppos: Vector2 = player_ref.global_position if player_ref else Vector2.ZERO
-	for _attempt in range(16):
+	for _attempt in range(ZONE_SPAWN_ATTEMPTS):
 		var candidate := Vector2(
 			randf_range(rect.position.x, rect.end.x),
 			randf_range(rect.position.y, rect.end.y)
@@ -653,9 +712,54 @@ func _get_zone_spawn_position() -> Vector2:
 	return Vector2(NAN, NAN)
 
 
+## The parts of `r` lying outside `hole`, as up to four non-overlapping strips (full-width
+## above and below, then left and right within hole's rows). Sampling these directly means no
+## draw is wasted inside the view, which in a one-screen-wide descent is most of any zone.
+func _ring_slices(r: Rect2, hole: Rect2) -> Array[Rect2]:
+	var out: Array[Rect2] = []
+	if r.get_area() <= 0.0:
+		return out
+	if not r.intersects(hole):
+		out.append(r)
+		return out
+	if r.position.y < hole.position.y:
+		out.append(Rect2(r.position.x, r.position.y, r.size.x, hole.position.y - r.position.y))
+	if r.end.y > hole.end.y:
+		out.append(Rect2(r.position.x, hole.end.y, r.size.x, r.end.y - hole.end.y))
+	var band_top: float = maxf(r.position.y, hole.position.y)
+	var band_h: float = minf(r.end.y, hole.end.y) - band_top
+	if band_h > 0.0:
+		if r.position.x < hole.position.x:
+			out.append(Rect2(r.position.x, band_top, hole.position.x - r.position.x, band_h))
+		if r.end.x > hole.end.x:
+			out.append(Rect2(hole.end.x, band_top, r.end.x - hole.end.x, band_h))
+	return out
+
+
+## What the player can currently see, in world space. Falls back to a viewport-sized rect on
+## the player when there is no active camera (headless tests, scene teardown).
+func _view_rect() -> Rect2:
+	var ppos: Vector2 = player_ref.global_position if player_ref else Vector2.ZERO
+	var vp: Viewport = player_ref.get_viewport() if player_ref and player_ref.is_inside_tree() else null
+	if vp == null:
+		return Rect2(ppos - Vector2(320.0, 180.0), Vector2(640.0, 360.0))
+	var size: Vector2 = vp.get_visible_rect().size
+	var cam: Camera2D = vp.get_camera_2d()
+	if cam == null:
+		return Rect2(ppos - size * 0.5, size)
+	size /= cam.zoom
+	return Rect2(cam.get_screen_center_position() - size * 0.5, size)
+
+
 ## Edge spawn: pick a random point near one of the 4 arena walls (for Carriers).
 ## Retries up to 8 times to find a walkable+reachable edge cell.
 func _get_edge_spawn_position() -> Vector2:
+	## Level zones (descent / LDtk): the "arena edge" is the far end of a ~4800px stack, so a
+	## carrier placed there never reaches the player. Use the same off-screen ring as waves.
+	if not _spawn_zones.is_empty():
+		var ring_pos: Vector2 = _get_zone_spawn_position()
+		if not is_nan(ring_pos.x):
+			return ring_pos
 	const EDGE_INSET: float = 16.0
 	var last_candidate := Vector2.ZERO
 	for _attempt in range(8):
