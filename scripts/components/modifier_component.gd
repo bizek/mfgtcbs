@@ -38,6 +38,11 @@ const STRICT_OP: Dictionary = {
 ## flag the correct passive-tree node f_fletcher on its first run. A guard that cries wolf on working
 ## content is worse than no guard, so keep this list to names with no legitimate tag use.
 const NEVER_A_TAG: Array[String] = ["damage_taken", "vulnerability", "resist"]
+## Stat names that read naturally as tags but are stored under a different pair. "armor" is
+## Physical resistance: CharacterFactory, DamageCalculator step 6 and player.get_armor() all use
+## ("Physical", "resist"). An ("armor", ...) modifier is never read — that is how Vitality and
+## Juggernaut shipped with dead armor (found 2026-09-26).
+const REDIRECTED_TAG: Dictionary = {"armor": ["Physical", "resist"]}
 
 
 # --- Modifier management ---
@@ -61,6 +66,10 @@ func _warn_if_unreadable(mod: ModifierDefinition) -> void:
 		push_warning(("ModifierComponent: (\"%s\", \"%s\") from source \"%s\" is never read — " +
 			"\"%s\" is only summed with \"%s\". This modifier will silently do nothing.") % [
 			tag, op, mod.source_name, tag, STRICT_OP[tag]])
+	elif REDIRECTED_TAG.has(tag):
+		push_warning(("ModifierComponent: (\"%s\", \"%s\") from source \"%s\" is never read — " +
+			"\"%s\" is stored as (\"%s\", \"%s\"). This modifier will silently do nothing.") % [
+			tag, op, mod.source_name, tag, REDIRECTED_TAG[tag][0], REDIRECTED_TAG[tag][1]])
 	elif tag in NEVER_A_TAG:
 		push_warning(("ModifierComponent: (\"%s\", \"%s\") from source \"%s\" is never read — " +
 			"\"%s\" is an OPERATION, not a tag. Use target_tag \"All\" (or a damage type) with " +

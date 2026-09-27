@@ -5259,6 +5259,25 @@ func _xp_to_next_level() -> float:
 
 # --- Upgrade application ---
 
+## Where a stat-upgrade dict's number lives in the modifier system: [target_tag, operation].
+##
+## ONE mapping for apply_stat_upgrade, remove_stat_upgrade and apply_ability_upgrade. Each of them
+## used to derive the pair on its own, and they disagreed in two places (found by the balance sim,
+## 2026-09-26):
+##   • armor — CharacterFactory files base armor as ("Physical", "resist"), which is the pair
+##     DamageCalculator step 6 and get_armor() read. Upgrades filed "+N Armor" as ("armor", "add"),
+##     which nothing reads, so Vitality's +3 and Juggernaut's +12 armor did nothing at all.
+##   • percent damage — applied under "All" (the generic-damage convention) but REMOVED by looking
+##     for "damage", so an evolution that consumes Might (Glass Cannon, Velocity) never took
+##     Might's +15% damage back and quietly paid it twice.
+static func _upgrade_modifier_key(stat_name: String, type: String) -> Array[String]:
+	if stat_name == "damage" and type == "percent":
+		return ["All", "bonus"]
+	if stat_name == "armor" and type == "flat":
+		return ["Physical", "resist"]
+	return [stat_name, "add" if type == "flat" else "bonus"]
+
+
 func apply_stat_upgrade(upgrade: Dictionary) -> void:
 	## Status-type upgrades apply a permanent passive status with trigger listeners
 	if upgrade.get("type") == "status":
@@ -5280,16 +5299,10 @@ func apply_stat_upgrade(upgrade: Dictionary) -> void:
 
 	var stat_name: String = upgrade.stat
 	var value: float      = upgrade.value
+	var key: Array[String] = _upgrade_modifier_key(stat_name, upgrade.type)
 	var mod := ModifierDefinition.new()
-	# "damage" percent upgrades → "All" bonus (engine convention for generic damage)
-	if stat_name == "damage" and upgrade.type == "percent":
-		mod.target_tag = "All"
-	else:
-		mod.target_tag = stat_name
-	if upgrade.type == "flat":
-		mod.operation = "add"
-	elif upgrade.type == "percent":
-		mod.operation = "bonus"
+	mod.target_tag = key[0]
+	mod.operation = key[1]
 	mod.value = value
 	mod.source_name = "upgrade"
 	modifier_component.add_modifier(mod)
@@ -5318,9 +5331,9 @@ func remove_stat_upgrade(upgrade: Dictionary) -> void:
 	## Finds and removes the first matching modifier.
 	var stat_name: String = upgrade.stat
 	var value: float      = upgrade.value
-	var op: String = "add" if upgrade.type == "flat" else "bonus"
+	var key: Array[String] = _upgrade_modifier_key(stat_name, upgrade.type)
 	for mod in modifier_component.get_all_modifiers():
-		if mod.target_tag == stat_name and mod.operation == op \
+		if mod.target_tag == key[0] and mod.operation == key[1] \
 				and mod.source_name == "upgrade" and absf(mod.value - value) < 0.001:
 			modifier_component.remove_modifier(mod)
 			break
@@ -5359,12 +5372,10 @@ func apply_ability_upgrade(upgrade: Dictionary) -> void:
 	if op == "modifier":
 		var stat_name: String = upgrade.get("stat", "")
 		var value: float = upgrade.get("value", 0.0)
+		var key: Array[String] = _upgrade_modifier_key(stat_name, upgrade.get("type", ""))
 		var mod := ModifierDefinition.new()
-		if stat_name == "damage" and upgrade.get("type", "") == "percent":
-			mod.target_tag = "All"
-		else:
-			mod.target_tag = stat_name
-		mod.operation  = "add" if upgrade.get("type", "") == "flat" else "bonus"
+		mod.target_tag = key[0]
+		mod.operation  = key[1]
 		mod.value      = value
 		mod.source_name = "ability_upgrade"
 		modifier_component.add_modifier(mod)
