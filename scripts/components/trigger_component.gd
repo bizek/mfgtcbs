@@ -11,6 +11,16 @@ class ActiveListener:
 
 var _listeners: Dictionary = {}  ## event_name -> Array[ActiveListener]
 var _event_refcounts: Dictionary = {}
+## Listeners whose effects are executing right now. Dispatch is synchronous: a listener's effects
+## run inside the EventBus emit that fired it, so if those effects raise the SAME event again
+## (an on-crit lightning AoE that itself crits) the listener would fire again from inside its own
+## dispatch — and again, until the GDScript stack overflows. That is exactly what Static Discharge
+## did with a crit build in a pack (balance sim, 2026-09-27: >1,000 frames deep, every frame).
+## A listener already on this set is skipped, so a proc can never re-trigger itself through its
+## own consequences, directly or through a cycle of other procs. Separate triggering events still
+## fire it every time; other procs can still react to its hits (Static Discharge's bolts can still
+## apply Serrated Strikes' bleed).
+var _dispatching: Dictionary = {}  ## ActiveListener -> true
 var combat_manager: Node2D = null
 
 
@@ -154,6 +164,8 @@ func _evaluate_and_dispatch(event: String, source: Node2D, target: Node2D,
 		return
 
 	for active_listener in _listeners[event]:
+		if _dispatching.has(active_listener):
+			continue
 		var def: TriggerListenerDefinition = active_listener.definition
 		if not _check_trigger_conditions(def.conditions, entity, source, target, hit_data):
 			continue
@@ -174,9 +186,11 @@ func _evaluate_and_dispatch(event: String, source: Node2D, target: Node2D,
 			effect_target = source if is_instance_valid(source) else entity
 		else:
 			effect_target = target if is_instance_valid(target) else entity
+		_dispatching[active_listener] = true
 		for effect in def.effects:
 			EffectDispatcher.execute_effect(effect, effect_source, effect_target,
 					null, combat_manager, entity)
+		_dispatching.erase(active_listener)
 
 
 func _check_trigger_conditions(conditions: Array, entity: Node2D,
