@@ -15,6 +15,9 @@ extends Node2D
 ##   5. ProjectileManager._process() (automatic via Node)
 ##   6. Ground zone ticks
 
+## Projectiles live slightly past the level edge before expiring/ricocheting.
+const PROJECTILE_BOUNDS_MARGIN := Vector2(50.0, 50.0)
+
 var spatial_grid: SpatialGrid = SpatialGrid.new()
 var projectile_manager: ProjectileManager = null
 var vfx_manager: VfxManager = null
@@ -80,6 +83,17 @@ func _ready() -> void:
 	flow_field = FlowField.new()
 	flow_field.name = "FlowField"
 	add_child(flow_field)
+
+
+## The one place the level's extent reaches the combat subsystems. MainArena calls it once the
+## level is built, with _get_level_bounds() — descent stack, LDtk level or flat arena. Before
+## this seam the grid was never told at all, and only descent told the projectile pool, so the
+## LDtk single-level path expired and ricocheted projectiles off flat-arena walls.
+func set_world_bounds(world: Rect2) -> void:
+	spatial_grid.set_bounds(world)
+	if projectile_manager:
+		projectile_manager.set_world_bounds(world.position - PROJECTILE_BOUNDS_MARGIN,
+				world.end + PROJECTILE_BOUNDS_MARGIN)
 
 
 func register_player(entity: Node2D) -> void:

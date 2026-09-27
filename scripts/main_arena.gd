@@ -214,6 +214,9 @@ func _ready() -> void:
 		add_child(arena_generator)
 		arena_generator.generate(2025)
 
+	## Size the spatial grid and projectile pool to the level just built (all three modes).
+	orchestrator.set_world_bounds(_get_level_bounds())
+
 	# Pause menu (ESC)
 	var PauseMenuScript := preload("res://scripts/ui/pause_menu.gd")
 	var pause_menu: CanvasLayer = PauseMenuScript.new()
@@ -505,12 +508,6 @@ func _setup_ldtk_descent() -> void:
 		_camera.limit_top = 0
 		_camera.limit_bottom = int(result.total_height)
 
-	## Expand projectile bounds to cover the full descent world
-	if orchestrator and orchestrator.projectile_manager:
-		orchestrator.projectile_manager.set_world_bounds(
-			Vector2(-50.0, -50.0),
-			Vector2(result.level_width + 50.0, result.total_height + 50.0))
-
 	## Register spawn zones with EnemySpawnManager
 	_block_manager.register_spawn_zones_with(EnemySpawnManager)
 
@@ -596,9 +593,11 @@ func _boss_intro_beat(boss_id: String, spawn_pos: Vector2) -> void:
 func _get_level_bounds() -> Rect2:
 	## Return the playable world rect for the current mode so spawn-position validation
 	## uses actual level dimensions rather than the default ±800×±600 arena.
-	if _block_manager != null:
+	## Keyed on the mode flags, not on which objects exist: a failed descent build leaves
+	## _block_manager allocated while falling back to the flat arena.
+	if _using_descent and _block_manager != null:
 		return Rect2(0.0, 0.0, _block_manager.level_width, _block_manager.total_height)
-	if _ldtk_loader != null:
+	if _using_ldtk and _ldtk_loader != null:
 		return Rect2(0.0, 0.0,
 			float(_ldtk_loader.get_meta("px_wid", ARENA_HALF_W * 2.0)),
 			float(_ldtk_loader.get_meta("px_hei", ARENA_HALF_H * 2.0)))
