@@ -122,6 +122,35 @@
 					],
 					"__worldX": 832,
 					"__worldY": 24
+				},
+				{
+					"__identifier": "Marker",
+					"__grid": [27,1],
+					"__pivot": [0.5,0.5],
+					"__tags": [ "gameplay", "marker" ],
+					"__tile": null,
+					"__smartColor": "#FFCC22",
+					"iid": "8260b80a-e028-48d1-9dc3-0d404f649449",
+					"width": 8,
+					"height": 8,
+					"defUid": 489,
+					"px": [220,10],
+					"fieldInstances": [
+						{ "__identifier": "tag", "__type": "LocalEnum.MarkerTag", "__value": "Cinematic", "__tile": null, "defUid": 619, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["Cinematic"]
+						}] },
+						{ "__identifier": "id", "__type": "String", "__value": "entrance", "__tile": null, "defUid": 620, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["entrance"]
+						}] },
+						{ "__identifier": "payload", "__type": "String", "__value": "Run-start walk-out: the player emerges from this painted cave mouth (MainArena._run_entrance_intro).", "__tile": null, "defUid": 621, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["Run-start walk-out: the player emerges from this painted cave mouth (MainArena._run_entrance_intro)."]
+						}] }
+					],
+					"__worldX": 868,
+					"__worldY": 10
 				}
 			]
 		},

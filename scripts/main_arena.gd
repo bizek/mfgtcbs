@@ -8,9 +8,21 @@ extends Node2D
 const ARENA_HALF_W: float = 800.0
 const ARENA_HALF_H: float = 600.0
 
+## Run-start walk-out (_run_entrance_intro). ENTRANCE_WALK clears the thickest painted wall band
+## below its opening (the crypt's, ~20px under its doorway's centre); the inset is where the walk
+## starts when the entry block has no painted opening.
+const ENTRANCE_WALK: float = 36.0
+const ENTRANCE_TOP_EDGE_INSET: float = 12.0
+
 const LootDropScene      = preload("res://scenes/pickups/loot_drop.tscn")
 const WeaponPickupScript = preload("res://scripts/pickups/weapon_pickup.gd")
 const ModPickupScript    = preload("res://scripts/pickups/mod_pickup.gd")
+
+## True once _ready() has built the level and placed the player. SceneTransition holds its black
+## veil until then: the descent assembles its blocks across several awaited frames, and the veil
+## used to lift after a fixed two frames — mid-build, with the player not yet at the spawn.
+signal scene_ready
+var is_scene_ready: bool = false
 
 ## Engine orchestrator — owns all combat subsystems
 var orchestrator: CombatOrchestrator = null
@@ -280,13 +292,17 @@ func _ready() -> void:
 		var training: CanvasLayer = TrainingScript.new()
 		add_child(training)
 		training.setup(player, self)
+		_mark_scene_ready()
 		return
 
 	if _using_descent:
-		## Descent mode: BlockManager already registered spawn zones.
+		## Descent mode: BlockManager already registered spawn zones. Spawning waits for the
+		## entrance walk to hand over control — see _run_entrance_intro.
 		var descent_bounds := Rect2(0.0, 0.0, _block_manager.level_width, _block_manager.total_height)
-		EnemySpawnManager.start_spawning(player, descent_bounds)
 		_block_manager.register_nav_with(orchestrator.flow_field)
+		_mark_scene_ready()
+		_run_entrance_intro(descent_bounds)
+		return
 	elif _using_ldtk:
 		## LDtk mode: extraction zones come from the level, exit zone already wired.
 		## Do not call _setup_extraction_zones() — that code assumes ArenaGenerator.
@@ -302,6 +318,46 @@ func _ready() -> void:
 		_setup_extraction_zones()
 		var bounds := Rect2(-ARENA_HALF_W, -ARENA_HALF_H, ARENA_HALF_W * 2.0, ARENA_HALF_H * 2.0)
 		EnemySpawnManager.start_spawning(player, bounds)
+	_mark_scene_ready()
+
+
+func _mark_scene_ready() -> void:
+	is_scene_ready = true
+	scene_ready.emit()
+
+
+## Run start in descent: the player walks out of the opening painted into the entry block's top
+## wall, then gets control, and only then does the wave spawner start its grace timer — the run's
+## hostile clock begins when the player can act, not while they are still in the dark.
+##
+## The opening is the block's own art, located by the Marker (tag Cinematic, id "entrance") placed
+## on it in LDtk — so the walk always lines up with what is painted. An entry block without one
+## (the Threshold's is open void at the top) walks out of the top edge above the spawn instead.
+func _run_entrance_intro(spawn_bounds: Rect2) -> void:
+	var spawn: Vector2 = player.global_position   ## BlockManager's entry-block spawn
+	var from: Vector2 = _block_manager.get_entrance_position()
+	if is_nan(from.x):
+		var level_top: float = _block_manager.block_bounds[0].position.y \
+				if not _block_manager.block_bounds.is_empty() else 0.0
+		from = Vector2(spawn.x, level_top + ENTRANCE_TOP_EDGE_INSET)
+	player.play_entrance_intro(from, _entrance_exit(from, spawn))
+	await player.entrance_intro_finished
+	if not is_instance_valid(player) or not player.is_alive:
+		return
+	EnemySpawnManager.start_spawning(player, spawn_bounds)
+
+
+## Straight down from the opening to the first open floor at least ENTRANCE_WALK below it.
+## Falls back to the loader's spawn, which is known-good floor: control is never handed over
+## inside a wall.
+func _entrance_exit(from: Vector2, fallback: Vector2) -> Vector2:
+	var ff: FlowField = orchestrator.flow_field
+	var exit: Vector2 = from + Vector2(0.0, ENTRANCE_WALK)
+	for _step in 12:
+		if ff.is_walkable(exit):
+			return exit
+		exit.y += FlowField.NAV_CELL
+	return fallback
 
 
 func _process(delta: float) -> void:
@@ -1214,6 +1270,10 @@ func _on_hitstop_expired() -> void:
 
 func _exit_tree() -> void:
 	Engine.time_scale = 1.0
+	## The spawner is an autoload and outlives this scene. Nothing used to switch it off, so it
+	## stayed enabled between runs holding a freed player — harmless only while the next arena
+	## restarted it in the same frame, which the entrance walk no longer does.
+	EnemySpawnManager.stop_spawning()
 
 
 func _on_player_crit(source, _target, _hit_data) -> void:

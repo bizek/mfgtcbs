@@ -8,6 +8,8 @@ signal health_changed(current: float, maximum: float)
 signal xp_changed(current: float, needed: float)
 signal leveled_up(new_level: int)
 signal died
+## The run-start walk out of the cave mouth has finished and input is live (play_entrance_intro).
+signal entrance_intro_finished
 
 ## Engine entity interface
 var faction: int = 0  ## 0 = player/allies, 1 = enemies
@@ -1506,6 +1508,10 @@ func _clear_pending_shot() -> void:
 func _physics_process(delta: float) -> void:
 	if not is_alive:
 		return
+	## Run-start walk-out: scripted, so nothing below (input, dash, combat, facing) runs.
+	if _intro_active:
+		_tick_entrance_intro(delta)
+		return
 
 	_tick_combo_counter(delta)
 
@@ -1648,6 +1654,73 @@ func _physics_process(delta: float) -> void:
 			_tick_manual_fire(delta)
 		else:
 			behavior_component.tick(delta, self)
+
+
+# --- Run-start entrance walk ---
+## The player steps out of the cave mouth at the top of the entry block, facing down, and only
+## gets control once they are clear of it (MainArena._run_entrance_intro drives this).
+##
+## Moved kinematically — position is set, not move_and_slide()'d — because the start point is
+## inside the top wall band's collision. The body fades up from near-black so it reads as coming
+## out of the dark rather than appearing. Walk pace is the character's own move_speed, so the walk
+## cycle's cadence is the one the player is about to control.
+
+## Seconds standing unseen in the dark before the first step (covers the screen fade-in).
+const INTRO_HOLD: float = 0.35
+## Body tint at the back of the mouth. Not pure black, so the silhouette is just readable.
+const INTRO_DARK := Color(0.08, 0.07, 0.10, 1.0)
+
+var _intro_active: bool = false
+var _intro_from: Vector2 = Vector2.ZERO
+var _intro_to: Vector2 = Vector2.ZERO
+var _intro_hold: float = 0.0
+var _intro_t: float = 0.0          ## 0 → 1 along the walk
+var _intro_duration: float = 1.0
+
+
+func play_entrance_intro(from: Vector2, to: Vector2) -> void:
+	_intro_active = true
+	_intro_from = from
+	_intro_to = to
+	_intro_hold = INTRO_HOLD
+	_intro_t = 0.0
+	var speed: float = maxf(get_stat("move_speed"), 1.0)
+	_intro_duration = maxf(from.distance_to(to) / speed, 0.1)
+	global_position = from
+	velocity = Vector2.ZERO
+	_aim_dir = to - from if to != from else Vector2.DOWN
+	_facing = _facing_from_vector(_aim_dir)
+	if sprite:
+		sprite.modulate = INTRO_DARK
+	_play_intro_anim("idle")
+
+
+func is_in_entrance_intro() -> bool:
+	return _intro_active
+
+
+func _tick_entrance_intro(delta: float) -> void:
+	if _intro_hold > 0.0:
+		_intro_hold -= delta
+		return
+	_intro_t = minf(_intro_t + delta / _intro_duration, 1.0)
+	global_position = _intro_from.lerp(_intro_to, _intro_t)
+	if sprite:
+		## Ease-out: most of the light arrives in the first half, as the body crosses the lip.
+		var light: float = 1.0 - pow(1.0 - _intro_t, 2.0)
+		sprite.modulate = INTRO_DARK.lerp(Color.WHITE, light)
+	_play_intro_anim("walk")
+	if _intro_t >= 1.0:
+		_intro_active = false
+		if sprite:
+			sprite.modulate = Color.WHITE
+		_play_intro_anim("idle")
+		entrance_intro_finished.emit()
+
+
+func _play_intro_anim(base: String) -> void:
+	var loco: String = _locomotion_prefix + "_" if _locomotion_prefix != "" else ""
+	_play_anim(loco + base)
 
 
 # --- Manual fire (testing) ---
@@ -2640,8 +2713,30 @@ func _do_teleport() -> void:
 	if aim.length_squared() < 1.0:
 		return
 	var from: Vector2 = global_position
-	global_position += aim.limit_length(TELEPORT_RANGE)
+	global_position = _blink_landing(from, from + aim.limit_length(TELEPORT_RANGE))
 	_blink_nova(from)
+
+
+## Where a blink from `from` toward `to` actually lands: the farthest point along the line that
+## the flow field calls open floor connected to the player. Both blinks used to add the offset
+## blind — straight through the 8px side-border columns and off the map at any depth, or into a
+## sealed pocket — trusting depenetration, which only nudges out of a wall edge. Hopping OVER an
+## interior wall onto floor the player could walk to is kept; that is the point of a blink. With
+## no terrain registered (flat arena) the flow field reports everything open and nothing changes.
+const BLINK_LANDING_STEP: float = 4.0
+
+func _blink_landing(from: Vector2, to: Vector2) -> Vector2:
+	var ff: FlowField = combat_manager.flow_field if combat_manager else null
+	if ff == null or not ff.is_active():
+		return to
+	var dist: float = from.distance_to(to)
+	var d: float = dist
+	while d > 0.0:
+		var p: Vector2 = from.lerp(to, d / dist)
+		if ff.is_walkable(p) and ff.is_reachable(p):
+			return p
+		d -= BLINK_LANDING_STEP
+	return from
 
 
 func _spawn_blood_elemental() -> void:
@@ -4903,7 +4998,7 @@ func _teleport_dash(dir: Vector2) -> void:
 	_aim_dir = dir
 	_facing = _facing_from_vector(dir)
 	_spawn_teleport_ghost()
-	global_position += dir * TELEPORT_RANGE * 0.9
+	global_position = _blink_landing(global_position, global_position + dir * TELEPORT_RANGE * 0.9)
 	is_invulnerable = true
 	get_tree().create_timer(0.25).timeout.connect(func() -> void:
 		if is_alive and _dash_timer <= 0.0:

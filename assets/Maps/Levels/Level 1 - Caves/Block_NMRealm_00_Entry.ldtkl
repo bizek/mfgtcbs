@@ -122,6 +122,35 @@
 					],
 					"__worldX": 836,
 					"__worldY": 1034
+				},
+				{
+					"__identifier": "Marker",
+					"__grid": [36,2],
+					"__pivot": [0.5,0.5],
+					"__tags": [ "gameplay", "marker" ],
+					"__tile": null,
+					"__smartColor": "#FFCC22",
+					"iid": "d0a5cb70-93de-4432-b718-15d4e003c768",
+					"width": 8,
+					"height": 8,
+					"defUid": 489,
+					"px": [288,16],
+					"fieldInstances": [
+						{ "__identifier": "tag", "__type": "LocalEnum.MarkerTag", "__value": "Cinematic", "__tile": null, "defUid": 619, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["Cinematic"]
+						}] },
+						{ "__identifier": "id", "__type": "String", "__value": "entrance", "__tile": null, "defUid": 620, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["entrance"]
+						}] },
+						{ "__identifier": "payload", "__type": "String", "__value": "Run-start walk-out: the player emerges from this painted doorway (MainArena._run_entrance_intro).", "__tile": null, "defUid": 621, "realEditorValues": [{
+							"id": "V_String",
+							"params": ["Run-start walk-out: the player emerges from this painted doorway (MainArena._run_entrance_intro)."]
+						}] }
+					],
+					"__worldX": 940,
+					"__worldY": 1026
 				}
 			]
 		},

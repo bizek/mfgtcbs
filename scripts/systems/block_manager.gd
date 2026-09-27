@@ -29,7 +29,12 @@ var _event_anchors: Array[Dictionary] = []
 var _spawn_zones_collected: Array[Dictionary] = []
 var _extractions_collected: Array[Dictionary] = []
 var _player_spawn_pos: Vector2 = Vector2.ZERO
+## The entry block's painted opening the run starts in — its `Marker` tagged Cinematic with id
+## "entrance" (MainArena._run_entrance_intro). NAN when the entry block has none.
+var _entrance_pos: Vector2 = Vector2(NAN, NAN)
 var _portal_pos: Vector2 = Vector2.ZERO
+## Solid bands above the first block and below the last (_add_edge_caps).
+var _edge_caps: Array[StaticBody2D] = []
 
 var _debug_overlay_visible: bool = false
 var _debug_draw_node: Node2D = null
@@ -47,6 +52,10 @@ func build_descent(ldtk_project_path: String, desired_block_count: int,
 	_spawn_zones_collected.clear()
 	_extractions_collected.clear()
 	block_count = desired_block_count
+	_entrance_pos = Vector2(NAN, NAN)
+	for cap: StaticBody2D in _edge_caps:
+		cap.queue_free()
+	_edge_caps.clear()
 
 	var sequence: Array[String] = _build_block_sequence(
 		available_block_ids, desired_block_count,
@@ -100,7 +109,9 @@ func build_descent(ldtk_project_path: String, desired_block_count: int,
 			})
 
 		for marker: Dictionary in result.markers:
-			if marker.tag == "EventTrigger":
+			if i == 0 and marker.tag == "Cinematic" and marker.id == "entrance":
+				_entrance_pos = Vector2(marker.position.x, marker.position.y + y_offset)
+			elif marker.tag == "EventTrigger":
 				var anchor := marker.duplicate()
 				anchor.position = Vector2(marker.position.x, marker.position.y + y_offset)
 				anchor["block_index"] = i
@@ -124,6 +135,8 @@ func build_descent(ldtk_project_path: String, desired_block_count: int,
 
 	_portal_pos = Vector2(level_width * 0.5, total_height - 24.0)
 
+	_add_edge_caps()
+
 	_setup_debug_overlay()
 
 	return {
@@ -131,11 +144,48 @@ func build_descent(ldtk_project_path: String, desired_block_count: int,
 		"errors": errors,
 		"warnings": warnings,
 		"player_spawn": _player_spawn_pos,
+		"entrance_pos": _entrance_pos,
 		"portal_pos": _portal_pos,
 		"total_height": total_height,
 		"level_width": level_width,
 		"block_count": block_bounds.size(),
 	}
+
+
+## Close the stack's two outer ends. Every block keeps its top and bottom three rows open — the
+## seam contract that lets any block stitch to any other (docs/block_sketch_workflow.md) — so the
+## first block's top edge and the last block's bottom edge were open too, and with the flat arena's
+## boundary walls disabled in descent nothing stopped the player walking off the map there (the
+## Threshold's entry, and every compiled Portal block). Enforced here, where the stack is known,
+## rather than in the sketches: the seam rule is what keeps blocks interchangeable.
+##
+## Same layer as the loader's wall bodies. EDGE_CAP_THICKNESS is deliberately far thicker than one
+## physics step at dash speed. The flow field needs nothing: cells outside the stack are already
+## unwalkable (FlowField.is_walkable returns false off-grid).
+const EDGE_CAP_THICKNESS: float = 32.0
+
+func _add_edge_caps() -> void:
+	if block_bounds.is_empty():
+		return
+	var top: float = block_bounds[0].position.y
+	var bands: Dictionary = {
+		"EdgeCapTop": Rect2(0.0, top - EDGE_CAP_THICKNESS, level_width, EDGE_CAP_THICKNESS),
+		"EdgeCapBottom": Rect2(0.0, total_height, level_width, EDGE_CAP_THICKNESS),
+	}
+	for cap_name: String in bands:
+		var band: Rect2 = bands[cap_name]
+		var body := StaticBody2D.new()
+		body.name = cap_name
+		body.position = band.get_center()
+		body.collision_layer = LdtkLoader.WALL_COLLISION_LAYER
+		body.collision_mask = 0
+		var col := CollisionShape2D.new()
+		var shape := RectangleShape2D.new()
+		shape.size = band.size
+		col.shape = shape
+		body.add_child(col)
+		add_child(body)
+		_edge_caps.append(body)
 
 
 func get_event_anchors() -> Array[Dictionary]:
@@ -190,6 +240,11 @@ func get_block_index_at_y(world_y: float) -> int:
 
 func get_portal_position() -> Vector2:
 	return _portal_pos
+
+
+## World position of the entry block's painted opening, or NAN when it has no entrance marker.
+func get_entrance_position() -> Vector2:
+	return _entrance_pos
 
 
 func toggle_debug_overlay() -> void:
