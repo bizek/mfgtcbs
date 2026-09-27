@@ -151,6 +151,14 @@ def _run_chunk(chunk: list[dict], tag: str, timeout_s: float = WORKER_TIMEOUT_S)
     fatal = [r for r in results if "fatal" in r]
     if fatal:
         raise RuntimeError(f"worker {tag} failed: {fatal[0]['fatal']}")
+    ## Every result must belong to the scenario at its position. Results are cached by position,
+    ## so an out-of-order or foreign line would store one scenario's measurement under another's
+    ## key — silently. (2026-09-27: two sweeps ran at once, collided on a job file name, and
+    ## interleaved their workers' output into one file.)
+    for i, r in enumerate(results):
+        if i >= len(chunk) or r.get("id") != chunk[i].get("id"):
+            raise RuntimeError(f"worker {tag}: result {i} is for {r.get('id')!r}, expected "
+                               f"{chunk[i].get('id') if i < len(chunk) else '<none>'!r}")
     if runaway is None and proc.returncode == 0 and len(results) == len(chunk):
         job.unlink(missing_ok=True)
         out.unlink(missing_ok=True)
@@ -179,9 +187,37 @@ def _run_chunk(chunk: list[dict], tag: str, timeout_s: float = WORKER_TIMEOUT_S)
     return results
 
 
+LOCK = OUT / "sweep.lock"
+
+
+def _acquire_lock() -> None:
+    """One sweep at a time: two processes share the cache and the job directory. The lock holds
+    the owner's PID; a lock whose process is gone is stale and is taken over."""
+    if LOCK.exists():
+        try:
+            pid = int(LOCK.read_text().strip() or 0)
+        except ValueError:
+            pid = 0
+        if pid and pid != os.getpid() and _pid_alive(pid):
+            raise SystemExit(f"another sweep (pid {pid}) is running; lock at {LOCK}")
+    LOCK.write_text(str(os.getpid()))
+
+
+def _pid_alive(pid: int) -> bool:
+    if sys.platform == "win32":
+        r = subprocess.run(["tasklist", "/FI", f"PID eq {pid}", "/NH"], capture_output=True, text=True)
+        return str(pid) in r.stdout
+    try:
+        os.kill(pid, 0)
+        return True
+    except OSError:
+        return False
+
+
 def run(scenarios: list[dict], workers: int = DEFAULT_WORKERS, chunk: int = DEFAULT_CHUNK,
         label: str = "run", verbose: bool = True) -> list[dict]:
     """Run scenarios (cached). Returns results in the same order as the input."""
+    _acquire_lock()
     fp = code_fingerprint()
     keys = [_key(sc, fp) for sc in scenarios]
     results: list[dict | None] = [None] * len(scenarios)
@@ -208,7 +244,8 @@ def run(scenarios: list[dict], workers: int = DEFAULT_WORKERS, chunk: int = DEFA
 
         def work(ci: int) -> tuple[list[int], list[dict]]:
             idxs = chunks[ci]
-            tag = f"{label}_{int(t0)}_{ci}"
+            ## The PID keeps two concurrent sweeps from ever sharing a job file.
+            tag = f"{label}_{os.getpid()}_{int(t0)}_{ci}"
             return idxs, _run_chunk([scenarios[i] for i in idxs], tag)
 
         with ThreadPoolExecutor(max_workers=workers) as ex:
