@@ -674,6 +674,13 @@ In `use_descent_mode` the arena is assembled from **blocks** rather than one aut
 | `LdtkLoader` | `scripts/systems/ldtk_loader.gd` | Parses `.ldtkl`, builds collision, spawn zones, exits, decoration. |
 | `LdtkExitZone` | `scripts/systems/ldtk_exit_zone.gd` | Block-to-block transitions. |
 | `FlowField` | `scripts/systems/flow_field.gd` | 8px navigation grid with amortized flood fill — enemy pathing through block geometry. Orchestrator-owned. |
+| Entrance marker | entry block `.ldtkl` | The opening painted into the entry block's top wall, located by a `Marker` (tag `Cinematic`, id `entrance`) placed on it in LDtk; `BlockManager.get_entrance_position()`. Run start: `MainArena._run_entrance_intro` → `player.play_entrance_intro` walks the player out of it with input ignored, then starts the wave spawner. No marker → the walk starts at the top edge above the spawn. |
+
+**Stack ends are capped.** Every block keeps its top and bottom seam rows open so blocks stay interchangeable, so `BlockManager._add_edge_caps()` adds a 32px wall band above the first block and below the last. Blinks (`player._blink_landing`) land only on flow-field floor connected to the player, so no teleport crosses a wall out of the level.
+
+**World bounds** reach combat through one seam: `CombatOrchestrator.set_world_bounds(_get_level_bounds())`, which sizes the `SpatialGrid` and the projectile pool for whichever level was built.
+
+**Spawn locality.** Zone spawns land in a ring around the camera view — off-screen, and within `EnemySpawnManager.SPAWN_REACH` of it — never anywhere in the stack. Wave enemies that fall `RECYCLE_DISTANCE` behind are moved to a fresh ring point. `SceneTransition` holds its veil until the arena's `is_scene_ready` flips.
 
 Blocks live in `blocks/{caves,crypt,nmrealm}/` as `.block` text sketches, compiled by `tools/block_compiler.py` into `.ldtkl` + PNG previews in `blocks/previews/`. **Authoring path: `docs/block_sketch_workflow.md` and the `/blockgen` skill — do not hand-paint.**
 
