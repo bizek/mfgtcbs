@@ -493,7 +493,8 @@ def measure_many(cal: dict, builds: list[dict], plan: dict, label: str, workers=
     """builds: [{"char", "upgrades", "mods", "key"}] → same list with "summary" filled."""
     all_scs, spans = [], []
     for b in builds:
-        scs = build_scenarios(cal, b["char"], b.get("upgrades"), b.get("mods"), plan, label)
+        scs = build_scenarios(cal, b["char"], b.get("upgrades"), b.get("mods"),
+                              b.get("plan") or plan, label)
         spans.append((len(all_scs), len(scs)))
         all_scs += scs
     kw = {"workers": workers} if workers else {}
@@ -565,9 +566,19 @@ def _expand_prereq(reqs: list[str], ups: dict) -> list[str]:
     return out
 
 
+## ── Batching across kits (2026-09-27) ────────────────────────────────────────
+## picks, mods and greedy used to measure one kit at a time (greedy: one kit, one level at a
+## time). Every run() call waits for its slowest chunk — usually one long survival brawl — while
+## the other workers sit idle, and a sweep made ~130 such calls. Each stage now submits EVERY
+## kit's builds in one call (greedy: all 12 kits' candidates for level N together), so the pool
+## stays full. What gets measured, and every seed, is unchanged — results come straight from the
+## same cache keys.
+
 def stage_picks(only=None, workers=None):
     cat, cal = catalog(), load("calibrate")
     out = _load_or(STAGES / "picks.json", {"kits": {}})
+    per_kit = []
+    all_builds: list[dict] = []
     for ch in chars(cat, only):
         if ch["id"] not in cal["kits"]:
             continue
@@ -577,7 +588,11 @@ def stage_picks(only=None, workers=None):
                  for pr in prereq_sets}
         builds = [{"char": ch["id"], "upgrades": c["prereq"] + [c["id"]], "key": c["id"]}
                   for c in cands]
-        measure_many(cal, list(bases.values()) + builds, PLAN_FULL, f"picks-{ch['kit']}", workers)
+        per_kit.append((ch, cands, bases, builds))
+        all_builds += list(bases.values()) + builds
+    measure_many(cal, all_builds, PLAN_FULL, "picks", workers)
+
+    for ch, cands, bases, builds in per_kit:
         pooled = pooled_var([x["summary"] for x in list(bases.values()) + builds])
         rows = []
         for c, b in zip(cands, builds):
@@ -595,7 +610,6 @@ def stage_picks(only=None, workers=None):
                   for pr in bases if pr}
         out["kits"][ch["id"]] = {"picks": rows, "base": bases[()]["summary"], "priors": pri,
                                  "pooled": pooled, "chains": chains}
-        save("picks", out)
     out["_fp"] = code_fingerprint()
     save("picks", out)
     return out
@@ -606,31 +620,39 @@ def stage_picks(only=None, workers=None):
 def stage_mods(only=None, workers=None):
     cat, cal = catalog(), load("calibrate")
     out = _load_or(STAGES / "mods.json", {"kits": {}})
+    per_kit = []
+    all_builds: list[dict] = []
     for ch in chars(cat, only):
         if ch["id"] not in cal["kits"]:
             continue
         ids = [m["id"] for m in ch["mods"]]
-        base = {"char": ch["id"], "mods": [], "key": "base"}
-        singles = [{"char": ch["id"], "mods": [m], "key": m} for m in ids]
-        measure_many(cal, [base] + singles, PLAN_FULL, f"mods1-{ch['kit']}", workers)
-        combos = [{"char": ch["id"], "mods": list(t), "key": "+".join(t)}
+        ## Singles are measured at the full plan, loadouts at the light one; both ride in the one
+        ## batch through the per-build plan override.
+        base = {"char": ch["id"], "mods": [], "key": "base", "plan": PLAN_FULL}
+        singles = [{"char": ch["id"], "mods": [m], "key": m, "plan": PLAN_FULL} for m in ids]
+        base_l = {"char": ch["id"], "mods": [], "key": "base", "plan": PLAN_LIGHT}
+        combos = [{"char": ch["id"], "mods": list(t), "key": "+".join(t), "plan": PLAN_LIGHT}
                   for t in itertools.combinations(ids, cat["mod_slots"])]
-        base_l = {"char": ch["id"], "mods": [], "key": "base"}
-        measure_many(cal, [base_l] + combos, PLAN_LIGHT, f"mods3-{ch['kit']}", workers)
+        per_kit.append((ch, base, singles, base_l, combos))
+        all_builds += [base] + singles + [base_l] + combos
+    measure_many(cal, all_builds, PLAN_FULL, "mods", workers)
+
+    for ch, base, singles, base_l, combos in per_kit:
         pooled = pooled_var([x["summary"] for x in [base, base_l] + singles + combos])
         evos = {tuple(sorted(e["requires"])): e for e in ch["mod_evolutions"]}
         single_rows = []
-        for s in singles:
-            single_rows.append({"mod": s["mods"][0], "compare": compare(base["summary"], s["summary"], pooled),
-                                "summary": s["summary"],
-                                "active_ok": s["summary"]["single"]["active_mods"] == s["mods"]})
+        for sgl in singles:
+            single_rows.append({"mod": sgl["mods"][0],
+                                "compare": compare(base["summary"], sgl["summary"], pooled),
+                                "summary": sgl["summary"],
+                                "active_ok": sgl["summary"]["single"]["active_mods"] == sgl["mods"]})
         combo_rows = []
         for cmb in combos:
             unlocked = [e["id"] for req, e in evos.items() if all(r in cmb["mods"] for r in req)]
             combo_rows.append({"mods": cmb["mods"], "evolutions": unlocked,
                                "compare": compare(base_l["summary"], cmb["summary"], pooled),
-                               "summary": {a: {k: v for k, v in s.items() if k in ("value", "vals", "policy")}
-                                           for a, s in cmb["summary"].items()},
+                               "summary": {a: {k: v for k, v in sm.items() if k in ("value", "vals", "policy")}
+                                           for a, sm in cmb["summary"].items() if a in ARENAS},
                                "active_ok": sorted(cmb["summary"]["single"]["active_mods"]) == sorted(cmb["mods"])})
         for rows_ in (single_rows, combo_rows):
             pri = eb_priors([r["compare"] for r in rows_])
@@ -640,7 +662,6 @@ def stage_mods(only=None, workers=None):
         combo_rows.sort(key=lambda r: -_nz(r["shrunk"]["overall"]))
         out["kits"][ch["id"]] = {"singles": single_rows, "loadouts": combo_rows,
                                  "base": base["summary"]}
-        save("mods", out)
     out["_fp"] = code_fingerprint()
     save("mods", out)
     return out
@@ -707,65 +728,83 @@ def _held_after_evolutions(cat: dict, build: list[str]) -> list[str]:
 
 
 def stage_greedy(only=None, workers=None):
+    """Greedy best 8-pick build per kit, all kits in lockstep: level N's candidates for every kit
+    are measured in one batch (see the batching note above stage_picks)."""
     cat, cal, picks = catalog(), load("calibrate"), load("picks")
     out = _load_or(STAGES / "greedy.json", {"kits": {}})
+    evo_ids = {e["id"] for e in cat["evolutions"]}
+    kits = []
     for ch in chars(cat, only):
         if ch["id"] not in picks["kits"]:
             continue
         kp = picks["kits"][ch["id"]]
-        prior = {r["id"]: _nz(r.get("shrunk", r["compare"])["overall"]) for r in kp["picks"]}
-        ## Shrinkage prior for the greedy's own comparisons: the spread of pick effects this kit
-        ## showed in the picks stage. With 8 candidates a step, a prior estimated from the step
-        ## itself would be too unstable to trust.
-        gpri = kp.get("priors") or eb_priors([r["compare"] for r in kp["picks"]])
-        gpool = kp.get("pooled")
-        build: list[str] = []
-        base = {"char": ch["id"], "upgrades": [], "key": "base"}
-        measure_many(cal, [base], PLAN_LIGHT, f"greedy-{ch['kit']}-0", workers)
-        cur = base["summary"]
-        steps = []
-        for step in range(GREEDY_STEPS):
-            legal = legal_next(cat, ch, build)
+        kits.append({
+            "ch": ch,
+            "prior": {r["id"]: _nz(r.get("shrunk", r["compare"])["overall"]) for r in kp["picks"]},
+            ## Shrinkage prior for the greedy's own comparisons: the spread of pick effects this
+            ## kit showed in the picks stage. With 8 candidates a step, a prior estimated from the
+            ## step itself would be too unstable to trust.
+            "gpri": kp.get("priors") or eb_priors([r["compare"] for r in kp["picks"]]),
+            "gpool": kp.get("pooled"),
+            "capstones": {u["id"] for u in ch["ability_upgrades"] if u["requires"]},
+            "build": [], "steps": [], "base": None, "cur": None, "done": False,
+        })
+
+    for step in range(GREEDY_STEPS):
+        batch: list[dict] = []
+        for k in kits:
+            if k["done"]:
+                continue
+            if k["base"] is None:
+                k["base"] = {"char": k["ch"]["id"], "upgrades": [], "key": "base"}
+                batch.append(k["base"])
+            legal = legal_next(cat, k["ch"], k["build"])
             ## Always keep evolutions and capstones in the beam — their level-1 prior is measured
             ## on top of prerequisites and does not rank fairly against a naked level-1 pick.
-            evo_ids = {e["id"] for e in cat["evolutions"]}
-            capstones = {u["id"] for u in ch["ability_upgrades"] if u["requires"]}
-            special = [x for x in legal if x in evo_ids or x in capstones]
-            ranked = sorted([x for x in legal if x not in special], key=lambda x: -prior.get(x, 0.0))
+            special = [x for x in legal if x in evo_ids or x in k["capstones"]]
+            ranked = sorted([x for x in legal if x not in special], key=lambda x: -k["prior"].get(x, 0.0))
             beam = special + ranked[:max(1, GREEDY_WIDTH - len(special))]
-            builds = [{"char": ch["id"], "upgrades": build + [x], "key": x} for x in beam]
-            measure_many(cal, builds, PLAN_LIGHT, f"greedy-{ch['kit']}-{step + 1}", workers)
-            scored = []
+            k["cands"] = [{"char": k["ch"]["id"], "upgrades": k["build"] + [x], "key": x} for x in beam]
+            batch += k["cands"]
+        if not batch:
+            break
+        measure_many(cal, batch, PLAN_LIGHT, f"greedy-{step + 1}", workers)
+
+        for k in kits:
+            if k["done"]:
+                continue
+            base_sum = k["base"]["summary"]
+            cur = k["cur"] if k["cur"] is not None else base_sum
+            builds = k["cands"]
             crashed_here = [{"pick": b["key"], **b["summary"]["_crashed"][0]}
                             for b in builds if "_crashed" in b["summary"]]
             builds = [b for b in builds if "_crashed" not in b["summary"]]
+            scored = []
             for b in builds:
-                c = compare(cur, b["summary"], gpool)
-                c["shrunk"] = shrunk(c, gpri)
-                c_total = compare(base["summary"], b["summary"], gpool)
-                c_total["shrunk"] = shrunk(c_total, gpri)
+                c = compare(cur, b["summary"], k["gpool"])
+                c["shrunk"] = shrunk(c, k["gpri"])
+                c_total = compare(base_sum, b["summary"], k["gpool"])
+                c_total["shrunk"] = shrunk(c_total, k["gpri"])
                 scored.append((_nz(c["shrunk"]["overall"]), b, c, c_total))
             scored.sort(key=lambda t: -t[0])
             if not scored:
                 ## Every candidate hung or crashed the engine: the build cannot be extended in
                 ## this game build. Record it and stop the path here rather than guess.
-                steps.append({"step": step + 1, "pick": None, "crashed": crashed_here,
-                              "stopped": "every candidate crashed the engine"})
-                out["kits"][ch["id"]] = {"build": build, "steps": steps, "final": cur,
-                                         "base": base["summary"]}
-                save("greedy", out)
-                break
-            best = scored[0]
-            steps.append({"step": step + 1, "pick": best[1]["key"], "gain": best[2],
-                          "crashed": crashed_here,
-                          "cumulative": best[3],
-                          "considered": [{"pick": s[1]["key"], "gain_overall": s[0],
-                                          "gain": s[2]} for s in scored]})
-            build = build + [best[1]["key"]]
-            cur = best[1]["summary"]
-            out["kits"][ch["id"]] = {"build": build, "steps": steps, "final": cur,
-                                     "base": base["summary"]}
-            save("greedy", out)
+                k["steps"].append({"step": step + 1, "pick": None, "crashed": crashed_here,
+                                   "stopped": "every candidate crashed the engine"})
+                k["done"] = True
+            else:
+                best = scored[0]
+                k["steps"].append({"step": step + 1, "pick": best[1]["key"], "gain": best[2],
+                                   "crashed": crashed_here, "cumulative": best[3],
+                                   "considered": [{"pick": sc[1]["key"], "gain_overall": sc[0],
+                                                   "gain": sc[2]} for sc in scored]})
+                k["build"] = k["build"] + [best[1]["key"]]
+                k["cur"] = best[1]["summary"]
+            out["kits"][k["ch"]["id"]] = {"build": k["build"], "steps": k["steps"],
+                                          "final": k["cur"] if k["cur"] is not None else base_sum,
+                                          "base": base_sum}
+        save("greedy", out)
     out["_fp"] = code_fingerprint()
     save("greedy", out)
     return out
