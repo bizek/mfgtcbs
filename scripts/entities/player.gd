@@ -1568,8 +1568,19 @@ func _physics_process(delta: float) -> void:
 			velocity = _dash_dir * (_dash_speed_current * ease_factor)
 	else:
 		velocity = velocity.move_toward(target_velocity, 1500.0 * delta)
-	velocity += knockback_velocity
-	move_and_slide()
+	## Knockback is an impulse on THIS frame's motion, never part of the carried velocity. It used
+	## to be `velocity += knockback_velocity` with `velocity` persisting frame to frame, so each
+	## frame re-added the (slowly decaying) knockback on top of last frame's: a 590 shove compounded
+	## to ~6,000 px/s and threw the player across the arena (balance sim, 2026-09-27). Most contact
+	## knockback is blocked by the i-frames take_damage sets, but a Guard block, Reckoning's dome
+	## and the Aegis shield all return BEFORE i-frames, so it reached real play there.
+	if knockback_velocity == Vector2.ZERO:
+		move_and_slide()
+	else:
+		var carried: Vector2 = velocity
+		velocity += knockback_velocity
+		move_and_slide()
+		velocity = carried
 	## No manual sprite snap here. The project renders with `snap_2d_transforms_to_pixel`, which
 	## rounds every canvas item's transform (and the camera's) to whole pixels at draw time
 	## WITHOUT touching the physics position, so sub-pixel accumulation is preserved for free.
