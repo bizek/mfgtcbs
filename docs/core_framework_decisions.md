@@ -47,7 +47,7 @@ The Drifter is the baseline. All other characters are defined as modifications t
 | Damage | 10 | Base weapon damage (Drifter's starting weapon). |
 | Attack Speed | 1.0 | Attacks per second (Drifter's starting weapon). |
 | Crit Chance | 5% | Low base. Meaningful to invest in. |
-| Crit Damage | 1.5x | 150% damage on crit (universal base). Can be upgraded. The Spark gets 2.25x via passive. |
+| Crit Damage | 2.0x | 200% damage on crit (universal base, Ben 2026-09-27; the old documented 1.5x actually dealt 2.5x). Crit-damage sources add to the multiplier, uncapped. The Spark gets 2.75x via passive (+0.75). |
 | Dodge Chance | 0% | No dodging by default. Earned through upgrades or character choice (The Shade). |
 | Pickup Radius | 50 | Pixels. Starts small — upgrading this should feel amazing. |
 | Loot Find | 0% | No bonus. Baseline drop rates. |
@@ -99,7 +99,7 @@ Implemented in `DamageCalculator.calculate_damage()`. Full pipeline:
 5. **Block** — target block_chance roll → partial mitigation via block_mitigation %
 6. **Resistance** — `raw × (1 - effective_resist / (effective_resist + 100))` where effective_resist = resist × (1 - source pierce)
 7. **Damage taken** — target damage_taken modifiers + vulnerability (per-type + "All")
-8. **Crit** — source crit_chance roll → `raw × (1 + crit_multiplier)`
+8. **Crit** — source crit_chance roll → `raw × max(crit_multiplier, 1)`. `crit_multiplier` is the whole multiplier (base 2.0); crit-damage sources add to it, uncapped. (Was `raw × (1 + crit_multiplier)` until 2026-09-27, which made the 1.5 base deal 2.5×.)
 
 ### Why Percentage-Based Armor
 
@@ -124,9 +124,9 @@ Implemented as `ModifierDefinition` with `operation = "resist"` and `target_tag`
 - Raw: 18, Resist: 5/(5+100) = 4.8% → 18 × 0.952 = 17.1 damage
 - Result: ~5 hits to kill. Noticeable tankiness without being a slog. ✓
 
-**Spark (+50% damage bonus, 2.25x crit) vs Brute (80 HP, 5 Armor):**
+**Spark (+50% damage bonus, 2.75x crit) vs Brute (80 HP, 5 Armor):**
 - Raw: 14 × 1.5 = 21, Resist: 4.8% → 20.0 damage
-- Crit: 21 × 2.25 = 47.25, Resist → 45.0 damage
+- Crit: 21 × 2.75 = 57.75, Resist → 55.0 damage
 - Result: 4 hits or 2 crits. Glass cannon fantasy delivered. ✓
 
 ---

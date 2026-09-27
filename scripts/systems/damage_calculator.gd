@@ -89,8 +89,13 @@ static func calculate_damage(source: Node2D, target: Node2D,
 	var crit_chance: float = src_mods.sum_modifiers("crit_chance", "add")
 	if crit_chance > 0.0 and (rng.randf() if rng else randf()) < crit_chance:
 		is_crit = true
+		## crit_multiplier IS the crit's damage multiplier: base 2.0 (player.BASE_STATS) = 200%, and
+		## every crit-damage source ADDS to it (Precision +0.25 per rank, Assassin +1.00, the Spark's
+		## passive +0.75 → 2.75x). Uncapped. Until 2026-09-27 this read raw * (1 + crit_multiplier)
+		## on a 1.5 base, so crits dealt 2.5x while every doc said 1.5x — see
+		## core_framework_decisions.md. Floored at 1.0 so a crit can never land softer than the hit.
 		var crit_multiplier: float = src_mods.sum_modifiers("crit_multiplier", "add")
-		raw *= (1.0 + crit_multiplier)
+		raw *= maxf(crit_multiplier, 1.0)
 
 	# Build HitData
 	var hit := HitData.create(maxf(raw, 0.0), damage_type, source, target, ability)
@@ -135,8 +140,9 @@ static func calculate_healing(source: Node2D, target: Node2D,
 	# Step 4: Crit heal
 	var crit_chance: float = src_mods.sum_modifiers("crit_chance", "add")
 	if crit_chance > 0.0 and (rng.randf() if rng else randf()) < crit_chance:
+		## Same multiplier as a damage crit (see calculate_damage step 8).
 		var crit_multiplier: float = src_mods.sum_modifiers("crit_multiplier", "add")
-		raw *= (1.0 + crit_multiplier)
+		raw *= maxf(crit_multiplier, 1.0)
 
 	# Curse check handled by EffectDispatcher (Layer 3)
 

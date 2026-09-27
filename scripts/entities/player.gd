@@ -35,7 +35,7 @@ const BASE_STATS: Dictionary = {
 	"damage":          18.0,
 	"attack_speed":    1.0,
 	"crit_chance":     0.05,
-	"crit_multiplier": 1.5,
+	"crit_multiplier": 2.0,    ## the WHOLE crit multiplier (raw x this); crit-damage picks add to it. Ben 2026-09-27 (was 1.5)
 	"move_speed":      54.0,   ## deliberate-pacing rebalance 2 2026-07-07 (was 66, orig 120); overridden per-character by CharacterData.base_move_speed in _load_character_stats
 	"pickup_radius":   50.0,
 	"melee_range":     1.0,    ## multiplier on melee-combo hit radius + swing-effect size (mod/upgrade hook)

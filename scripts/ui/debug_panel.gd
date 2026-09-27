@@ -188,7 +188,7 @@ func _cmd_power_up() -> void:
 	player_ref.apply_stat_upgrade({"id": "dbg_pierce","stat": "pierce",           "type": "flat",    "value": 8.0})
 	player_ref.apply_stat_upgrade({"id": "dbg_size",  "stat": "projectile_size",  "type": "percent", "value": 1.25})  ## +125%
 	player_ref.apply_stat_upgrade({"id": "dbg_crit",  "stat": "crit_chance",      "type": "flat",    "value": 0.35})  ## +35% → 40% total
-	player_ref.apply_stat_upgrade({"id": "dbg_critd", "stat": "crit_multiplier",  "type": "flat",    "value": 1.25})  ## +125% → 2.75× on crit
+	player_ref.apply_stat_upgrade({"id": "dbg_critd", "stat": "crit_multiplier",  "type": "flat",    "value": 1.25})  ## +125% → 3.25× on crit (2.0 base)
 	player_ref.apply_stat_upgrade({"id": "dbg_spd",   "stat": "move_speed",       "type": "percent", "value": 0.75})  ## +75%
 	player_ref.apply_stat_upgrade({"id": "dbg_rad",   "stat": "pickup_radius",    "type": "percent", "value": 2.4})   ## +240%
 	## Survivability — enough to tank hits without god mode

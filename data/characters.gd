@@ -204,7 +204,7 @@ const ALL: Dictionary = {
 		"passive_id":      "spark_passive",
 		"passive_name":    "Arcane Overload",
 		"portrait":        "res://assets/characters/portraits/the_spark.png",
-		"passive_desc":    "+50% Crit Damage (2.25\u00d7 total instead of 1.5\u00d7).",
+		"passive_desc":    "+75% Crit Damage (2.75\u00d7 total instead of 2.0\u00d7).",
 		"unlock_cost":     1500,
 		"base_hp":         60.0,
 		"base_armor":      0.0,
