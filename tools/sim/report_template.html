@@ -1,0 +1,742 @@
+<title>Descent Balance Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Pixelify+Sans:wght@500;600&display=swap">
+<style>
+:root {
+  /* Single dark theme by design (Ben, 2026-09-26: every report is dark mode). No light palette
+     and no prefers-color-scheme / data-theme switching: the page is dark for every viewer. */
+  color-scheme: dark;
+  --bg: #111613;
+  --card: #182019;
+  --ink: #e8eee9;
+  --ink-2: #b2bcb6;
+  --ink-3: #87918b;
+  --rule: #2b342e;
+  --rule-2: #212a24;
+  --accent: #6fc2a4;
+  --accent-soft: #1f3129;
+  --up: #3987e5;
+  --down: #e66767;
+  --flat: #5d6560;
+  --mid: #2a302c;
+  --sev-bug: #ef7372;
+  --sev-decision: #e0b04a;
+  --sev-warn: #d9a441;
+  --sev-info: #6fc2a4;
+  --sev-caveat: #a5a9c4;
+  --bar: #6fc2a4;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --font-display: "Pixelify Sans", "IBM Plex Mono", ui-monospace, monospace;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--font-body); padding: 0 16px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 28px 64px; display: grid; gap: 36px; }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+h1 { font-family: var(--font-display); font-weight: 600; font-size: 34px; letter-spacing: .02em; line-height: 1.1; }
+h2 { font-family: var(--font-display); font-weight: 500; font-size: 22px; letter-spacing: .02em; }
+h3 { font-size: 15px; font-weight: 600; }
+p { margin: 0; max-width: 72ch; }
+.eyebrow { font: 500 12px/1.2 var(--font-data); text-transform: uppercase; letter-spacing: .12em; color: var(--ink-3); }
+.muted { color: var(--ink-3); }
+.mono, .num { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+.num { text-align: right; white-space: nowrap; }
+a { color: var(--accent); }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+header.top { display: grid; gap: 14px; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 18px; font: 12px var(--font-data); color: var(--ink-2); }
+.lede { color: var(--ink-2); font-size: 15px; }
+
+.controls { z-index: 5; background: var(--bg);
+  border-bottom: 1px solid var(--rule); padding-block: 10px; display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: center; }
+.controls nav { display: flex; gap: 4px; flex-wrap: wrap; }
+.controls nav a { text-decoration: none; color: var(--ink-2); padding: 4px 10px; border-radius: 6px; font-size: 13px; }
+.controls nav a:hover { background: var(--accent-soft); color: var(--ink); }
+.weight { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 12px; color: var(--ink-2); margin-left: auto; }
+.weight input { width: 150px; max-width: 32vw; accent-color: var(--accent); }
+.weight output { font-family: var(--font-data); min-width: 11ch; color: var(--ink); }
+
+section { display: grid; gap: 16px; scroll-margin-top: 64px; }
+/* Grid items default to min-width:auto, so a wide table inside .scroll would stretch the whole
+   track (and the page) instead of scrolling inside its own box. */
+.wrap > *, section > *, #kitbody > *, .subsection > * { min-width: 0; }
+.section-head { display: grid; gap: 6px; }
+
+.panel { background: var(--card); border: 1px solid var(--rule); border-radius: 8px; }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; }
+th, td { padding: 7px 10px; border-bottom: 1px solid var(--rule-2); vertical-align: middle; }
+th { font: 500 12px/1.25 var(--font-data); text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3);
+  text-align: left; border-bottom: 1px solid var(--rule); background: var(--card); position: sticky; top: 0; }
+th.num { text-align: right; }
+tbody tr:hover { background: var(--rule-2); }
+tbody tr:last-child td { border-bottom: 0; }
+
+.interim { padding: 12px 14px; border-color: var(--sev-decision); color: var(--ink); max-width: 80ch; }
+.interim b { color: var(--sev-decision); }
+
+/* findings */
+.findings { display: grid; gap: 8px; }
+.finding { display: grid; grid-template-columns: 92px 1fr; gap: 12px; padding: 12px 14px; background: var(--card);
+  border: 1px solid var(--rule); border-radius: 8px; }
+.sev { font: 500 12px/1 var(--font-data); text-transform: uppercase; letter-spacing: .1em; padding: 5px 7px; border-radius: 4px;
+  border: 1px solid currentColor; justify-self: start; align-self: start; white-space: nowrap; }
+.sev.bug { color: var(--sev-bug); } .sev.decision { color: var(--sev-decision); } .sev.warn { color: var(--sev-warn); }
+.sev.info { color: var(--sev-info); } .sev.fixed { color: var(--accent); } .sev.caveat { color: var(--sev-caveat); }
+.finding h3 { margin-bottom: 3px; }
+.finding > div { min-width: 0; }
+.finding .where { font: 12px var(--font-data); color: var(--ink-3); margin-top: 4px; overflow-wrap: anywhere; }
+.finding p { overflow-wrap: anywhere; }
+.finding .kitlink { font-size: 12px; }
+.filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--rule); background: var(--card); border-radius: 999px; padding: 3px 11px; font-size: 12px; cursor: pointer; color: var(--ink-2); }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.more { justify-self: start; }
+
+/* roster */
+.cellbar { display: grid; grid-template-columns: 1fr 62px; align-items: center; gap: 8px; min-width: 150px; }
+.bar { height: 6px; border-radius: 0 3px 3px 0; background: var(--bar); }
+.bartrack { background: var(--rule-2); border-radius: 3px; height: 6px; overflow: hidden; }
+.kitname { font-weight: 600; }
+.kitsub { font-size: 12px; color: var(--ink-3); }
+.idx { font: 600 13px var(--font-data); }
+td.pick-name { min-width: 210px; }
+.tag { display: inline-block; font: 500 12px/1 var(--font-data); text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3);
+  border: 1px solid var(--rule); border-radius: 3px; padding: 3px 5px; margin-left: 6px; vertical-align: 1px; }
+.desc { font-size: 12px; color: var(--ink-3); max-width: 46ch; }
+
+/* pool heatmap */
+#pooltable td.hm { text-align: center; font: 12px var(--font-data); font-variant-numeric: tabular-nums; min-width: 64px; padding: 6px 6px; border-left: 2px solid var(--card); }
+#pooltable th.hm { text-align: center; white-space: normal; min-width: 64px; font-size: 12px; letter-spacing: .04em; }
+#pooltable td.rowname { white-space: nowrap; }
+
+/* graphs */
+.graph { padding: 12px; display: grid; gap: 10px; }
+.graph svg { display: block; max-width: 100%; height: auto; }
+.graph svg text { font-family: var(--font-body); font-size: 12px; fill: var(--ink-2); }
+.graph svg .lbl-strong { fill: var(--ink); font-weight: 600; }
+.graph svg .halo { paint-order: stroke; stroke: var(--card); stroke-width: 4px; stroke-linejoin: round; }
+.graph .gnode { cursor: pointer; outline: none; }
+.graph .gnode:focus-visible circle, .graph .gnode:focus-visible rect { stroke: var(--ink); stroke-width: 3px; }
+.graph .dim { opacity: .12; }
+.graph .edge, .graph .gnode { transition: opacity .15s; }
+.graph .readout { min-height: 1.5em; font-size: 13px; color: var(--ink); }
+details.alt { font-size: 13px; }
+details.alt summary { cursor: pointer; color: var(--accent); padding: 4px 0; }
+details.alt table { margin-top: 6px; }
+.skip { position: absolute; left: -9999px; }
+.skip:focus { left: 16px; top: 8px; background: var(--card); padding: 6px 10px; border: 1px solid var(--accent); z-index: 10; }
+
+/* kit detail */
+.kitpick { display: flex; flex-wrap: wrap; gap: 6px; }
+.kitpick .chip { font-size: 13px; padding: 5px 12px; }
+.kit-head { display: grid; gap: 4px; }
+.facts { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 13px; color: var(--ink-2); }
+.policies { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 12px; }
+.pol { padding: 14px; display: grid; gap: 8px; align-content: start; }
+.pol .value { font: 600 22px var(--font-data); }
+.pol .how { font-size: 13px; }
+.shares { display: grid; gap: 4px; }
+.share { display: grid; grid-template-columns: minmax(0, 1fr) 90px 38px; gap: 8px; align-items: center; font-size: 12px; }
+.share span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); }
+.runners { font: 12px var(--font-data); color: var(--ink-3); }
+.subsection { display: grid; gap: 10px; }
+.subsection .toolbar { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
+.ci svg { display: block; }
+.ci-cell { min-width: 132px; }
+.ci-val { font: 12px var(--font-data); }
+.ci-val.up { color: var(--up); } .ci-val.down { color: var(--down); } .ci-val.flat { color: var(--ink-3); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; color: var(--ink-2); align-items: center; }
+.sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.evo { display: inline-block; font: 500 12px var(--font-data); color: var(--accent); border: 1px solid var(--accent); border-radius: 3px; padding: 1px 4px; margin-left: 4px; }
+ol.build { margin: 0; padding: 0; list-style: none; display: grid; gap: 0; }
+ol.build li { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--rule-2); }
+ol.build li:last-child { border-bottom: 0; }
+.stepno { font: 12px var(--font-data); color: var(--ink-3); }
+.chartbox { padding: 12px 12px 6px; }
+.note { font-size: 12px; color: var(--ink-3); max-width: 80ch; }
+.empty { padding: 18px; color: var(--ink-3); font-size: 13px; }
+.method { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 12px; }
+.method .panel { padding: 16px; display: grid; gap: 8px; align-content: start; }
+.method dl { margin: 0; display: grid; gap: 8px; }
+.method dt { font-weight: 600; font-size: 13px; }
+.method dd { margin: 0; color: var(--ink-2); font-size: 13px; }
+@media (min-width: 700px) {
+  .controls { position: sticky; top: env(safe-area-inset-top, 0px); }
+}
+@media (max-width: 640px) {
+  h1 { font-size: 26px; }
+  .finding { grid-template-columns: 1fr; }
+  .weight { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+.graph .edge.hot { opacity: 1; }
+</style>
+
+<a class="skip" href="#kit">Skip to kit detail</a>
+<div class="wrap">
+  <header class="top">
+    <span class="eyebrow">Extraction Survivors · automated balance sweep</span>
+    <h1>Descent Balance Ledger</h1>
+    <p class="lede">A headless bot played every kit in the Training Room, found how to play each one well, then measured every level-up pick, every class mod and every 3-mod loadout against it. Every number below went through the real combat code.</p>
+    <div class="meta" id="meta"></div>
+    <div class="interim panel" id="interim" role="status" hidden></div>
+  </header>
+
+  <div class="controls">
+    <nav aria-label="Sections">
+      <a href="#findings">Findings</a><a href="#roster">Roster</a><a href="#pool">Pick pool</a><a href="#kit">Kit detail</a><a href="#method">Method</a>
+    </nav>
+    <label class="weight" for="w">Rank by
+      <span>Offense</span><input id="w" type="range" min="0" max="100" value="50" step="5"><span>Survival</span>
+      <output id="wout" for="w">50 / 50</output>
+    </label>
+  </div>
+
+  <section id="findings">
+    <div class="section-head">
+      <span class="eyebrow">What needs attention</span>
+      <h2>Findings</h2>
+      <p class="muted">Most are derived by fixed rules from the measurements, so a re-run after a balance change re-derives them; defects found while building the harness are written up by hand. "Does nothing" is only claimed when every offence interval sits within ±5%, and up/down colours are corrected for false discoveries.</p>
+    </div>
+    <div class="filters" id="sevfilters" role="group" aria-label="Filter findings"></div>
+    <div class="findings" id="findinglist"></div>
+    <button class="chip more" id="morefind" type="button" hidden></button>
+  </section>
+
+  <section id="roster">
+    <div class="section-head">
+      <span class="eyebrow">Level 1, no mods, clean profile</span>
+      <h2>Roster</h2>
+      <p class="muted">Each kit played its own best policy per arena. The index is each arena's value over the roster median, combined with the Offense/Survival weight above. Bars scale to the best kit in the column.</p>
+    </div>
+    <div class="panel scroll" id="rostertable"></div>
+  </section>
+
+  <section id="pool">
+    <div class="section-head">
+      <span class="eyebrow">Generic picks and evolutions, every kit</span>
+      <h2>Pick pool heatmap</h2>
+      <p class="muted">Each cell is that pick's value for that kit at the current Offense/Survival weight (level 1, shrunk estimate). Rows are sorted by their median across the roster. Blue helps, red hurts, pale is near zero; a dash means the pick is not offered to that kit.</p>
+    </div>
+    <div class="panel scroll" id="pooltable"></div>
+  </section>
+
+  <section id="kit">
+    <div class="section-head">
+      <span class="eyebrow">One kit at a time</span>
+      <h2>Kit detail</h2>
+    </div>
+    <div class="kitpick" id="kitpick" role="group" aria-label="Choose a kit"></div>
+    <div id="kitbody" style="display:grid;gap:28px"></div>
+  </section>
+
+  <section id="method">
+    <div class="section-head">
+      <span class="eyebrow">Read before quoting a number</span>
+      <h2>Method and limits</h2>
+    </div>
+    <div class="method">
+      <div class="panel">
+        <h3>The four arenas</h3>
+        <dl>
+          <dt>Single-target DPS</dt><dd>One rooted, immortal dummy. The bot starts at its preferred range, so no walk-in is counted. 30 s.</dd>
+          <dt>Pack DPS</dt><dd>Six rooted immortal dummies inside a 24 px circle, damage summed. Rewards AoE. 30 s.</dd>
+          <dt>Clear speed</dt><dd>Packs of eight 60 HP fodder arrive from a random bearing, 130 px out, whenever the last pack is down to two. Kills per minute; the player is immune. The only offensive arena where on-kill procs fire. 40 s.</dd>
+          <dt>Survival</dt><dd>A brawl: the real enemy mix (fodder, swarmer, brute, caster) at real stats spawns on a ring around the player and hits back. The alive count grows by one every 5 s up to 30, and difficulty rises by 1.0 every 15 s through the same seam the run clock uses. The bot fights at its range without running away. The number is seconds until the first hit that would have killed it (the engine's own death-prevention hook catches it), capped at 180.</dd>
+        </dl>
+      </div>
+      <div class="panel">
+        <h3>How the bot plays</h3>
+        <p>It presses the real input actions. Aiming is the shipped auto-aim, so it aims no better than a controller player. Its play policy (button pattern, skill use, distance) is chosen per kit and per arena by search: 288 policies on a coarse grid, the best 8 re-run on 3 seeds, then the best of those carried into clear-speed and survival trials.</p>
+        <p>Rotations: <span class="mono">L</span> mash light · <span class="mono">H</span> mash heavy · <span class="mono">L2H</span> light to chain depth 2, then heavy · <span class="mono">C@1.5</span> hold heavy 1.5 s (channel) · <span class="mono">W@1.5</span> hold light. Skills: <span class="mono">q</span>, <span class="mono">e</span>, <span class="mono">qe</span> on cooldown · <span class="mono">qed</span> adds dash on cooldown · <span class="mono">e_once_q</span> E once at the start (stances) plus Q on cooldown.</p>
+      </div>
+      <div class="panel">
+        <h3>Reading a comparison</h3>
+        <p>Every pick, mod and loadout is compared with the same kit without it, on the same seeds and the same candidate policies (common random numbers), and credited with its best policy. Each ratio carries a 95% interval from the kit's pooled run-to-run variance (estimated from every build of that kit at once). Blue and red mean the change survived a Benjamini-Hochberg correction at a 10% false-discovery rate across the whole table family; grey means it did not, even if the drawn interval misses zero.</p>
+        <p>Value, Offense and Survival columns rank on shrunk estimates (empirical Bayes, spike-and-slab prior fitted per kit and arena): a change that is mostly noise collapses toward zero, while a clearly significant one keeps most of its size. That stops a noisy survival swing from topping or sinking a table. The per-arena cells show the raw measurement and its interval.</p>
+        <p>Capstones and evolutions are measured on top of their prerequisites, against those prerequisites alone, so their number is what the capstone itself adds.</p>
+      </div>
+      <div class="panel">
+        <h3>What this cannot tell you</h3>
+        <p>Feel, readability, fun, animation timing and whether a telegraph is fair. Survival is a stand-and-fight test: the bot does not kite, because with kiting the result measured whether the bot happened to corner itself (the same build went down 0 or 5 times depending on the seed). So move speed and dash picks, whose value is escaping, are undervalued here. Immortal dummies never drop below full HP, so execute-style bonuses show up only in clear speed and survival.</p>
+        <p>Profile is clean: signature weapon, no passive tree, no trinkets, no workshop upgrades.</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+const DATA = /*__REPORT_DATA__*/null;
+const ARENAS = ["single", "cluster", "horde", "pressure"];
+const ARENA_LABEL = { single: "Single-target DPS", cluster: "Pack DPS", horde: "Clear speed", pressure: "Survival" };
+const ARENA_SHORT = { single: "Single", cluster: "Pack", horde: "Clear", pressure: "Survive" };
+const UNIT = { single: "DPS", cluster: "DPS", horde: "kills/min", pressure: "s to first down" };
+let W = 0.5;
+let currentKit = null;
+
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const pct = r => r == null ? "—" : (r >= 1 ? "+" : "−") + Math.abs((r - 1) * 100).toFixed(1) + "%";
+const fmt = (a, v) => v == null ? "—" : a === "pressure" ? v.toFixed(0) + " s" : v >= 100 ? v.toFixed(0) : v.toFixed(1);
+const nameOf = id => DATA.names[id] || id;
+
+function weighted(off, def) {
+  if (off == null && def == null) return null;
+  if (def == null || !(def > 0)) return off;
+  if (off == null || !(off > 0)) return def;
+  return Math.exp((1 - W) * Math.log(off) + W * Math.log(def));
+}
+
+function decodePolicy(key) {
+  if (!key) return "—";
+  const [rot, skills, range] = key.split("/");
+  const [r, hold] = rot.split("@");
+  const R = { L: "mash light", H: "mash heavy", L1H: "one light, then heavy", L2H: "light ×2, then heavy",
+    L3H: "light ×3, then heavy", L4H: "light ×4, then heavy", C: `hold heavy ${hold}s (channel)`, W: `hold light ${hold}s` }[r] || rot;
+  const S = { none: "no skills", q: "Q on cooldown", e: "E on cooldown", qe: "Q + E on cooldown",
+    qed: "Q + E + dash on cooldown", e_once_q: "E once, Q on cooldown" }[skills] || skills;
+  return `${R} · ${S} · stays ${range} px out`;
+}
+
+// ── header ────────────────────────────────────────────────────────────────
+function renderInterim() {
+  const el = $("#interim");
+  if (!DATA.interim) { el.hidden = true; return; }
+  el.hidden = false;
+  el.innerHTML = `<b>Interim report.</b> ${esc(DATA.interim)}`;
+}
+function renderMeta() {
+  const st = Object.entries(DATA.stages).filter(([, v]) => v).map(([k]) => k);
+  $("#meta").innerHTML = [
+    `generated ${esc(DATA.generated)}`,
+    `code ${esc(DATA.fingerprint)}`,
+    `${DATA.counts.toLocaleString()} simulated fights`,
+    `${DATA.kits.length} kits`,
+    `stages: ${st.join(" · ")}`,
+  ].map(x => `<span>${x}</span>`).join("");
+}
+
+// ── findings ──────────────────────────────────────────────────────────────
+const SEV_LABEL = { bug: "Defect", decision: "Decision", fixed: "Fixed", warn: "Check", info: "Outlier", caveat: "Caveat" };
+let sevFilter = "all", findExpanded = false;
+function renderFindings() {
+  const counts = {};
+  DATA.findings.forEach(f => counts[f.severity] = (counts[f.severity] || 0) + 1);
+  const sevs = ["all", ...Object.keys(SEV_LABEL).filter(s => counts[s])];
+  $("#sevfilters").innerHTML = sevs.map(s => `<button type="button" class="chip" data-sev="${s}" aria-pressed="${s === sevFilter}">${s === "all" ? "All" : SEV_LABEL[s]} <span class="mono">${s === "all" ? DATA.findings.length : counts[s]}</span></button>`).join("");
+  $("#sevfilters").onclick = e => { const b = e.target.closest("[data-sev]"); if (!b) return; sevFilter = b.dataset.sev; findExpanded = false; renderFindings(); };
+  const list = DATA.findings.filter(f => sevFilter === "all" || f.severity === sevFilter);
+  const shown = findExpanded ? list : list.slice(0, 12);
+  $("#findinglist").innerHTML = shown.map(f => `
+    <article class="finding">
+      <span class="sev ${f.severity}">${SEV_LABEL[f.severity] || f.severity}</span>
+      <div><h3>${esc(f.title)}</h3><p>${esc(f.body)}</p>
+      ${f.where ? `<div class="where">${esc(f.where)}</div>` : ""}
+      ${f.kit ? `<a class="kitlink" href="#kit" data-kit="${esc(f.kit)}">Open ${esc(kitName(f.kit))} →</a>` : ""}</div>
+    </article>`).join("") || `<div class="empty">Nothing in this category.</div>`;
+  const more = $("#morefind");
+  more.hidden = list.length <= 12;
+  more.textContent = findExpanded ? "Show fewer" : `Show all ${list.length}`;
+  more.onclick = () => { findExpanded = !findExpanded; renderFindings(); };
+}
+const kitName = id => (DATA.kits.find(k => k.id === id) || {}).name || id;
+document.addEventListener("click", e => { const a = e.target.closest("a[data-kit]"); if (a) selectKit(a.dataset.kit); });
+
+// ── roster ────────────────────────────────────────────────────────────────
+function median(xs) { const s = xs.filter(x => x != null).sort((a, b) => a - b); return s.length ? s[Math.floor(s.length / 2)] : null; }
+function renderRoster() {
+  const kits = DATA.kits.filter(k => k.baseline);
+  if (!kits.length) { $("#rostertable").innerHTML = `<div class="empty">Baseline stage not run yet.</div>`; return; }
+  const med = {}, max = {};
+  ARENAS.forEach(a => { const v = kits.map(k => k.baseline[a]?.value); med[a] = median(v); max[a] = Math.max(...v.filter(x => x != null)); });
+  const rows = kits.map(k => {
+    const r = {}; ARENAS.forEach(a => r[a] = k.baseline[a]?.value != null && med[a] ? k.baseline[a].value / med[a] : null);
+    const offs = ["single", "cluster", "horde"].map(a => r[a]).filter(x => x > 0);
+    const off = offs.length ? Math.exp(offs.reduce((s, x) => s + Math.log(x), 0) / offs.length) : null;
+    const g = k.greedy ? weightedGain(k.greedy.steps.filter(s => s.pick).at(-1)?.cumulative) : null;
+    return { k, idx: weighted(off, r.pressure), off, def: r.pressure, g };
+  }).sort((a, b) => (b.idx ?? 0) - (a.idx ?? 0));
+  const hasG = rows.some(r => r.g != null);
+  $("#rostertable").innerHTML = `<table><thead><tr><th>Kit</th><th class="num">Index</th>
+    ${ARENAS.map(a => `<th>${ARENA_LABEL[a]} <span class="muted">(${UNIT[a]})</span></th>`).join("")}
+    ${hasG ? `<th class="num" title="Weighted gain of the bot's best 8-pick build over level 1">8-pick build</th>` : ""}</tr></thead><tbody>
+    ${rows.map(({ k, idx, g }) => `<tr>
+      <td><a href="#kit" data-kit="${esc(k.id)}" class="kitname">${esc(k.name)}</a><div class="kitsub">${k.id !== k.name ? esc(k.id) + " · " : ""}${esc(k.class)}</div></td>
+      <td class="num idx">${idx == null ? "—" : idx.toFixed(2)}</td>
+      ${ARENAS.map(a => { const v = k.baseline[a]?.value; const w = v == null ? 0 : Math.max(2, v / max[a] * 100);
+        return `<td><div class="cellbar"><div class="bartrack"><div class="bar" style="width:${w}%"></div></div><span class="num">${fmt(a, v)}</span></div></td>`; }).join("")}
+      ${hasG ? `<td class="num">${g == null ? "—" : "×" + g.toFixed(2)}</td>` : ""}
+    </tr>`).join("")}</tbody></table>`;
+}
+function weightedGain(c) { return c ? weighted(c.offense, c.defense) : null; }
+
+// ── pool heatmap ──────────────────────────────────────────────────────────
+// Diverging: ln(value) mapped to ±1 at ±40%, mixed from the neutral midpoint toward --up/--down.
+// Capped at 60% mix so the ink stays readable on the strongest cells in both themes.
+function heatCell(v) {
+  if (v == null) return `<td class="hm muted">–</td>`;
+  const t = Math.max(-1, Math.min(1, Math.log(v) / Math.log(1.4)));
+  const pole = t >= 0 ? "var(--up)" : "var(--down)";
+  const mix = Math.round(Math.abs(t) * 60);
+  return `<td class="hm" style="background:color-mix(in oklab, ${pole} ${mix}%, var(--mid))" title="${pct(v)}">${pct(v)}</td>`;
+}
+function renderPool() {
+  const kits = DATA.kits.filter(k => k.picks);
+  if (!kits.length) { $("#pooltable").innerHTML = `<div class="empty">Pick stage not run yet.</div>`; return; }
+  const rows = {};
+  kits.forEach(k => k.picks.filter(p => p.kind === "generic" || p.kind === "evolution").forEach(p => {
+    rows[p.id] = rows[p.id] || { name: p.name, kind: p.kind, role: p.role, cells: {} };
+    rows[p.id].cells[k.id] = weighted(p.compare.offense, p.compare.defense);
+  }));
+  const list = Object.entries(rows).map(([id, r]) => ({ id, ...r, med: median(Object.values(r.cells)) }))
+    .sort((a, b) => (b.med ?? 0) - (a.med ?? 0));
+  $("#pooltable").innerHTML = `<table><thead><tr><th>Pick</th><th class="num">Median</th>${kits.map(k => `<th class="hm">${esc(k.name.replace(/^The /, ""))}</th>`).join("")}</tr></thead><tbody>
+    ${list.map(r => `<tr><td class="rowname">${esc(r.name)}<span class="tag">${esc(r.kind === "evolution" ? "evo" : r.role)}</span></td><td class="num idx">${pct(r.med)}</td>${kits.map(k => heatCell(r.cells[k.id])).join("")}</tr>`).join("")}
+  </tbody></table>`;
+}
+
+// ── graph helpers ─────────────────────────────────────────────────────────
+// Offense/defense arrive as log-ratios; the Offense/Survival control blends them in log space,
+// which is the same geometric weighting every table on the page uses.
+function wlog(o, d) {
+  if (o == null && d == null) return null;
+  if (d == null) return o;
+  if (o == null) return d;
+  return (1 - W) * o + W * d;
+}
+const pctL = l => l == null ? "—" : pct(Math.exp(l));
+const signCol = l => l >= 0 ? "var(--up)" : "var(--down)";
+// Wire focus + context: hovering or focusing a node dims everything not connected to it, and the
+// readout line states the same thing in words (so it reaches screen readers and colour-blind eyes).
+function wireGraph(root, neighbours, describe) {
+  const readout = root.querySelector(".readout");
+  const clear = () => { root.querySelectorAll(".dim").forEach(e => e.classList.remove("dim")); if (readout) readout.textContent = readout.dataset.idle || ""; };
+  const focus = id => {
+    const keep = neighbours(id);
+    root.querySelectorAll("[data-n]").forEach(e => e.classList.toggle("dim", !keep.nodes.has(e.dataset.n)));
+    root.querySelectorAll("[data-e]").forEach(e => e.classList.toggle("dim", !keep.edges.has(e.dataset.e)));
+    if (readout) readout.textContent = describe(id);
+  };
+  root.querySelectorAll(".gnode").forEach(g => {
+    g.addEventListener("mouseenter", () => focus(g.dataset.n));
+    g.addEventListener("focus", () => focus(g.dataset.n));
+    g.addEventListener("mouseleave", clear);
+    g.addEventListener("blur", clear);
+    g.addEventListener("keydown", e => { if (e.key === "Escape") { g.blur(); clear(); } });
+    // Touch screens have no hover: a tap isolates the node, a tap on empty canvas clears it.
+    g.addEventListener("click", e => { e.stopPropagation(); focus(g.dataset.n); });
+  });
+  const svg = root.querySelector("svg");
+  if (svg) svg.addEventListener("click", clear);
+}
+
+// ── mod synergy network ───────────────────────────────────────────────────
+let netThreshold = 0.03;
+function modNetworkBlock(k) {
+  const net = k.mod_network;
+  if (!net) return "";
+  const nodes = net.order.map(id => net.nodes.find(n => n.id === id));
+  const N = nodes.length, VW = 640, VH = 470, cx = VW / 2, cy = VH / 2 + 4, R = 150;
+  const P = {};
+  nodes.forEach((n, i) => { const a = -Math.PI / 2 + i * 2 * Math.PI / N; P[n.id] = { x: cx + R * Math.cos(a), y: cy + R * Math.sin(a), a }; });
+  const nv = n => wlog(n.off, n.def) ?? 0;
+  const ev = e => wlog(e.off, e.def) ?? 0;
+  const maxN = Math.max(0.02, ...nodes.map(n => Math.abs(nv(n))));
+  const edges = net.edges.filter(e => Math.abs(Math.exp(ev(e)) - 1) >= netThreshold || e.evo)
+    .sort((a, b) => Math.abs(ev(a)) - Math.abs(ev(b)));
+  // Width scales to the 90th-percentile interaction, capped: one broken mod must not flatten every
+  // other edge into a hairline (a robust scale, not a max scale).
+  const absW = net.edges.map(e => Math.abs(ev(e))).sort((a, b) => a - b);
+  const maxE = Math.max(0.02, absW[Math.floor(absW.length * 0.9)] || 0.02);
+  const name = id => (net.nodes.find(n => n.id === id) || {}).name || id;
+  // Edges bow gently toward the centre (a light bundling) so chords between neighbours do not
+  // sit on top of the circle's rim.
+  const edgeSvg = edges.map(e => {
+    const a = P[e.a], b = P[e.b], mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    const qx = mx + (cx - mx) * 0.35, qy = my + (cy - my) * 0.35;
+    const w = ev(e), sw = 1.5 + 6 * Math.min(1, Math.abs(w) / maxE);
+    const lx = 0.25 * a.x + 0.5 * qx + 0.25 * b.x, ly = 0.25 * a.y + 0.5 * qy + 0.25 * b.y;
+    return `<g class="edge" data-e="${e.a}|${e.b}"><path d="M${a.x},${a.y} Q${qx},${qy} ${b.x},${b.y}" fill="none" stroke="${signCol(w)}" stroke-width="${sw.toFixed(1)}" ${w < 0 ? 'stroke-dasharray="6 4"' : ""} stroke-linecap="round"><title>${esc(name(e.a))} + ${esc(name(e.b))}: ${pctL(w)} together beyond their separate effects${e.evo ? " · unlocks " + esc(e.evo) : ""}</title></path>
+      ${e.evo ? `<text class="halo lbl-strong" x="${lx}" y="${ly}" text-anchor="middle" dy="5" font-size="15">★</text>` : ""}</g>`;
+  }).join("");
+  const nodeSvg = nodes.map(n => {
+    const p = P[n.id], v = nv(n);
+    const r = 7 + 22 * Math.sqrt(Math.abs(v) / maxN);          // AREA ∝ |effect|
+    const right = Math.cos(p.a) >= -0.01;
+    const lx = p.x + Math.cos(p.a) * (r + 10), ly = p.y + Math.sin(p.a) * (r + 10);
+    const partners = net.edges.filter(e => e.a === n.id || e.b === n.id).map(e => ({ o: e.a === n.id ? e.b : e.a, w: ev(e) }))
+      .sort((x, y) => Math.abs(y.w) - Math.abs(x.w)).slice(0, 2);
+    const aria = `${n.name}: alone ${pctL(v)}. Strongest interactions: ${partners.map(q => `${name(q.o)} ${pctL(q.w)}`).join(", ")}.`;
+    return `<g class="gnode" data-n="${n.id}" tabindex="0" role="img" aria-label="${esc(aria)}">
+      <circle cx="${p.x}" cy="${p.y}" r="${r.toFixed(1)}" fill="color-mix(in oklab, ${signCol(v)} 55%, var(--card))" stroke="${signCol(v)}" stroke-width="2"/>
+      <text class="halo lbl-strong" x="${lx}" y="${ly - 2}" text-anchor="${Math.abs(Math.cos(p.a)) < 0.3 ? "middle" : right ? "start" : "end"}" dy="${Math.sin(p.a) > 0.3 ? 10 : 0}">${esc(n.name)}</text>
+      <text class="halo" x="${lx}" y="${ly + 13}" text-anchor="${Math.abs(Math.cos(p.a)) < 0.3 ? "middle" : right ? "start" : "end"}" dy="${Math.sin(p.a) > 0.3 ? 10 : 0}">${pctL(v)} alone</text></g>`;
+  }).join("");
+  // Best triangle under the fitted model (heaviest 3-clique) vs the best loadout actually measured.
+  let best = null;
+  for (let i = 0; i < N; i++) for (let j = i + 1; j < N; j++) for (let l = j + 1; l < N; l++) {
+    const ids = [nodes[i].id, nodes[j].id, nodes[l].id];
+    const eW = (x, y) => { const e = net.edges.find(q => (q.a === x && q.b === y) || (q.a === y && q.b === x)); return e ? ev(e) : 0; };
+    const tot = nv(nodes[i]) + nv(nodes[j]) + nv(nodes[l]) + eW(ids[0], ids[1]) + eW(ids[0], ids[2]) + eW(ids[1], ids[2]);
+    if (!best || tot > best.tot) best = { ids, tot };
+  }
+  const measured = (k.mods?.loadouts || []).map(l => ({ l, v: weighted(l.compare.offense, l.compare.defense) })).sort((a, b) => (b.v ?? 0) - (a.v ?? 0))[0];
+  const f = net.fit;
+  const r2 = x => x == null ? "—" : (x * 100).toFixed(1) + "%";
+  const evoList = net.edges.filter(e => e.evo).map(e => `★ ${esc(e.evo)}: ${esc(name(e.a))} + ${esc(name(e.b))}, ${ev(e) >= 0 ? "▲" : "▼"} ${pctL(ev(e))} together beyond separate`).join(" · ");
+  const pairsTable = [...net.edges].sort((a, b) => Math.abs(ev(b)) - Math.abs(ev(a)))
+    .map(e => `<tr><td>${esc(name(e.a))} + ${esc(name(e.b))}</td><td class="num">${ev(e) >= 0 ? "▲" : "▼"} ${pctL(ev(e))}</td><td>${e.evo ? "★ " + esc(e.evo) : ""}</td></tr>`).join("");
+  return `<div class="subsection"><div class="toolbar"><h3>Mod synergy network</h3>
+    <div class="filters" id="netthr" role="group" aria-label="Minimum interaction shown">${[[0.01, "≥1%"], [0.03, "≥3%"], [0.06, "≥6%"], [0.1, "≥10%"]].map(([v, l]) => `<button type="button" class="chip" data-t="${v}" aria-pressed="${v === netThreshold}">${l}</button>`).join("")}</div></div>
+    <div class="panel graph" id="modnet">
+      <div class="scroll"><svg viewBox="0 0 ${VW} ${VH}" width="${VW}" role="group" aria-label="Class mod synergy network for ${esc(k.name)}. ${N} mods; ${edges.length} interactions shown.">${edgeSvg}${nodeSvg}</svg></div>
+      <div class="readout" aria-live="polite" data-idle="Hover or tab to a mod to isolate its connections. Esc clears.">Hover or tab to a mod to isolate its connections. Esc clears.</div>
+      <div class="legend"><span><svg width="28" height="10" aria-hidden="true"><line x1="0" y1="5" x2="28" y2="5" stroke="var(--up)" stroke-width="3"/></svg>solid: stronger together</span>
+        <span><svg width="28" height="10" aria-hidden="true"><line x1="0" y1="5" x2="28" y2="5" stroke="var(--down)" stroke-width="3" stroke-dasharray="6 4"/></svg>dashed: weaker together</span>
+        <span>line width: size of the interaction (capped)</span><span>circle area: the mod alone</span><span>★ mod evolution</span></div>
+      ${evoList ? `<p class="note">${evoList}</p>` : ""}
+      <p class="note">Model's best trio (heaviest triangle): <b>${best ? best.ids.map(name).map(esc).join(" + ") : "—"}</b> at ${best ? pctL(best.tot) : "—"}. Best trio actually measured: <b>${measured ? measured.l.names.map(esc).join(" + ") : "—"}</b> at ${measured ? pct(measured.v) : "—"}.
+      The pairwise model explains ${r2(f.r2_off)} of the offense variation and ${r2(f.r2_def)} of the survival variation across ${f.n_loadouts} loadouts; the remainder is three-way effects plus noise. Order around the circle is spectral (Fiedler vector), so strongly linked mods sit side by side.</p>
+      <details class="alt"><summary>Show every pair as a table</summary><div class="scroll"><table><thead><tr><th>Pair</th><th class="num">Together, beyond separate</th><th>Evolution</th></tr></thead><tbody>${pairsTable}</tbody></table></div></details>
+    </div></div>`;
+}
+function wireModNetwork(k) {
+  const root = $("#modnet"); if (!root || !k.mod_network) return;
+  const net = k.mod_network, name = id => (net.nodes.find(n => n.id === id) || {}).name || id;
+  wireGraph(root, id => {
+    const nodes = new Set([id]), edges = new Set();
+    root.querySelectorAll("[data-e]").forEach(g => { const [a, b] = g.dataset.e.split("|"); if (a === id || b === id) { edges.add(g.dataset.e); nodes.add(a); nodes.add(b); } });
+    return { nodes, edges };
+  }, id => { const g = root.querySelector(`[data-n="${id}"]`); return g ? g.getAttribute("aria-label") : ""; });
+  const thr = $("#netthr"); if (thr) thr.onclick = e => { const b = e.target.closest("[data-t]"); if (b) { netThreshold = +b.dataset.t; renderKit(); } };
+}
+
+// ── prerequisite DAG ──────────────────────────────────────────────────────
+function depGraphBlock(k) {
+  const g = k.dep_graph;
+  if (!g) return "";
+  const layers = Object.keys(g.layers).map(Number).sort((a, b) => a - b);
+  const BW = 188, BH = 34, GX = 96, GY = 10, PAD = 12;
+  const rows = Math.max(...layers.map(l => g.layers[l].length));
+  const VW = PAD * 2 + layers.length * BW + (layers.length - 1) * GX, VH = PAD * 2 + rows * (BH + GY);
+  const pos = {};
+  layers.forEach((l, li) => {
+    const col = g.layers[l], off = (rows - col.length) * (BH + GY) / 2;
+    col.forEach((id, i) => pos[id] = { x: PAD + li * (BW + GX), y: PAD + off + i * (BH + GY) });
+  });
+  const node = id => g.nodes.find(n => n.id === id);
+  const val = n => wlog(n.off, n.def);
+  const edgeSvg = g.edges.map(e => {
+    const a = pos[e.from], b = pos[e.to]; if (!a || !b) return "";
+    const x1 = a.x + BW, y1 = a.y + BH / 2, x2 = b.x, y2 = b.y + BH / 2, mx = (x1 + x2) / 2;
+    return `<g class="edge" data-e="${e.from}|${e.to}"><path d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2 - 4},${y2}" fill="none" stroke="var(--ink-3)" stroke-width="${e.mult > 1 ? 3 : 1.5}" marker-end="url(#arrow)"/>
+      ${e.mult > 1 ? `<text class="halo lbl-strong" x="${x2 - 22}" y="${y2 - 6}" text-anchor="middle">×${e.mult}</text>` : ""}</g>`;
+  }).join("");
+  const nodeSvg = g.nodes.map(n => {
+    const p = pos[n.id]; if (!p) return "";
+    const v = val(n), isTarget = n.layer > 0;
+    const chainL = isTarget && n.chain_off != null ? wlog(n.chain_off, n.chain_def) : null;
+    const total = chainL != null && v != null ? chainL + v : null;
+    const mix = v == null ? 0 : Math.min(60, Math.round(Math.abs(v) / Math.log(1.4) * 60));
+    const fill = v == null ? "var(--card)" : `color-mix(in oklab, ${signCol(v)} ${mix}%, var(--card))`;
+    const label = nameOf(n.id);
+    const sub = isTarget ? `adds ${pctL(v)}${total != null ? ` · whole chain ${pctL(total)}` : ""}` : `${pctL(v)} at level 1`;
+    const aria = `${label}: ${sub}.${n.prereq?.length ? " Needs " + n.prereq.map(nameOf).join(", ") + "." : ""}`;
+    return `<g class="gnode" data-n="${n.id}" tabindex="0" role="img" aria-label="${esc(aria)}">
+      <rect x="${p.x}" y="${p.y}" width="${BW}" height="${BH}" rx="4" fill="${fill}" stroke="${isTarget ? "var(--accent)" : "var(--rule)"}" stroke-width="${isTarget ? 2 : 1}"/>
+      <text class="lbl-strong" x="${p.x + 8}" y="${p.y + 14}">${esc(label.length > 24 ? label.slice(0, 23) + "…" : label)}</text>
+      <text x="${p.x + 8}" y="${p.y + 28}">${esc(sub)}</text></g>`;
+  }).join("");
+  const alt = g.nodes.filter(n => n.layer > 0).map(n => {
+    const v = val(n), c = n.chain_off != null ? wlog(n.chain_off, n.chain_def) : null;
+    return `<tr><td>${esc(nameOf(n.id))}</td><td>${esc((n.prereq || []).map(nameOf).join(" + "))}</td><td class="num">${pctL(v)}</td><td class="num">${c != null && v != null ? pctL(c + v) : "—"}</td></tr>`;
+  }).join("");
+  return `<div class="subsection"><h3>Evolution and capstone graph</h3>
+    <div class="panel graph" id="depgraph">
+      <div class="scroll"><svg viewBox="0 0 ${VW} ${VH}" width="${VW}" role="group" aria-label="Prerequisite graph: what each evolution and capstone needs and what it adds">
+        <defs><marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--ink-3)"/></marker></defs>
+        ${edgeSvg}${nodeSvg}</svg></div>
+      <div class="readout" aria-live="polite" data-idle="Hover or tab to a node to trace what it needs and what it unlocks.">Hover or tab to a node to trace what it needs and what it unlocks.</div>
+      <p class="note">Columns are layers of the dependency graph (longest path from a starting pick); within a column, order is the barycenter of each node's neighbours, which keeps crossing edges to a minimum. "Adds" is the capstone or evolution on top of its ingredients; "whole chain" is the ingredients plus it, against the bare kit. Evolutions consume their ingredients, and the numbers already include that.</p>
+      <details class="alt"><summary>Show as a table</summary><div class="scroll"><table><thead><tr><th>Unlock</th><th>Needs</th><th class="num">Adds</th><th class="num">Whole chain</th></tr></thead><tbody>${alt}</tbody></table></div></details>
+    </div></div>`;
+}
+function wireDepGraph(k) {
+  const root = $("#depgraph"); if (!root || !k.dep_graph) return;
+  const E = k.dep_graph.edges;
+  // Trace the full ancestry and descendancy — a path highlight, not just the immediate neighbours.
+  const walk = (id, dir, nodes, edges) => E.filter(e => (dir > 0 ? e.from : e.to) === id).forEach(e => {
+    edges.add(`${e.from}|${e.to}`); const nx = dir > 0 ? e.to : e.from;
+    if (!nodes.has(nx)) { nodes.add(nx); walk(nx, dir, nodes, edges); } });
+  wireGraph(root, id => { const nodes = new Set([id]), edges = new Set(); walk(id, 1, nodes, edges); walk(id, -1, nodes, edges); return { nodes, edges }; },
+    id => { const g = root.querySelector(`[data-n="${id}"]`); return g ? g.getAttribute("aria-label") : ""; });
+}
+
+// ── greedy search trace ───────────────────────────────────────────────────
+function searchTrace(g) {
+  const steps = g.steps.filter(s => s.pick), VW = 640, VH = 230, L = 52, R = 16, T = 14, B = 34;
+  const pts = steps.flatMap(s => s.considered.map(c => ({ step: s.step, id: c.pick, v: wlog(c.gain.offense != null ? Math.log(c.gain.offense) : null, c.gain.defense != null ? Math.log(c.gain.defense) : null), chosen: c.pick === s.pick })));
+  const vs = pts.map(p => p.v).filter(v => v != null);
+  const lo = Math.min(-0.02, ...vs), hi = Math.max(0.05, ...vs);
+  const x = s => L + (s - 1) / Math.max(1, steps.length - 1) * (VW - L - R);
+  const y = v => T + (1 - (v - lo) / (hi - lo)) * (VH - T - B);
+  const ticks = [lo, 0, hi / 2, hi].filter((t, i, a) => a.indexOf(t) === i);
+  const chosen = pts.filter(p => p.chosen);
+  return `<div class="panel graph"><div class="scroll"><svg viewBox="0 0 ${VW} ${VH}" width="${VW}" role="img" aria-label="Search trace: at each level, the gain of every candidate the optimizer tried; the chosen pick is highlighted.">
+    ${ticks.map(t => `<line x1="${L}" x2="${VW - R}" y1="${y(t)}" y2="${y(t)}" stroke="${Math.abs(t) < 1e-9 ? "var(--rule)" : "var(--rule-2)"}"/><text x="${L - 6}" y="${y(t) + 4}" text-anchor="end">${pctL(t)}</text>`).join("")}
+    ${steps.map(s => `<text x="${x(s.step)}" y="${VH - 12}" text-anchor="middle">L${s.step + 1}</text>`).join("")}
+    <polyline fill="none" stroke="var(--accent)" stroke-width="2" points="${chosen.map(p => `${x(p.step)},${y(p.v ?? 0)}`).join(" ")}"/>
+    ${pts.filter(p => p.v != null).map(p => `<circle cx="${x(p.step) + (p.chosen ? 0 : 0)}" cy="${y(p.v)}" r="${p.chosen ? 6 : 3.5}" fill="${p.chosen ? "var(--accent)" : "var(--flat)"}" stroke="var(--card)" stroke-width="1.5"><title>L${p.step + 1}: ${esc(nameOf(p.id))} ${pctL(p.v)}${p.chosen ? " (chosen)" : ""}</title></circle>`).join("")}
+  </svg></div><p class="note">Each column is one level of the build search tree: grey dots are the candidates the optimizer tried at that level (their gain on top of the build so far), the green path is the pick it kept. A column where the grey dots crowd the chosen one is a level where the choice barely matters.</p></div>`;
+}
+
+// ── CI mini plot ──────────────────────────────────────────────────────────
+// x axis: log ratio, clipped to ±60%; centre line = no change.
+const CI_W = 120, CI_H = 18, CI_LIM = Math.log(1.6);
+function ciSvg(c) {
+  if (!c || c.ratio == null) return `<span class="muted mono">—</span>`;
+  const x = r => { const l = Math.max(-CI_LIM, Math.min(CI_LIM, Math.log(Math.max(r, 1e-3)))); return 6 + (l + CI_LIM) / (2 * CI_LIM) * (CI_W - 12); };
+  const col = c.verdict === "up" ? "var(--up)" : c.verdict === "down" ? "var(--down)" : "var(--flat)";
+  const lo = x(c.lo ?? c.ratio), hi = x(c.hi ?? c.ratio), m = x(c.ratio);
+  return `<svg width="${CI_W}" height="${CI_H}" viewBox="0 0 ${CI_W} ${CI_H}" role="img" aria-label="${pct(c.ratio)} (95% ${pct(c.lo)} to ${pct(c.hi)})">
+    <line x1="${x(1)}" x2="${x(1)}" y1="1" y2="${CI_H - 1}" stroke="var(--rule)" stroke-width="1"/>
+    <line x1="${lo}" x2="${hi}" y1="${CI_H / 2}" y2="${CI_H / 2}" stroke="${col}" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="${m}" cy="${CI_H / 2}" r="4" fill="${col}" stroke="var(--card)" stroke-width="2"/></svg>`;
+}
+function ciCell(c) {
+  return `<td class="ci-cell" title="${c ? `${pct(c.ratio)} · 95% ${pct(c.lo)} to ${pct(c.hi)}` : ""}"><div class="ci">${ciSvg(c)}</div><div class="ci-val ${c?.verdict || "flat"}">${c ? (c.verdict === "up" ? "▲ " : c.verdict === "down" ? "▼ " : "") + pct(c.ratio) : "—"}</div></td>`;
+}
+
+// ── kit detail ────────────────────────────────────────────────────────────
+function renderKitPicker() {
+  $("#kitpick").innerHTML = DATA.kits.map(k => `<button type="button" class="chip" data-k="${esc(k.id)}" aria-pressed="${k.id === currentKit}">${esc(k.name)}</button>`).join("");
+  $("#kitpick").onclick = e => { const b = e.target.closest("[data-k]"); if (b) selectKit(b.dataset.k); };
+}
+function selectKit(id) {
+  currentKit = id;
+  try { localStorage.setItem("ledger-kit", id); } catch (e) {}
+  renderKitPicker(); renderKit();
+}
+let pickFilter = "all", modView = "top";
+function renderKit() {
+  const k = DATA.kits.find(x => x.id === currentKit);
+  if (!k) { $("#kitbody").innerHTML = ""; return; }
+  const b = k.baseline || {};
+  let html = `<div class="kit-head"><h3 style="font-size:18px">${esc(k.name)} <span class="muted" style="font-weight:400">· ${esc(k.class)}</span></h3>
+    <div class="facts">${k.id !== k.name ? `<span>data id <span class="mono">${esc(k.id)}</span></span>` : ""}<span>Kit <span class="mono">${esc(k.kit)}</span></span><span>Weapon ${esc(k.weapon)}</span>
+    ${k.passive && k.passive !== "-" ? `<span>Passive ${esc(k.passive)}</span>` : ""}${k.hp ? `<span>${k.hp} HP</span>` : ""}${k.move ? `<span>move ${k.move}</span>` : ""}</div></div>`;
+
+  // policies
+  html += `<div class="subsection"><h3>How the bot found it plays best</h3><div class="policies">${ARENAS.map(a => {
+    const p = k.policies[a]; if (!p) return "";
+    const v = b[a]?.value ?? p.value;
+    return `<div class="panel pol"><span class="eyebrow">${ARENA_LABEL[a]}</span>
+      <div class="value">${fmt(a, v)} <span class="muted" style="font-size:12px;font-weight:400">${UNIT[a]}</span></div>
+      <div class="how">${esc(decodePolicy(p.key))}</div>
+      <div class="shares">${p.abilities.map(s => `<div class="share"><span title="${esc(s.id)}">${esc(s.id)}</span><div class="bartrack"><div class="bar" style="width:${(s.share * 100).toFixed(1)}%"></div></div><span class="num">${(s.share * 100).toFixed(0)}%</span></div>`).join("")}</div>
+      ${p.runners_up.length ? `<div class="runners">next: ${p.runners_up.map(r => `${esc(r.key)} ${fmt(a, r.value)}`).join(" · ")}</div>` : ""}
+    </div>`; }).join("")}</div>
+    <p class="note">Damage shares are from the winning policy; a skill or move missing here was never worth pressing in that arena, or the bot never found how to use it.</p></div>`;
+
+  // picks
+  html += `<div class="subsection"><div class="toolbar"><h3>Level-up picks at level 1</h3>
+    <div class="filters" id="pickfilters">${[["all", "All"], ["generic", "Generic"], ["ability", "Kit"], ["capstone", "Capstones"], ["evolution", "Evolutions"]].map(([v, l]) => `<button type="button" class="chip" data-pf="${v}" aria-pressed="${v === pickFilter}">${l}</button>`).join("")}</div></div>
+    ${k.picks ? pickTable(k) : `<div class="panel empty">Pick stage not run for this kit yet.</div>`}
+    <div class="legend"><span><i class="sw" style="background:var(--up)"></i>▲ better</span><span><i class="sw" style="background:var(--down)"></i>▼ worse</span><span><i class="sw" style="background:var(--flat)"></i>not significant after FDR correction</span><span class="muted">axis clipped at ±60%</span></div></div>`;
+
+  html += depGraphBlock(k);
+
+  // greedy
+  html += `<div class="subsection"><h3>Best 8-pick build (greedy)</h3>${k.greedy ? greedyBlock(k) : `<div class="panel empty">Build optimizer not run for this kit yet.</div>`}</div>`;
+
+  // mods
+  html += `<div class="subsection"><h3>Class mods</h3>${k.mods ? modsBlock(k) : `<div class="panel empty">Mod stage not run for this kit yet.</div>`}</div>`;
+  html += modNetworkBlock(k);
+
+  $("#kitbody").innerHTML = html;
+  const pf = $("#pickfilters"); if (pf) pf.onclick = e => { const x = e.target.closest("[data-pf]"); if (x) { pickFilter = x.dataset.pf; renderKit(); } };
+  const mv = $("#modview"); if (mv) mv.onclick = e => { const x = e.target.closest("[data-mv]"); if (x) { modView = x.dataset.mv; renderKit(); } };
+  wireModNetwork(k); wireDepGraph(k);
+}
+
+function pickTable(k) {
+  const rows = k.picks.filter(p => pickFilter === "all" || p.kind === pickFilter)
+    .map(p => ({ p, v: weighted(p.compare.offense, p.compare.defense) }))
+    .sort((a, b) => (b.v ?? 0) - (a.v ?? 0));
+  return `<div class="panel scroll"><table><thead><tr><th>Pick</th><th class="num">Value</th><th class="num">Offense</th><th class="num">Survival</th>
+    ${ARENAS.map(a => `<th>${ARENA_SHORT[a]}</th>`).join("")}</tr></thead><tbody>
+    ${rows.map(({ p, v }) => `<tr><td class="pick-name"><div>${esc(p.name)}<span class="tag">${esc(p.kind === "ability" ? "kit" : p.kind)}</span>${p.role && p.kind === "generic" ? `<span class="tag">${esc(p.role)}</span>` : ""}</div>
+      <div class="desc">${esc(p.description)}${p.prereq.length ? ` · on top of ${esc(p.prereq.map(nameOf).join(", "))}` : ""}</div></td>
+      <td class="num idx">${pct(v)}</td><td class="num">${pct(p.compare.offense)}</td><td class="num">${pct(p.compare.defense)}</td>
+      ${ARENAS.map(a => ciCell(p.compare.arenas[a])).join("")}</tr>`).join("")}</tbody></table></div>`;
+}
+
+function greedyBlock(k) {
+  const g = k.greedy;
+  const pts = [{ step: 0, off: 1, def: 1 }, ...g.steps.filter(s => s.pick).map(s => ({ step: s.step, off: s.cumulative.offense, def: s.cumulative.defense }))];
+  return `<div class="panel chartbox">${greedyChart(pts)}</div>
+    ${searchTrace(g)}
+    <div class="panel"><ol class="build">${g.steps.filter(s => s.pick).map(s => `<li><span class="stepno">L${s.step + 1}</span>
+      <span>${esc(nameOf(s.pick))}<div class="desc">beat ${s.considered.length - 1} other candidates · runner-up ${esc(nameOf(s.considered[1]?.pick || "—"))}</div></span>
+      <span class="num" title="gain from this pick">${pct(weightedGain(s.gain))}</span>
+      <span class="num muted" title="build total vs level 1">×${(weightedGain(s.cumulative) ?? 1).toFixed(2)}</span></li>`).join("")}</ol></div>
+    <p class="note">Each step tries the best-rated legal picks (by level-1 value, plus every unlocked capstone and evolution) on top of the build so far and keeps the one with the highest gain at the 50/50 weight the sweep ran with. Ranks, prerequisites and evolution ingredient-stripping follow UpgradeManager's rules. Real runs draw 3 random offers per level, so this is the ceiling, not the typical run.</p>`;
+}
+
+function greedyChart(pts) {
+  const Wd = 640, H = 200, L = 44, R = 70, T = 12, B = 28;
+  const vals = pts.flatMap(p => [p.off, p.def]).filter(v => v != null);
+  const hi = Math.max(1.1, ...vals), lo = Math.min(0.9, ...vals);
+  const x = s => L + s / (pts.length - 1) * (Wd - L - R);
+  const y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+  const ticks = []; const step = (hi - lo) > 2 ? 0.5 : (hi - lo) > 0.8 ? 0.25 : 0.1;
+  for (let t = Math.ceil(lo / step) * step; t <= hi + 1e-9; t += step) ticks.push(+t.toFixed(2));
+  const line = (key, col) => `<polyline fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" points="${pts.filter(p => p[key] != null).map(p => `${x(p.step)},${y(p[key])}`).join(" ")}"/>` +
+    pts.filter(p => p[key] != null).map(p => `<circle cx="${x(p.step)}" cy="${y(p[key])}" r="3.5" fill="${col}" stroke="var(--card)" stroke-width="2"><title>after ${p.step} picks: ×${p[key].toFixed(2)}</title></circle>`).join("");
+  const last = pts.at(-1);
+  return `<div class="legend" style="margin-bottom:6px"><span><i class="sw" style="background:var(--up)"></i>Offense multiplier</span><span><i class="sw" style="background:var(--sev-decision)"></i>Survival multiplier</span></div>
+  <div class="scroll"><svg viewBox="0 0 ${Wd} ${H}" width="100%" style="min-width:420px;max-width:${Wd}px" role="img" aria-label="Build multipliers by pick count">
+    ${ticks.map(t => `<line x1="${L}" x2="${Wd - R}" y1="${y(t)}" y2="${y(t)}" stroke="var(--rule-2)"/><text x="${L - 6}" y="${y(t) + 4}" text-anchor="end" font-size="11" fill="var(--ink-3)" font-family="IBM Plex Mono, monospace">×${t.toFixed(2)}</text>`).join("")}
+    <line x1="${L}" x2="${Wd - R}" y1="${y(1)}" y2="${y(1)}" stroke="var(--rule)"/>
+    ${pts.map(p => `<text x="${x(p.step)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="var(--ink-3)" font-family="IBM Plex Mono, monospace">${p.step}</text>`).join("")}
+    ${line("off", "var(--up)")}${line("def", "var(--sev-decision)")}
+    ${last.off != null ? `<text x="${x(last.step) + 8}" y="${y(last.off) + 4}" font-size="11" fill="var(--ink-2)" font-family="IBM Plex Mono, monospace">×${last.off.toFixed(2)}</text>` : ""}
+    ${last.def != null ? `<text x="${x(last.step) + 8}" y="${y(last.def) + 4}" font-size="11" fill="var(--ink-2)" font-family="IBM Plex Mono, monospace">×${last.def.toFixed(2)}</text>` : ""}
+  </svg></div><div class="note">x axis: picks taken</div>`;
+}
+
+function modsBlock(k) {
+  const m = k.mods;
+  const singles = m.singles.map(s => ({ s, v: weighted(s.compare.offense, s.compare.defense) })).sort((a, b) => (b.v ?? 0) - (a.v ?? 0));
+  const loads = m.loadouts.map(l => ({ l, v: weighted(l.compare.offense, l.compare.defense) })).sort((a, b) => (b.v ?? 0) - (a.v ?? 0));
+  const shown = modView === "top" ? loads.slice(0, 10) : modView === "bottom" ? loads.slice(-8).reverse() : loads.filter(x => x.l.evolutions.length);
+  const evoName = id => (m.evolutions.find(e => e.id === id) || {}).name || id;
+  return `<div class="panel scroll"><table><thead><tr><th>Mod alone</th><th class="num">Value</th><th class="num">Offense</th><th class="num">Survival</th>${ARENAS.map(a => `<th>${ARENA_SHORT[a]}</th>`).join("")}</tr></thead><tbody>
+    ${singles.map(({ s, v }) => `<tr><td class="pick-name">${esc(s.name)}<span class="tag">${esc(s.rarity)}</span><div class="desc">${esc(s.description)}</div></td>
+      <td class="num idx">${pct(v)}</td><td class="num">${pct(s.compare.offense)}</td><td class="num">${pct(s.compare.defense)}</td>${ARENAS.map(a => ciCell(s.compare.arenas[a])).join("")}</tr>`).join("")}
+    </tbody></table></div>
+    <div class="toolbar" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center">
+      <h3 style="font-size:14px">3-mod loadouts <span class="muted" style="font-weight:400">(${m.loadouts.length} measured)</span></h3>
+      <div class="filters" id="modview">${[["top", "Best 10"], ["bottom", "Worst 8"], ["evo", "Evolution loadouts"]].map(([v, l]) => `<button type="button" class="chip" data-mv="${v}" aria-pressed="${v === modView}">${l}</button>`).join("")}</div></div>
+    <div class="panel scroll"><table><thead><tr><th>Loadout</th><th class="num">Value</th><th class="num">Offense</th><th class="num">Survival</th>${ARENAS.map(a => `<th>${ARENA_SHORT[a]}</th>`).join("")}</tr></thead><tbody>
+    ${shown.map(({ l, v }) => `<tr><td class="pick-name">${l.names.map(esc).join(" + ")}${l.evolutions.map(e => `<span class="evo">${esc(evoName(e))}</span>`).join("")}</td>
+      <td class="num idx">${pct(v)}</td><td class="num">${pct(l.compare.offense)}</td><td class="num">${pct(l.compare.defense)}</td>${ARENAS.map(a => ciCell(l.compare.arenas[a])).join("")}</tr>`).join("") || `<tr><td class="empty" colspan="8">No loadout here unlocks an evolution.</td></tr>`}
+    </tbody></table></div>
+    <p class="note">Loadouts are measured more lightly than single mods (fewer seeds), so their intervals are wider. Evolution tags mark loadouts that satisfy a ClassModData evolution recipe.</p>`;
+}
+
+// ── wiring ────────────────────────────────────────────────────────────────
+$("#w").addEventListener("input", e => {
+  W = +e.target.value / 100;
+  $("#wout").textContent = `${100 - e.target.value} / ${e.target.value}`;
+  renderRoster(); renderPool(); renderKit();
+});
+renderInterim(); renderMeta(); renderFindings(); renderRoster(); renderPool();
+let saved = null; try { saved = localStorage.getItem("ledger-kit"); } catch (e) {}
+currentKit = DATA.kits.some(k => k.id === saved) ? saved : (DATA.kits[0] || {}).id;
+renderKitPicker(); renderKit();
+</script>

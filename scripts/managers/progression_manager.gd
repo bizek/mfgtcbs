@@ -1,6 +1,11 @@
 extends Node
 
+
 ## ProgressionManager — Persists meta-progression data between runs (save/load JSON).
+
+## Preloaded rather than named: a sim worker must not depend on the editor having registered
+## a new class_name in the global class cache.
+const _SimMode := preload("res://scripts/utils/sim_mode.gd")
 
 signal resources_changed(amount: int)
 
@@ -115,6 +120,9 @@ func _ready() -> void:
 	load_data()
 
 func save_data() -> void:
+	## A balance-sim worker shares this user:// dir; it must never persist (see SimMode).
+	if _SimMode.active():
+		return
 	var data := {
 		"version":                SAVE_VERSION,
 		"resources":              resources,

@@ -92,6 +92,7 @@ behavior from `_physics_process` because it is input-driven.
 | `docs/dev_tools.md` | **Unit Editor (F12: the balance-tuning app, own OS window, ~1970 tunables across characters/player-hitbox/combos/weapons/enemies/difficulty, live-apply + bake-to-source)**, Training Room (flat sandbox: dummies, live class swap, DPS meter, slow-mo) and Animation Lab (F10: trim/retime anims, re-pin hit frames, author intro/loop/outro staging for held abilities) |
 | `docs/audio_pipeline.md` + `docs/audio_asset_manifest.md` | AudioManager/SoundTable wiring, REAPER forge tooling, per-sound manifest |
 | `docs/release_pipeline.md` | Export presets, `build.ps1`, itch.io/Steam packaging |
+| `docs/balance_sim.md` | **Headless balance bot** (`tools/sim/`): plays every kit in the Training Room, measures picks / mods / loadouts / best builds, writes an HTML report. `--sim` gates all save writes |
 | `docs/asset_inventory.md` | Free asset sources, palette-shift strategy, license tracking |
 
 **Tier 3 — level authoring:**

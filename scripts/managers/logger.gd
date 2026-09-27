@@ -1,8 +1,13 @@
 extends Node
 
+
 ## Logger — Error tracking and crash log management.
 ## Captures script errors, tracks unclean shutdowns, and writes user://crash.log.
 ## Keeps log capped at ~200KB with automatic rotation.
+
+## Preloaded rather than named: a sim worker must not depend on the editor having registered
+## a new class_name in the global class cache.
+const _SimMode := preload("res://scripts/utils/sim_mode.gd")
 
 const LOG_PATH := "user://crash.log"
 const MARKER_PATH := "user://session_open"
@@ -13,6 +18,12 @@ var _session_open_marker_written: bool = false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+
+	## A balance-sim worker (SimMode) shares user:// with the real game and may run while Ben is
+	## playing: touching the session marker would clear HIS "session open" flag, or leave a stale
+	## one that makes his next boot report a crash. Workers log to stdout only.
+	if _SimMode.active():
+		return
 
 	# Check for unclean shutdown from previous session
 	if FileAccess.file_exists(MARKER_PATH):
@@ -32,7 +43,7 @@ func _ready() -> void:
 	_log_entry("INFO", "Session started v%s (scene: %s)" % [version, scene])
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST and not _SimMode.active():
 		_clear_session_marker()
 
 func _log_entry(level: String, message: String) -> void:
@@ -54,6 +65,9 @@ func _log_entry(level: String, message: String) -> void:
 
 func _flush_if_needed() -> void:
 	if _log_buffer.is_empty():
+		return
+	if _SimMode.active():
+		_log_buffer = ""
 		return
 
 	# Read existing log

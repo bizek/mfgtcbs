@@ -1,9 +1,14 @@
 extends Node
 
+
 ## Settings — persisted user preferences (audio, display, screen shake,
 ## controls, accessibility). Separate from ProgressionManager's save; lives
 ## at user://settings.cfg. Applied on startup before the first scene needs
 ## them (autoload order).
+
+## Preloaded rather than named: a sim worker must not depend on the editor having registered
+## a new class_name in the global class cache.
+const _SimMode := preload("res://scripts/utils/sim_mode.gd")
 
 signal setting_changed(key: String, value: Variant)
 signal bindings_changed  ## emitted after any rebind/reset so UI can refresh
@@ -130,6 +135,9 @@ func load_settings() -> void:
 
 
 func save_settings() -> void:
+	## A balance-sim worker shares this user:// dir; it must never persist (see SimMode).
+	if _SimMode.active():
+		return
 	var cfg := ConfigFile.new()
 	cfg.set_value(SECTION, "master_volume", master_volume)
 	cfg.set_value(SECTION, "music_volume", music_volume)
