@@ -1182,7 +1182,12 @@ func _drop_health() -> void:
 func _on_hurtbox_body_entered(body: Node2D) -> void:
 	if not is_alive:
 		return
-	if body.is_in_group("player") and body.has_method("take_damage") and _contact_damage_timer <= 0.0:
+	## Gated on contact_damage > 0, the same as the sustained-contact path in _physics_process. It
+	## wasn't: a zero-damage enemy still ran a 0-damage take_damage (i-frames, hit flash, damage
+	## anim) and a 160 contact shove on every touch — the Herald (chases, deals no contact damage),
+	## a Carrier you run into, and Training Room dummies with HIT BACK off (found 2026-09-27).
+	if contact_damage > 0.0 and body.is_in_group("player") and body.has_method("take_damage") \
+			and _contact_damage_timer <= 0.0:
 		var hit := DamageCalculator.calculate_raw_hit(
 			self, body, contact_damage, "Physical", null,
 			combat_manager.rng if combat_manager else null)
