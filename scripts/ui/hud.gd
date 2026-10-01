@@ -1289,10 +1289,7 @@ func _update_skill_slots() -> void:
 			entry.prev_remaining = 0.0
 			continue
 		var remaining: float = sc.cooldown_remaining(slot)
-		var frac: float = 0.0
-		var ability: AbilityDefinition = sc.get_skill(slot)
-		if ability != null and ability.cooldown_base > 0.0:
-			frac = clampf(remaining / ability.cooldown_base, 0.0, 1.0)
+		var frac: float = sc.cooldown_fraction(slot)
 		entry.veil.visible = frac > 0.0
 		entry.veil.size.y = (SKILL_SLOT - 4.0) * frac
 		if remaining > 0.0:
