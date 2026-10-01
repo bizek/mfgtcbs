@@ -27,7 +27,10 @@ const OCTANT_ANIMS: Array[String] = ["e", "se", "s", "sw", "w", "nw", "n", "ne"]
 var player_ref: Node2D = null      ## live damage stat source (and anchor when follow_player)
 var damage_type: String = "Physical"
 ## Named so the spawner can scale it without instantiating a throwaway hammer to read the default.
-const BASE_DAMAGE_MULT: float = 0.9
+## 0.9 -> 3.3 (2026-10-01): the hammer is the Warden's pack tool. See ChainFactory._hammer_phase.
+## At 25 damage a hit is 82, which one-shots the clear arena's 60-HP fodder, so the clear-speed
+## number for hammer play is inflated by that threshold. Tuned on the stationary pack instead.
+const BASE_DAMAGE_MULT: float = 3.3
 var damage_mult: float = BASE_DAMAGE_MULT  ## × the player's live damage stat, per enemy hit
 var start_angle: float = 0.0       ## radians; spawner staggers multiple hammers evenly
 var spin_speed: float = 0.7        ## revolutions per second (1.1 read too fast — Ben 2026-07-20)

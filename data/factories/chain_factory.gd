@@ -2764,12 +2764,19 @@ static func _cataclysm_phase(dtype: String, dmg: float) -> ChoreographyPhase:
 ## HolyHammer node on the hit_frame, cycling the start angle so successive hammers fan out).
 ## The phase loops on buffered RMB, so mashing = more hammers in flight, each with its own
 ## corkscrew. The direct slam AoE stays modest — the spirals carry the payoff.
+##
+## The Warden's PACK TOOL since 2026-10-01 (Ben approved): slam 0.8 -> 1.2x here, and each hammer's
+## hit 0.9 -> 3.3x (HolyHammer.BASE_DAMAGE_MULT). Mashing hammers dealt ~1/3 of the light chain
+## everywhere (133 vs 308 on a pack). A hammer hits each enemy once, and its spiral advances ~49px
+## a revolution, more than its hit width, so it reaches about 60% of a tight pack: per-hit damage,
+## weighted onto the spiral, is the lever that favours packs. Measured at level 1: hammer mashing
+## 355 pack DPS against 304 for the light chain (+17%); the light chain keeps one target (92 vs 77).
 ## `self_index` = this phase's own index in its graph (light 4 / heavy 1), for the loop branch.
 static func _hammer_phase(dtype: String, dmg: float, self_index: int) -> ChoreographyPhase:
 	var h := ChoreographyPhase.new()
 	h.animation = "hammer"
 	h.hit_frame = 7                                          # the release
-	h.effects = [_aoe(dtype, dmg * 0.8, 30.0)]
+	h.effects = [_aoe(dtype, dmg * 1.2, 30.0)]
 	h.exit_type = "wait"
 	h.wait_duration = HAMMER_WIN
 	h.default_next = -1
