@@ -681,6 +681,13 @@ var _charge_start: float = -1.0          ## Wizard Fireball charge start (_game_
 var _game_time: float = 0.0
 const WIZARD_CHARGE_SLOW: float = -0.4   ## move_speed penalty while charging (the greed tax)
 const FIREBALL_MULT_MAX: float = 2.0     ## full overcharge doubles the Fireball
+## The shortest charge's multiplier; the curve runs linearly from here to MULT_MAX over
+## WIZARD_CHARGE_MAX. It was an implicit 1.0 until 2026-10-01 (Ben approved the change), and every
+## cast also pays ~0.5s that charging doesn't buy back (the 0.2s tap/hold threshold plus the
+## release). So at 1.0 a 0.4s hold spammed out ~2x the damage per second of a full charge, and a
+## charge mechanic that rewards not charging is no charge mechanic. At 0.25 the full charge is the
+## best damage per second, and a quick release is a small, weak fireball.
+const FIREBALL_MULT_MIN: float = 0.25
 ## Reach cap: base hit zones (ChainFactory) are ~half the "loved" size; full Reach mods scale them
 ## up to ~2× = the end-of-the-road size. Capped so it tops out there instead of growing forever.
 const MELEE_RANGE_MAX: float = 2.0
@@ -2380,7 +2387,8 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 			EffectDispatcher.execute_effects(self_effects, self, [center], ability, combat_manager)
 
 	## Charged Fireball release: scale the phase's OWN projectile by how long the charge was held
-	## (damage up to ×2; blast radius and visual grow with the square root). Scaling the phase's
+	## (damage ×0.25 at the shortest release up to ×2 at full charge; blast radius and visual grow
+	## with the square root). Scaling the phase's
 	## effect, not a fresh one: until 2026-10-01 this rebuilt the shot from
 	## ChainFactory._wizard_fireball, which threw away everything a class mod or level-up had done
 	## to the release phase. FIREBALL EXPANSION's +35% blast and SCORCHED EARTH's Burning never
@@ -2388,7 +2396,8 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 	if cur_anim.begins_with("fireball_2") and _charge_start >= 0.0:
 		var charge_t: float = _game_time - _charge_start
 		_charge_start = -1.0
-		var mult: float = clampf(1.0 + charge_t / ChainFactory.WIZARD_CHARGE_MAX, 1.0, FIREBALL_MULT_MAX)
+		var mult: float = lerpf(FIREBALL_MULT_MIN, FIREBALL_MULT_MAX,
+				clampf(charge_t / ChainFactory.WIZARD_CHARGE_MAX, 0.0, 1.0))
 		var charged: Array = []
 		for eff in proj_effects:
 			if eff is SpawnProjectilesEffect and eff.projectile != null:

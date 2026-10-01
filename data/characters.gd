@@ -192,7 +192,7 @@ const ALL: Dictionary = {
 	},
 
 	## ─── The Spark ────────────────────────────────────────────────────────────
-	## Glass cannon. Lowest HP, highest crit damage multiplier.
+	## Glass cannon. Lowest HP (tied with the Whisper), highest crit damage multiplier.
 	"The Spark": {
 		"id":              "The Spark",
 		"display_name":    "THE SPARK",
@@ -206,7 +206,7 @@ const ALL: Dictionary = {
 		"portrait":        "res://assets/characters/portraits/the_spark.png",
 		"passive_desc":    "+75% Crit Damage (2.75\u00d7 total instead of 2.0\u00d7).",
 		"unlock_cost":     1500,
-		"base_hp":         60.0,
+		"base_hp":         70.0,   ## 60 -> 70 (Ben, 2026-10-01): survival sat at 0.75x the roster median
 		"base_armor":      0.0,
 		"base_move_speed": 58.0,   ## deliberate-pacing rebalance 2 2026-07-07 (was 70, orig 126)
 		"color":           Color(1.0, 0.82, 0.12),    ## electric yellow

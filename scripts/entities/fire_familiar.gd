@@ -28,7 +28,10 @@ const STRIKE_RANGE: float = 24.0         ## melee bite — it flies TO the prey 
 const STRIKE_RANGE_SQ: float = STRIKE_RANGE * STRIKE_RANGE
 const ATTACK_COOLDOWN: float = 1.5
 const STRIKE_DELAY: float = 4.0 / 14.0   ## attack anim frame 4 @ 14fps = the bite
-const DAMAGE_MULT: float = 0.5           ## × the player's live damage stat
+## × the player's live damage stat. 0.5 -> 1.0 (Ben, 2026-10-01): at 0.5 a familiar dealt less than
+## the light chain lost while the Spark stopped to summon it (-2.5% single target, balance sim);
+## at 1.0 it pays for its summon and Ember Brood's extra familiars are worth taking.
+const DAMAGE_MULT: float = 1.0
 const HOME_RADIUS: float = 30.0          ## lazy roam orbit around the player when no prey
 
 var player_ref: Node2D = null

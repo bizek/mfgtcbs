@@ -320,14 +320,17 @@ const ALL: Dictionary = {
 	"Apprentice Flame": {
 		"id": "Apprentice Flame", "display_name": "Apprentice Flame",
 		"description": "A candle's worth of the real fire. Enough to start.",
-		"damage_type": "fire", "damage": 8.0, "tint": Color(1.0, 0.55, 0.18),
+		## 8/11/13 -> 25/34/40 (2026-10-01): the wizard line sat at a third of the standard class
+		## line, the same gap the Deadeye's had, and left the Spark at 0.37-0.48x the roster median
+		## in every damage arena (balance sim). Same line as Fighter/Necro/Demon/Druid/Cleric/Gunslinger.
+		"damage_type": "fire", "damage": 25.0, "tint": Color(1.0, 0.55, 0.18),
 		"drop_weight": 0, "mod_slots": 1, "unlock_id": "",
 		"class_lock": "The Spark", "kit": "wizard", "rarity": "uncommon", "tier": "green",
 	},
 	"Emberfocus Rod": {
 		"id": "Emberfocus Rod", "display_name": "Emberfocus Rod",
 		"description": "Channels the burn tighter, hotter, meaner.",
-		"damage_type": "fire", "damage": 11.0, "tint": Color(1.0, 0.50, 0.15),
+		"damage_type": "fire", "damage": 34.0, "tint": Color(1.0, 0.50, 0.15),
 		"drop_weight": 0, "mod_slots": 2, "unlock_id": "gear_wizard_blue",
 		"class_lock": "The Spark", "kit": "wizard", "rarity": "rare", "tier": "blue",
 		"modifiers": [ {"tag": "All", "op": "bonus", "value": 0.10} ],
@@ -335,7 +338,7 @@ const ALL: Dictionary = {
 	"Cinderbrand": {
 		"id": "Cinderbrand", "display_name": "Cinderbrand",
 		"description": "Overcharged past reason. Everything it touches catches.",
-		"damage_type": "fire", "damage": 13.0, "tint": Color(1.0, 0.42, 0.10),
+		"damage_type": "fire", "damage": 40.0, "tint": Color(1.0, 0.42, 0.10),
 		"drop_weight": 0, "mod_slots": 3, "unlock_id": "gear_wizard_purple",
 		"class_lock": "The Spark", "kit": "wizard", "rarity": "epic", "tier": "purple",
 		"modifiers": [ {"tag": "All", "op": "bonus", "value": 0.12}, {"tag": "crit_chance", "op": "add", "value": 0.05} ],

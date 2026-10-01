@@ -2655,7 +2655,15 @@ static func _fire_burst_bolts(dtype: String, per_bolt: float) -> SpawnProjectile
 	return e
 
 
-## The Fireball: slower, bigger, explodes on impact (package explosion + splash damage).
+## The Fireball: slower, bigger, explodes on impact (package explosion + splash damage). The
+## splash skips the body the shot struck, so a lone target only ever takes the direct hit.
+##
+## The Spark's RANGED PACK TOOL since 2026-10-01 (Ben approved): direct 1.1 -> 4.0, splash 0.9 ->
+## 2.75, blast 34 -> 40px, alongside the steeper charge curve in player.FIREBALL_MULT_MIN. A full
+## charge had dealt 2.2x weapon damage, so the Fireball sat at ~1/4 of the light chain on a pack and
+## nothing ever held RMB. Measured at level 1 on the green weapon: full charge 446 pack DPS against
+## 398 for the light chain, 97 single-target against 122. The light chain keeps single target and
+## clear speed (a full charge overkills 60-HP fodder), and the 40% charge slow is the price.
 static func _wizard_fireball(dtype: String, dmg: float) -> SpawnProjectilesEffect:
 	var cfg := ProjectileConfig.new()
 	cfg.motion_type = "directional"
@@ -2667,14 +2675,14 @@ static func _wizard_fireball(dtype: String, dmg: float) -> SpawnProjectilesEffec
 	cfg.use_directional_anims = true
 	var hit := DealDamageEffect.new()
 	hit.damage_type = dtype
-	hit.base_damage = dmg * 1.1
+	hit.base_damage = dmg * 4.0
 	cfg.on_hit_effects = [hit]
 	cfg.impact_sprite_frames = _get_fireball_impact_frames()
 	cfg.impact_animation = "impact"
-	cfg.impact_aoe_radius = 34.0
+	cfg.impact_aoe_radius = 40.0
 	var splash := DealDamageEffect.new()
 	splash.damage_type = dtype
-	splash.base_damage = dmg * 0.9
+	splash.base_damage = dmg * 2.75
 	cfg.impact_aoe_effects = [splash]
 	var e := SpawnProjectilesEffect.new()
 	e.projectile = cfg
