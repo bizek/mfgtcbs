@@ -726,7 +726,10 @@ const ALL: Dictionary = {
 		"name": "OVERLOAD BOLTS",
 		"kit": "wizard",
 		"rarity": "rare",
-		"desc": "Staff bolts and the Fireball hit 30% harder - the Spark overloads every cast.",
+		## The card said "and the Fireball" until 2026-10-01, but a class-mod target names ONE graph
+		## and this one is the light chain: bolts, twin bolts and the Fire Burst. Reaching the
+		## Fireball (the channel graph) waits for the class-mod pass (Ben's call).
+		"desc": "Staff bolts and the Fire Burst hit 30% harder - the Spark overloads every cast.",
 		"color": Color(1.0, 0.8, 0.2),
 		"target": { "graph": "light" },
 		"op": "scale_aoe",
@@ -781,11 +784,17 @@ const ALL: Dictionary = {
 		"name": "TEMPEST CALL",
 		"kit": "wizard",
 		"rarity": "uncommon",
-		"desc": "The storm answers wider - 45% broader, 20% harder.",
+		## Until 2026-10-01 this was scale_aoe (x1.45 radius, x1.20 damage) on the storm_cast phase,
+		## whose only effect is the dmg*0.2 r40 self-pulse that exists to fire the host hook. Storm
+		## Call's real payload is player._storm_strike (STORM_CALL_DAMAGE_MULT 1.6 per enemy, the
+		## whole field), which no phase op reaches, so the mod measured 1.00 in every arena: the same
+		## bug the old TEMPEST CALL pick had. It is a modifier on storm_damage now, the stat
+		## _storm_chunk adds to that multiplier (RISING STORM's seam); +0.32 is +20% of 1.6. "Wider"
+		## left the card because the strike already reaches every enemy on the field.
+		"desc": "The storm answers harder - Storm Call strikes 20% harder.",
 		"color": Color(0.85, 0.90, 1.0),
-		"target": { "graph": "skill_e", "anim": "storm_cast" },
-		"op": "scale_aoe",
-		"params": { "radius_mult": 1.45, "damage_mult": 1.20 },
+		"op": "modifier",
+		"params": { "stat": "storm_damage", "op": "add", "value": 0.32 },
 	},
 	"wizard_manaburn": {
 		"id": "wizard_manaburn",
