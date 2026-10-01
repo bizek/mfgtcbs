@@ -60,6 +60,10 @@ var _stage: String = ""
 var _hit_frame: int = -1
 ## True once choreo_on_phase_recovery() has fired for the current phase entry (once per entry).
 var _recovered: bool = false
+## The input action whose branch entered the current phase ("" when the sequence started here or
+## fell through on a timer). Lets the host tell the heavy finisher a player ASKED for, by pressing
+## RMB into it, apart from a light node that RMB has not reached yet (current_phase_entered_by).
+var _entered_by: String = ""
 
 
 func setup(host) -> void:
@@ -105,6 +109,12 @@ func current_phase_is_held_channel() -> bool:
 		if parked or branch.next_phase < 0:
 			return true
 	return false
+
+
+## True if the current phase was entered through a branch on `action`, i.e. the player pressed it
+## INTO this phase.
+func current_phase_entered_by(action: String) -> bool:
+	return _running and _entered_by == action
 
 
 ## True if the current phase has a branch listening for `action` (buffered or held). Lets the
@@ -166,6 +176,7 @@ func start(ability: AbilityDefinition, targets: Array) -> void:
 	_hit_fired = false
 	_stage = ""
 	_running = true
+	_entered_by = ""
 	_sprite = _host.choreo_sprite()
 	_host.choreo_on_start(ability)
 	_enter_phase(0)
@@ -370,6 +381,8 @@ func tick(delta: float) -> void:
 				## Channel released on a staged body → play the authored outro first.
 				if branch.next_phase < 0 and _begin_outro(phase):
 					return
+				var c: Resource = branch.condition
+				_entered_by = str(c.action) if c != null and "action" in c else ""
 				_enter_phase(branch.next_phase)
 				return
 	_timer -= delta
@@ -440,6 +453,7 @@ func _on_phase_exit() -> void:
 	## A staged body ending for good (not looping back) still gets its outro.
 	if phase.default_next < 0 and _begin_outro(phase):
 		return
+	_entered_by = ""
 	_enter_phase(phase.default_next)
 
 

@@ -1968,11 +1968,19 @@ func _tick_combo() -> void:
 		## grace. Both are working as designed; mashing the string consecutively lands the finisher
 		## every time. Don't "fix" either one on a report of the wrong move coming out — check first
 		## whether the runner was still running.
+		##
+		## Not on a node RMB itself ENTERED (2026-10-01). A terminal heavy finisher inside the light
+		## graph, such as the Scavenger's Throwing Knife, has no branches, so it "doesn't handle"
+		## RMB either. The grace took the next RMB press as one on a light opener and cancelled the
+		## knife two frames in, before its hit frame, into the melee string. Mashing RMB through
+		## light-light-RMB never threw it; in the balance sim the route did 18-57 DPS and IMPALING
+		## KNIFE measured zero.
 		if choreography_runner != null and choreography_runner.is_running() \
 				and _combo_heavy != null \
 				and choreography_runner.get_ability() == _combo_ability \
 				and Input.is_action_just_pressed("heavy_attack") \
-				and not choreography_runner.current_phase_handles("heavy_attack"):
+				and not choreography_runner.current_phase_handles("heavy_attack") \
+				and not choreography_runner.current_phase_entered_by("heavy_attack"):
 			if _combat_input:
 				_combat_input.consume("heavy_attack")
 			choreography_runner.interrupt()
