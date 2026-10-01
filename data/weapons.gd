@@ -469,14 +469,17 @@ const ALL: Dictionary = {
 	"Peacemaker": {
 		"id": "Peacemaker", "display_name": "Peacemaker",
 		"description": "Six chambers and a steady hand. That's the whole trick.",
-		"damage_type": "physical", "damage": 8.0, "tint": Color(0.89, 0.66, 0.36),
+		## 8/11/13 -> 25/34/40 (2026-09-29): the gunslinger line sat at a third of the standard class
+		## line while firing at the same cadence, which left the Deadeye at 0.14-0.33x the roster
+		## median in every damage arena (balance sim). Same line as Fighter/Necro/Demon/Druid/Cleric.
+		"damage_type": "physical", "damage": 25.0, "tint": Color(0.89, 0.66, 0.36),
 		"drop_weight": 0, "mod_slots": 1, "unlock_id": "",
 		"class_lock": "The Deadeye", "kit": "gunslinger", "rarity": "uncommon", "tier": "green",
 	},
 	"Twin Sixguns": {
 		"id": "Twin Sixguns", "display_name": "Twin Sixguns",
 		"description": "Twice the barrels, twice the noise, half the mercy.",
-		"damage_type": "physical", "damage": 11.0, "tint": Color(0.89, 0.66, 0.36),
+		"damage_type": "physical", "damage": 34.0, "tint": Color(0.89, 0.66, 0.36),
 		"drop_weight": 0, "mod_slots": 2, "unlock_id": "gear_gunslinger_blue",
 		"class_lock": "The Deadeye", "kit": "gunslinger", "rarity": "rare", "tier": "blue",
 		"modifiers": [ {"tag": "attack_speed", "op": "bonus", "value": 0.10} ],
@@ -484,7 +487,7 @@ const ALL: Dictionary = {
 	"Deadman's Hand": {
 		"id": "Deadman's Hand", "display_name": "Deadman's Hand",
 		"description": "Aces and eights. The storm never misses twice.",
-		"damage_type": "physical", "damage": 13.0, "tint": Color(0.92, 0.62, 0.30),
+		"damage_type": "physical", "damage": 40.0, "tint": Color(0.92, 0.62, 0.30),
 		"drop_weight": 0, "mod_slots": 3, "unlock_id": "gear_gunslinger_purple",
 		"class_lock": "The Deadeye", "kit": "gunslinger", "rarity": "epic", "tier": "purple",
 		"modifiers": [ {"tag": "attack_speed", "op": "bonus", "value": 0.12}, {"tag": "crit_chance", "op": "add", "value": 0.06} ],

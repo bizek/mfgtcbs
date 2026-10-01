@@ -574,12 +574,14 @@ static func build_ninja_smoke(_weapon_data: Dictionary) -> AbilityDefinition:
 
 
 ## Reload (Gunslinger, Q): the long 37-frame cylinder ritual — fresh chambers hit harder:
-## +30% damage for 6s, landing near the END of the reload. Interrupt it and get nothing.
+## +40% damage for 8s, landing near the END of the reload. Interrupt it and get nothing.
+## Was +30% for 6s: with the ritual's shooting time paid out of a 9s cooldown, it measured as a
+## net damage LOSS even once the buff actually reached bullets (balance sim, 2026-09-29).
 static func build_gunslinger_reload(_weapon_data: Dictionary) -> AbilityDefinition:
 	var phase := ChoreographyPhase.new()
 	phase.animation = "reload"
 	phase.hit_frame = 30
-	phase.effects = [ChainFactory._timed_damage_buff("loaded_chambers", 0.30, 6.0)]
+	phase.effects = [ChainFactory._timed_damage_buff("loaded_chambers", 0.40, 8.0)]
 	phase.exit_type = "anim_finished"
 	phase.default_next = -1
 	return _ability("gunslinger_reload", "Reload", phase, 9.0, "Buff")

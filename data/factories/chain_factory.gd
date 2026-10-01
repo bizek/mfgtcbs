@@ -1503,7 +1503,7 @@ static func _fan_hammer_phase(dtype: String, dmg: float) -> ChoreographyPhase:
 	var fan := ChoreographyPhase.new()
 	fan.animation = "fan"
 	fan.hit_frame = 6                                       # the hammer blurs
-	fan.effects = [_fan_bullets(dtype, dmg * 0.45)]
+	fan.effects = [_fan_bullets(dtype, dmg * 0.60)]           ## 0.45 -> 0.60 per bullet, 2026-09-29 crowd pass
 	fan.exit_type = "anim_finished"
 	fan.default_next = -1
 	fan.is_finisher = true
@@ -1521,7 +1521,9 @@ static func build_gunslinger_desert_storm(weapon_data: Dictionary) -> AbilityDef
 	var storm := ChoreographyPhase.new()
 	storm.animation = "storm"
 	storm.hit_frame = 5                                     # the barrels open up
-	storm.effects = [_storm_bullets(dtype, dmg * 0.35)]    # per-tick cone (lower; repeats)
+	## 0.35 -> 0.75 per bullet (2026-09-29): at 0.35 the channel dealt a third of mashing light
+	## shots on packs AND single targets, so there was never a reason to hold it (balance sim).
+	storm.effects = [_storm_bullets(dtype, dmg * 0.75)]    # per-tick cone, bullets pierce one
 	storm.exit_type = "wait"
 	storm.wait_duration = STORM_TICK
 	storm.default_next = 0                                  # still held → keep firing
@@ -2010,20 +2012,26 @@ static func _gun_bullet(dtype: String, hit_damage: float) -> SpawnProjectilesEff
 	return e
 
 
-## Fan the Hammer: 5 bullets in a wide fan, FTH's own impact sheet on each landing.
+## Fan the Hammer: 5 bullets in a fan, FTH's own impact sheet on each landing.
+## Deadeye crowd pass (2026-09-29, balance sim): the fan was 44 degrees wide and only 2 of 5 bullets
+## reached a tight pack; 26 degrees keeps the fan read while landing the cylinder, and each bullet
+## punches through one body, so the finisher is the Deadeye's answer to a crowd.
 static func _fan_bullets(dtype: String, per_bullet: float) -> SpawnProjectilesEffect:
 	var e := SpawnProjectilesEffect.new()
 	e.projectile = _bullet_config(dtype, per_bullet, _get_fth_impact_frames())
+	e.projectile.pierce_count = 1
 	e.spawn_pattern = "spread"
 	e.count = 5
-	e.spread_angle = 44.0
+	e.spread_angle = 26.0
 	return e
 
 
-## Desert Storm tick: a tight 3-bullet cone toward the cursor.
+## Desert Storm tick: a tight 3-bullet cone toward the cursor. The bullets pierce one body — a
+## held channel that slows the Deadeye has to be his best tool against a pack (2026-09-29).
 static func _storm_bullets(dtype: String, per_bullet: float) -> SpawnProjectilesEffect:
 	var e := SpawnProjectilesEffect.new()
 	e.projectile = _bullet_config(dtype, per_bullet, _get_bullet_impact_frames())
+	e.projectile.pierce_count = 1
 	e.spawn_pattern = "spread"
 	e.count = 3
 	e.spread_angle = 22.0
