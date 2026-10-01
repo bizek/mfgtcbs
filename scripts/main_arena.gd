@@ -1242,7 +1242,13 @@ func _request_hitstop(frames: int) -> int:
 	if get_tree().paused:
 		return 0
 	## Ration repeats (see the HITSTOP_* constants). "Bigger than the last one" always passes.
-	var now: float = Time.get_ticks_msec() / 1000.0
+	## Timed on the PHYSICS-FRAME clock. Physics iterations run at a fixed rate in real time and keep
+	## running through the freeze itself (time_scale 0 only zeroes their delta), so in play this is
+	## the same real-time spacing the wall clock gave. It differs only where the wall clock is wrong:
+	## the headless balance sim runs ~10x real time on --fixed-fps, and on the wall clock it dropped
+	## most repeat freezes a real run keeps (2 frames per crit, 6 per finisher). Until 2026-10-01
+	## the sim therefore read every kit's DPS a few percent high, and crit-heavy builds higher still.
+	var now: float = float(Engine.get_physics_frames()) / float(Engine.physics_ticks_per_second)
 	var since: float = now - _last_hitstop_sec
 	if frames <= _last_hitstop_frames and since < HITSTOP_REFRACTORY_SEC:
 		if since < HITSTOP_MIN_INTERVAL_SEC:
