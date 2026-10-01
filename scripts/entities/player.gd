@@ -1260,12 +1260,15 @@ func _update_bloodrage() -> void:
 	if raging == _bloodrage_on:
 		return
 	_bloodrage_on = raging
+	## ("All", "bonus"): the pair every hit reads. ("damage", "bonus") only moved get_stat("damage"),
+	## so this passive never reached a single swing until 2026-09-29 (balance sim).
 	if raging:
-		_add_modifier("damage", "bonus", 0.30, "passive_bloodrage")
+		_add_modifier("All", "bonus", 0.30, "passive_bloodrage")
 	else:
 		modifier_component.remove_by_source_prefix("passive_bloodrage")
-	print("[RAVAGER] bloodrage %s (hp %.1f/%.1f, damage stat %.1f)" % [
-			"ON" if raging else "off", health.current_hp, health.max_hp, get_stat("damage")])
+	print("[RAVAGER] bloodrage %s (hp %.1f/%.1f, damage bonus %+.0f%%)" % [
+			"ON" if raging else "off", health.current_hp, health.max_hp,
+			modifier_component.sum_modifiers("All", "bonus") * 100.0])
 
 
 ## Deadeye Calm Hands: the +damage modifier exists only while above 80% HP.
@@ -1274,12 +1277,14 @@ func _update_calm_hands() -> void:
 	if calm == _calm_hands_on:
 		return
 	_calm_hands_on = calm
+	## Same pair fix as Bloodrage above.
 	if calm:
-		_add_modifier("damage", "bonus", 0.25, "passive_calm_hands")
+		_add_modifier("All", "bonus", 0.25, "passive_calm_hands")
 	else:
 		modifier_component.remove_by_source_prefix("passive_calm_hands")
-	print("[DEADEYE] calm hands %s (hp %.1f/%.1f, damage stat %.1f)" % [
-			"ON" if calm else "off", health.current_hp, health.max_hp, get_stat("damage")])
+	print("[DEADEYE] calm hands %s (hp %.1f/%.1f, damage bonus %+.0f%%)" % [
+			"ON" if calm else "off", health.current_hp, health.max_hp,
+			modifier_component.sum_modifiers("All", "bonus") * 100.0])
 
 
 # --- Mod loading ---

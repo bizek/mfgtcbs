@@ -2387,8 +2387,12 @@ static func _timed_damage_buff(id: String, amount: float, duration: float) -> Ap
 	buff.max_stacks = 1
 	buff.base_duration = duration
 	buff.duration_refresh_mode = "overwrite"
+	## ("All", "bonus") — the pair DamageCalculator step 3 reads for every hit the character lands,
+	## and the one the generic "+% Damage" level-ups use. This used ("damage", "bonus") until
+	## 2026-09-29, which only raises get_stat("damage") (pets, Holy Hammers, a few special hits),
+	## so a "+X% damage" self-buff never reached a single combo or skill hit (balance sim).
 	var dmg_mod := ModifierDefinition.new()
-	dmg_mod.target_tag = "damage"
+	dmg_mod.target_tag = "All"
 	dmg_mod.operation = "bonus"
 	dmg_mod.value = amount
 	dmg_mod.source_name = id
@@ -2532,8 +2536,12 @@ static func _blood_power_buff() -> ApplyStatusEffectData:
 	buff.max_stacks = 1
 	buff.base_duration = 6.0
 	buff.duration_refresh_mode = "overwrite"
+	## ("All", "bonus") — the pair DamageCalculator step 3 reads for every hit the character lands,
+	## and the one the generic "+% Damage" level-ups use. This used ("damage", "bonus") until
+	## 2026-09-29, which only raises get_stat("damage") (pets, Holy Hammers, a few special hits),
+	## so a "+X% damage" self-buff never reached a single combo or skill hit (balance sim).
 	var dmg_mod := ModifierDefinition.new()
-	dmg_mod.target_tag = "damage"
+	dmg_mod.target_tag = "All"
 	dmg_mod.operation = "bonus"
 	dmg_mod.value = 0.25
 	dmg_mod.source_name = "blood_power"
