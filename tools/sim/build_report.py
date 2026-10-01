@@ -93,9 +93,12 @@ MANUAL_FINDINGS = [
                  "arena kept the player immune with god_mode, which skips take_damage — and so the "
                  "i-frames that block contact knockback in real play — and every shove from the pulled "
                  "pack landed, compounded by the knockback bug above. The arena now uses death "
-                 "prevention with the real hit path. With real hit handling Tempest Vortex is a strong "
-                 "mod: ~2.7× clear speed (228 vs 85 kills/min), paid for in damage taken. No change was "
-                 "made to the mod."),
+                 "prevention with the real hit path. No change was made to the mod. What it is worth "
+                 "depends on how the Sellsword is played: his best clear rotation (one light, then "
+                 "heavy, 168 kills/min) runs the Uppercut → Cataclysm string and rarely reaches Tempest, "
+                 "so the sweep measures the mod as neutral there. Played as light chains, where every "
+                 "loop ends in Tempest, it lifted clear speed from 85 to 228 kills/min in a spot check "
+                 "(~2.7×), paid for in damage taken."),
         "where": "tools/sim/sim_arena.gd (horde immunity) · data/class_mods.gd:53",
         "kit": "The Drifter",
     },
