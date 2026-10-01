@@ -289,7 +289,9 @@ const NODES: Dictionary = {
 		"desc": "+8 Fire, Cold, Lightning Resist per rank",
 		"effects": [
 			{"stat": "Fire", "op": "resist", "value": 8.0},
-			{"stat": "Cold", "op": "resist", "value": 8.0},
+			## "Ice", the engine's cold damage type (ChainFactory._damage_type: "cryo" -> "Ice"). This
+			## was "Cold" until 2026-10-01, a type nothing deals, so a third of the node did nothing.
+			{"stat": "Ice", "op": "resist", "value": 8.0},
 			{"stat": "Lightning", "op": "resist", "value": 8.0},
 		],
 	},

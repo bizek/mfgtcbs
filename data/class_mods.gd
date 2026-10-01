@@ -819,7 +819,10 @@ const ALL: Dictionary = {
 		"desc": "The blood pact runs deeper - +20% damage while equipped.",
 		"color": Color(0.85, 0.1, 0.1),
 		"op": "modifier",
-		"params": { "stat": "damage", "op": "bonus", "value": 0.20 },
+		## ("All", "bonus") since 2026-10-01: ("damage", "bonus") only moves get_stat("damage"), which
+		## the pets read but no combo or skill hit does. The pets still get it: they strike with the
+		## player as attacker, and DamageCalculator applies the attacker's ("All", "bonus").
+		"params": { "stat": "All", "op": "bonus", "value": 0.20 },
 	},
 	"blood_mage_bloodquake": {
 		"id": "blood_mage_bloodquake",
@@ -840,7 +843,10 @@ const ALL: Dictionary = {
 		"desc": "The drain draws more deeply - +18% damage increases each Vampirize beat's yield.",
 		"color": Color(0.6, 0.0, 0.2),
 		"op": "modifier",
-		"params": { "stat": "damage", "op": "bonus", "value": 0.18 },
+		## ("All", "bonus") since 2026-10-01: ("damage", "bonus") only moves get_stat("damage"), which
+		## the pets read but no combo or skill hit does. The pets still get it: they strike with the
+		## player as attacker, and DamageCalculator applies the attacker's ("All", "bonus").
+		"params": { "stat": "All", "op": "bonus", "value": 0.18 },
 	},
 
 	"blood_mage_crimson_feast": {
@@ -930,7 +936,10 @@ const ALL: Dictionary = {
 		"desc": "He signs for more than he can pay - +15% damage while equipped.",
 		"color": Color(0.85, 0.20, 0.35),
 		"op": "modifier",
-		"params": { "stat": "damage", "op": "bonus", "value": 0.15 },
+		## ("All", "bonus") since 2026-10-01: ("damage", "bonus") only moves get_stat("damage"), which
+		## the pets read but no combo or skill hit does. The pets still get it: they strike with the
+		## player as attacker, and DamageCalculator applies the attacker's ("All", "bonus").
+		"params": { "stat": "All", "op": "bonus", "value": 0.15 },
 	},
 
 	"demon_breach_wake": {

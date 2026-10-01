@@ -274,7 +274,7 @@ const ALL: Dictionary = {
 		"damage_type": "physical", "damage": 40.0, "tint": Color(0.90, 0.80, 0.85),
 		"drop_weight": 0, "mod_slots": 3, "unlock_id": "gear_fighter_purple",
 		"class_lock": "The Drifter", "kit": "fighter", "rarity": "epic", "tier": "purple",
-		"modifiers": [ {"tag": "damage", "op": "bonus", "value": 0.08}, {"tag": "crit_chance", "op": "add", "value": 0.05} ],
+		"modifiers": [ {"tag": "All", "op": "bonus", "value": 0.08}, {"tag": "crit_chance", "op": "add", "value": 0.05} ],
 		"unique": "u_rampage",
 	},
 
@@ -330,7 +330,7 @@ const ALL: Dictionary = {
 		"damage_type": "fire", "damage": 11.0, "tint": Color(1.0, 0.50, 0.15),
 		"drop_weight": 0, "mod_slots": 2, "unlock_id": "gear_wizard_blue",
 		"class_lock": "The Spark", "kit": "wizard", "rarity": "rare", "tier": "blue",
-		"modifiers": [ {"tag": "damage", "op": "bonus", "value": 0.10} ],
+		"modifiers": [ {"tag": "All", "op": "bonus", "value": 0.10} ],
 	},
 	"Cinderbrand": {
 		"id": "Cinderbrand", "display_name": "Cinderbrand",
@@ -338,7 +338,7 @@ const ALL: Dictionary = {
 		"damage_type": "fire", "damage": 13.0, "tint": Color(1.0, 0.42, 0.10),
 		"drop_weight": 0, "mod_slots": 3, "unlock_id": "gear_wizard_purple",
 		"class_lock": "The Spark", "kit": "wizard", "rarity": "epic", "tier": "purple",
-		"modifiers": [ {"tag": "damage", "op": "bonus", "value": 0.12}, {"tag": "crit_chance", "op": "add", "value": 0.05} ],
+		"modifiers": [ {"tag": "All", "op": "bonus", "value": 0.12}, {"tag": "crit_chance", "op": "add", "value": 0.05} ],
 		"unique": "u_wildfire",
 	},
 
@@ -382,7 +382,7 @@ const ALL: Dictionary = {
 		"damage_type": "fire", "damage": 34.0, "tint": Color(0.90, 0.35, 0.22),
 		"drop_weight": 0, "mod_slots": 2, "unlock_id": "gear_demon_blue",
 		"class_lock": "The Demon", "kit": "demonologist", "rarity": "rare", "tier": "blue",
-		"modifiers": [ {"tag": "damage", "op": "bonus", "value": 0.10} ],
+		"modifiers": [ {"tag": "All", "op": "bonus", "value": 0.10} ],
 	},
 	"Sceptre of the Archfiend": {
 		"id": "Sceptre of the Archfiend", "display_name": "Sceptre of the Archfiend",
@@ -390,7 +390,7 @@ const ALL: Dictionary = {
 		"damage_type": "fire", "damage": 40.0, "tint": Color(1.0, 0.42, 0.18),
 		"drop_weight": 0, "mod_slots": 3, "unlock_id": "gear_demon_purple",
 		"class_lock": "The Demon", "kit": "demonologist", "rarity": "epic", "tier": "purple",
-		"modifiers": [ {"tag": "damage", "op": "bonus", "value": 0.12}, {"tag": "Fire", "op": "resist", "value": 10.0} ],
+		"modifiers": [ {"tag": "All", "op": "bonus", "value": 0.12}, {"tag": "Fire", "op": "resist", "value": 10.0} ],
 		"unique": "u_infernal",
 	},
 
@@ -408,7 +408,7 @@ const ALL: Dictionary = {
 		"damage_type": "physical", "damage": 34.0, "tint": Color(0.88, 0.60, 0.30),
 		"drop_weight": 0, "mod_slots": 2, "unlock_id": "gear_barbarian_blue",
 		"class_lock": "The Ravager", "kit": "barbarian", "rarity": "rare", "tier": "blue",
-		"modifiers": [ {"tag": "damage", "op": "bonus", "value": 0.08} ],
+		"modifiers": [ {"tag": "All", "op": "bonus", "value": 0.08} ],
 	},
 	"Skullcleaver": {
 		"id": "Skullcleaver", "display_name": "Skullcleaver",
@@ -416,7 +416,7 @@ const ALL: Dictionary = {
 		"damage_type": "physical", "damage": 40.0, "tint": Color(0.92, 0.55, 0.28),
 		"drop_weight": 0, "mod_slots": 3, "unlock_id": "gear_barbarian_purple",
 		"class_lock": "The Ravager", "kit": "barbarian", "rarity": "epic", "tier": "purple",
-		"modifiers": [ {"tag": "damage", "op": "bonus", "value": 0.10}, {"tag": "max_hp", "op": "add", "value": 20.0} ],
+		"modifiers": [ {"tag": "All", "op": "bonus", "value": 0.10}, {"tag": "max_hp", "op": "add", "value": 20.0} ],
 		"unique": "u_bloodrage",
 	},
 
@@ -461,7 +461,7 @@ const ALL: Dictionary = {
 		"damage_type": "void", "damage": 50.0, "tint": Color(0.62, 0.24, 0.82),
 		"drop_weight": 0, "mod_slots": 3, "unlock_id": "gear_blood_mage_purple",
 		"class_lock": "The Cursed", "kit": "blood_mage", "rarity": "epic", "tier": "purple",
-		"modifiers": [ {"tag": "leech", "op": "bonus", "value": 0.08}, {"tag": "damage", "op": "bonus", "value": 0.08} ],
+		"modifiers": [ {"tag": "leech", "op": "bonus", "value": 0.08}, {"tag": "All", "op": "bonus", "value": 0.08} ],
 		"unique": "u_sanguine",
 	},
 
@@ -516,7 +516,7 @@ const ALL: Dictionary = {
 		"damage_type": "physical", "damage": 40.0, "tint": Color(0.50, 0.78, 0.46),
 		"drop_weight": 0, "mod_slots": 3, "unlock_id": "gear_druid_purple",
 		"class_lock": "The Verdant", "kit": "druid", "rarity": "epic", "tier": "purple",
-		"modifiers": [ {"tag": "max_hp", "op": "add", "value": 30.0}, {"tag": "damage", "op": "bonus", "value": 0.08} ],
+		"modifiers": [ {"tag": "max_hp", "op": "add", "value": 30.0}, {"tag": "All", "op": "bonus", "value": 0.08} ],
 		"unique": "u_blightbloom",
 	},
 
@@ -542,7 +542,7 @@ const ALL: Dictionary = {
 		"damage_type": "fire", "damage": 40.0, "tint": Color(1.0, 0.74, 0.34),
 		"drop_weight": 0, "mod_slots": 3, "unlock_id": "gear_cleric_purple",
 		"class_lock": "The Devout", "kit": "cleric", "rarity": "epic", "tier": "purple",
-		"modifiers": [ {"tag": "max_hp", "op": "add", "value": 25.0}, {"tag": "damage", "op": "bonus", "value": 0.08} ],
+		"modifiers": [ {"tag": "max_hp", "op": "add", "value": 25.0}, {"tag": "All", "op": "bonus", "value": 0.08} ],
 		"unique": "u_benediction",
 	},
 }
@@ -604,6 +604,11 @@ static func equippable_from(unlocked: Array, char_id: String) -> Array:
 	return out
 
 ## Intrinsic stat-line modifiers on a weapon (Array of {tag, op, value}); [] if none.
+## Each line is filed verbatim as a ModifierDefinition (player._apply_gear_bonuses), so {tag, op} must
+## be a pair something READS. "+X% damage" is {"tag": "All", "op": "bonus"}, the pair DamageCalculator
+## step 3 applies to every hit the character lands. Ten weapons used {"tag": "damage", "op": "bonus"}
+## until 2026-10-01; that pair only moves get_stat("damage") (pets, a few host-side hits) and never
+## reached a combo or skill hit, so every blue/purple "+% damage" line was dead in practice.
 static func get_weapon_modifiers(weapon_id: String) -> Array:
 	return ALL.get(weapon_id, {}).get("modifiers", [])
 
