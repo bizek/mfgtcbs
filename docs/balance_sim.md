@@ -27,7 +27,23 @@ Stages, in order (each reads the previous one's output under `tools/sim/out/stag
 | `recheck` | After a targeted code fix: fresh baseline + just the named picks (`RECHECK_IDS`) under the current code, patched into picks.json — no full re-run |
 
 Any stage can be limited to kits: `python tools/sim/sim_stages.py picks "The Drifter" ranger`.
-Worker count: `SIM_WORKERS=20` (each headless worker is ~260 MB).
+Worker count: `SIM_WORKERS=20` (each headless worker is ~260 MB). A worker that runs out of memory
+while 20 boot at once (`Parameter "mem" is null` in its log) is retried after a pause, never cached
+as a crash; three failures in a row stop the run and ask for fewer workers.
+
+Long runs: launch detached, `(nohup sh -c 'python tools/sim/sim_stages.py all "The Spark"' > log 2>&1 &)`.
+`tools/sim/out/sweep.lock` holds the running sweep's PID, and a second sweep refuses to start. Never
+edit a `.gd` under `scripts/ data/ tools/sim/` while one runs: workers load scripts from disk.
+
+## Play policies
+
+The bot's rotations (`sim_pilot.gd`): `L`, `H`, `L1H`..`L4H`, `C@hold` (hold RMB), `W@hold` (hold
+LMB), and `LS`. Each calibrates against six skill patterns and six standoff ranges. A kit can add
+rotations of its own through `KIT_ROTATIONS` in `sim_stages.py`:
+
+| Kit | Extra rotations | Why |
+|---|---|---|
+| wizard (Spark) | `LS`, `C@0.4`, `C@1.8` | The familiar is summoned on an RMB **tap**, so `H` re-summons every cast and kills it before it bites; `LS` re-summons only when none is alive. `C@1.8` is a full Fireball charge (0.2 s tap threshold + 1.6 s charge), `C@0.4` the spam alternative |
 
 Results are cached by scenario + a fingerprint of every `.gd` under `scripts/ data/ tools/sim/` plus
 `balance_overrides.json` / `anim_overrides.json`. Change game code or tuning and exactly the
@@ -84,3 +100,13 @@ Discharge on-crit proc chain overflowing the stack every frame (10.6 GB log befo
   brawl has a seed-to-seed CV of ~0.05–0.13.
 - Validation: Drifter light-chain hits reconcile exactly with `chain_factory.gd` (0.9 / 0.7 /
   1.05 × 25 = 22.5 / 17.5 / 26.25, 0.75 s per loop).
+- **A headless worker runs ~10× real time, so anything on the wall clock is wrong in it.**
+  `--fixed-fps 60` pins every frame's delta to 1/60, but `Time.get_ticks_msec()` is real time.
+  Until 2026-10-01 the Fireball charge, blood pools, the Berserker's Cadence cooldown and every
+  proc's internal cooldown read the wall clock: a full charge measured ×1.1 instead of ×2.0, and
+  ICD procs fired ~10× too rarely. All are on game time now (`player._game_time`,
+  `CombatOrchestrator.run_time`), which also fixed them for hitstop and slow-mo in play. Grep for
+  `get_ticks_msec` before trusting a number that involves a timer.
+- Hitstop rationing (`main_arena._request_hitstop`) still uses the wall clock, so the sim drops most
+  repeat freezes that real play keeps (2 frames per crit, 6 per finisher). Absolute DPS reads a few
+  percent high, and crit-heavy builds read higher still.

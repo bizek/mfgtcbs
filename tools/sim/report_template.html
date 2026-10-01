@@ -251,8 +251,8 @@ ol.build li:last-child { border-bottom: 0; }
       </div>
       <div class="panel">
         <h3>How the bot plays</h3>
-        <p>It presses the real input actions. Aiming is the shipped auto-aim, so it aims no better than a controller player. Its play policy (button pattern, skill use, distance) is chosen per kit and per arena by search: 288 policies on a coarse grid, the best 8 re-run on 3 seeds, then the best of those carried into clear-speed and survival trials.</p>
-        <p>Rotations: <span class="mono">L</span> mash light · <span class="mono">H</span> mash heavy · <span class="mono">L2H</span> light to chain depth 2, then heavy · <span class="mono">C@1.5</span> hold heavy 1.5 s (channel) · <span class="mono">W@1.5</span> hold light. Skills: <span class="mono">q</span>, <span class="mono">e</span>, <span class="mono">qe</span> on cooldown · <span class="mono">qed</span> adds dash on cooldown · <span class="mono">e_once_q</span> E once at the start (stances) plus Q on cooldown.</p>
+        <p>It presses the real input actions. Aiming is the shipped auto-aim, so it aims no better than a controller player. Its play policy (button pattern, skill use, distance) is chosen per kit and per arena by search: 288 policies on a coarse grid (396 for the Spark, whose grid adds a familiar re-summon rotation and two Fireball holds), the best 8 re-run on 3 seeds, then the best of those carried into clear-speed and survival trials.</p>
+        <p>Rotations: <span class="mono">L</span> mash light · <span class="mono">H</span> mash heavy · <span class="mono">L2H</span> light to chain depth 2, then heavy · <span class="mono">C@1.5</span> hold heavy 1.5 s (channel) · <span class="mono">W@1.5</span> hold light · <span class="mono">LS</span> mash light, tapping heavy to re-summon the Spark's familiar whenever none is alive. Skills: <span class="mono">q</span>, <span class="mono">e</span>, <span class="mono">qe</span> on cooldown · <span class="mono">qed</span> adds dash on cooldown · <span class="mono">e_once_q</span> E once at the start (stances) plus Q on cooldown.</p>
       </div>
       <div class="panel">
         <h3>Reading a comparison</h3>
@@ -296,7 +296,8 @@ function decodePolicy(key) {
   const [rot, skills, range] = key.split("/");
   const [r, hold] = rot.split("@");
   const R = { L: "mash light", H: "mash heavy", L1H: "one light, then heavy", L2H: "light ×2, then heavy",
-    L3H: "light ×3, then heavy", L4H: "light ×4, then heavy", C: `hold heavy ${hold}s (channel)`, W: `hold light ${hold}s` }[r] || rot;
+    L3H: "light ×3, then heavy", L4H: "light ×4, then heavy", C: `hold heavy ${hold}s (channel)`, W: `hold light ${hold}s`,
+    LS: "mash light, re-summon the familiar when it is gone" }[r] || rot;
   const S = { none: "no skills", q: "Q on cooldown", e: "E on cooldown", qe: "Q + E on cooldown",
     qed: "Q + E + dash on cooldown", e_once_q: "E once, Q on cooldown" }[skills] || skills;
   return `${R} · ${S} · stays ${range} px out`;

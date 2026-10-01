@@ -131,6 +131,157 @@ MANUAL_FINDINGS = [
                  "(22.5): Glass Cannon now hits 34.88 (×1.55, was 41.63), Velocity 25.87 (×1.15)."),
         "where": "scripts/entities/player.gd (remove_stat_upgrade)",
     },
+    ## ── Deadeye pass (2026-09-29) ─────────────────────────────────────────────────────────────
+    {
+        "severity": "fixed",
+        "title": "Fixed: six \"+X% damage\" self-buffs never reached a combo or skill hit",
+        "body": ("They filed their modifier as (\"damage\", \"bonus\"), which only moves "
+                 "get_stat(\"damage\"): pets, Holy Hammers and a few host-side hits read it. Combo and "
+                 "skill hits bake the weapon's damage in at build time and take percentages in "
+                 "DamageCalculator step 3, which reads (\"All\", \"bonus\"). Reload, Battle Fury, Honed "
+                 "Edge, Extract Power and the passives Calm Hands and Bloodrage all showed as active and "
+                 "changed nothing. All six use (\"All\", \"bonus\") now; the Ravager, Whisper and Cursed "
+                 "got stronger with the Deadeye."),
+        "where": "data/factories/chain_factory.gd (_timed_damage_buff, _blood_power_buff) · scripts/entities/player.gd (_update_bloodrage, _update_calm_hands)",
+    },
+    {
+        "severity": "fixed",
+        "title": "Fixed: a piercing seeker circled its first target instead of moving on",
+        "body": ("ProjectileManager kept a homing lock until the target died, so a seeking shot with "
+                 "pierce turned back onto the body it had just passed through and orbited it until it "
+                 "expired. Pierce never landed a second hit on any seeking shot: Scavenger arrows with "
+                 "Volley, and the Deadeye's storm and fan bullets. The lock now drops once the target is "
+                 "on the shot's hit list, and bodies already hit are skipped when picking the next one."),
+        "where": "scripts/systems/projectile_manager.gd (_acquire_seek_target)",
+    },
+    {
+        "severity": "decision",
+        "title": "Deadeye: Desert Storm is the pack tool, base HP 100, Fan the Hammer kept",
+        "body": ("Ben, 2026-10-01. Desert Storm 3 → 5 bullets a tick, pierce 1 → 2, 0.75 → 0.82× per "
+                 "bullet: at level 1 it beats the light-into-Fan route by +13% pack DPS (378 vs 335) and "
+                 "+10% clear speed (155 vs 141 kills/min) and ties it on one target (186 vs 188). Pierce 2 "
+                 "only pays against moving packs; rooted dummies rarely leave a third body in a bullet's "
+                 "cone. Base HP 85 → 100 for survival. Fan the Hammer stays at 0.60× a bullet, so the "
+                 "Deadeye keeps its #1 single-target spot (Ben chose that over a trim to 0.50×)."),
+        "where": "data/factories/chain_factory.gd (build_gunslinger_desert_storm, _storm_bullets) · data/characters.gd",
+        "kit": "The Deadeye",
+    },
+    ## ── Spark pass (2026-10-01) ───────────────────────────────────────────────────────────────
+    {
+        "severity": "fixed",
+        "title": "Fixed: gameplay timers ran on the wall clock",
+        "body": ("The Fireball charge, the Cursed's blood pools, the Berserker's Cadence cooldown and every "
+                 "proc's internal cooldown read Time.get_ticks_msec(), so they kept running through hitstop "
+                 "(every finisher freezes the game for 6 frames) and pause, and ran 4× short in the Training "
+                 "Room's slow-mo. The balance sim runs about 10× real time, which made it obvious: a full "
+                 "1.6 s Fireball charge read as ~0.15 s (×1.1 instead of ×2.0), blood pools lasted ~10× their "
+                 "duration (the Cursed's survival was inflated), and Volatile Remains (0.25 s cooldown), "
+                 "Glacial Guard (2 s), Pyre and Bulwark fired about a tenth as often as in a run. The player "
+                 "now keeps a game-time clock (sum of the scaled physics delta), and TriggerComponent's "
+                 "cooldown gate reads the orchestrator's run_time. Same bug CombatInputBuffer already fixed "
+                 "for the input buffer."),
+        "where": "scripts/entities/player.gd (_game_time) · scripts/components/trigger_component.gd (internal cooldown gate)",
+    },
+    {
+        "severity": "fixed",
+        "title": "Fixed: a charged Fireball threw away every mod on its release phase",
+        "body": ("At the release, player.gd replaced the phase's projectile with a fresh one from "
+                 "ChainFactory._wizard_fireball, scaled by the charge. Whatever a class mod or level-up had "
+                 "done to that phase was discarded on every charged cast: FIREBALL EXPANSION's +35% blast and "
+                 "SCORCHED EARTH's Burning never reached a Fireball. The host now scales the phase's own "
+                 "projectile. Verified: Expansion's blast splashes all five other dummies of a pack instead "
+                 "of three, and Scorched Earth's Burning ticks."),
+        "where": "scripts/entities/player.gd (choreo_fire_effects, _scaled_hits)",
+        "kit": "The Spark",
+    },
+    {
+        "severity": "fixed",
+        "title": "Fixed: Q and E ignored cooldown reduction",
+        "body": ("SkillComponent set a skill's cooldown straight from cooldown_base. Only AbilityComponent "
+                 "(auto-attacks, enemies) applied (\"All\", \"cooldown_reduce\"), and the player's combo graphs "
+                 "carry no cooldown, so every source of it was dead: MANABURN (Spark), DARK HASTE (Shade), "
+                 "RELENTLESS VOW (Warden), the evolution ABSOLUTE ZERO, and the Shade's Tome of the Restless "
+                 "and Soulcage Scepter. Skills now apply it the same way (50% cap), and the HUD's cooldown "
+                 "veil measures against the reduced duration. Verified: Dark Haste gives the Shade one more "
+                 "Q and one more E per minute."),
+        "where": "scripts/components/skill_component.gd (trigger, _cooldown_reduction) · scripts/ui/hud.gd",
+    },
+    {
+        "severity": "fixed",
+        "title": "Fixed: blue and purple weapons' \"+% damage\" lines did nothing",
+        "body": ("Ten class weapons carried {\"tag\": \"damage\", \"op\": \"bonus\"}, the same dead pair as "
+                 "the self-buffs above: Bloodsworn Greatblade, Emberfocus Rod, Cinderbrand, Grimoire of the "
+                 "Nine Pits, Sceptre of the Archfiend, Stormforged Axe, Skullcleaver, Heart-Eater, World-Root "
+                 "and Pyre of Judgment. They use (\"All\", \"bonus\") now. The sweep measures green weapons "
+                 "only, so it could not see this."),
+        "where": "data/weapons.gd (get_weapon_modifiers note)",
+    },
+    {
+        "severity": "fixed",
+        "title": "Fixed: TEMPEST CALL scaled a cosmetic pulse, not Storm Call",
+        "body": ("The class mod scaled the storm_cast phase, whose only effect is a 0.2× self-pulse that "
+                 "exists to fire the host hook. The strike itself (1.6× weapon damage per enemy, the whole "
+                 "field) lives in player._storm_strike, which no phase op reaches, so the mod measured 1.00 "
+                 "in every arena. Same bug the old Tempest Call pick had. It is a +0.32 storm_damage "
+                 "modifier now (+20% on 1.6), Rising Storm's seam; \"45% broader\" left the card because the "
+                 "strike already covers the field. Verified: strikes 40 → 48 on the green weapon."),
+        "where": "data/class_mods.gd (wizard_tempest_call)",
+        "kit": "The Spark",
+    },
+    {
+        "severity": "fixed",
+        "title": "Fixed: DEEPER PACT, SANGUINE DRAIN and GREATER PACT used the pets-only damage pair",
+        "body": ("All three are \"+X% damage\" class mods filed as (\"damage\", \"bonus\"). None is pet-only, so "
+                 "they use (\"All\", \"bonus\") now; the Blood Elemental and the Angry Demon strike with the "
+                 "player as attacker, so they keep the bonus. Verified: Deeper Pact +7% Cursed single-target "
+                 "DPS. (EMBER FAMILIAR keeps the pets-only pair on purpose.)"),
+        "where": "data/class_mods.gd",
+    },
+    {
+        "severity": "fixed",
+        "title": "Fixed: Elemental Wards granted resist to a damage type that does not exist",
+        "body": ("The passive-tree node gave +8 \"Cold\" resist. The engine's cold damage type is \"Ice\" "
+                 "(\"cryo\" weapons map to it), and nothing deals \"Cold\", so a third of the node did "
+                 "nothing. The passive tree is outside the sweep."),
+        "where": "data/passive_tree.gd (a_wards)",
+    },
+    {
+        "severity": "decision",
+        "title": "Spark: standard weapon line, Fireball is the pack tool, a familiar that pays, HP 70",
+        "body": ("Ben, 2026-10-01. The wizard line was 8/11/13 against the standard 25/34/40, the same gap the "
+                 "Deadeye had. The Fireball's charge curve went from ×1.0–×2.0 to ×0.25–×2.0: every cast pays "
+                 "~0.5 s that charging does not buy back, so at ×1.0 a 0.4 s hold out-damaged a full charge "
+                 "by ~2×. Direct 1.1 → 4.0×, splash 0.9 → 2.75×, blast 34 → 40 px. At level 1 a full charge "
+                 "deals 446 pack DPS against 398 for the light chain; the light chain keeps single target "
+                 "(122 vs 97) and clear speed, and the 40% charge slow is the price. The familiar bites for "
+                 "1.0× weapon damage (was 0.5×, a net loss once the summon interrupted the chain). Base HP "
+                 "60 → 70 (tied with the Whisper for lowest). OVERLOAD BOLTS' card now says what it does "
+                 "(staff bolts and the Fire Burst); reaching the Fireball waits for the class-mod pass."),
+        "where": "data/weapons.gd · data/factories/chain_factory.gd (_wizard_fireball) · scripts/entities/player.gd (FIREBALL_MULT_MIN) · scripts/entities/fire_familiar.gd · data/characters.gd · data/class_mods.gd",
+        "kit": "The Spark",
+    },
+    {
+        "severity": "warn",
+        "title": "Open for the class-mod pass: three cards still promise more than they do",
+        "body": ("GLACIAL CAST (\"Ice freezes a +35% wider circle\") widens Frost Burst's damage (58 → 78 px) "
+                 "but not its chill: choreo_fire_effects applies every phase status within a fixed 90 px. "
+                 "SCORCHED EARTH (\"ignites every target it touches\") burns only the body the Fireball "
+                 "strikes, not the splash. SANGUINE DRAIN (\"+18% damage increases each Vampirize beat's "
+                 "yield\") is a plain +18% damage now, but the drain heals a share of max HP, so damage "
+                 "never changed its yield, and it overlaps DEEPER PACT (+20%)."),
+        "where": "scripts/entities/player.gd (choreo_fire_effects, 90 px status radius) · data/class_mods.gd",
+    },
+    {
+        "severity": "caveat",
+        "title": "Harness: the familiar needed its own policy",
+        "body": ("The Spark summons on an RMB TAP. Mashing heavy (H) re-summons every cast, and a resummon "
+                 "disperses the familiar before it reaches its prey: 600 taps, zero damage in 20 s. The "
+                 "Spark's calibration grid adds LS (mash light, re-summon from neutral when no familiar is "
+                 "alive) and two Fireball holds (0.4 s and a full 1.8 s), so the familiar picks and the "
+                 "charge curve can be credited at all."),
+        "where": "tools/sim/sim_pilot.gd (LS) · tools/sim/sim_stages.py (KIT_ROTATIONS)",
+        "kit": "The Spark",
+    },
 ]
 
 
