@@ -981,11 +981,12 @@ static func build_ranger_elemental_heavy(weapon_data: Dictionary) -> AbilityDefi
 ##
 ## The Scavenger's PACK TOOL since 2026-10-01 (Ben: "bow main, Volley for packs"). It was three
 ## seeking arrows at 0.4x, 51 pack DPS against 289 for the knives. Now it is _volley_barrage: seven
-## arrows over 40 degrees, homing only within an 8-degree lane and piercing two bodies, at 1.05x.
-## The lane is what makes it a pack tool rather than a better bow. Each arrow curves onto the body
-## in front of it, so on a lone target only the middle few connect (100 single-target DPS, under
-## the bow chain's 111), while a pack catches the whole fan: 333 pack DPS (+17% over the knives)
-## and 159 kills/min against 112.
+## arrows over 40 degrees at 1.75x, homing only within an 8-degree lane, piercing two bodies, and
+## sharing one hit list per beat, so each enemy takes ONE arrow per volley. That rule is what makes
+## it a pack tool rather than a better bow: without it, at point-blank range the fan had not spread
+## yet and all seven arrows hit a lone target (232 single-target DPS, twice the bow). Measured at
+## level 1 from 80 px: 335 pack DPS (+18% over the knives), 157 kills/min against 114, and 54 on a
+## lone target, where the bow chain's ~110 stays the tool. Up close the fan has not opened: stand off.
 ##
 ## The channel INHERITS the loaded quiver (player._apply_quiver): unarmed it is the neutral volley
 ## it has always been, armed it becomes the kit's status-stacker — the cheapest way to put Chilled
@@ -998,7 +999,7 @@ static func build_ranger_volley(weapon_data: Dictionary) -> AbilityDefinition:
 	var volley := ChoreographyPhase.new()
 	volley.animation = "triple_shot"
 	volley.hit_frame = 6                                    # the loose
-	volley.effects = [_volley_barrage(dtype, dmg * 1.05)]
+	volley.effects = [_volley_barrage(dtype, dmg * 1.75)]
 	volley.exit_type = "wait"
 	volley.wait_duration = VOLLEY_TICK
 	volley.default_next = 0                                 # still held → another volley
@@ -2357,9 +2358,10 @@ static func _arrow_volley(dtype: String, per_arrow: float, count: int, spread: f
 	return e
 
 
-## The Volley's barrage (2026-10-01): a wide fan whose arrows home only within a narrow LANE and
-## pierce two bodies. ARROW_CONE's 35 degrees would pull every arrow of a 40-degree fan onto one
-## target and make this a better bow; 8 keeps each arrow on the body in front of it.
+## The Volley's barrage (2026-10-01): a wide fan whose arrows home only within a narrow LANE, pierce
+## two bodies and share one hit list (ProjectileConfig.volley_shares_hits). ARROW_CONE's 35 degrees
+## would pull every arrow of a 40-degree fan onto one target and make this a better bow; 8 keeps
+## each arrow on the body in front of it, and the shared list stops a point-blank shotgun.
 const VOLLEY_ARROWS: int = 7
 const VOLLEY_SPREAD: float = 40.0
 const VOLLEY_LANE: float = 8.0
@@ -2367,6 +2369,7 @@ static func _volley_barrage(dtype: String, per_arrow: float) -> SpawnProjectiles
 	var e := _arrow_volley(dtype, per_arrow, VOLLEY_ARROWS, VOLLEY_SPREAD)
 	_steer(e.projectile, ARROW_SEEK, VOLLEY_LANE, ARROW_TURN_R)
 	e.projectile.pierce_count = 2
+	e.projectile.volley_shares_hits = true   ## each enemy takes one arrow per beat (no point-blank shotgun)
 	return e
 
 
