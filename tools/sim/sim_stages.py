@@ -315,16 +315,21 @@ def stage_calibrate(only=None, workers=None):
     _rank_into(ranked, h_scs, hres, "horde")
 
     # 4) pressure (brawl): best 3 horde policies, plus the best two rotation families for one
-    #    target and for a pack, each at its own range and two longer ones, 6 seeds
+    #    target and for a pack, each at its own range and two longer ones, with and without the
+    #    dash on cooldown (skills "qed"), 6 seeds. The dash is defence, so it is tried for survival
+    #    whether or not it ranked anywhere else: the Whisper's best brawl (118 s with qed) was missed
+    #    the day no qed policy made her clear-speed top 3, and she read 68 s (2026-10-01).
     p_scs = []
     for c in cs:
         cands = []
         rk = ranked[c["id"]]
         for x in rk["horde"][:3] + diverse_top(rk["single"], 2) + diverse_top(rk["cluster"], 2):
             for rg in (x["policy"]["range"], 60, 110):
-                p = dict(x["policy"])
-                p["range"] = rg
-                cands.append(p)
+                for sk in (x["policy"]["skills"], "qed"):
+                    p = dict(x["policy"])
+                    p["range"] = rg
+                    p["skills"] = sk
+                    cands.append(p)
         for pol in _dedupe(cands):
             for seed in range(1, 7):
                 p_scs.append(scenario(c["id"], "pressure", pol, seed, tag="pcal"))
