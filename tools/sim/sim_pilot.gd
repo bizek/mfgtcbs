@@ -169,10 +169,19 @@ func _tick_light_heavy(frame: int, runner, running: bool) -> void:
 	if not running:
 		_tap("light_attack", frame)
 		return
+	## RMB only where it DOES something: on the way into the heavy finisher, and on a heavy-graph node
+	## that branches on it. Until 2026-10-01 the pilot pressed RMB on every frame of the finisher too,
+	## and a press on the frame the chain ended arrived in neutral and restarted the heavy graph. The
+	## Scavenger's light-light-RMB looped the melee knives at 48 px, whiffing (L2H: 7 DPS), and every
+	## kit's LkH measured some unknown mix of its route and heavy mashing.
 	var light_graph = _player.get("_combo_ability")
 	if runner.get_ability() == light_graph:
-		_tap("heavy_attack" if _depth >= _k else "light_attack", frame)
-	else:
+		if _depth < _k:
+			_tap("light_attack", frame)
+		elif not runner.current_phase_entered_by("heavy_attack"):
+			_tap("heavy_attack", frame)   ## into the finisher: a heavy branch, or the opener grace
+		## else: the finisher RMB branched into is playing — let it land
+	elif runner.current_phase_handles("heavy_attack"):
 		## A heavy graph is running: keep feeding it heavy so it reaches its finisher.
 		_tap("heavy_attack", frame)
 
