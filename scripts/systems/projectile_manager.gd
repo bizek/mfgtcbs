@@ -68,6 +68,11 @@ var _arc_heights: PackedFloat32Array
 
 # --- Pierce tracking ---
 var _hit_lists: Array = []
+## Per slot: the hit list shared by every projectile of one cast (ProjectileConfig.volley_shares_hits),
+## or null. Separate from _hit_lists, which also counts pierce for its own projectile.
+var _group_hits: Array = []
+## Set by spawn_projectiles while it spawns one cast, so spawn() can hand each slot the cast's list.
+var _cast_group = null
 var _pierce_counts: PackedInt32Array
 
 # --- Bounce tracking ---
@@ -131,6 +136,7 @@ func _init_pool() -> void:
 	_abilities.resize(POOL_SIZE)
 	_targets.resize(POOL_SIZE)
 	_hit_lists.resize(POOL_SIZE)
+	_group_hits.resize(POOL_SIZE)
 	_textures.resize(POOL_SIZE)
 	_impact_sprite_frames.resize(POOL_SIZE)
 	_impact_animations.resize(POOL_SIZE)
@@ -144,6 +150,7 @@ func _init_pool() -> void:
 		_abilities[i] = null
 		_targets[i] = null
 		_hit_lists[i] = []
+		_group_hits[i] = null
 		_textures[i] = null
 		_impact_sprite_frames[i] = null
 		_impact_animations[i] = ""
@@ -170,6 +177,7 @@ func _release_slot(i: int) -> void:
 	_configs[i] = null
 	_textures[i] = null
 	_hit_lists[i].clear()
+	_group_hits[i] = null
 	_impact_sprite_frames[i] = null
 	_initial_pierce_counts[i] = 0
 	_has_bounced[i] = 0
@@ -208,6 +216,7 @@ func spawn(source: Node2D, ability, config: ProjectileConfig,
 	_abilities[i] = ability
 	_targets[i] = tracking_target
 	_hit_lists[i] = []
+	_group_hits[i] = _cast_group
 	_pierce_counts[i] = config.pierce_count
 	_bounce_counts[i] = config.bounce_count
 	_initial_pierce_counts[i] = config.pierce_count_base if config.pierce_resets_on_bounce else config.pierce_count
@@ -324,7 +333,9 @@ func _steer_toward(vel: Vector2, desired: Vector2, config: ProjectileConfig, del
 func _acquire_seek_target(i: int, config: ProjectileConfig) -> void:
 	var cur = _targets[i]
 	var hits: Array = _hit_lists[i]
-	if is_instance_valid(cur) and cur.is_alive and not (cur in hits):
+	var group = _group_hits[i]   ## a volley's shared list: a sibling already hit these
+	if is_instance_valid(cur) and cur.is_alive and not (cur in hits) \
+			and not (group != null and cur in group):
 		return
 	_targets[i] = null
 	if spatial_grid == null:
@@ -339,6 +350,8 @@ func _acquire_seek_target(i: int, config: ProjectileConfig) -> void:
 	var best_d: float = radius_sq
 	for candidate in spatial_grid.get_nearby_in_range(_positions[i], _target_factions[i], radius_sq):
 		if not is_instance_valid(candidate) or not candidate.is_alive or candidate in hits:
+			continue
+		if group != null and candidate in group:
 			continue
 		var to_c: Vector2 = candidate.global_position - _positions[i]
 		var d: float = to_c.length_squared()
@@ -460,9 +473,12 @@ func _check_hits(i: int) -> void:
 	var hit_radius_sq: float = _hit_radius_sqs[i]
 	var pos: Vector2 = _positions[i]
 	var hits: Array = _hit_lists[i]
+	var group = _group_hits[i]
 	for tgt in nearby:
 		if tgt in hits:
 			continue
+		if group != null and tgt in group:
+			continue   ## a sibling from the same volley already hit it: fly on
 		if not is_instance_valid(tgt):
 			continue
 		if pos.distance_squared_to(tgt.global_position) <= hit_radius_sq:
@@ -484,6 +500,8 @@ func _check_hits(i: int) -> void:
 
 func _on_hit(i: int, target_entity: Node2D) -> void:
 	_hit_lists[i].append(target_entity)
+	if _group_hits[i] != null:
+		_group_hits[i].append(target_entity)
 	_execute_effects(i, target_entity)
 	_execute_impact_aoe(i, target_entity)
 	_spawn_impact_vfx(i)
@@ -667,6 +685,8 @@ static func _direction_to_anim(dir: Vector2) -> String:
 
 func spawn_projectiles(source: Node2D, ability,
 		effect: Resource, targets: Array) -> void:
+	## One cast, one shared hit list, when the config asks for it (a volley hits each enemy once).
+	_cast_group = [] if effect.projectile != null and effect.projectile.volley_shares_hits else null
 	match effect.spawn_pattern:
 		"radial":
 			_spawn_radial(source, ability, effect)
@@ -676,6 +696,7 @@ func spawn_projectiles(source: Node2D, ability,
 			_spawn_spread(source, ability, effect)
 		"at_targets":
 			_spawn_at_targets(source, ability, effect, targets)
+	_cast_group = null
 
 
 func _spawn_radial(source: Node2D, ability, effect: Resource) -> void:

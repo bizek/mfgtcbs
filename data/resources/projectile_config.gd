@@ -41,6 +41,11 @@ extends Resource
 
 # --- On-Hit Behavior ---
 @export var pierce_count: int = 0                ## 0 = destroy on first hit, -1 = infinite
+## Every projectile one cast spawns shares ONE hit list: each enemy takes at most one of them per
+## cast, while each still pierces on its own count. For fans that would otherwise shotgun a lone
+## target at point-blank range: the Scavenger's Volley put all seven arrows into one dummy at 16 px
+## (232 single-target DPS, twice the bow) before this existed (2026-10-01).
+@export var volley_shares_hits: bool = false
 @export var on_hit_effects: Array = [] ## DealDamageEffect, ApplyStatusEffectData, etc.
 
 # --- Ricochet (wall bounce) ---
