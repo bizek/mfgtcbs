@@ -29,6 +29,8 @@ extends Node
 ##   seed        int      RNG seed — the same seed across a comparison is common random numbers
 ##   enemy_hp    float    horde: fodder HP
 ##   hold        float    rotation "C": channel hold seconds
+##   weapon      String   class weapon in slot 1 (default: the character's signature green). The
+##                        stages measure green only; this exists to compare blue/purple tiers.
 
 const ARENA_SCENE: String = "res://scenes/main_arena.tscn"
 const TRAINING_PANEL_SCRIPT: String = "res://scripts/ui/training_panel.gd"
@@ -155,6 +157,12 @@ func _configure_profile() -> bool:
 	ProgressionManager.selected_character = char_id
 	ProgressionManager.passive_allocations = {}
 	ProgressionManager.character_loadouts = {}
+	if _sc.has("weapon"):
+		var wid: String = str(_sc["weapon"])
+		if not WeaponData.equippable_for(wid, char_id):
+			_fail("weapon '%s' is not equippable by %s (scenario %s)" % [wid, char_id, _sc.get("id", "?")])
+			return false
+		ProgressionManager.character_loadouts = {char_id: [wid, "", ""]}
 	ProgressionManager.character_trinkets = {}
 	ProgressionManager.hub_upgrades = []
 	var mods: Array = []

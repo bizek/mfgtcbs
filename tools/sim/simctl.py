@@ -115,6 +115,23 @@ def _error_signature(log: Path) -> str:
         (" :: " + " <- ".join(frames) if frames else "")
 
 
+## An allocation failure is the MACHINE running out of memory (20 workers booting at once), not a
+## game finding: on 2026-10-01 a worker died at boot while decoding the UI theme ('Parameter "mem"
+## is null', signal 11) and the scenario was cached as {"crashed": true} like a real engine fault.
+## Such a run is retried, and never cached as a crash.
+OOM_MARKERS = ('Parameter "mem" is null', 'Parameter "mem_new" is null')
+OOM_RETRIES = 3
+
+
+def _is_oom(log: Path) -> bool:
+    try:
+        with open(log, "rb") as fh:
+            head = fh.read(200_000).decode("utf-8", "replace")
+    except OSError:
+        return False
+    return any(m in head for m in OOM_MARKERS)
+
+
 def _read_results(out: Path) -> list[dict]:
     res = []
     if out.exists():
@@ -124,7 +141,8 @@ def _read_results(out: Path) -> list[dict]:
     return res
 
 
-def _run_chunk(chunk: list[dict], tag: str, timeout_s: float = WORKER_TIMEOUT_S) -> list[dict]:
+def _run_chunk(chunk: list[dict], tag: str, timeout_s: float = WORKER_TIMEOUT_S,
+               oom_left: int = OOM_RETRIES) -> list[dict]:
     job = JOBS / f"{tag}.json"
     out = JOBS / f"{tag}.jsonl"
     log = LOGS / f"{tag}.log"
@@ -164,6 +182,20 @@ def _run_chunk(chunk: list[dict], tag: str, timeout_s: float = WORKER_TIMEOUT_S)
         out.unlink(missing_ok=True)
         log.unlink(missing_ok=True)   # clean runs leave no log; only failures are kept to read
         return results
+
+    # Out of memory: rerun what is left (after a pause for the pool to drain), never record it.
+    if runaway is None and _is_oom(log):
+        rest = chunk[len(results):]
+        if oom_left <= 0:
+            raise RuntimeError(f"worker {tag} ran out of memory {OOM_RETRIES + 1} times; "
+                               f"lower SIM_WORKERS (log: {log})")
+        print(f"[simctl] worker {tag} ran out of memory at {len(results)}/{len(chunk)}; "
+              f"retrying the rest", flush=True)
+        time.sleep(20.0)
+        job.unlink(missing_ok=True)
+        out.unlink(missing_ok=True)
+        return results + _run_chunk(rest, f"{tag}_oom{OOM_RETRIES - oom_left}", timeout_s,
+                                    oom_left - 1)
 
     # Something went wrong past the scenarios already written: isolate it.
     sig = _error_signature(log)

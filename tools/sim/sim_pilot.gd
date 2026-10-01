@@ -16,6 +16,10 @@ extends RefCounted
 ##   C        hold RMB from neutral for `hold` seconds (the channel), release, repeat
 ##   W        hold LMB for `hold` seconds, release, repeat — the light graphs' held branches
 ##            (the Fighter's Whirlwind is `_branch_held("light_attack", ...)` off Attack/Swirl)
+##   LS       mash light, but whenever no summoned companion is alive, let the chain lapse and tap
+##            heavy from neutral to summon one — the Spark's familiar is the RMB TAP (2026-10-01).
+##            Mashing heavy (H) re-summons every cast, and a resummon disperses the familiar before
+##            it reaches its prey: 600 taps, zero damage in 20 s. LS is what a person does.
 ##
 ## Tapping is press-on-frame-N / release-on-N+1, every TAP_EVERY frames — i.e. as fast as Input can
 ## register separate just_pressed edges. It was 6 frames (10/s) until 2026-09-26, which looked like
@@ -37,7 +41,7 @@ extends RefCounted
 
 const ALL_ACTIONS: Array[String] = ["light_attack", "heavy_attack", "skill_q", "skill_e", "dash",
 		"move_left", "move_right", "move_up", "move_down", "fire"]
-const ROTATIONS: Array[String] = ["L", "H", "L1H", "L2H", "L3H", "L4H", "C", "W"]
+const ROTATIONS: Array[String] = ["L", "H", "L1H", "L2H", "L3H", "L4H", "C", "W", "LS"]
 const TAP_EVERY: int = 2
 ## Skills are only cast with an enemy this close — a person does not burn a nuke on empty floor.
 const SKILL_ENGAGE: float = 240.0
@@ -147,6 +151,13 @@ func tick(frame: int, arena) -> void:
 			_tap("heavy_attack", frame)
 		"L":
 			_tap("light_attack", frame)
+		"LS":
+			if _summon_missing():
+				## Same as a wanted skill: stop feeding the chain and cast from neutral.
+				if not running:
+					_tap("heavy_attack", frame)
+			else:
+				_tap("light_attack", frame)
 		_:
 			if _k > 0:
 				_tick_light_heavy(frame, runner, running)
@@ -178,6 +189,19 @@ func _tick_hold(action: String, frame: int, running: bool) -> void:
 	_press(action)
 	_channel_until = frame + _hold_frames
 	_channels += 1
+
+
+## True when the kit's heavy-summoned companions are all gone (expired, dispersing or never cast).
+## Only the Spark summons on a heavy TAP, so this reads its familiar array; any other kit has none
+## and LS is not in its calibration grid (sim_stages.KIT_ROTATIONS).
+func _summon_missing() -> bool:
+	var fams = _player.get("_fire_familiars")
+	if not (fams is Array):
+		return false
+	for f in fams:
+		if is_instance_valid(f) and str(f.get("_state")) != "die":
+			return false
+	return true
 
 
 ## The skill slot to cast right now, or "". Also counts casts by watching ready→not-ready edges.

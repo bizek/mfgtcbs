@@ -47,6 +47,11 @@ STAGES.mkdir(parents=True, exist_ok=True)
 
 ROTATIONS = [("L", None), ("H", None), ("L1H", None), ("L2H", None), ("L3H", None),
              ("C", 1.5), ("C", 3.0), ("W", 1.5)]
+## Rotations that only make sense for one kit, added to that kit's calibration grid alone.
+## LS (light, re-summoning the familiar on a heavy tap whenever it is gone) exists because the
+## Spark summons on RMB TAP: H re-summons every cast and kills the familiar before it bites, so
+## until 2026-10-01 no policy could ever credit the familiar, Ember Brood or Everflame.
+KIT_ROTATIONS = {"wizard": [("LS", None), ("C", 0.4), ("C", 1.8)]}
 SKILLS = ["none", "q", "e", "qe", "qed", "e_once_q"]
 RANGES = [16, 28, 48, 80, 120, 170]
 
@@ -251,12 +256,15 @@ def stage_calibrate(only=None, workers=None):
     """Search each kit's play policy per arena. Grid → refine top 8 with 3 seeds → pick."""
     cat = catalog()
     cs = chars(cat, only)
-    grid_pols = [policy(r, h, s, rg) for (r, h) in ROTATIONS for s in SKILLS for rg in RANGES]
     kw = {"workers": workers} if workers else {}
+
+    def grid_for(c: dict) -> list[dict]:
+        rots = ROTATIONS + KIT_ROTATIONS.get(c["kit"], [])
+        return [policy(r, h, s, rg) for (r, h) in rots for s in SKILLS for rg in RANGES]
 
     # 1) coarse grid, one seed, short
     scs = [scenario(c["id"], a, p, 1, duration=GRID_DUR, tag="grid")
-           for c in cs for a in ("single", "cluster") for p in grid_pols]
+           for c in cs for a in ("single", "cluster") for p in grid_for(c)]
     res = run(scs, label="cal-grid", **kw)
     grid: dict = {}
     for sc, r in zip(scs, res):
@@ -291,22 +299,28 @@ def stage_calibrate(only=None, workers=None):
         for a in ranked[ch]:
             ranked[ch][a].sort(key=lambda x: -x["mean"])
 
-    # 3) horde: best cluster + single policies, 3 seeds, rank by kills/min
+    # 3) horde: best cluster + single policies, plus the best of each other rotation family in
+    #    both, 3 seeds, rank by kills/min
     h_scs = []
     for c in cs:
-        cands = _dedupe([x["policy"] for x in ranked[c["id"]]["cluster"][:6]] +
-                        [x["policy"] for x in ranked[c["id"]]["single"][:3]])
+        rk = ranked[c["id"]]
+        cands = _dedupe([x["policy"] for x in rk["cluster"][:6]] +
+                        [x["policy"] for x in rk["single"][:3]] +
+                        [x["policy"] for x in diverse_top(rk["cluster"], 3)] +
+                        [x["policy"] for x in diverse_top(rk["single"], 3)])
         for pol in cands:
             for seed in (1, 2, 3):
                 h_scs.append(scenario(c["id"], "horde", pol, seed, tag="hcal"))
     hres = run(h_scs, label="cal-horde", **kw)
     _rank_into(ranked, h_scs, hres, "horde")
 
-    # 4) pressure (brawl): best 3 horde policies at their own range and two longer ones, 6 seeds
+    # 4) pressure (brawl): best 3 horde policies, plus the best two rotation families for one
+    #    target and for a pack, each at its own range and two longer ones, 6 seeds
     p_scs = []
     for c in cs:
         cands = []
-        for x in ranked[c["id"]]["horde"][:3]:
+        rk = ranked[c["id"]]
+        for x in rk["horde"][:3] + diverse_top(rk["single"], 2) + diverse_top(rk["cluster"], 2):
             for rg in (x["policy"]["range"], 60, 110):
                 p = dict(x["policy"])
                 p["range"] = rg
@@ -317,7 +331,8 @@ def stage_calibrate(only=None, workers=None):
     pres = run(p_scs, label="cal-pressure", **kw)
     _rank_into(ranked, p_scs, pres, "pressure", stat="median")
 
-    out = {"_fp": code_fingerprint(), "grid_size": len(grid_pols), "kits": {}}
+    out = {"_fp": code_fingerprint(), "grid_size": len(ROTATIONS) * len(SKILLS) * len(RANGES),
+           "kits": {}}
     for c in cs:
         out["kits"][c["id"]] = {a: ranked[c["id"]][a][:10] for a in ARENAS}
         out["kits"][c["id"]]["grid"] = {
@@ -327,6 +342,33 @@ def stage_calibrate(only=None, workers=None):
     old["kits"].update(out["kits"])
     out["kits"] = old["kits"]
     save("calibrate", out)
+    return out
+
+
+def diverse_top(ranked: list[dict], n: int) -> list[dict]:
+    """The best policy, then the best policy of each OTHER rotation family, up to n — topped up
+    from the plain ranking when a kit has fewer families than n.
+
+    Added 2026-10-01. Taking the plain top n often meant n variants of one rotation (the Deadeye's
+    top two single-target policies were both Desert Storm holds after its pass), so a pick that
+    made a different rotation the best play had nowhere to show it, and the clear-speed and
+    survival trials, which are seeded from these lists, never tried that rotation at all. The
+    Spark's survival read 57 s on Fireball holds alone while light play from range had survived
+    ~71 s."""
+    out: list[dict] = []
+    fams: set[str] = set()
+    for x in ranked:
+        if len(out) >= n:
+            break
+        fam = x["policy"]["rotation"]
+        if fam not in fams:
+            out.append(x)
+            fams.add(fam)
+    for x in ranked:
+        if len(out) >= n:
+            break
+        if x not in out:
+            out.append(x)
     return out
 
 
@@ -389,7 +431,7 @@ def build_scenarios(cal: dict, char: str, upgrades, mods, plan: dict, tag: str) 
     scs = []
     for a in ARENAS:
         npol, nseed = plan[a]
-        for x in cal["kits"][char][a][:npol]:
+        for x in diverse_top(cal["kits"][char][a], npol):
             for seed in range(1, nseed + 1):
                 scs.append(scenario(char, a, x["policy"], seed, upgrades, mods, tag=tag))
     return scs
