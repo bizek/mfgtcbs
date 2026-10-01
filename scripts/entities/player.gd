@@ -670,7 +670,15 @@ var _mirror_archers: Array[Node2D] = []
 ## Control-scheme pass (2026-07-05): kit id + class dash + Wizard charge.
 var _kit_id: String = ""
 var _dash_style: String = ""             ## "" = standard dash; "teleport" = Spark blink
-var _charge_start_ms: int = -1           ## Wizard Fireball charge start (real-time ms)
+var _charge_start: float = -1.0          ## Wizard Fireball charge start (_game_time seconds)
+## Seconds of GAME time since this player spawned: the sum of the scaled physics delta, so it stops
+## for hitstop and pause and crawls in slow-mo, exactly like the choreography runner's phase
+## windows. Gameplay timers read this, never Time.get_ticks_msec(). The Fireball charge, the blood
+## pools and the Berserker's Cadence cooldown all ran on the wall clock until 2026-10-01, so a
+## hitstop or a slow-mo charged the Fireball while the game stood still. In the headless balance
+## sim, which runs ~10x real time, a full 1.6s charge read as ~0.15s (x1.1 instead of x2.0) and
+## blood pools lasted ~10x their duration. Same bug as the one CombatInputBuffer's CLOCK note records.
+var _game_time: float = 0.0
 const WIZARD_CHARGE_SLOW: float = -0.4   ## move_speed penalty while charging (the greed tax)
 const FIREBALL_MULT_MAX: float = 2.0     ## full overcharge doubles the Fireball
 ## Reach cap: base hit zones (ChainFactory) are ~half the "loved" size; full Reach mods scale them
@@ -1635,6 +1643,7 @@ func _physics_process(delta: float) -> void:
 				_play_anim(loco + "idle")
 
 	# Combo input bookkeeping + executor tick (cheap, runs every frame so held-tracking stays exact)
+	_game_time += delta             ## scaled delta — the gameplay clock (see _game_time)
 	if _combat_input:
 		_combat_input.tick(delta)   ## scaled delta — the buffer shares the runner's clock
 	if skill_component:
@@ -2372,9 +2381,9 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 
 	## Charged Fireball release: swap the base projectile for one scaled by how long the
 	## charge was held (damage up to ×2; blast radius and visual grow with the square root).
-	if cur_anim.begins_with("fireball_2") and _charge_start_ms >= 0:
-		var charge_t: float = float(Time.get_ticks_msec() - _charge_start_ms) / 1000.0
-		_charge_start_ms = -1
+	if cur_anim.begins_with("fireball_2") and _charge_start >= 0.0:
+		var charge_t: float = _game_time - _charge_start
+		_charge_start = -1.0
 		var mult: float = clampf(1.0 + charge_t / ChainFactory.WIZARD_CHARGE_MAX, 1.0, FIREBALL_MULT_MAX)
 		var scaled_fb: SpawnProjectilesEffect = ChainFactory._wizard_fireball(
 				ChainFactory._damage_type(_weapon_data), _weapon_data.get("damage", 42.0) * mult)
@@ -2519,7 +2528,7 @@ func choreo_on_phase_anim(phase: ChoreographyPhase, stage: String = "") -> void:
 	## Wizard Fireball charge: the clock starts and the greed tax (slow) applies; the release
 	## phase lifts the slow (the scaled shot itself resolves in choreo_fire_effects).
 	if anim == "fireball":
-		_charge_start_ms = Time.get_ticks_msec()
+		_charge_start = _game_time
 		modifier_component.remove_by_source_prefix("combo_charge")
 		_add_modifier("move_speed", "bonus", WIZARD_CHARGE_SLOW, "combo_charge")
 	elif anim == "fireball_2":
@@ -4326,7 +4335,7 @@ func _spawn_holy_hammers(reach: float) -> void:
 
 # --- Blood Eruption pools (Blood Mage E) ---
 ## Active pools tracked host-side: any enemy dying inside one feeds the Cursed. Entries:
-## { "pos": Vector2, "r_sq": float, "until": float (msec) }.
+## { "pos": Vector2, "r_sq": float, "until": float (_game_time seconds) }.
 const BLOOD_POOL_HEAL_FRAC: float = 0.03
 var _blood_pools: Array[Dictionary] = []
 
@@ -4334,7 +4343,7 @@ var _blood_pools: Array[Dictionary] = []
 func _register_blood_pool(pos: Vector2, radius: float, duration: float) -> void:
 	_blood_pools.append({
 		"pos": pos, "r_sq": radius * radius,
-		"until": float(Time.get_ticks_msec()) + duration * 1000.0,
+		"until": _game_time + duration,
 	})
 
 
@@ -4344,7 +4353,7 @@ func _on_any_entity_death(entity) -> void:
 		return
 	if not (entity is Node2D) or entity == self or entity.get("faction") != 1:
 		return
-	var now: float = float(Time.get_ticks_msec())
+	var now: float = _game_time
 	var fed: bool = false
 	var live_pools: Array[Dictionary] = []
 	for pool in _blood_pools:
@@ -4637,7 +4646,7 @@ func choreo_on_start(ability: AbilityDefinition) -> void:
 func choreo_on_finisher_hit() -> void:
 	EventBus.on_finisher_hit.emit(self)
 	if _has_berserkers_cadence_keystone:
-		var now: float = Time.get_ticks_msec() / 1000.0
+		var now: float = _game_time
 		if now - _berserkers_cadence_last_trigger >= 3.0:
 			_berserkers_cadence_last_trigger = now
 			status_effect_component.apply_status(PassiveTreeFactory.frenzy_status, self, 1)
@@ -4853,7 +4862,7 @@ func choreo_on_end() -> void:
 	## Drop the channel slow / charge tax if active (no-ops otherwise).
 	modifier_component.remove_by_source_prefix("combo_taunt")
 	modifier_component.remove_by_source_prefix("combo_charge")
-	_charge_start_ms = -1
+	_charge_start = -1.0
 	## Only drop invulnerability if a dash isn't currently granting it.
 	if _dash_timer <= 0.0:
 		is_invulnerable = false

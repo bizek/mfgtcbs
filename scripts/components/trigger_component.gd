@@ -172,9 +172,13 @@ func _evaluate_and_dispatch(event: String, source: Node2D, target: Node2D,
 		## Chance gate
 		if def.chance < 1.0 and randf() >= def.chance:
 			continue
-		## Internal cooldown gate
+		## Internal cooldown gate — on the orchestrator's GAME clock, like every other combat timer.
+		## It read Time.get_ticks_msec() until 2026-10-01, so an ICD kept running through hitstop and
+		## pause and ran 4x short in the Training Room's slow-mo; in the headless balance sim (~10x
+		## real time) a 0.25s ICD gated for ~2.5s of play, so Volatile Remains, Glacial Guard, Pyre
+		## and Bulwark were all measured far below what they do in a run.
 		if def.internal_cooldown > 0.0:
-			var now: float = Time.get_ticks_msec() / 1000.0
+			var now: float = combat_manager.run_time if combat_manager else 0.0
 			if now - active_listener.last_fired_time < def.internal_cooldown:
 				continue
 			active_listener.last_fired_time = now
