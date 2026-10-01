@@ -2379,17 +2379,29 @@ func choreo_fire_effects(effects: Array, _targets: Array, ability: AbilityDefini
 		if not self_effects.is_empty():
 			EffectDispatcher.execute_effects(self_effects, self, [center], ability, combat_manager)
 
-	## Charged Fireball release: swap the base projectile for one scaled by how long the
-	## charge was held (damage up to ×2; blast radius and visual grow with the square root).
+	## Charged Fireball release: scale the phase's OWN projectile by how long the charge was held
+	## (damage up to ×2; blast radius and visual grow with the square root). Scaling the phase's
+	## effect, not a fresh one: until 2026-10-01 this rebuilt the shot from
+	## ChainFactory._wizard_fireball, which threw away everything a class mod or level-up had done
+	## to the release phase. FIREBALL EXPANSION's +35% blast and SCORCHED EARTH's Burning never
+	## reached a single charged Fireball.
 	if cur_anim.begins_with("fireball_2") and _charge_start >= 0.0:
 		var charge_t: float = _game_time - _charge_start
 		_charge_start = -1.0
 		var mult: float = clampf(1.0 + charge_t / ChainFactory.WIZARD_CHARGE_MAX, 1.0, FIREBALL_MULT_MAX)
-		var scaled_fb: SpawnProjectilesEffect = ChainFactory._wizard_fireball(
-				ChainFactory._damage_type(_weapon_data), _weapon_data.get("damage", 42.0) * mult)
-		scaled_fb.projectile.impact_aoe_radius *= sqrt(mult)
-		scaled_fb.projectile.visual_scale = Vector2.ONE * sqrt(mult)
-		proj_effects = [scaled_fb]
+		var charged: Array = []
+		for eff in proj_effects:
+			if eff is SpawnProjectilesEffect and eff.projectile != null:
+				var fb: SpawnProjectilesEffect = eff.duplicate()
+				fb.projectile = eff.projectile.duplicate()
+				fb.projectile.on_hit_effects = _scaled_hits(eff.projectile.on_hit_effects, mult)
+				fb.projectile.impact_aoe_effects = _scaled_hits(eff.projectile.impact_aoe_effects, mult)
+				fb.projectile.impact_aoe_radius *= sqrt(mult)
+				fb.projectile.visual_scale *= sqrt(mult)
+				charged.append(fb)
+			else:
+				charged.append(eff)
+		proj_effects = charged
 
 	if not proj_effects.is_empty():
 		## Cursor-aimed casts (Wizard/Blood Mage projectiles): "aimed_single"/"spread" read
@@ -2689,6 +2701,21 @@ func _on_combo_fx_finished() -> void:
 		_combo_fx.visible = false
 		_combo_fx.position = Vector2.ZERO   ## undo any AIM_FX_PUSH offset
 		_combo_fx.rotation = 0.0            ## undo any exact-aim spin (AIM_ROTATED_FX_ANIMS)
+
+
+## A new effects array with every DealDamageEffect replaced by a copy dealing `mult`× damage. The
+## array and each damage effect are fresh, so the phase's own resources (shared by every cast) are
+## never mutated; statuses and other effects pass through by reference, unchanged.
+func _scaled_hits(effects: Array, mult: float) -> Array:
+	var out: Array = []
+	for e in effects:
+		if e is DealDamageEffect:
+			var hit: DealDamageEffect = e.duplicate()
+			hit.base_damage *= mult
+			out.append(hit)
+		else:
+			out.append(e)
+	return out
 
 
 func _spawn_fire_familiar() -> void:
