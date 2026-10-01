@@ -587,7 +587,7 @@ const ALL: Dictionary = {
 		"passive_desc":    "+25% Damage while above 80% HP.",
 		"portrait":        "res://assets/characters/portraits/the_deadeye.png",
 		"unlock_cost":     6000,
-		"base_hp":         85.0,
+		"base_hp":         100.0,  ## 85 -> 100 (Ben, 2026-10-01): survival sat at 0.84x the roster median
 		"base_armor":      0.0,
 		"base_move_speed": 58.0,   ## deliberate-pacing rebalance 2 2026-07-07 (was 70) — matches Spark/Cursed tier
 		"color":           Color(0.89, 0.58, 0.28),   ## sun-scorched brass

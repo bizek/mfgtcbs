@@ -1523,7 +1523,11 @@ static func build_gunslinger_desert_storm(weapon_data: Dictionary) -> AbilityDef
 	storm.hit_frame = 5                                     # the barrels open up
 	## 0.35 -> 0.75 per bullet (2026-09-29): at 0.35 the channel dealt a third of mashing light
 	## shots on packs AND single targets, so there was never a reason to hold it (balance sim).
-	storm.effects = [_storm_bullets(dtype, dmg * 0.75)]    # per-tick cone, bullets pierce one
+	## 0.75 -> 0.82 (2026-10-01, with 5 bullets and pierce 2 in _storm_bullets): Ben's call was
+	## "buff until it's the pack tool". Measured at level 1: +13% pack DPS (378 vs 335) and +10%
+	## clear speed (155 vs 141 kills/min) over the light-into-Fan route, while single target stays
+	## a tie (186 vs 188), so Fan the Hammer keeps that job.
+	storm.effects = [_storm_bullets(dtype, dmg * 0.82)]    # per-tick cone, bullets pierce two
 	storm.exit_type = "wait"
 	storm.wait_duration = STORM_TICK
 	storm.default_next = 0                                  # still held → keep firing
@@ -2026,14 +2030,19 @@ static func _fan_bullets(dtype: String, per_bullet: float) -> SpawnProjectilesEf
 	return e
 
 
-## Desert Storm tick: a tight 3-bullet cone toward the cursor. The bullets pierce one body — a
+## Desert Storm tick: a tight 5-bullet cone toward the cursor, each bullet piercing two bodies — a
 ## held channel that slows the Deadeye has to be his best tool against a pack (2026-09-29).
+## 3 -> 5 bullets, pierce 1 -> 2 (Ben, 2026-10-01: "buff until it's the pack tool"): at 3 the
+## storm dealt ~180 pack DPS against ~330 for the light-into-Fan route, so it never won anything.
+## Pierce 2 is for packs that MOVE: against rooted dummies a third body is rarely left in a
+## bullet's forward cone (no gain), but chasing fodder arrive in lines and it was worth +11%
+## clear speed there.
 static func _storm_bullets(dtype: String, per_bullet: float) -> SpawnProjectilesEffect:
 	var e := SpawnProjectilesEffect.new()
 	e.projectile = _bullet_config(dtype, per_bullet, _get_bullet_impact_frames())
-	e.projectile.pierce_count = 1
+	e.projectile.pierce_count = 2
 	e.spawn_pattern = "spread"
-	e.count = 3
+	e.count = 5
 	e.spread_angle = 22.0
 	return e
 
