@@ -315,11 +315,18 @@ func _steer_toward(vel: Vector2, desired: Vector2, config: ProjectileConfig, del
 
 
 ## Lock a seeking projectile onto the nearest live enemy inside its forward cone. Keeps an existing
-## lock until that target dies, so a shot doesn't twitch between two enemies mid-flight.
+## lock until that target dies OR has already been hit by this projectile, so a shot doesn't twitch
+## between two enemies mid-flight — and a PIERCING shot moves on to the next body instead of
+## circling back to the one it just went through. Until 2026-09-29 the lock held until death, so
+## every seeking projectile with pierce (Scavenger arrows with Volley, the Deadeye's storm and fan
+## bullets) orbited its first, still-living target until it expired: pierce never landed a second
+## hit on any seeking shot (balance sim).
 func _acquire_seek_target(i: int, config: ProjectileConfig) -> void:
 	var cur = _targets[i]
-	if is_instance_valid(cur) and cur.is_alive:
+	var hits: Array = _hit_lists[i]
+	if is_instance_valid(cur) and cur.is_alive and not (cur in hits):
 		return
+	_targets[i] = null
 	if spatial_grid == null:
 		return
 	var heading: Vector2 = _velocities[i]
@@ -331,7 +338,7 @@ func _acquire_seek_target(i: int, config: ProjectileConfig) -> void:
 	var best: Node2D = null
 	var best_d: float = radius_sq
 	for candidate in spatial_grid.get_nearby_in_range(_positions[i], _target_factions[i], radius_sq):
-		if not is_instance_valid(candidate) or not candidate.is_alive:
+		if not is_instance_valid(candidate) or not candidate.is_alive or candidate in hits:
 			continue
 		var to_c: Vector2 = candidate.global_position - _positions[i]
 		var d: float = to_c.length_squared()
