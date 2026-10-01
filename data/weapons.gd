@@ -72,8 +72,11 @@ const ALL: Dictionary = {
 		"description":     "A swift arrow to the nearest threat.",
 		"behavior":        "projectile",
 		"damage_type":     "physical",
-		"damage":          13.0,
-		"attack_speed":    1.1,
+		## 13 -> 25 and attack_speed 1.1 -> 1.0 (2026-10-01): the standard class line, as for the
+		## Deadeye and the Spark. This green is a legacy auto-fire entry; in the combo era
+		## attack_speed divides player.MIN_TAP_CADENCE, and the blue and purple bows carry none.
+		"damage":          25.0,
+		"attack_speed":    1.0,
 		"projectile_speed": 460.0,   ## arrows fly fast
 		"lifetime":        1.15,     ## range ≈ 530px — long ranger reach
 		"projectile_count": 1,
@@ -206,8 +209,12 @@ const ALL: Dictionary = {
 		"description":     "Slow fire, heavy impact. Each shot counts.",
 		"behavior":        "projectile",
 		"damage_type":     "physical",
-		"damage":          17.0,
-		"attack_speed":    0.55,    ## slow fire rate
+		## 17 -> 25 and attack_speed 0.55 -> 1.0 (2026-10-01): the standard class line. A legacy
+		## auto-fire entry; attack_speed divides player.MIN_TAP_CADENCE, so 0.55 held every Warden
+		## chain advance to 0.40s, and the blue/purple repeaters carry none. Measured: the blue
+		## dealt 2.1x this green's DPS (the other kits' blues: ~1.4x).
+		"damage":          25.0,
+		"attack_speed":    1.0,
 		"projectile_speed": 380.0,
 		"lifetime":        1.5,     ## range ≈ 570px — longest reach (sniper identity); range nerf 2026-06-24
 		"projectile_count": 1,
@@ -282,7 +289,7 @@ const ALL: Dictionary = {
 	"Longstrider Bow": {
 		"id": "Longstrider Bow", "display_name": "Longstrider Bow",
 		"description": "Drawn slow, loosed true. Reaches clear across the dark.",
-		"damage_type": "physical", "damage": 18.0, "tint": Color(0.85, 0.78, 0.55),
+		"damage_type": "physical", "damage": 34.0, "tint": Color(0.85, 0.78, 0.55),
 		"drop_weight": 0, "mod_slots": 2, "unlock_id": "gear_ranger_blue",
 		"class_lock": "The Scavenger", "kit": "ranger", "rarity": "rare", "tier": "blue",
 		"modifiers": [ {"tag": "crit_chance", "op": "add", "value": 0.06} ],
@@ -290,7 +297,7 @@ const ALL: Dictionary = {
 	"Widowmaker": {
 		"id": "Widowmaker", "display_name": "Widowmaker",
 		"description": "One arrow finds the gap. The wound does the rest.",
-		"damage_type": "physical", "damage": 21.0, "tint": Color(0.88, 0.80, 0.58),
+		"damage_type": "physical", "damage": 40.0, "tint": Color(0.88, 0.80, 0.58),
 		"drop_weight": 0, "mod_slots": 3, "unlock_id": "gear_ranger_purple",
 		"class_lock": "The Scavenger", "kit": "ranger", "rarity": "epic", "tier": "purple",
 		"modifiers": [ {"tag": "crit_chance", "op": "add", "value": 0.08}, {"tag": "crit_multiplier", "op": "add", "value": 0.20} ],
@@ -301,7 +308,7 @@ const ALL: Dictionary = {
 	"Oathkeeper Repeater": {
 		"id": "Oathkeeper Repeater", "display_name": "Oathkeeper Repeater",
 		"description": "Blessed iron. Each bolt is a vow kept.",
-		"damage_type": "physical", "damage": 23.0, "tint": Color(0.86, 0.72, 0.40),
+		"damage_type": "physical", "damage": 34.0, "tint": Color(0.86, 0.72, 0.40),
 		"drop_weight": 0, "mod_slots": 2, "unlock_id": "gear_paladin_blue",
 		"class_lock": "The Warden", "kit": "paladin", "rarity": "rare", "tier": "blue",
 		"modifiers": [ {"tag": "max_hp", "op": "add", "value": 25.0} ],
@@ -309,7 +316,7 @@ const ALL: Dictionary = {
 	"Aegis of the Fallen": {
 		"id": "Aegis of the Fallen", "display_name": "Aegis of the Fallen",
 		"description": "Forged from the shields of the dead. They stand with you still.",
-		"damage_type": "physical", "damage": 27.0, "tint": Color(0.90, 0.78, 0.48),
+		"damage_type": "physical", "damage": 40.0, "tint": Color(0.90, 0.78, 0.48),
 		"drop_weight": 0, "mod_slots": 3, "unlock_id": "gear_paladin_purple",
 		"class_lock": "The Warden", "kit": "paladin", "rarity": "epic", "tier": "purple",
 		"modifiers": [ {"tag": "max_hp", "op": "add", "value": 35.0}, {"tag": "Physical", "op": "resist", "value": 6.0} ],
