@@ -828,6 +828,12 @@ static func build_blood_mage_vampirize(weapon_data: Dictionary) -> AbilityDefini
 # --- Ranger: light combo (LMB) ---
 ## The Scavenger — the bow escalates: one arrow, two, three. Cursor-aimed volleys through the
 ## real arrow projectile grids. Phase indices: 0 Shot · 1 Double Shot · 2 Triple Shot · 3 Knife.
+##
+## The bow is the Scavenger's main damage (Ben, 2026-10-01): every arrow here is ~1.6x what it was
+## (Shot 0.8 -> 1.3, Double Shot 0.9 -> 1.45, Triple Shot 0.5 -> 0.8 each). Before, the point-blank
+## RMB knives out-damaged the bow everywhere (97 vs 68 on one target, 289 vs 70 on a pack), so the
+## ranger's best play was melee. Measured at level 1: the bow chain 111 single-target DPS against
+## 95 for the knives; the Volley channel is the pack tool (build_ranger_volley).
 static func build_ranger_light(weapon_data: Dictionary) -> AbilityDefinition:
 	var dmg: float = weapon_data.get("damage", 42.0)
 	var dtype: String = _damage_type(weapon_data)
@@ -836,7 +842,7 @@ static func build_ranger_light(weapon_data: Dictionary) -> AbilityDefinition:
 	var shot := ChoreographyPhase.new()
 	shot.animation = "attack"
 	shot.hit_frame = 6
-	shot.effects = [_arrow_volley(dtype, dmg * 0.8, 1, 0.0)]
+	shot.effects = [_arrow_volley(dtype, dmg * 1.3, 1, 0.0)]
 	shot.exit_type = "wait"
 	shot.wait_duration = CANCEL_WIN
 	shot.default_next = -1
@@ -848,7 +854,7 @@ static func build_ranger_light(weapon_data: Dictionary) -> AbilityDefinition:
 	var double_shot := ChoreographyPhase.new()
 	double_shot.animation = "double_shot"
 	double_shot.hit_frame = 6
-	double_shot.effects = [_double_arrow(dtype, dmg * 0.9)]
+	double_shot.effects = [_double_arrow(dtype, dmg * 1.45)]
 	double_shot.exit_type = "wait"
 	double_shot.wait_duration = CANCEL_WIN
 	double_shot.default_next = -1
@@ -863,7 +869,7 @@ static func build_ranger_light(weapon_data: Dictionary) -> AbilityDefinition:
 	var triple_shot := ChoreographyPhase.new()
 	triple_shot.animation = "triple_shot"
 	triple_shot.hit_frame = 6
-	triple_shot.effects = [_arrow_volley(dtype, dmg * 0.5, 3, 16.0)]
+	triple_shot.effects = [_arrow_volley(dtype, dmg * 0.8, 3, 16.0)]
 	triple_shot.exit_type = "wait"
 	triple_shot.wait_duration = CANCEL_WIN
 	triple_shot.default_next = -1
@@ -969,10 +975,17 @@ static func build_ranger_elemental_heavy(weapon_data: Dictionary) -> AbilityDefi
 
 
 # --- Ranger: Volley channel (RMB hold) — the Scavenger's sustained fire (Ben 2026-07-20) ---
-## Hold RMB to loose repeating arrow volleys: each beat fans three arrows at the cursor, but on
-## a slower cadence than the light chain (VOLLEY_TICK) and for LESS per-arrow damage — sustained
-## pressure that trades the light chain's burst for uptime. The
-## body holds the triple-shot draw pose across beats (hold_anim_on_reentry). Single looping node.
+## Hold RMB to loose repeating arrow volleys: each beat fans a barrage at the cursor on a slower
+## cadence than the light chain (VOLLEY_TICK). The body holds the triple-shot draw pose across beats
+## (hold_anim_on_reentry). Single looping node.
+##
+## The Scavenger's PACK TOOL since 2026-10-01 (Ben: "bow main, Volley for packs"). It was three
+## seeking arrows at 0.4x, 51 pack DPS against 289 for the knives. Now it is _volley_barrage: seven
+## arrows over 40 degrees, homing only within an 8-degree lane and piercing two bodies, at 1.05x.
+## The lane is what makes it a pack tool rather than a better bow. Each arrow curves onto the body
+## in front of it, so on a lone target only the middle few connect (100 single-target DPS, under
+## the bow chain's 111), while a pack catches the whole fan: 333 pack DPS (+17% over the knives)
+## and 159 kills/min against 112.
 ##
 ## The channel INHERITS the loaded quiver (player._apply_quiver): unarmed it is the neutral volley
 ## it has always been, armed it becomes the kit's status-stacker — the cheapest way to put Chilled
@@ -985,7 +998,7 @@ static func build_ranger_volley(weapon_data: Dictionary) -> AbilityDefinition:
 	var volley := ChoreographyPhase.new()
 	volley.animation = "triple_shot"
 	volley.hit_frame = 6                                    # the loose
-	volley.effects = [_arrow_volley(dtype, dmg * 0.4, 3, 16.0)]  # 3 arrows, weaker than the chain
+	volley.effects = [_volley_barrage(dtype, dmg * 1.05)]
 	volley.exit_type = "wait"
 	volley.wait_duration = VOLLEY_TICK
 	volley.default_next = 0                                 # still held → another volley
@@ -2341,6 +2354,19 @@ static func _arrow_volley(dtype: String, per_arrow: float, count: int, spread: f
 	e.spawn_pattern = "aimed_single" if count == 1 else "spread"
 	e.count = count
 	e.spread_angle = spread
+	return e
+
+
+## The Volley's barrage (2026-10-01): a wide fan whose arrows home only within a narrow LANE and
+## pierce two bodies. ARROW_CONE's 35 degrees would pull every arrow of a 40-degree fan onto one
+## target and make this a better bow; 8 keeps each arrow on the body in front of it.
+const VOLLEY_ARROWS: int = 7
+const VOLLEY_SPREAD: float = 40.0
+const VOLLEY_LANE: float = 8.0
+static func _volley_barrage(dtype: String, per_arrow: float) -> SpawnProjectilesEffect:
+	var e := _arrow_volley(dtype, per_arrow, VOLLEY_ARROWS, VOLLEY_SPREAD)
+	_steer(e.projectile, ARROW_SEEK, VOLLEY_LANE, ARROW_TURN_R)
+	e.projectile.pierce_count = 2
 	return e
 
 
