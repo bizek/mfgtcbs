@@ -272,6 +272,92 @@ MANUAL_FINDINGS = [
         "where": "scripts/entities/player.gd (choreo_fire_effects, 90 px status radius) · data/class_mods.gd",
     },
     {
+        "severity": "fixed",
+        "title": "Fixed: mashing RMB cancelled the heavy finisher it had just entered",
+        "body": ("The opener grace turns an RMB press on a light node with no heavy branch into the heavy "
+                 "opener, so RMB never dead-ends. A terminal heavy finisher inside the light graph has no "
+                 "branches either, so the grace also fired on it: the Scavenger's Throwing Knife, entered by "
+                 "RMB from Double Shot, was cancelled two frames in by the next RMB press, before its hit "
+                 "frame, and the melee string started instead. ChoreographyRunner now records which input "
+                 "entered the current phase, and the grace skips a phase RMB entered. The Devout's Word of "
+                 "Pain and the Shade's Bone Swirl have the same shape and were affected the same way."),
+        "where": "scripts/components/choreography_runner.gd (current_phase_entered_by) · scripts/entities/player.gd (_tick_combo opener grace)",
+    },
+    {
+        "severity": "fixed",
+        "title": "Fixed: hitstop rationing ran on the wall clock",
+        "body": ("_request_hitstop rations repeat freezes with 0.25 s / 1.2 s windows measured on the wall "
+                 "clock. It now uses the physics-frame clock, which is the same thing in play (physics runs "
+                 "at a fixed real-time rate, freeze included). In the sim, ~10× real time, the wall clock "
+                 "dropped most repeat freezes a run keeps, so every kit read a few percent high and "
+                 "crit-heavy builds higher still."),
+        "where": "scripts/main_arena.gd (_request_hitstop)",
+    },
+    {
+        "severity": "decision",
+        "title": "Warden: standard weapon line, and the Holy Hammer is the pack tool",
+        "body": ("Ben, 2026-10-01. The green Warden's Repeater (17 damage, attack speed 0.55) was a legacy "
+                 "auto-fire entry; attack speed divides the chain's minimum advance time, so every Warden "
+                 "advance waited 0.40 s and his blue dealt 2.1× his green. Now 25/34/40 at 1.0. Hammer mashing "
+                 "dealt a third of the light chain; each hammer's hit is now 3.3× (was 0.9×) and the throw's "
+                 "slam 1.2× (was 0.8×). At level 1: hammers 355 pack DPS against 304 for the light chain, "
+                 "which keeps one target (92 vs 77). A hammer hit one-shots the clear arena's 60-HP fodder, "
+                 "so hammer clear speed is inflated by that threshold."),
+        "where": "data/weapons.gd · data/factories/chain_factory.gd (_hammer_phase) · scripts/entities/holy_hammer.gd",
+        "kit": "The Warden",
+    },
+    {
+        "severity": "decision",
+        "title": "Scavenger: standard weapon line, the bow is the main damage, the Volley the pack tool",
+        "body": ("Ben, 2026-10-01. Hunter's Bow 13 → 25 (attack speed 1.1 → 1.0), blues and purples 34/40. The "
+                 "point-blank RMB knives beat the bow everywhere (97 vs 68 on one target, 289 vs 70 on a "
+                 "pack). Bow arrows are ~1.6× (Shot 1.3, Double Shot 1.45, Triple Shot 0.8 each). The Volley "
+                 "channel fires seven arrows over 40° at 1.75× that home only within an 8° lane, pierce two "
+                 "bodies, and share one hit list per beat (a new ProjectileConfig flag), so each enemy "
+                 "takes one arrow per volley; without that, the fan shotgunned a lone target at "
+                 "point-blank range for 232 DPS. At level 1: bow ~110 vs knives 95 on one target; Volley "
+                 "335 pack DPS (+18%) and 157 kills/min vs 114 from 80 px, and 54 on a lone target. The "
+                 "knives are unchanged."),
+        "where": "data/weapons.gd · data/factories/chain_factory.gd (build_ranger_light, build_ranger_volley, _volley_barrage)",
+        "kit": "The Scavenger",
+    },
+    {
+        "severity": "decision",
+        "title": "Cursed: standard weapon line (level 1 unchanged, tiers consistent)",
+        "body": ("Ben, 2026-10-01. Her green Void Mortar (31 damage, attack speed 0.40) is a legacy auto-fire "
+                 "entry: each chain advance waited 0.55 s, while her blue and purple carry no fire rate and "
+                 "dealt 1.7× / 2.3× the green (other kits step ~1.4× / ~1.8×). Now 25/34/40 at 1.0: level 1 "
+                 "measures the same (116 vs 113 single, 656 vs 644 pack) and the higher tiers drop ~20% to "
+                 "the standard steps."),
+        "where": "data/weapons.gd (Void Mortar, Sanguine Sigil, Heart-Eater)",
+        "kit": "The Cursed",
+    },
+    {
+        "severity": "info",
+        "title": "Weapon tiers, measured: blue ~1.4×, purple ~1.8× the green",
+        "body": ("Every kit's green, blue and purple weapon measured on one target and a pack (level 1, the "
+                 "kit's own best policy). Most kits step ~1.36–1.49× to blue and ~1.66–1.87× to purple. "
+                 "Outliers before this pass: the Warden (2.1× / 2.5×) and the Cursed (1.7× / 2.3×), both "
+                 "from a legacy fire rate on the green, now normalized. Still standing: the Whisper's purple "
+                 "pack damage is 2.96× her green, because Death's Whisper's unique bursts 18 damage around "
+                 "every crit target and she crits a lot. That follows the decided crit-proc rule, so it is "
+                 "listed here rather than as a bug. The sweep itself measures green weapons only."),
+        "where": "tools/sim/sim_driver.gd (weapon scenario key) · data/factories/gear_unique_factory.gd (u_killing_edge)",
+    },
+    {
+        "severity": "caveat",
+        "title": "Harness: light-into-heavy rotations restarted the heavy graph by accident",
+        "body": ("In L1H..L4H the pilot pressed RMB on every frame of the heavy finisher, and a press on the "
+                 "frame the chain ended arrived in neutral and started the heavy graph again. Those "
+                 "rotations measured an unknown mix of the route and heavy mashing (the Deadeye's old "
+                 "\"L3H\" 188 was mostly Fan spam; the clean route measures 146). The pilot now presses RMB "
+                 "only into the finisher and on heavy nodes that branch on it. Separately, builds are now "
+                 "measured on the best policy of the best two rotation FAMILIES, and survival is tried with "
+                 "each family, so a kit whose best clear policy is a poor survival policy is no longer "
+                 "understated (the Spark read 57 s before, 76 s after)."),
+        "where": "tools/sim/sim_pilot.gd (_tick_light_heavy) · tools/sim/sim_stages.py (diverse_top)",
+    },
+    {
         "severity": "caveat",
         "title": "Harness: the familiar needed its own policy",
         "body": ("The Spark summons on an RMB TAP. Mashing heavy (H) re-summons every cast, and a resummon "

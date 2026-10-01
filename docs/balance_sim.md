@@ -107,6 +107,12 @@ Discharge on-crit proc chain overflowing the stack every frame (10.6 GB log befo
   ICD procs fired ~10× too rarely. All are on game time now (`player._game_time`,
   `CombatOrchestrator.run_time`), which also fixed them for hitstop and slow-mo in play. Grep for
   `get_ticks_msec` before trusting a number that involves a timer.
-- Hitstop rationing (`main_arena._request_hitstop`) still uses the wall clock, so the sim drops most
-  repeat freezes that real play keeps (2 frames per crit, 6 per finisher). Absolute DPS reads a few
-  percent high, and crit-heavy builds read higher still.
+- Hitstop rationing (`main_arena._request_hitstop`) runs on the physics-frame clock since 2026-10-01.
+  On the wall clock the sim dropped most repeat freezes real play keeps (2 frames per crit, 6 per
+  finisher), and every kit read a few percent high.
+- In `L1H`..`L4H` the pilot presses RMB only on the way into the heavy finisher and on heavy-graph
+  nodes that branch on it. It used to press on every frame of the finisher, and a press on the frame
+  the chain ended restarted the heavy graph from neutral (the "L3H" numbers before 2026-10-01 were
+  partly heavy mashing).
+- Build measurements and the survival trials use `diverse_top`: the best policy of each of the best
+  rotation FAMILIES, not the plain top N, which was often one rotation twice.
