@@ -162,8 +162,12 @@ const ALL: Dictionary = {
 		"description":     "Delayed AoE blast. Watch the ground.",
 		"behavior":        "artillery",
 		"damage_type":     "void",
-		"damage":          31.0,    ## AoE on explosion
-		"attack_speed":    0.40,    ## shots per second
+		## 31 -> 25 and attack_speed 0.40 -> 1.0 (Ben, 2026-10-01): the standard class line. A
+		## legacy auto-fire entry whose fire rate divided player.MIN_TAP_CADENCE (0.55s per chain
+		## advance); the blue and purple carry none, so they dealt 1.7x / 2.3x this green where other
+		## kits' tiers step ~1.4x / ~1.8x. Level 1 is unchanged (~116 vs 113 single-target DPS).
+		"damage":          25.0,    ## AoE on explosion
+		"attack_speed":    1.0,
 		"range":           340.0,   ## max target range — manual-aim range nerf 2026-06-24 (was 380)
 		"aoe_radius":      64.0,
 		"fuse_time":        1.0,    ## seconds before detonation
@@ -460,7 +464,7 @@ const ALL: Dictionary = {
 	"Sanguine Sigil": {
 		"id": "Sanguine Sigil", "display_name": "Sanguine Sigil",
 		"description": "It reads your blood and asks for more.",
-		"damage_type": "void", "damage": 42.0, "tint": Color(0.55, 0.20, 0.75),
+		"damage_type": "void", "damage": 34.0, "tint": Color(0.55, 0.20, 0.75),
 		"drop_weight": 0, "mod_slots": 2, "unlock_id": "gear_blood_mage_blue",
 		"class_lock": "The Cursed", "kit": "blood_mage", "rarity": "rare", "tier": "blue",
 		"modifiers": [ {"tag": "leech", "op": "bonus", "value": 0.05} ],
@@ -468,7 +472,7 @@ const ALL: Dictionary = {
 	"Heart-Eater": {
 		"id": "Heart-Eater", "display_name": "Heart-Eater",
 		"description": "What it takes from them, it gives to you. Mostly.",
-		"damage_type": "void", "damage": 50.0, "tint": Color(0.62, 0.24, 0.82),
+		"damage_type": "void", "damage": 40.0, "tint": Color(0.62, 0.24, 0.82),
 		"drop_weight": 0, "mod_slots": 3, "unlock_id": "gear_blood_mage_purple",
 		"class_lock": "The Cursed", "kit": "blood_mage", "rarity": "epic", "tier": "purple",
 		"modifiers": [ {"tag": "leech", "op": "bonus", "value": 0.08}, {"tag": "All", "op": "bonus", "value": 0.08} ],
