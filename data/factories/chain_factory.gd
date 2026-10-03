@@ -1767,6 +1767,13 @@ static func _rooted_status() -> ApplyStatusEffectData:
 # --- Cleric: light combo (LMB) ---
 ## The Devout — censer smites into holy fire, gated into a Word of Pain curse zone. Phase indices:
 ## 0 Smite · 1 Smite II · 2 Divine Fire · 3 Word of Pain.
+##
+## Devout pass (Ben, 2026-10-01): ~1.45x across the chain (Smite 0.9 -> 1.3, Smite II 0.7 -> 1.0,
+## Divine Fire 1.0 -> 1.45) and Word of Pain's ticks 0.3 -> 0.75 (_pain_zone). She was the weakest
+## kit on one target (72, 0.63x the median) and near the bottom on packs (179, 0.44x), with Word of
+## Pain adding only ~10% over the bare chain. At level 1 she now measures 115 on one target and 397
+## on a pack, both through light-into-Word-of-Pain. Clear speed did not move (132): fodder walks out
+## of the zone before it dies.
 static func build_cleric_light(weapon_data: Dictionary) -> AbilityDefinition:
 	var dmg: float = weapon_data.get("damage", 42.0)
 	var dtype: String = _damage_type(weapon_data)
@@ -1775,7 +1782,7 @@ static func build_cleric_light(weapon_data: Dictionary) -> AbilityDefinition:
 	var smite := ChoreographyPhase.new()
 	smite.animation = "attack"
 	smite.hit_frame = 2
-	smite.effects = [_aoe(dtype, dmg * 0.9, 30.0)]
+	smite.effects = [_aoe(dtype, dmg * 1.3, 30.0)]
 	smite.exit_type = "wait"
 	smite.wait_duration = CANCEL_WIN
 	smite.default_next = -1
@@ -1787,7 +1794,7 @@ static func build_cleric_light(weapon_data: Dictionary) -> AbilityDefinition:
 	var smite2 := ChoreographyPhase.new()
 	smite2.animation = "attack_2"
 	smite2.hit_frame = 2
-	smite2.effects = [_aoe(dtype, dmg * 0.7, 30.0)]
+	smite2.effects = [_aoe(dtype, dmg * 1.0, 30.0)]
 	smite2.exit_type = "wait"
 	smite2.wait_duration = CANCEL_WIN
 	smite2.default_next = -1
@@ -1800,7 +1807,7 @@ static func build_cleric_light(weapon_data: Dictionary) -> AbilityDefinition:
 	var divine := ChoreographyPhase.new()
 	divine.animation = "divine_fire"
 	divine.hit_frame = 6
-	divine.effects = [_divine_fire_bolt(dmg)]
+	divine.effects = [_divine_fire_bolt(dmg * 1.45)]
 	divine.exit_type = "wait"
 	divine.wait_duration = CANCEL_WIN
 	divine.default_next = -1
@@ -1826,7 +1833,7 @@ static func build_cleric_heavy(weapon_data: Dictionary) -> AbilityDefinition:
 	var fire := ChoreographyPhase.new()
 	fire.animation = "divine_fire"
 	fire.hit_frame = 6
-	fire.effects = [_divine_fire_bolt(dmg * 0.7)]
+	fire.effects = [_divine_fire_bolt(dmg * 1.0)]   ## 0.7 -> 1.0 with the light chain (2026-10-01)
 	fire.exit_type = "wait"
 	fire.wait_duration = HEAVY_WIN
 	fire.default_next = -1
@@ -1889,7 +1896,7 @@ static func _pain_zone(dmg: float) -> GroundZoneEffect:
 	z.vfx_tint = Color(1.0, 0.92, 0.55)
 	var hit := DealDamageEffect.new()
 	hit.damage_type = "Fire"                                # holy fire, independent of the weapon
-	hit.base_damage = dmg * 0.3
+	hit.base_damage = dmg * 0.75   ## 0.3 -> 0.75 a tick (Devout pass, 2026-10-01)
 	z.tick_effects = [hit]
 	return z
 
