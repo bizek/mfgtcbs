@@ -52,8 +52,10 @@ const BONE_TICK: float = 0.5        ## Necromancer Bone Barrage beat (bone_cast 
 const SWIRL_ORBIT_TIME: float = 1.35    ## how long the ring grinds before it fires
 const SWIRL_GRIND_TICK: float = 0.25    ## contact-damage beat → 5 ticks per swirl
 const SWIRL_ORBIT_RADIUS: float = 46.0  ## the ring's reach (the bones orbit ~26px out; this is generous)
-const SWIRL_GRIND_MULT: float = 0.20    ## per-tick damage ≈ 1.0x total for an enemy that eats the whole swirl
-const SWIRL_BURST_MULT: float = 0.60    ## per-bone damage on the outward volley
+## Grind 0.20 -> 0.45 and burst 0.60 -> 1.30 (Ben, 2026-10-01, Shade pass): the Swirl is the
+## Shade's own pack damage, and at the old values her whole kit sat at 0.43x the roster's pack DPS.
+const SWIRL_GRIND_MULT: float = 0.45    ## per-tick damage ≈ 2.25x total for an enemy that eats the whole swirl
+const SWIRL_BURST_MULT: float = 1.30    ## per-bone damage on the outward volley
 const SWIRL_BASE_BONES: int = 3         ## pack row 0 = 3 bones; rows 1/2 add 2/1 for higher counts
 const DICTUM_TICK: float = 0.75     ## Paladin channel tick (dictum/dome: 15f @ 20fps = 0.75s)
 const VAMP_TICK: float = 0.5        ## Blood Mage Vampirize half-cycle (7f @ 14fps = 0.5s)
@@ -307,6 +309,12 @@ static func build_fighter_taunt(weapon_data: Dictionary) -> AbilityDefinition:
 ## into a Bone Swirl. The bone bolt is a directional projectile (Bone_Missile package, ortho+diagonal
 ## flight sheets), so this kit declares "projectile" capability. Phase indices:
 ## 0 Cast · 1 Cast II · 2 Bone Missile · 3 Bone Swirl.
+##
+## Shade pass (Ben, 2026-10-01): the chain is 1.25x what it was (Cast 0.8 -> 1.0, Cast II 0.6 ->
+## 0.75, Bone Missile 1.0 -> 1.25), the smaller part of a lift that mostly went to her summons and
+## the Swirl (SkeletalChampion, SWIRL_*). The light chain alone read 50 single-target DPS, the
+## lowest of any kit's main chain. At level 1 with Q and E on cooldown she now measures 135 on one
+## target (82 before), 362 on a pack (175) and 128 kills/min (96).
 static func build_necro_light(weapon_data: Dictionary) -> AbilityDefinition:
 	var dmg: float = weapon_data.get("damage", 42.0)
 	var dtype: String = _damage_type(weapon_data)
@@ -315,7 +323,7 @@ static func build_necro_light(weapon_data: Dictionary) -> AbilityDefinition:
 	var cast := ChoreographyPhase.new()
 	cast.animation = "attack"
 	cast.hit_frame = 5
-	cast.effects = [_aoe(dtype, dmg * 0.8, 28.0)]
+	cast.effects = [_aoe(dtype, dmg * 1.0, 28.0)]
 	cast.exit_type = "wait"
 	cast.wait_duration = CANCEL_WIN
 	cast.default_next = -1
@@ -327,7 +335,7 @@ static func build_necro_light(weapon_data: Dictionary) -> AbilityDefinition:
 	var cast2 := ChoreographyPhase.new()
 	cast2.animation = "attack_2"
 	cast2.hit_frame = 5
-	cast2.effects = [_aoe(dtype, dmg * 0.6, 28.0)]
+	cast2.effects = [_aoe(dtype, dmg * 0.75, 28.0)]
 	cast2.exit_type = "wait"
 	cast2.wait_duration = CANCEL_WIN
 	cast2.default_next = -1
@@ -340,7 +348,7 @@ static func build_necro_light(weapon_data: Dictionary) -> AbilityDefinition:
 	var missile := ChoreographyPhase.new()
 	missile.animation = "bone_cast"
 	missile.hit_frame = 6
-	missile.effects = [_bone_missile(dtype, dmg * 1.0)]
+	missile.effects = [_bone_missile(dtype, dmg * 1.25)]
 	missile.exit_type = "wait"
 	missile.wait_duration = CANCEL_WIN
 	missile.default_next = -1

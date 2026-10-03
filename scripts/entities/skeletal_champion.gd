@@ -61,8 +61,11 @@ var damage_type: String = "Void"
 var lifetime: float = 25.0               ## persistent; Bone Legion overrides to a few seconds
 ## Named so the spawner can scale them without instantiating a throwaway skeleton to read the
 ## default (the HolyHammer.BASE_DAMAGE_MULT pattern).
-const BASE_DAMAGE_MULT: float = 0.6
-const BASE_DETONATE_MULT: float = 0.8
+## Shade pass (Ben, 2026-10-01): a champion's bite 0.6 -> 0.85 and a Bone Legion blast 0.8 -> 2.6.
+## Her summons are her identity, but four champions added ~25 single-target DPS and the Legion ~20
+## on a pack. The Legion is E's crowd grenade, so it took the larger share of the lift.
+const BASE_DAMAGE_MULT: float = 0.85
+const BASE_DETONATE_MULT: float = 2.6
 var damage_mult: float = BASE_DAMAGE_MULT   ## × the player's live damage stat
 var volatile: bool = false               ## Bone Legion mode: charge + detonate instead of cleave
 var detonate_radius: float = 34.0        ## blast radius when volatile
