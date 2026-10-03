@@ -333,6 +333,29 @@ MANUAL_FINDINGS = [
         "kit": "The Cursed",
     },
     {
+        "severity": "decision",
+        "title": "Devout: stronger light chain and Word of Pain",
+        "body": ("Ben, 2026-10-01. She was the weakest kit on one target (72, 0.63× the median) and near the "
+                 "bottom on packs (179, 0.44×); Word of Pain added only ~10% over the bare chain on a pack. "
+                 "The light chain is ~1.45× (Smite 1.3, Smite II 1.0, Divine Fire 1.45) and Word of Pain "
+                 "ticks 0.75× (was 0.3×). At level 1: 115 on one target and 397 on a pack, both through "
+                 "light-into-Word-of-Pain. Clear speed did not move (132 kills/min): chasing fodder walks "
+                 "out of the zone before it dies."),
+        "where": "data/factories/chain_factory.gd (build_cleric_light, build_cleric_heavy, _pain_zone)",
+        "kit": "The Devout",
+    },
+    {
+        "severity": "decision",
+        "title": "Shade: summons and the Bone Swirl carry her up",
+        "body": ("Ben, 2026-10-01. She was the weakest kit on packs (175, 0.43×) and clear speed (96, 0.56×); "
+                 "her bare light chain read 50 on one target. Skeletal Champion bites 0.85× (was 0.6×), a "
+                 "Bone Legion blast 2.6× (was 0.8×), the Bone Swirl grinds 0.45× a tick (was 0.2×) and "
+                 "fires 1.3× bones (was 0.6×), and the light chain is 1.25×. At level 1 with Q and E on "
+                 "cooldown: 135 on one target, 362 on a pack, 128 kills/min."),
+        "where": "data/factories/chain_factory.gd (build_necro_light, SWIRL_*) · scripts/entities/skeletal_champion.gd",
+        "kit": "The Shade",
+    },
+    {
         "severity": "info",
         "title": "Weapon tiers, measured: blue ~1.4×, purple ~1.8× the green",
         "body": ("Every kit's green, blue and purple weapon measured on one target and a pack (level 1, the "
@@ -356,6 +379,37 @@ MANUAL_FINDINGS = [
                  "each family, so a kit whose best clear policy is a poor survival policy is no longer "
                  "understated (the Spark read 57 s before, 76 s after)."),
         "where": "tools/sim/sim_pilot.gd (_tick_light_heavy) · tools/sim/sim_stages.py (diverse_top)",
+    },
+    {
+        "severity": "warn",
+        "title": "Bone Field ticks for about 1 damage",
+        "body": ("The Shade's Bone Field (\"the raising leaves the ground splintered\") adds a ground zone to "
+                 "the Bone Legion cast whose ticks are 0.13× the cast's own pulse. That pulse is only 0.3× "
+                 "weapon damage, so a tick is ~0.04× weapon damage (~1 at the green weapon), and the pick "
+                 "measures as nothing. The Spark's Ashfall uses the same rule off a 0.9× nova and is worth "
+                 "+20–36%. Matching it would take a damage_mult of ~0.4. Not changed: found mid-sweep."),
+        "where": "data/ability_upgrades.gd (necro_bone_field) · data/factories/skill_factory.gd (build_necro_bone_legion)",
+        "kit": "The Shade",
+    },
+    {
+        "severity": "caveat",
+        "title": "Dash picks can read as a survival loss",
+        "body": ("Survival trials now include each policy with the dash on cooldown, and for several kits that "
+                 "is the best brawl. The bot dashes whenever a charge is up, so a pick that adds charges or "
+                 "distance makes it dash more often and less usefully: Phase Runner measured 0.49× survival "
+                 "on the Shade. Read survival changes from dash picks as a property of the bot's dash use, "
+                 "not of the pick."),
+        "where": "tools/sim/sim_pilot.gd (skills \"qed\") · tools/sim/sim_stages.py (survival candidates)",
+    },
+    {
+        "severity": "caveat",
+        "title": "Survival is capped at 180 s, and the top of the table now hits it",
+        "body": ("The brawl ends at 180 s. At level 1 the Warden and the Verdant last the whole window, and "
+                 "most 8-pick builds did in the previous sweep, so their survival is a floor: the arena "
+                 "cannot rank them against each other, and a survival pick on top of them measures as "
+                 "\"no effect\". A longer window or a steeper ramp would restore the range, at the cost of "
+                 "longer survival runs and every survival number moving. Not changed in this sweep."),
+        "where": "tools/sim/sim_stages.py (DUR[\"pressure\"]) · tools/sim/sim_arena.gd (PRESSURE_RAMP_S, PRESSURE_CAP)",
     },
     {
         "severity": "caveat",
