@@ -381,12 +381,12 @@ const TASKS = [
 
   // ── P5 · The Inferno ──────────────────────────────────────────────────────────────────
   { id: "inf-identity", phase: "P5", title: "The Inferno: identity and roster", mode: "designing", track: "levels",
-    brief: "LEVELS[5] is a name, a Hellscape floor and nothing else. Ben's roster call (2026-10-07): Imp, Fire Elemental, Burning Skull, Magma Golem and Demon Lord as the horde, Balrog and Diablo as the two bosses (all in All_Exclusives_20260409/Creatures). Still open: which boss is the miniboss and which the final, and what fills out a 12–15 enemy roster (earlier ideas: Wildfire, recoloured Trasgo and Cyclop, Demon Spider). Ben also wanted enemies that pop against the red-orange ground, and this roster is mostly fire-coloured, so readability on Hellscape needs a look.",
+    brief: "LEVELS[5] is a name, a Hellscape floor and nothing else. Ben's roster call (2026-10-07): Imp, Fire Elemental, Burning Skull, Magma Golem and Demon Lord as the horde, Diablo as the miniboss at 2× sprite scale and Balrog as the final boss at 1.5× (all in All_Exclusives_20260409/Creatures). Still open: what fills out a 12–15 enemy roster (earlier ideas: Wildfire, recoloured Trasgo and Cyclop, Demon Spider). Ben also wanted enemies that pop against the red-orange ground, and this roster is mostly fire-coloured, so readability on Hellscape needs a look.",
     read: ["docs/biome_authoring_template.md", "docs/boss_authoring_reference.md", "assets/minifantasy/Minifantasy_Creatures_v3.3_Commercial_Version", "assets/minifantasy/All_Exclusives_20260409/Creatures"],
     steps: [
       ["inf-identity.1", "Write the Inferno's one-sentence identity", "you", "s"],
       ["inf-identity.2", "Claude drafts the roster by phase around your picks, plus Balrog and Diablo boss concepts", "claude", "s"],
-      ["inf-identity.3", "Settle the fillers and which of Balrog and Diablo is the miniboss", "you", "s"],
+      ["inf-identity.3", "Settle the fillers that round out the roster", "you", "s"],
     ] },
   { id: "inf-recolor", phase: "P5", title: "Blue against the fire: recolour pass", mode: "art", track: "enemies", needs: ["inf-identity"],
     brief: "The chosen roster (Imp, Fire Elemental, Burning Skull, Magma Golem, Demon Lord) is mostly fire-coloured on red-orange ground. Check how each reads over the Hellscape floor first; recolour, or lean on shadows and contrast, only where a mob actually disappears. Every facing row and every sheet in each pack gets the same shift. Derivatives of licensed packs stay in the gitignored assets folder.",
