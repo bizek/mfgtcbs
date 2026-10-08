@@ -7,6 +7,11 @@ fixtures: **every change to the save format must still load these cleanly** (via
 | File | Format | Notes |
 |------|--------|-------|
 | `v1.json` | version 1 | A real dev save (12-class roster era) stamped `"version": 1`. The oldest format the shipping build must accept. |
+| `v5.json` | version 5 | `v1.json` carried forward: `version` 5, retired `weapon_mods` removed, `unlocked_biomes: [1]` added. |
+
+`unlocked_biomes` migration (v4→v5): `[1]`, plus `2` when the save has `game_cleared` or any `cleared_characters`
+(the win flag used to mean "cleared The Cave"). `v1.json` has no clear, so it must migrate to `[1]`; to test the
+other branch, set `game_cleared: true` in a copy and expect `[1, 2]`.
 
 ## The rule (mirrored in `progression_manager.gd`)
 

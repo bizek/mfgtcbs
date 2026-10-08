@@ -33,7 +33,7 @@ const SAVE_BAK_PATH := "user://progression.bak.json"
 ## catches those. Field-level defaults still live in load_data() as a second safety
 ## net; migrations are for STRUCTURAL changes (renames, reshapes, splits) that a
 ## simple `.get(key, default)` cannot express.
-const SAVE_VERSION: int = 4
+const SAVE_VERSION: int = 5
 
 ## Set true by load_data() when the save on disk is from a newer game version than
 ## this build supports. The save is NOT loaded (defaults remain); the main menu reads
@@ -112,6 +112,11 @@ var unlocked_characters: Array = ["The Drifter"]
 var game_cleared: bool = false
 var cleared_characters: Array = []
 
+## Biomes (LevelData ids) the launch pad lets you pick. Biomes open one at a time: beating a
+## biome's final boss and leaving through the portal unlocks the next. The Cave is always open.
+## Stored as ints; JSON hands numbers back as floats, so load_data() re-types them.
+var unlocked_biomes: Array = [1]
+
 ## First-run onboarding — set true once a first Caves run ends (extraction or
 ## death). Gates the FirstRunOverlay tooltip cues (scripts/ui/first_run_overlay.gd).
 var first_run_complete: bool = false
@@ -150,6 +155,7 @@ func save_data() -> void:
 		"character_loadouts":     character_loadouts,
 		"game_cleared":           game_cleared,
 		"cleared_characters":     cleared_characters,
+		"unlocked_biomes":        unlocked_biomes,
 		"first_run_complete":     first_run_complete,
 		"passive_points":         passive_points,
 		"passive_allocations":    passive_allocations,
@@ -301,6 +307,12 @@ func load_data() -> void:
 	character_loadouts = result.get("character_loadouts", {})
 	game_cleared = bool(result.get("game_cleared", false))
 	cleared_characters = result.get("cleared_characters", [])
+	unlocked_biomes = []
+	for bid: Variant in result.get("unlocked_biomes", [1]):
+		if int(bid) not in unlocked_biomes:
+			unlocked_biomes.append(int(bid))
+	if 1 not in unlocked_biomes:   ## safety net, same as The Drifter above
+		unlocked_biomes.append(1)
 	first_run_complete = bool(result.get("first_run_complete", false))
 	passive_points = int(result.get("passive_points", 0))
 	passive_allocations = result.get("passive_allocations", {})
@@ -321,6 +333,8 @@ func _migrate_save(data: Dictionary, from_version: int) -> Dictionary:
 				data = _migrate_v2_to_v3(data)
 			3:
 				data = _migrate_v3_to_v4(data)
+			4:
+				data = _migrate_v4_to_v5(data)
 			_:
 				## Unknown gap — refuse to guess. Stamp current and let the
 				## field-level defaults in load_data() fill anything absent.
@@ -408,6 +422,31 @@ func _migrate_v3_to_v4(data: Dictionary) -> Dictionary:
 				% converted)
 	return data
 
+## v4 → v5: biomes now unlock in order (`unlocked_biomes`). Before this every playable biome was
+## open and the save kept no per-biome record, so the only evidence of what an old save reached is
+## the win flag — and the win flag was set on clearing The Cave (the final-biome flag lived there),
+## so `game_cleared` / `cleared_characters` prove biome 1 was beaten and open biome 2. Anything
+## deeper a player may have wandered into cannot be recovered, and is re-earned.
+func _migrate_v4_to_v5(data: Dictionary) -> Dictionary:
+	var unlocked: Array = [1]
+	if bool(data.get("game_cleared", false)) or not (data.get("cleared_characters", []) as Array).is_empty():
+		unlocked.append(2)
+	data["unlocked_biomes"] = unlocked
+	return data
+
+## True if the launch pad may offer this biome.
+func is_biome_unlocked(level_id: int) -> bool:
+	return level_id in unlocked_biomes
+
+## Open a biome and save. Idempotent. Returns true only when it was newly opened.
+func unlock_biome(level_id: int) -> bool:
+	if level_id in unlocked_biomes:
+		return false
+	unlocked_biomes.append(level_id)
+	unlocked_biomes.sort()
+	save_data()
+	return true
+
 ## Rewrite class-mod ids in BOTH storages a mod can be sitting in, returning how many were changed.
 ## A class mod lives in exactly one of them at a time: `owned_mods` (unequipped inventory) and
 ## `character_mods` (per-character equip slots — where an id sits while it is doing work).
@@ -484,6 +523,7 @@ func reset_save() -> void:
 	unlocked_characters    = ["The Drifter"]
 	game_cleared           = false
 	cleared_characters     = []
+	unlocked_biomes        = [1]
 	first_run_complete     = false
 	passive_points         = 0
 	passive_allocations    = {}
