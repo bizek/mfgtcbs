@@ -438,14 +438,17 @@ func on_extraction_complete() -> void:
 		ProgressionManager.run_stats["deepest_phase"] = phase_number
 	current_state = GameState.EXTRACTION_SUCCESS
 	set_paused(true)
-	## Win condition: cleared the final biome's Phase 5 boss gate and extracted.
-	last_run_was_win = phase_number >= MAX_PHASES and LevelData.is_final_biome(current_level)
-	if last_run_was_win:
-		ProgressionManager.record_win(ProgressionManager.selected_character)
 	## Biome clear: the final boss died AND the player left through the descent portal. The portal
 	## only unlocks on the boss kill, but the flag keeps this honest if that ever changes.
+	## Deliberately not phase_number: descent mode ends at the portal, and the wall-clock phase
+	## says nothing about whether the boss at the bottom is dead.
+	var biome_cleared: bool = active_extraction_type == "descent_portal" and final_boss_killed_this_run
+	## Win condition: clearing the biome flagged is_final_biome (The Inferno).
+	last_run_was_win = biome_cleared and LevelData.is_final_biome(current_level)
+	if last_run_was_win:
+		ProgressionManager.record_win(ProgressionManager.selected_character)
 	last_run_unlocked_biome = 0
-	if active_extraction_type == "descent_portal" and final_boss_killed_this_run:
+	if biome_cleared:
 		var next_id: int = LevelData.next_level_id(current_level)
 		if next_id > 0 and ProgressionManager.unlock_biome(next_id):
 			last_run_unlocked_biome = next_id

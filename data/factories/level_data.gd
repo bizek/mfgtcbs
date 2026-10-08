@@ -14,9 +14,6 @@ extends RefCounted
 const LEVELS: Dictionary = {
 	1: {
 		"name": "The Cave",
-		## Last biome shipped in v1 — clearing its Phase 5 boss gate and extracting triggers
-		## the win flow. Move this flag to whichever level ships last as new biomes land.
-		"is_final_biome": true,
 		"music_id": "mus_caves",
 		"floor_path": "res://assets/minifantasy/Minifantasy_DeepCaves_v2.0/Minifantasy_DeepCaves_Assets/PremadeScene/SeparateLayers/Premade_h-floor.png",
 		## Per-phase wave composition (index 0 = phase 1). Weights must sum to 1.0.
@@ -296,6 +293,9 @@ const LEVELS: Dictionary = {
 	},
 	5: {
 		"name": "The Inferno",
+		## Clearing this biome (final boss dead, left by the portal) is the win. Exactly one
+		## level carries this flag; the win check in GameManager.on_extraction_complete reads it.
+		"is_final_biome": true,
 		"music_id": "mus_inferno",
 		"floor_path": "res://assets/minifantasy/Minifantasy_Hellscape_v1.0/Minifantasy_Hellscape_Assets/_Premade Scene/Separate Layers/Premade_l-ground.png",
 		"wave_composition": [],
@@ -358,7 +358,7 @@ static func is_configured(level_id: int) -> bool:
 	return not get_wave_composition(level_id).is_empty()
 
 
-## Returns true if clearing this level's Phase 5 boss gate and extracting is the win condition.
+## Returns true if clearing this level (final boss dead, left by the portal) is the win condition.
 static func is_final_biome(level_id: int) -> bool:
 	return get_level(level_id).get("is_final_biome", false)
 
