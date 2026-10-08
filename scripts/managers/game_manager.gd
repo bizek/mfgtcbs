@@ -173,6 +173,14 @@ signal town_portal_changed(has_portal: bool)
 ## Flipped true when the boss spawns, false when it dies.
 var final_boss_alive: bool = false
 
+## True once this run's biome final boss has died. Unlike final_boss_alive it stays set, so
+## extraction can tell "left through the portal after the kill" from any other way out.
+var final_boss_killed_this_run: bool = false
+
+## Set by on_extraction_complete when this run cleared its biome and opened the next one
+## (0 = none). The results screen can read it to announce the unlock.
+var last_run_unlocked_biome: int = 0
+
 ## Which extraction type completed — used for phase bonus calculations.
 ## Values: "timed", "guarded", "locked", "sacrifice"
 var active_extraction_type: String = "timed"
@@ -208,6 +216,7 @@ func _ready() -> void:
 	ExtractionManager.extraction_complete.connect(on_extraction_complete)
 	## Track kills via combat signal instead of direct register_kill() calls
 	EventBus.on_kill.connect(_on_entity_killed_eb)
+	final_boss_defeated.connect(func() -> void: final_boss_killed_this_run = true)
 	## Deferred: GameManager is the FIRST autoload, so Logger (declared last in project.godot)
 	## does not exist yet during _ready. One frame later every autoload is up.
 	_validate_content.call_deferred()
@@ -316,6 +325,8 @@ func start_run() -> void:
 	town_portal_changed.emit(false)
 	guardian_killed_this_phase = false
 	final_boss_alive = false
+	final_boss_killed_this_run = false
+	last_run_unlocked_biome = 0
 	active_extraction_type = "timed"
 	last_run_payout_mult = 1.0
 	last_run_was_win = false
@@ -431,6 +442,13 @@ func on_extraction_complete() -> void:
 	last_run_was_win = phase_number >= MAX_PHASES and LevelData.is_final_biome(current_level)
 	if last_run_was_win:
 		ProgressionManager.record_win(ProgressionManager.selected_character)
+	## Biome clear: the final boss died AND the player left through the descent portal. The portal
+	## only unlocks on the boss kill, but the flag keeps this honest if that ever changes.
+	last_run_unlocked_biome = 0
+	if active_extraction_type == "descent_portal" and final_boss_killed_this_run:
+		var next_id: int = LevelData.next_level_id(current_level)
+		if next_id > 0 and ProgressionManager.unlock_biome(next_id):
+			last_run_unlocked_biome = next_id
 	## Preserve loot value for results screen before clearing
 	last_run_loot = loot_carried
 	## Apply locked extraction loot bonus based on phase depth

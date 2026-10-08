@@ -363,6 +363,27 @@ static func is_final_biome(level_id: int) -> bool:
 	return get_level(level_id).get("is_final_biome", false)
 
 
+## The biome that clearing `level_id` opens: the next id in LEVELS, or 0 for the last one.
+## Deliberately not limited to playable_ids() — a biome still being authored is unlocked in the
+## save the moment its predecessor is cleared, so it is already open when its content lands.
+static func next_level_id(level_id: int) -> int:
+	return level_id + 1 if LEVELS.has(level_id + 1) else 0
+
+
+## The biome whose clear opens `level_id`, or 0 for the first. Inverse of next_level_id().
+static func opener_level_id(level_id: int) -> int:
+	return level_id - 1 if LEVELS.has(level_id - 1) else 0
+
+
+## Display name of a biome's final boss ("The Goblin King"), falling back to the id.
+static func final_boss_name(level_id: int) -> String:
+	var boss_id: String = get_final_boss_id(level_id)
+	var def: EnemyDefinition = EnemyRegistry.get_all().get(boss_id)
+	if def != null and def.enemy_name != "":
+		return def.enemy_name
+	return boss_id.capitalize()
+
+
 ## Level ids that can actually be launched — waves authored AND a block pool to descend.
 ##
 ## The launch pad's destination selector walks this, which means a biome becomes reachable the

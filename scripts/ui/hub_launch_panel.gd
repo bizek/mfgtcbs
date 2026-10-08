@@ -162,6 +162,11 @@ func populate(pm: Node) -> void:
 	btn.add_theme_color_override("font_hover_color", Color(1.0, 0.4, 0.2))
 	_style_begin_btn(btn)
 	btn.pressed.connect(_start_run)
+	## A locked biome cannot be launched. Disabled here AND refused in _start_run, so no other
+	## path (a stale current_level, a hotkey) gets in either.
+	if not pm.is_biome_unlocked(GameManager.current_level):
+		btn.disabled = true
+		btn.text = "LOCKED"
 	vbox.add_child(btn)
 
 	_fit_to_content()
@@ -312,6 +317,10 @@ func _build_readiness(parent: Control, pm: Node) -> void:
 	var dest: String       = str(level.get("name", "Unknown")).to_upper()
 	var block_ct: int      = int(level.get("blocks", {}).get("count", 0))
 	var where: String      = "%s  (%d BLOCKS)" % [dest, block_ct] if block_ct > 0 else dest
+	var locked: bool       = not pm.is_biome_unlocked(level_id)
+	if locked:
+		where = "%s  [LOCKED]" % dest
+	var dest_col: Color    = _C_WARN if locked else _C_BODY
 
 	## Row 1 — where this run goes, and the warning.
 	var r1 := _readiness_row(parent)
@@ -330,7 +339,7 @@ func _build_readiness(parent: Control, pm: Node) -> void:
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.clip_text = true
 		btn.add_theme_font_size_override("font_size", _FS_XS)
-		btn.add_theme_color_override("font_color", _C_BODY)
+		btn.add_theme_color_override("font_color", dest_col)
 		btn.add_theme_color_override("font_hover_color", Color(1.0, 0.85, 0.55))
 		_style_dest_btn(btn)
 		btn.pressed.connect(func() -> void:
@@ -341,12 +350,22 @@ func _build_readiness(parent: Control, pm: Node) -> void:
 			populate(pm))
 		r1.add_child(btn)
 	else:
-		var dest_lbl := _lbl(r1, where, _FS_XS, _C_BODY)
+		var dest_lbl := _lbl(r1, where, _FS_XS, dest_col)
 		dest_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	var unspent: int = pm.get_passive_points()
 	if unspent > 0:
 		_lbl(r1, "! %d PASSIVE PTS UNSPENT" % unspent, _FS_XS, _C_WARN)
+
+	## Row 2 (locked biomes only) — what opens it. Names the boss, not the biome: "beat The Goblin
+	## King and leave through the portal" is the instruction the player actually needs.
+	if locked:
+		var opener: int = LevelData.opener_level_id(level_id)
+		var r2 := _readiness_row(parent)
+		var hint := _lbl(r2, "OPENS WHEN %s FALLS AND YOU LEAVE BY THE PORTAL" % LevelData.final_boss_name(opener).to_upper(),
+				_FS_XS, _C_EMPTY)
+		hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		hint.clip_text = true
 
 	## A second row (vault + insurance) was built here and then removed: the hub's glyph bar
 	## starts at y=346, so a centred panel can be at most 320 tall, and the extra 21px of
@@ -383,6 +402,8 @@ func _readiness_row(parent: Control) -> HBoxContainer:
 
 
 func _start_run() -> void:
+	if not ProgressionManager.is_biome_unlocked(GameManager.current_level):
+		return
 	## The descent is worth a beat longer than a menu hop — this and the results
 	## screen are the two transitions a player crosses on every single run.
 	SceneTransition.change_scene("res://scenes/main_arena.tscn", 0.35, 0.3)
