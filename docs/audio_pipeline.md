@@ -28,7 +28,7 @@ Missing file → one `push_warning` at first play, then silent no-op. The game r
 
 ## Runtime Architecture (as built)
 
-- **Pools** (created once in `_ready()`, zero node churn): 10 `AudioStreamPlayer` (global/UI SFX) + 16 `AudioStreamPlayer2D` (positional combat SFX, `max_distance` 480) + 2 music players (crossfade pair) + 1 dedicated loop player (extraction hum). Hard voice ceiling: 29.
+- **Pools** (created once in `_ready()`, zero node churn): 10 `AudioStreamPlayer` (global/UI SFX) + 16 `AudioStreamPlayer2D` (positional combat SFX, `max_distance` 480) + 2 music players (crossfade pair) + 1 dedicated loop player (extraction hum) + 1 channel-loop player (held-ability beds). Hard voice ceiling: 30.
 - **Positional vs global split**: hits, enemy deaths, statuses, block/dodge = positional (they happen at enemy positions, off-screen combat attenuates). Crit, kill confirm, player death, pickups, level-up, extraction, UI, music = global (player-centric feedback).
 - **Limiter** (the zero-cooldown / horde-frame defense, precedent: CombatFeedbackManager's composite buffering):
   - per sound: at most `max_per_frame` (K, default 2, hits 3) instances per frame;
@@ -37,6 +37,8 @@ Missing file → one `push_warning` at first play, then silent no-op. The game r
   - pools cap total voices regardless.
   - Loudest realistic frame (AoE kill on a horde + pickup vacuum): 3 hit + 2 death ≤ 5 positional voices; 2 crit + 2 kill + 2 pickup + 1 level-up ≤ 7 global voices — well under the 26 SFX-voice ceiling and, with −6…−10 dB base volumes, under clipping on the SFX bus.
 - **Pool acquisition**: round-robin, prefer idle, steal oldest when saturated. Music/loop players are never stolen (separate pools).
+- **SFX loops loop natively** (2026-10-19). Every `"loop": true` entry (the extraction hum and the three channel beds) has its stream flagged at preload by `_loop_natively()` (Ogg `loop`, WAV `LOOP_FORWARD` over the whole file), so the mixer wraps it sample-accurately. They used to restart on `finished`, which left a gap of a mix buffer plus a frame at every wrap: an audible tick every 2 s on the beds, however clean the file's seam. Set in code, not in `.import`, so a newly installed loop (whose fresh `.import` says `loop=false`) loops anyway.
+- **Audition** (Training Room SOUND bench): `audition_take(sound_id, abs_path)` swaps a sound's streams in memory for a take loaded straight from `assets/audio/_incoming/` (`load_from_file`; the folder is `.gdignore`d, so takes are never imported). `audition_clear()` restores the shipped streams, and the panel clears every stand-in when the player leaves the room. A held channel bed swaps under the player without stopping. See `docs/dev_tools.md` → Training Room.
 - **Music**: `play_music(id)` crossfades over 1.5 s via the two-player pair; same-ID calls no-op. Looping is manual (`finished` → replay) so tracks loop whether or not import loop points are set. Boss flow: `final_boss_spawned` → save current track, cut to `mus_boss`; `final_boss_defeated` → boss death SFX + restore biome track.
 - **Settings**: AudioManager only plays into the existing `Master/Music/SFX` buses; `Settings` (task 09) owns bus volumes/mute, so the sliders affect everything with no extra wiring.
 

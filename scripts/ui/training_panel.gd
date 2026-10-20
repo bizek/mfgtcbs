@@ -15,6 +15,9 @@ extends CanvasLayer
 ##   CLEAR         remove every enemy
 ##   SLOW-MO       0.25x time — pairs with the Animation Lab (F10) for reading hit frames
 ##   HEAL          top the player back up
+##   SOUND         audition candidate takes from assets/audio/_incoming in place of a shipped
+##                 sound: pick the sound, cycle takes with [ and ] (works mid-channel), KEEP
+##                 writes the choice to _incoming/audition_picks.json for installing
 ## The readout tracks damage dealt: total, DPS over the last 5s, and best single hit.
 
 const DUMMY_SCENE_PATH: String = "res://scenes/enemies/fodder.tscn"
@@ -31,6 +34,13 @@ const FS_TITLE: int = 12
 ## The panel sits at y=45 in a 360px viewport, so this is what is left with a small margin.
 const PANEL_W: float = 170.0
 const PANEL_MAX_H: float = 290.0
+
+## Sound audition. _incoming has a .gdignore, so takes there are never imported; AudioManager
+## loads them from disk. A take belongs to a sound when it sits in a folder named after the
+## sound's shipped file (sa3/batch1/combo_drop/sa3_s12.wav) or is named after it (suno/combo_drop.wav).
+const INCOMING_DIR: String = "res://assets/audio/_incoming"
+const PICKS_FILE: String = "res://assets/audio/_incoming/audition_picks.json"
+const TAKE_EXTS: Array[String] = ["wav", "ogg", "mp3"]
 
 var player_ref: Node2D = null
 var arena_ref: Node2D = null
@@ -55,6 +65,17 @@ var _reloading: bool = false   ## class swap reloads the room — keep training_
 var _mod_rows: Array[Label] = []
 var _mod_hint: Label = null
 
+var _takes: Dictionary = {}            ## sound_id -> Array of absolute take paths, sorted
+var _take_sound_ids: Array = []        ## sound ids that have at least one take, sorted
+var _named_takes: Dictionary = {}      ## take path -> true when matched by file name, not folder
+var _sound_label: Label = null
+var _take_label: Label = null
+var _sound_hint: Label = null
+var _preview_loop: bool = false
+var _preview_player: AudioStreamPlayer = null
+## Survives the scene reload a class swap does, so the bench stays on the sound being judged.
+static var _last_sound_id: String = ""
+
 
 func _ready() -> void:
 	layer = 120
@@ -68,6 +89,14 @@ func setup(player: Node2D, arena: Node2D) -> void:
 	player_ref = player
 	arena_ref = arena
 	_refresh_class_label()
+	## First visit: start on this kit's channel bed if it has takes waiting.
+	if _last_sound_id == "" and player:
+		var bed: String = SoundTable.CHANNEL_LOOP_BY_KIT.get(String(player.get("_kit_id")), "")
+		if _takes.has(bed):
+			_last_sound_id = bed
+	if _last_sound_id == "" and not _take_sound_ids.is_empty():
+		_last_sound_id = _take_sound_ids[0]
+	_refresh_sound_rows()
 	call_deferred("_spawn_dummies")
 
 
@@ -75,8 +104,12 @@ func _exit_tree() -> void:
 	## Never leave the engine in slow motion or the flag set for the next real run —
 	## unless we're the ones reloading the room for a class swap.
 	Engine.time_scale = 1.0
+	_stop_preview()
 	if not _reloading:
 		GameManager.training_mode = false
+		## A stand-in take must never follow the player out of the room into a real run.
+		for sound_id in _takes:
+			AudioManager.audition_clear(sound_id)
 
 
 ## Tell the panel it is being torn down to be REPLACED by another training session, not to leave
@@ -92,8 +125,15 @@ func keep_training_mode() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F11:
-		_panel.visible = not _panel.visible
+	if not (event is InputEventKey and event.pressed and not event.echo):
+		return
+	match event.keycode:
+		KEY_F11:
+			_panel.visible = not _panel.visible
+		KEY_BRACKETLEFT:
+			_cycle_take(-1)
+		KEY_BRACKETRIGHT:
+			_cycle_take(1)
 
 
 func _process(_delta: float) -> void:
@@ -202,6 +242,41 @@ func _build_panel() -> void:
 	_slow_btn = _button("SLOW-MO: OFF", _toggle_slow)
 	r3.add_child(_slow_btn)
 	r3.add_child(_button("HEAL", _heal_player))
+
+	## ── Sound audition ───────────────────────────────────────────────────────
+	## Above the fold, because judging a take means swapping it while the ability runs.
+	v.add_child(_label("── SOUND  ( [ ] takes ) ──", FS, Color(0.85, 0.7, 1.0)))
+	var srow := HBoxContainer.new()
+	srow.add_theme_constant_override("separation", 2)
+	v.add_child(srow)
+	srow.add_child(_button("<", func() -> void: _cycle_sound(-1), 16.0))
+	_sound_label = _label("", FS, Color(0.95, 0.88, 1.0))
+	_sound_label.custom_minimum_size = Vector2(120.0, 0.0)
+	_sound_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_sound_label.clip_text = true
+	srow.add_child(_sound_label)
+	srow.add_child(_button(">", func() -> void: _cycle_sound(1), 16.0))
+	var trow := HBoxContainer.new()
+	trow.add_theme_constant_override("separation", 2)
+	v.add_child(trow)
+	trow.add_child(_button("<", func() -> void: _cycle_take(-1), 16.0))
+	_take_label = _label("", FS, Color(1.0, 1.0, 1.0))
+	_take_label.custom_minimum_size = Vector2(120.0, 0.0)
+	_take_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_take_label.clip_text = true
+	trow.add_child(_take_label)
+	trow.add_child(_button(">", func() -> void: _cycle_take(1), 16.0))
+	var prow := HBoxContainer.new()
+	prow.add_theme_constant_override("separation", 3)
+	v.add_child(prow)
+	prow.add_child(_button("PLAY", _preview_sound))
+	prow.add_child(_button("KEEP", _keep_take))
+	prow.add_child(_button("RESCAN", _rescan_takes))
+	_sound_hint = _label("", FS, Color(0.7, 0.65, 0.8))
+	_sound_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_sound_hint.custom_minimum_size = Vector2(PANEL_W - 10.0, 0.0)
+	v.add_child(_sound_hint)
+	_scan_takes()
 
 	## ── Level up ─────────────────────────────────────────────────────────────
 	## Dummies are unkillable by design, so no kill ever pays XP and the level-up screen is
@@ -472,3 +547,192 @@ func _reset_meter() -> void:
 	_total_damage = 0.0
 	_best_hit = 0.0
 	_damage_log.clear()
+
+
+# ─── Sound audition ───────────────────────────────────────────────────────────
+
+func _rescan_takes() -> void:
+	_scan_takes()
+	_sound_hint.text = "%d sounds with takes" % _take_sound_ids.size()
+
+
+func _scan_takes() -> void:
+	_takes.clear()
+	_named_takes.clear()
+	var stems: Dictionary = {}  ## shipped file stem -> sound_id
+	for sound_id in SoundTable.ALL:
+		for p in SoundTable.ALL[sound_id].get("streams", []):
+			stems[String(p).get_file().get_basename()] = sound_id
+	_scan_dir(ProjectSettings.globalize_path(INCOMING_DIR), stems)
+	## Newest takes first: the batch being judged leads the list instead of sitting behind
+	## every sound the old reaper_sfx renders also match by name.
+	## Takes follow the same rule by folder: the newest batch's folder first, each folder's takes
+	## in name order, so seeds stay in sequence (sa3_s11, s12, s13) instead of mtime-reversed.
+	var newest: Dictionary = {}
+	var dir_time: Dictionary = {}
+	for sound_id in _takes:
+		var t: int = 0
+		for path in _takes[sound_id]:
+			var m: int = FileAccess.get_modified_time(path)
+			t = maxi(t, m)
+			dir_time[String(path).get_base_dir()] = maxi(int(dir_time.get(String(path).get_base_dir(), 0)), m)
+		newest[sound_id] = t
+	for sound_id in _takes:
+		(_takes[sound_id] as Array).sort_custom(func(a: String, b: String) -> bool:
+			var da: int = dir_time[a.get_base_dir()]
+			var db: int = dir_time[b.get_base_dir()]
+			return da > db if da != db else a < b)
+	_take_sound_ids = _takes.keys()
+	_take_sound_ids.sort_custom(func(a: String, b: String) -> bool:
+		return newest[a] > newest[b] if newest[a] != newest[b] else a < b)
+	_refresh_sound_rows()
+
+
+func _scan_dir(dir_path: String, stems: Dictionary) -> void:
+	var dir := DirAccess.open(dir_path)
+	if dir == null:
+		return
+	var folder_sound: String = stems.get(dir_path.get_file(), "")
+	for sub in dir.get_directories():
+		if sub != "raw":  ## unprocessed renders sit beside the takes made from them
+			_scan_dir(dir_path.path_join(sub), stems)
+	for file in dir.get_files():
+		if not TAKE_EXTS.has(file.get_extension().to_lower()):
+			continue
+		var stem: String = file.get_basename()
+		if stem.begins_with("_") or stem.ends_with("_x4"):  ## references and loop previews
+			continue
+		var sound_id: String = folder_sound if folder_sound != "" else String(stems.get(stem, ""))
+		if sound_id == "":
+			continue
+		if folder_sound == "":
+			_named_takes[dir_path.path_join(file)] = true
+		if not _takes.has(sound_id):
+			_takes[sound_id] = []
+		(_takes[sound_id] as Array).append(dir_path.path_join(file))
+
+
+func _current_sound() -> String:
+	return _last_sound_id if _takes.has(_last_sound_id) else ""
+
+
+func _cycle_sound(dir: int) -> void:
+	if _take_sound_ids.is_empty():
+		return
+	_stop_preview()
+	var idx: int = _take_sound_ids.find(_last_sound_id)
+	_last_sound_id = _take_sound_ids[wrapi(idx + dir, 0, _take_sound_ids.size())]
+	_refresh_sound_rows()
+
+
+## Index -1 is the shipped sound; 0..n-1 are the takes.
+func _cycle_take(dir: int) -> void:
+	var sound_id: String = _current_sound()
+	if sound_id == "":
+		return
+	var takes: Array = _takes[sound_id]
+	var idx: int = takes.find(AudioManager.audition_path(sound_id))
+	idx = wrapi(idx + 1 + dir, 0, takes.size() + 1) - 1
+	if idx < 0:
+		AudioManager.audition_clear(sound_id)
+	elif not AudioManager.audition_take(sound_id, takes[idx]):
+		_sound_hint.text = "could not load %s" % String(takes[idx]).get_file()
+		return
+	if _preview_loop:
+		_play_preview_loop(sound_id)
+	_refresh_sound_rows()
+
+
+func _refresh_sound_rows() -> void:
+	if _sound_label == null:
+		return
+	var sound_id: String = _current_sound()
+	if sound_id == "":
+		_sound_label.text = "no takes in _incoming" if _take_sound_ids.is_empty() else "pick a sound"
+		_take_label.text = "-"
+		_sound_hint.text = ""
+		return
+	_sound_label.text = sound_id.trim_prefix("sfx_")
+	var takes: Array = _takes[sound_id]
+	var path: String = AudioManager.audition_path(sound_id)
+	var idx: int = takes.find(path)
+	if idx < 0:
+		_take_label.text = "shipped  (0/%d)" % takes.size()
+		_sound_hint.text = "playing the game's own file"
+	else:
+		## A take named after its sound (suno/combo_drop.wav) says nothing on its own: show its folder.
+		var take_name: String = path.get_file().get_basename()
+		if _named_takes.has(path):
+			take_name = path.get_base_dir().get_file() + "/" + take_name
+		_take_label.text = "%s  (%d/%d)" % [take_name, idx + 1, takes.size()]
+		_sound_hint.text = _incoming_rel(path.get_base_dir())
+
+
+func _incoming_rel(path: String) -> String:
+	return path.trim_prefix(ProjectSettings.globalize_path(INCOMING_DIR)).trim_prefix("/")
+
+
+## One-shots play once through AudioManager, the real path. A loop toggles on the panel's own
+## preview voice at the entry's volume: the channel voice can't be borrowed, because the player
+## re-asserts it every physics frame and would stop a bed it isn't channelling.
+func _preview_sound() -> void:
+	var sound_id: String = _current_sound()
+	if sound_id == "":
+		return
+	if not SoundTable.ALL[sound_id].get("loop", false):
+		AudioManager.play(sound_id, player_ref.global_position if player_ref else null)
+		return
+	if _preview_loop:
+		_stop_preview()
+	else:
+		_preview_loop = true
+		_play_preview_loop(sound_id)
+
+
+func _play_preview_loop(sound_id: String) -> void:
+	var streams: Array = AudioManager.streams_for(sound_id)
+	if streams.is_empty():
+		_preview_loop = false
+		return
+	if _preview_player == null:
+		_preview_player = AudioStreamPlayer.new()
+		add_child(_preview_player)
+	var entry: Dictionary = SoundTable.ALL[sound_id]
+	_preview_player.stream = streams[0]
+	_preview_player.volume_db = entry.get("volume_db", 0.0)
+	_preview_player.pitch_scale = pow(2.0, float(entry.get("pitch_semitones", 0.0)) / 12.0)
+	_preview_player.bus = entry.get("bus", Settings.BUS_SFX)
+	_preview_player.play()
+
+
+func _stop_preview() -> void:
+	if not _preview_loop:
+		return
+	_preview_loop = false
+	if _preview_player:
+		_preview_player.stop()
+
+
+## Record the take standing in for this sound (or "shipped") so the install step knows what won.
+func _keep_take() -> void:
+	var sound_id: String = _current_sound()
+	if sound_id == "":
+		return
+	var file_path: String = ProjectSettings.globalize_path(PICKS_FILE)
+	var picks: Dictionary = {}
+	if FileAccess.file_exists(file_path):
+		var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(file_path))
+		if parsed is Dictionary:
+			picks = parsed
+	var path: String = AudioManager.audition_path(sound_id)
+	picks[sound_id] = {
+		"take": _incoming_rel(path) if path != "" else "shipped",
+		"kept": Time.get_datetime_string_from_system(),
+	}
+	var f := FileAccess.open(file_path, FileAccess.WRITE)
+	if f == null:
+		_sound_hint.text = "could not write audition_picks.json"
+		return
+	f.store_string(JSON.stringify(picks, "  ", true))
+	f.close()
+	_sound_hint.text = "KEPT  %s" % String(picks[sound_id]["take"])

@@ -9,7 +9,8 @@ extends Node
 ##   • 16 AudioStreamPlayer2D — positional combat SFX (hits, deaths, statuses)
 ##   •  2 AudioStreamPlayer   — music (current track + crossfade target)
 ##   •  1 AudioStreamPlayer   — dedicated loop voice (extraction channel hum)
-## Worst-case simultaneous voices = 29, bounded by the pools regardless of how
+##   •  1 AudioStreamPlayer   — channel-loop voice (held-ability beds)
+## Worst-case simultaneous voices = 30, bounded by the pools regardless of how
 ## many combat events fire. Per-sound limiting (max_per_frame K, min_interval_ms,
 ## -2 dB stacking falloff) keeps the loudest frame from clipping; see
 ## docs/audio_pipeline.md for the math.
@@ -96,14 +97,15 @@ func _build_pools() -> void:
 		add_child(m)
 		_music_players.append(m)
 
+	## Both loop voices loop NATIVELY (the streams are flagged in _loop_natively at preload), so
+	## neither listens for `finished`. Restarting on `finished` used to leave a gap of a mix buffer
+	## plus a frame at every wrap: a click every 2 s on the channel beds, however clean the seam.
 	_loop_player = AudioStreamPlayer.new()
 	_loop_player.bus = Settings.BUS_SFX
-	_loop_player.finished.connect(_on_loop_finished)
 	add_child(_loop_player)
 
 	_channel_loop_player = AudioStreamPlayer.new()
 	_channel_loop_player.bus = Settings.BUS_SFX
-	_channel_loop_player.finished.connect(_on_channel_loop_finished)
 	add_child(_channel_loop_player)
 
 
@@ -116,6 +118,8 @@ func _preload_streams() -> void:
 			if ResourceLoader.exists(path):
 				var stream: AudioStream = load(path)
 				if stream:
+					if entry.get("loop", false):
+						_loop_natively(stream)
 					streams.append(stream)
 		if not streams.is_empty():
 			_sfx_streams[sound_id] = streams
@@ -324,10 +328,94 @@ func stop_channel_loop() -> void:
 	_channel_loop_player.stop()
 
 
-func _on_channel_loop_finished() -> void:
-	## Manual looping, same as _on_loop_finished — works without import loop points.
-	if _active_channel_loop_id != "":
+## Make a stream wrap sample-accurately inside the mixer. Set here rather than in each file's
+## .import so a newly installed loop (whose fresh .import defaults to loop=false) loops anyway.
+## The imported resource is shared, but only AudioManager plays these streams.
+func _loop_natively(stream: AudioStream) -> void:
+	if stream is AudioStreamOggVorbis:
+		(stream as AudioStreamOggVorbis).loop = true
+		(stream as AudioStreamOggVorbis).loop_offset = 0.0
+	elif stream is AudioStreamWAV:
+		var wav := stream as AudioStreamWAV
+		wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		wav.loop_begin = 0
+		wav.loop_end = int(round(wav.get_length() * float(wav.mix_rate)))
+	elif stream is AudioStreamMP3:
+		(stream as AudioStreamMP3).loop = true
+	else:
+		push_warning("[AudioManager] %s can't loop natively — it will play once" % stream.get_class())
+
+
+# ── Audition (Training Room sound picker) ─────────────────────────────────────
+## Debug-only stand-ins: a candidate take loaded straight from disk replaces a sound's shipped
+## streams in memory, so it can be judged where it actually plays — on the real event, at the
+## entry's real volume and pitch, under the real mix. Nothing on disk or in SoundTable changes;
+## the shipped streams come back on audition_clear(). Lives here, not on the panel, because a
+## class swap reloads the training room and the stand-in must survive that.
+
+var _audition: Dictionary = {}          ## sound_id -> absolute path of the take standing in
+var _audition_shipped: Dictionary = {}  ## sound_id -> the shipped stream Array, for restore
+
+
+## Stand the take at `path` (absolute, .wav/.ogg/.mp3) in for `sound_id`. Returns false if the
+## file can't be read; the sound is left as it was.
+func audition_take(sound_id: String, path: String) -> bool:
+	var entry: Dictionary = SoundTable.ALL.get(sound_id, {})
+	if entry.is_empty():
+		return false
+	var stream: AudioStream = null
+	match path.get_extension().to_lower():
+		"ogg": stream = AudioStreamOggVorbis.load_from_file(path)
+		"wav": stream = AudioStreamWAV.load_from_file(path)
+		"mp3": stream = AudioStreamMP3.load_from_file(path)
+	if stream == null:
+		push_warning("[AudioManager] Audition: could not load '%s'" % path)
+		return false
+	if entry.get("loop", false):
+		_loop_natively(stream)
+	if not _audition_shipped.has(sound_id):
+		_audition_shipped[sound_id] = _sfx_streams.get(sound_id, [])
+	_audition[sound_id] = path
+	_sfx_streams[sound_id] = [stream]
+	_restart_if_looping(sound_id)
+	return true
+
+
+func audition_clear(sound_id: String) -> void:
+	if not _audition_shipped.has(sound_id):
+		return
+	var shipped: Array = _audition_shipped[sound_id]
+	if shipped.is_empty():
+		_sfx_streams.erase(sound_id)
+	else:
+		_sfx_streams[sound_id] = shipped
+	_audition_shipped.erase(sound_id)
+	_audition.erase(sound_id)
+	_restart_if_looping(sound_id)
+
+
+## "" when the shipped sound is playing.
+func audition_path(sound_id: String) -> String:
+	return _audition.get(sound_id, "")
+
+
+## What `sound_id` plays right now (a stand-in take while one is set). For the bench's preview
+## voice, which can't borrow the channel voice: the player re-asserts that one every frame.
+func streams_for(sound_id: String) -> Array:
+	return _sfx_streams.get(sound_id, [])
+
+
+## A held channel keeps droning while takes are cycled, so swap the stream under it.
+func _restart_if_looping(sound_id: String) -> void:
+	var streams: Array = _sfx_streams.get(sound_id, [])
+	if streams.is_empty():
+		return
+	if _active_channel_loop_id == sound_id and _channel_loop_player.playing:
+		_channel_loop_player.stream = streams[0]
 		_channel_loop_player.play()
+	if _active_loop_id == sound_id and _loop_player.playing:
+		_loop_player.stream = streams[0]
+		_loop_player.play()
 
 
 # ── Pool acquisition (round-robin with steal, house style) ────────────────────
@@ -364,12 +452,6 @@ func _start_loop(sound_id: String, stream: AudioStream, volume_db: float, bus: S
 	_loop_player.volume_db = volume_db
 	_loop_player.bus = bus
 	_loop_player.play()
-
-
-func _on_loop_finished() -> void:
-	## Manual looping — works whether or not import loop points are set.
-	if _active_loop_id != "":
-		_loop_player.play()
 
 
 func _on_music_finished(index: int) -> void:
