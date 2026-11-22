@@ -394,6 +394,14 @@ func audition_clear(sound_id: String) -> void:
 	_restart_if_looping(sound_id)
 
 
+## Every stand-in back to its shipped sound: the bench swapping whole sets, or the player leaving
+## the room. Asked of this dictionary, not of the bench's own list of sounds, because that list is
+## rebuilt by a rescan and can lose a sound that still has a take standing in.
+func audition_clear_all() -> void:
+	for sound_id: String in _audition_shipped.keys():
+		audition_clear(sound_id)
+
+
 ## "" when the shipped sound is playing.
 func audition_path(sound_id: String) -> String:
 	return _audition.get(sound_id, "")

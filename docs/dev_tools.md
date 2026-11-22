@@ -141,18 +141,25 @@ Panel controls (F11 hides the panel):
 | **SLOW-MO** | 0.25× time. Pair with the Animation Lab to read hit frames as they land. |
 | **HEAL** | Top the player back up. |
 | **AUDIT TIMING** | Run `ComboTimingAudit` on the live class: checks every phase of its light/heavy/channel/Q/E graphs against the sheets they actually play, across all 8 facings. Catches `hit_frame` past the end of a row (silent zero damage), anims that resolve to nothing, `anim_finished` on a looping row (hard lock), channel beats shorter than their own cast, dead branch links, and how much of each cancel window is post-swing grace. Headline shows in the panel; the full report prints to the output log. **Run this after any Lab trim or retime** — that's the gap it exists to close. |
+| **set ◀ ▶** / **`\`** | Swap in every sound one source has takes for, at once — whether a style fits is a question about the whole set, not one sound. A set is a top folder under `_incoming` (`jsfxr`, `sa3`, …), newest first, with `off` (the game's own file for every sound) at position 0. Each sound gets the take KEEP recorded if that take is one of the set's, otherwise the set's first take. `\` flips between `off` and the set last used, so both can be judged mid-fight. Takes cycled by hand while a set is on stay with it — including "back to shipped" — so flipping it off and on loses nothing; that memory is cleared when you leave the room, and KEEP is what carries a choice to the next session. RESCAN with a set on re-applies it, so a new batch's sounds join. |
 | **SOUND ◀ ▶** | Pick which sound to audition. Lists only sounds that have takes waiting in `assets/audio/_incoming/`, newest batch first. The first visit starts on the current kit's channel bed. |
 | **take ◀ ▶** / **[ ]** | Cycle that sound's takes, with "shipped" (the game's own file) at position 0. The take stands in for real, so it fires on the real event at the entry's real volume and pitch. `[` and `]` work mid-channel and swap a held bed without stopping it. The choice survives a class swap and is cleared when you leave the room. |
 | **PLAY** | Hear the current take without triggering it: one-shots play once at the player, and loops toggle on and off. |
 | **KEEP** | Write the take standing in now (or `shipped`) to `assets/audio/_incoming/audition_picks.json`, keyed by sound id. That file is what the install step reads. |
 | **RESCAN** | Re-read `_incoming` after dropping in new takes, without reloading the room. |
-| Readout | Damage total, DPS over the trailing 5s, and best single hit. RESET METER zeroes it. |
+| Readout | Damage total, DPS over the trailing 5s, and best single hit. RESET (beside the total) zeroes it. |
 
 **How a take is matched to a sound:** the take sits in a folder named after the sound's shipped
 file (`sa3/batch1/channel_loop_fire/sa3_s12.wav` → `sfx_channel_loop_fire`), or is itself named
 after it (`suno/combo_drop.wav`). These are skipped: `raw/` folders, files starting with `_`
 (reference copies) and `*_x4` loop previews. The older REAPER renders in `reaper_sfx*/` match by
 name, so they show up as takes too.
+
+**What a set is:** a take's set is its top folder under `_incoming`. `jsfxr/batch1/crit/1_ting.wav`
+and a later `jsfxr/batch2/crit/1_ping.wav` are both set `jsfxr` — and because a sound's takes list
+the newest folder first, the later batch's take becomes that set's first choice for the sound. So
+refine a set by rendering another batch under the same top folder; start a rival style (to compare
+whole sets against each other) under a different one.
 
 F10 (Animation Lab) and F1 (debug panel) work in here too.
 

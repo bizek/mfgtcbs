@@ -17,7 +17,9 @@ extends CanvasLayer
 ##   HEAL          top the player back up
 ##   SOUND         audition candidate takes from assets/audio/_incoming in place of a shipped
 ##                 sound: pick the sound, cycle takes with [ and ] (works mid-channel), KEEP
-##                 writes the choice to _incoming/audition_picks.json for installing
+##                 writes the choice to _incoming/audition_picks.json for installing.
+##                 The set row swaps in every sound one source has takes for at once (\ flips
+##                 it on and off) — whether a style fits is a question about the whole set
 ## The readout tracks damage dealt: total, DPS over the last 5s, and best single hit.
 
 const DUMMY_SCENE_PATH: String = "res://scenes/enemies/fodder.tscn"
@@ -68,6 +70,9 @@ var _mod_hint: Label = null
 var _takes: Dictionary = {}            ## sound_id -> Array of absolute take paths, sorted
 var _take_sound_ids: Array = []        ## sound ids that have at least one take, sorted
 var _named_takes: Dictionary = {}      ## take path -> true when matched by file name, not folder
+var _take_set: Dictionary = {}         ## take path -> its set: the top folder under _incoming
+var _set_ids: Array = []               ## sets that have takes, newest first
+var _set_label: Label = null
 var _sound_label: Label = null
 var _take_label: Label = null
 var _sound_hint: Label = null
@@ -75,6 +80,13 @@ var _preview_loop: bool = false
 var _preview_player: AudioStreamPlayer = null
 ## Survives the scene reload a class swap does, so the bench stays on the sound being judged.
 static var _last_sound_id: String = ""
+## The set standing in for every sound it has takes for ("" = none). Static like the sound above,
+## and for a harder reason: AudioManager keeps the stand-ins through a class swap, so a row that
+## forgot which set is on would report "off" while the whole set is still playing.
+static var _last_set: String = ""
+static var _recent_set: String = ""    ## the set the \ key flips back on
+## set -> {sound_id: take path, "" = shipped}: what was cycled by hand while that set was on.
+static var _set_picks: Dictionary = {}
 
 
 func _ready() -> void:
@@ -108,8 +120,9 @@ func _exit_tree() -> void:
 	if not _reloading:
 		GameManager.training_mode = false
 		## A stand-in take must never follow the player out of the room into a real run.
-		for sound_id in _takes:
-			AudioManager.audition_clear(sound_id)
+		AudioManager.audition_clear_all()
+		_last_set = ""
+		_set_picks.clear()
 
 
 ## Tell the panel it is being torn down to be REPLACED by another training session, not to leave
@@ -134,6 +147,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_cycle_take(-1)
 		KEY_BRACKETRIGHT:
 			_cycle_take(1)
+		KEY_BACKSLASH:
+			_flip_set()
 
 
 func _process(_delta: float) -> void:
@@ -219,9 +234,16 @@ func _build_panel() -> void:
 
 	_dps_label = _label("DPS 0   best 0", FS, Color(1.0, 0.85, 0.4))
 	v.add_child(_dps_label)
+	## One row, not two: the SOUND section below gained its set row, and its hint line — where
+	## KEPT and the swap count are reported — has to stay above the fold.
+	var meter_row := HBoxContainer.new()
+	meter_row.add_theme_constant_override("separation", 3)
+	v.add_child(meter_row)
 	_total_label = _label("total 0", FS, Color(0.75, 0.75, 0.8))
-	v.add_child(_total_label)
-	v.add_child(_button("RESET METER", _reset_meter))
+	_total_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_total_label.clip_text = true
+	meter_row.add_child(_total_label)
+	meter_row.add_child(_button("RESET", _reset_meter))
 
 	var r1 := HBoxContainer.new()
 	r1.add_theme_constant_override("separation", 3)
@@ -245,7 +267,18 @@ func _build_panel() -> void:
 
 	## ── Sound audition ───────────────────────────────────────────────────────
 	## Above the fold, because judging a take means swapping it while the ability runs.
-	v.add_child(_label("── SOUND  ( [ ] takes ) ──", FS, Color(0.85, 0.7, 1.0)))
+	v.add_child(_label("── SOUND  ( [ ] take · \\ set ) ──", FS, Color(0.85, 0.7, 1.0)))
+	## Coarse to fine: the whole set, then one sound, then that sound's takes.
+	var setrow := HBoxContainer.new()
+	setrow.add_theme_constant_override("separation", 2)
+	v.add_child(setrow)
+	setrow.add_child(_button("<", func() -> void: _cycle_set(-1), 16.0))
+	_set_label = _label("", FS, Color(0.85, 0.7, 1.0))
+	_set_label.custom_minimum_size = Vector2(120.0, 0.0)
+	_set_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_set_label.clip_text = true
+	setrow.add_child(_set_label)
+	setrow.add_child(_button(">", func() -> void: _cycle_set(1), 16.0))
 	var srow := HBoxContainer.new()
 	srow.add_theme_constant_override("separation", 2)
 	v.add_child(srow)
@@ -553,12 +586,17 @@ func _reset_meter() -> void:
 
 func _rescan_takes() -> void:
 	_scan_takes()
+	## A set that is on takes in what the rescan found: a new batch's sounds join it, and its
+	## takes lead wherever nothing was kept or cycled by hand.
+	if _last_set != "":
+		_apply_set(_last_set)
 	_sound_hint.text = "%d sounds with takes" % _take_sound_ids.size()
 
 
 func _scan_takes() -> void:
 	_takes.clear()
 	_named_takes.clear()
+	_take_set.clear()
 	var stems: Dictionary = {}  ## shipped file stem -> sound_id
 	for sound_id in SoundTable.ALL:
 		for p in SoundTable.ALL[sound_id].get("streams", []):
@@ -570,12 +608,21 @@ func _scan_takes() -> void:
 	## in name order, so seeds stay in sequence (sa3_s11, s12, s13) instead of mtime-reversed.
 	var newest: Dictionary = {}
 	var dir_time: Dictionary = {}
+	var set_time: Dictionary = {}  ## set -> its newest take, which orders the set row
 	for sound_id in _takes:
 		var t: int = 0
 		for path in _takes[sound_id]:
 			var m: int = FileAccess.get_modified_time(path)
 			t = maxi(t, m)
 			dir_time[String(path).get_base_dir()] = maxi(int(dir_time.get(String(path).get_base_dir(), 0)), m)
+			## A take's set is its top folder under _incoming, so jsfxr/batch1/crit/1_ting.wav and
+			## jsfxr/batch2/crit/1_ping.wav are one set: a later batch refines it, and because the
+			## newest folder sorts first below, its takes become that set's first choice.
+			var rel: String = _incoming_rel(String(path))
+			if rel.contains("/"):
+				var set_id: String = rel.get_slice("/", 0)
+				_take_set[path] = set_id
+				set_time[set_id] = maxi(int(set_time.get(set_id, 0)), m)
 		newest[sound_id] = t
 	for sound_id in _takes:
 		(_takes[sound_id] as Array).sort_custom(func(a: String, b: String) -> bool:
@@ -585,6 +632,9 @@ func _scan_takes() -> void:
 	_take_sound_ids = _takes.keys()
 	_take_sound_ids.sort_custom(func(a: String, b: String) -> bool:
 		return newest[a] > newest[b] if newest[a] != newest[b] else a < b)
+	_set_ids = set_time.keys()
+	_set_ids.sort_custom(func(a: String, b: String) -> bool:
+		return set_time[a] > set_time[b] if set_time[a] != set_time[b] else a < b)
 	_refresh_sound_rows()
 
 
@@ -638,14 +688,112 @@ func _cycle_take(dir: int) -> void:
 	elif not AudioManager.audition_take(sound_id, takes[idx]):
 		_sound_hint.text = "could not load %s" % String(takes[idx]).get_file()
 		return
+	## What is cycled by hand while a set is on stays with that set (see _set_lineup).
+	if _last_set != "":
+		var by_hand: Dictionary = _set_picks.get_or_add(_last_set, {})
+		by_hand[sound_id] = AudioManager.audition_path(sound_id)
 	if _preview_loop:
 		_play_preview_loop(sound_id)
 	_refresh_sound_rows()
 
 
+## Index -1 is no set — the game's own file for every sound; 0..n-1 are the sets.
+func _cycle_set(dir: int) -> void:
+	if _set_ids.is_empty():
+		return
+	var idx: int = wrapi(_set_ids.find(_last_set) + 1 + dir, 0, _set_ids.size() + 1) - 1
+	_apply_set("" if idx < 0 else String(_set_ids[idx]))
+
+
+## The \ key: the game's own sounds against the set last used (the newest, to begin with), for
+## judging both mid-fight without reaching for the panel.
+func _flip_set() -> void:
+	if _set_ids.is_empty():
+		return
+	if _last_set != "":
+		_apply_set("")
+	else:
+		_apply_set(_recent_set if _set_ids.has(_recent_set) else String(_set_ids[0]))
+
+
+## Stand a whole set in at once, or with "" put every sound back to the game's own file.
+func _apply_set(set_id: String) -> void:
+	var sound_before: String = _current_sound()
+	var came_on: bool = set_id != "" and set_id != _last_set
+	AudioManager.audition_clear_all()
+	_last_set = set_id
+	var lineup: Dictionary = {}
+	var wanted: int = 0
+	var swapped: int = 0
+	if set_id != "":
+		_recent_set = set_id
+		lineup = _set_lineup(set_id)
+		for sound_id: String in lineup:
+			var path: String = lineup[sound_id]
+			if path == "":
+				continue  ## one of the set's sounds, put back to shipped by hand
+			wanted += 1
+			if AudioManager.audition_take(sound_id, path):
+				swapped += 1
+	## A set that has just come on lands the sound row on itself, so [ ] cycle what it swapped in
+	## instead of a sound it has nothing for.
+	if came_on and not lineup.has(sound_before):
+		for sound_id: String in _take_sound_ids:
+			if lineup.has(sound_id):
+				_last_sound_id = sound_id
+				break
+	if _preview_loop:
+		if sound_before != "" and _current_sound() == sound_before:
+			_play_preview_loop(sound_before)
+		else:
+			_stop_preview()
+	_refresh_sound_rows()
+	if set_id == "":
+		_sound_hint.text = "every sound back to shipped"
+	elif swapped < wanted:
+		_sound_hint.text = "%d of %d swapped in (see log)" % [swapped, wanted]
+	else:
+		_sound_hint.text = "%d sounds swapped in" % swapped
+
+
+## What a set brings in: sound_id -> take path. Each sound it has takes for gets the take KEEP
+## recorded, when that take is one of this set's, else the set's first take. Whatever was cycled
+## by hand while the set was on then wins over both — another set's take, or "" for a sound put
+## back to shipped — so flipping a set off and on never loses a choice made under it.
+func _set_lineup(set_id: String) -> Dictionary:
+	var picks: Dictionary = _read_picks()
+	var by_hand: Dictionary = _set_picks.get(set_id, {})
+	var incoming: String = ProjectSettings.globalize_path(INCOMING_DIR)
+	var lineup: Dictionary = {}
+	for sound_id: String in _takes:
+		var takes: Array = _takes[sound_id]
+		var want: String = ""
+		for path: String in takes:
+			if _take_set.get(path, "") == set_id:
+				want = path
+				break
+		var in_set: bool = want != ""
+		var pick: Variant = picks.get(sound_id)
+		if in_set and pick is Dictionary:
+			var kept: String = incoming.path_join(String((pick as Dictionary).get("take", "")))
+			if takes.has(kept) and _take_set.get(kept, "") == set_id:
+				want = kept
+		if by_hand.has(sound_id):
+			var hand: String = by_hand[sound_id]
+			if hand == "" or takes.has(hand):
+				want = hand
+		if in_set or want != "":
+			lineup[sound_id] = want
+	return lineup
+
+
 func _refresh_sound_rows() -> void:
 	if _sound_label == null:
 		return
+	if _set_ids.is_empty():
+		_set_label.text = "no sets"
+	else:
+		_set_label.text = "set: %s" % (_last_set if _last_set != "" else "off")
 	var sound_id: String = _current_sound()
 	if sound_id == "":
 		_sound_label.text = "no takes in _incoming" if _take_sound_ids.is_empty() else "pick a sound"
@@ -713,17 +861,23 @@ func _stop_preview() -> void:
 		_preview_player.stop()
 
 
+## audition_picks.json as a Dictionary: sound_id -> {"take": path under _incoming or "shipped", "kept": when}.
+func _read_picks() -> Dictionary:
+	var file_path: String = ProjectSettings.globalize_path(PICKS_FILE)
+	if FileAccess.file_exists(file_path):
+		var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(file_path))
+		if parsed is Dictionary:
+			return parsed
+	return {}
+
+
 ## Record the take standing in for this sound (or "shipped") so the install step knows what won.
 func _keep_take() -> void:
 	var sound_id: String = _current_sound()
 	if sound_id == "":
 		return
 	var file_path: String = ProjectSettings.globalize_path(PICKS_FILE)
-	var picks: Dictionary = {}
-	if FileAccess.file_exists(file_path):
-		var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(file_path))
-		if parsed is Dictionary:
-			picks = parsed
+	var picks: Dictionary = _read_picks()
 	var path: String = AudioManager.audition_path(sound_id)
 	picks[sound_id] = {
 		"take": _incoming_rel(path) if path != "" else "shipped",
