@@ -1,0 +1,3623 @@
+{
+ "tool": "jsfxr 1.4.1",
+ "batch": "batch1",
+ "generated": "2026-11-10T20:53:54.170Z",
+ "sounds": [
+  {
+   "folder": "swing_light_0",
+   "sound_id": "sfx_combo_step",
+   "target_dba": -13.1,
+   "target_from": "shipped",
+   "takes": [
+    {
+     "name": "1_swish",
+     "why": "airy blade swish that opens upward",
+     "kind": "designed",
+     "seed": 63820,
+     "length_ms": 120,
+     "gain_db": -2.5,
+     "peak_dbfs": -3.3,
+     "brightness_hz": 3903,
+     "notes": [],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "7GQhog1Npy4MGGE6JWKHidRrzsPqEfdYjEe6tLTEFwFuNNqkqn87MVMiDeUNu4vqmnHoDEe6uvZKu5tDyyup542hpZz8MiXP2oXmPZZ35PV2QHTj8ujPhmGnK",
+       "url": "https://sfxr.me/#7GQhog1Npy4MGGE6JWKHidRrzsPqEfdYjEe6tLTEFwFuNNqkqn87MVMiDeUNu4vqmnHoDEe6uvZKu5tDyyup542hpZz8MiXP2oXmPZZ35PV2QHTj8ujPhmGnK",
+       "params": {
+        "wave_type": 3,
+        "p_env_attack": 0.08,
+        "p_env_sustain": 0.08,
+        "p_env_punch": 0,
+        "p_env_decay": 0.2,
+        "p_base_freq": 0.6,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 0.3,
+        "p_lpf_ramp": 0.45,
+        "p_lpf_resonance": 0.35,
+        "p_hpf_freq": 0.27,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "2_zip",
+     "why": "tonal rising zip, so the combo pitch ladder is easy to hear",
+     "kind": "designed",
+     "seed": 25972,
+     "length_ms": 77,
+     "gain_db": 3.7,
+     "peak_dbfs": -2,
+     "brightness_hz": 2218,
+     "notes": [],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "111113svfEeEAojNzDzbgqxBa7ELR6fsZcp8WH9BF4RajtvUPkXRJAZrWGYXUoge5FQUvFyQrYFbFwnaxaCTiBskfKo1ViFY8b9y2PFQbUb1ixu2g8oMesz7",
+       "url": "https://sfxr.me/#111113svfEeEAojNzDzbgqxBa7ELR6fsZcp8WH9BF4RajtvUPkXRJAZrWGYXUoge5FQUvFyQrYFbFwnaxaCTiBskfKo1ViFY8b9y2PFQbUb1ixu2g8oMesz7",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.07,
+        "p_env_punch": 0,
+        "p_env_decay": 0.17,
+        "p_base_freq": 0.45,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0.3,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0.6,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0.2,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "3_cut",
+     "why": "thin, quick cut",
+     "kind": "designed",
+     "seed": 10772,
+     "length_ms": 88,
+     "gain_db": 1.4,
+     "peak_dbfs": -1,
+     "brightness_hz": 11227,
+     "notes": [
+      "peak-limited, 4.3 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "7BMHBGQSJ3xdsR92MdmavmgKz6t4qsXq1AmF9bcDRywbgnaaSS7cbiSh5KUbA8w18uyKa7KTJSoHT31saYiviZv9Myedmd93KAG981NAFmVRxkgzuqFMrGfAw",
+       "url": "https://sfxr.me/#7BMHBGQSJ3xdsR92MdmavmgKz6t4qsXq1AmF9bcDRywbgnaaSS7cbiSh5KUbA8w18uyKa7KTJSoHT31saYiviZv9Myedmd93KAG981NAFmVRxkgzuqFMrGfAw",
+       "params": {
+        "wave_type": 3,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.05,
+        "p_env_punch": 0.4,
+        "p_env_decay": 0.19,
+        "p_base_freq": 0.75,
+        "p_freq_limit": 0,
+        "p_freq_ramp": -0.2,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0.67,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "4_swish_b",
+     "why": "variation of the swish",
+     "kind": "variation of 1_swish",
+     "seed": 11,
+     "length_ms": 107,
+     "gain_db": -0.4,
+     "peak_dbfs": -3.9,
+     "brightness_hz": 3010,
+     "notes": [],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "7vkdcB2jt89NxjR8uMBWQAu44grRDnouzGZSSW6J9C1TCk4T3oV1gpdy42rZ9u12X1YechFRvwCjeMbYFPqSLSTAWkyfVf3pnD7byEejpwKiNTyXNEj8epGDd",
+       "url": "https://sfxr.me/#7vkdcB2jt89NxjR8uMBWQAu44grRDnouzGZSSW6J9C1TCk4T3oV1gpdy42rZ9u12X1YechFRvwCjeMbYFPqSLSTAWkyfVf3pnD7byEejpwKiNTyXNEj8epGDd",
+       "params": {
+        "wave_type": 3,
+        "p_env_attack": 0.098153,
+        "p_env_sustain": 0.079726,
+        "p_env_punch": 0.023422,
+        "p_env_decay": 0.177043,
+        "p_base_freq": 0.602995,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0.009016,
+        "p_freq_dramp": -0.011476,
+        "p_vib_strength": 0.032029,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0.027805,
+        "p_arp_speed": 0,
+        "p_duty": 0.007667,
+        "p_duty_ramp": -0.024905,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0.030538,
+        "p_pha_ramp": -0.018239,
+        "p_lpf_freq": 0.25451,
+        "p_lpf_ramp": 0.412748,
+        "p_lpf_resonance": 0.35,
+        "p_hpf_freq": 0.326091,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "folder": "swing_heavy_0",
+   "sound_id": "sfx_swing_heavy",
+   "target_dba": -9.9,
+   "target_from": "shipped",
+   "takes": [
+    {
+     "name": "1_cleave",
+     "why": "big noise slash that darkens as it falls",
+     "kind": "designed",
+     "seed": 72791,
+     "length_ms": 289,
+     "gain_db": -0.7,
+     "peak_dbfs": -1,
+     "brightness_hz": 3260,
+     "notes": [
+      "peak-limited, 0.1 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "8puhcUbKjKu85eHJ7Jq2U8z59wfcYxGecVwKpmnZmTPoSfSobNDQMaFvpMoMzLMo2PiHFDtCyoWmzGadMjHFgDfbPtNFG9arm8dGk4sGUKLq96RFsZcWg4rwR",
+       "url": "https://sfxr.me/#8puhcUbKjKu85eHJ7Jq2U8z59wfcYxGecVwKpmnZmTPoSfSobNDQMaFvpMoMzLMo2PiHFDtCyoWmzGadMjHFgDfbPtNFG9arm8dGk4sGUKLq96RFsZcWg4rwR",
+       "params": {
+        "wave_type": 3,
+        "p_env_attack": 0.05,
+        "p_env_sustain": 0.15,
+        "p_env_punch": 0.5,
+        "p_env_decay": 0.32,
+        "p_base_freq": 0.5,
+        "p_freq_limit": 0,
+        "p_freq_ramp": -0.28,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 0.85,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "2_slam",
+     "why": "heavier and lower, with a metallic edge",
+     "kind": "designed",
+     "seed": 30889,
+     "length_ms": 316,
+     "gain_db": -2.1,
+     "peak_dbfs": -1,
+     "brightness_hz": 2426,
+     "notes": [
+      "peak-limited, 2.8 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "7BMHBGQSJX8gKhED6aAimCLD9vDtB61SWmD2JnzQkdBaFTp9qDdbkyMdBH5t7Ns9tEZPH58HUoPLpN9fRuXQmwbHLYNsvs1QaWnN4btAfERvfBLt4P1piUAGo",
+       "url": "https://sfxr.me/#7BMHBGQSJX8gKhED6aAimCLD9vDtB61SWmD2JnzQkdBaFTp9qDdbkyMdBH5t7Ns9tEZPH58HUoPLpN9fRuXQmwbHLYNsvs1QaWnN4btAfERvfBLt4P1piUAGo",
+       "params": {
+        "wave_type": 3,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.1,
+        "p_env_punch": 0.8,
+        "p_env_decay": 0.36,
+        "p_base_freq": 0.3,
+        "p_freq_limit": 0,
+        "p_freq_ramp": -0.2,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0.25,
+        "p_pha_ramp": -0.15,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "3_boom",
+     "why": "sfxr explosion generator, short",
+     "kind": "preset explosion",
+     "seed": 73348,
+     "length_ms": 333,
+     "gain_db": -2.4,
+     "peak_dbfs": -3.5,
+     "brightness_hz": 3960,
+     "notes": [],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "7BMHBGG1BKvma4WEKMsSuCptbgR57YfrnP19waGphSAmSUfyfZBWwoBm4VnhAKUN9eQbkxtSjC7G7FURdkYx7WBTcJC2oQQcoghdQdgZEvdZdU6GJTZkj8tdM",
+       "url": "https://sfxr.me/#7BMHBGG1BKvma4WEKMsSuCptbgR57YfrnP19waGphSAmSUfyfZBWwoBm4VnhAKUN9eQbkxtSjC7G7FURdkYx7WBTcJC2oQQcoghdQdgZEvdZdU6GJTZkj8tdM",
+       "params": {
+        "wave_type": 3,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.209504,
+        "p_env_punch": 0.287058,
+        "p_env_decay": 0.320625,
+        "p_base_freq": 0.80654,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0.510562,
+        "p_vib_speed": 0.192017,
+        "p_arp_mod": -0.695765,
+        "p_arp_speed": 0.845216,
+        "p_duty": 0,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0.31488,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "4_cleave_b",
+     "why": "variation of the cleave",
+     "kind": "variation of 1_cleave",
+     "seed": 12,
+     "length_ms": 309,
+     "gain_db": -1.7,
+     "peak_dbfs": -1.6,
+     "brightness_hz": 3228,
+     "notes": [],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "8rGRpwDfGxNa66mcjoa7Gwqfmtoy4xdHKyYdUP8gLqik7tFVwiHEzRPx5vNAdSftL9WeM2aTB9FiDWStLRnYvcKRkvAwjZtT8xxedZgkcHxbcnPAqAotFV1WC",
+       "url": "https://sfxr.me/#8rGRpwDfGxNa66mcjoa7Gwqfmtoy4xdHKyYdUP8gLqik7tFVwiHEzRPx5vNAdSftL9WeM2aTB9FiDWStLRnYvcKRkvAwjZtT8xxedZgkcHxbcnPAqAotFV1WC",
+       "params": {
+        "wave_type": 3,
+        "p_env_attack": 0.032644,
+        "p_env_sustain": 0.176044,
+        "p_env_punch": 0.549748,
+        "p_env_decay": 0.323137,
+        "p_base_freq": 0.5,
+        "p_freq_limit": 0,
+        "p_freq_ramp": -0.28,
+        "p_freq_dramp": 0.056008,
+        "p_vib_strength": 0.014013,
+        "p_vib_speed": 0.023647,
+        "p_arp_mod": -0.04978,
+        "p_arp_speed": 0,
+        "p_duty": 0,
+        "p_duty_ramp": -0.015423,
+        "p_repeat_speed": 0,
+        "p_pha_offset": -0.011216,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 0.85,
+        "p_lpf_ramp": -0.011226,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": -0.042974
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "folder": "swing_light_1",
+   "sound_id": "sfx_projectile_fire",
+   "target_dba": -12.1,
+   "target_from": "shipped",
+   "takes": [
+    {
+     "name": "1_pew",
+     "why": "classic falling square shot",
+     "kind": "designed",
+     "seed": 81921,
+     "length_ms": 142,
+     "gain_db": 0.3,
+     "peak_dbfs": -3.4,
+     "brightness_hz": 2046,
+     "notes": [],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "11111BFZZ5fDa57xMFSvPAZz2TMBNbA4GYLnU3PqTgxfmUsYBRi6THoZHusjkNY9geSQiCYmkFFSFEFB4SwkdAjFFGdW3xwinVmEV3CE5AxfXkCE7ioWvQHD",
+       "url": "https://sfxr.me/#11111BFZZ5fDa57xMFSvPAZz2TMBNbA4GYLnU3PqTgxfmUsYBRi6THoZHusjkNY9geSQiCYmkFFSFEFB4SwkdAjFFGdW3xwinVmEV3CE5AxfXkCE7ioWvQHD",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.12,
+        "p_env_punch": 0.2,
+        "p_env_decay": 0.22,
+        "p_base_freq": 0.62,
+        "p_freq_limit": 0.2,
+        "p_freq_ramp": -0.3,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0.5,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0.2,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "2_poo",
+     "why": "softer triangle shot, less laser",
+     "kind": "designed",
+     "seed": 29602,
+     "length_ms": 132,
+     "gain_db": -0.3,
+     "peak_dbfs": -5.4,
+     "brightness_hz": 886,
+     "notes": [],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "34T6PkyDSCfwBcofhZabH3Rn1B7JMBVA5N232j5TQUZ3nk83pDqgPyRrrhXHjsGWwqdi7HixHdwwfaQj21W36BfCtX923HbmDDUzoudd7apLt7E4VzmqKgqxK",
+       "url": "https://sfxr.me/#34T6PkyDSCfwBcofhZabH3Rn1B7JMBVA5N232j5TQUZ3nk83pDqgPyRrrhXHjsGWwqdi7HixHdwwfaQj21W36BfCtX923HbmDDUzoudd7apLt7E4VzmqKgqxK",
+       "params": {
+        "wave_type": 1,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.1,
+        "p_env_punch": 0,
+        "p_env_decay": 0.22,
+        "p_base_freq": 0.55,
+        "p_freq_limit": 0,
+        "p_freq_ramp": -0.25,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "3_laser",
+     "why": "sfxr laser generator",
+     "kind": "preset laserShoot",
+     "seed": 24994,
+     "length_ms": 82,
+     "gain_db": -0.3,
+     "peak_dbfs": -5.2,
+     "brightness_hz": 1185,
+     "notes": [],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "34T6PksFfg9nvr6EYhMSxABz165DG5TZnBTTjGobeFPAsUJvGVx8qztcBz4F9wPjiFFmhK5gomVLFfXxb3NQrnLjQdsiVBHXNxiFdLxaWJXwKFvPJ5E6eWc9D",
+       "url": "https://sfxr.me/#34T6PksFfg9nvr6EYhMSxABz165DG5TZnBTTjGobeFPAsUJvGVx8qztcBz4F9wPjiFFmhK5gomVLFfXxb3NQrnLjQdsiVBHXNxiFdLxaWJXwKFvPJ5E6eWc9D",
+       "params": {
+        "wave_type": 1,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.125193,
+        "p_env_punch": 0,
+        "p_env_decay": 0.142697,
+        "p_base_freq": 0.591691,
+        "p_freq_limit": 0.228701,
+        "p_freq_ramp": -0.280062,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0.64011,
+        "p_duty_ramp": -0.042189,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0.116325,
+        "p_pha_ramp": -0.151347,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0.074749,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "4_laser_b",
+     "why": "sfxr laser generator, another roll",
+     "kind": "preset laserShoot",
+     "seed": 24996,
+     "length_ms": 157,
+     "gain_db": 0.3,
+     "peak_dbfs": -3.7,
+     "brightness_hz": 1205,
+     "notes": [],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "11111437mj5RdVdS1gBSyreG3Fgnratwb8KVXcHJmjTcbHH9MSGKMSPuuJ575PK16QERakN2hTFAk6mNM4d88kM7weE19iM7CeKpc6yPd4Sg9dsaLLibQb8B",
+       "url": "https://sfxr.me/#11111437mj5RdVdS1gBSyreG3Fgnratwb8KVXcHJmjTcbHH9MSGKMSPuuJ575PK16QERakN2hTFAk6mNM4d88kM7weE19iM7CeKpc6yPd4Sg9dsaLLibQb8B",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.256997,
+        "p_env_punch": 0.04905,
+        "p_env_decay": 0.357115,
+        "p_base_freq": 0.819184,
+        "p_freq_limit": 0.027238,
+        "p_freq_ramp": -0.441173,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0.163937,
+        "p_duty_ramp": 0.05616,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0.108004,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "folder": "hit_physical_0",
+   "sound_id": "sfx_hit_physical",
+   "target_dba": -13.6,
+   "target_from": "shipped",
+   "takes": [
+    {
+     "name": "1_thwack",
+     "why": "noise smack that drops to a thud",
+     "kind": "designed",
+     "seed": 98016,
+     "length_ms": 96,
+     "gain_db": -1.9,
+     "peak_dbfs": -1,
+     "brightness_hz": 2901,
+     "notes": [
+      "peak-limited, 1.9 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "7BMHBGQSJ3xdK4CzQVqWutHHYfWz53FbxCLHMHxEDTSfhbE7cPug8X5EyZNMw1Wu3a4hhLuiyZmMYrbk9T25x55uLF8FokFrMhS73nrT38dd2qFjiVcuzDDRq",
+       "url": "https://sfxr.me/#7BMHBGQSJ3xdK4CzQVqWutHHYfWz53FbxCLHMHxEDTSfhbE7cPug8X5EyZNMw1Wu3a4hhLuiyZmMYrbk9T25x55uLF8FokFrMhS73nrT38dd2qFjiVcuzDDRq",
+       "params": {
+        "wave_type": 3,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.05,
+        "p_env_punch": 0.6,
+        "p_env_decay": 0.2,
+        "p_base_freq": 0.4,
+        "p_freq_limit": 0,
+        "p_freq_ramp": -0.45,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "2_bop",
+     "why": "tonal 8-bit thump",
+     "kind": "designed",
+     "seed": 37006,
+     "length_ms": 65,
+     "gain_db": 3.7,
+     "peak_dbfs": -1,
+     "brightness_hz": 461,
+     "notes": [
+      "peak-limited, 3.4 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "11111BFZ5ucmHywEBG6U89zQwH3XgD3S3te42KVdukicjEMbgRpUqDEemEjRf4u7FnwW7fuSDa7TVwyNzMQ2Ck6fuaXWXQe4hoRowSNeYwrmiTiaS9NnP34j",
+       "url": "https://sfxr.me/#11111BFZ5ucmHywEBG6U89zQwH3XgD3S3te42KVdukicjEMbgRpUqDEemEjRf4u7FnwW7fuSDa7TVwyNzMQ2Ck6fuaXWXQe4hoRowSNeYwrmiTiaS9NnP34j",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.06,
+        "p_env_punch": 0.4,
+        "p_env_decay": 0.18,
+        "p_base_freq": 0.3,
+        "p_freq_limit": 0.1,
+        "p_freq_ramp": -0.42,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0.2,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "3_hurt",
+     "why": "sfxr hit generator",
+     "kind": "preset hitHurt",
+     "seed": 9407,
+     "length_ms": 112,
+     "gain_db": 2.9,
+     "peak_dbfs": -1,
+     "brightness_hz": 1155,
+     "notes": [
+      "peak-limited, 2.1 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "34T6PknqcS5QkRyrFymuHNuoy5p7xjk3QVWXQHvBbXUeX2ox1hHFZbBxoYujtedb878KEHVMWNUZq9e9QEf2ryaVVWfEEu3GCP6UYHEqWz1VinRzZScSD3rrK",
+       "url": "https://sfxr.me/#34T6PknqcS5QkRyrFymuHNuoy5p7xjk3QVWXQHvBbXUeX2ox1hHFZbBxoYujtedb878KEHVMWNUZq9e9QEf2ryaVVWfEEu3GCP6UYHEqWz1VinRzZScSD3rrK",
+       "params": {
+        "wave_type": 1,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.050362,
+        "p_env_punch": 0,
+        "p_env_decay": 0.216466,
+        "p_base_freq": 0.674235,
+        "p_freq_limit": 0,
+        "p_freq_ramp": -0.67426,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 1,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "4_hurt_b",
+     "why": "sfxr hit generator, another roll",
+     "kind": "preset hitHurt",
+     "seed": 9408,
+     "length_ms": 103,
+     "gain_db": 6,
+     "peak_dbfs": -1,
+     "brightness_hz": 586,
+     "notes": [
+      "peak-limited, 3.4 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "11111FVDCoiTxURaFg9jfXWq6mRA4Jy2yKD9XLcrQMWdrvBf9HeVwwUwjc9yLecivAArhb7eQB1uVpxGBgyiAKpeUJkQ1h5nyEFryGs3fFnKi17ALHNwHFRR",
+       "url": "https://sfxr.me/#11111FVDCoiTxURaFg9jfXWq6mRA4Jy2yKD9XLcrQMWdrvBf9HeVwwUwjc9yLecivAArhb7eQB1uVpxGBgyiAKpeUJkQ1h5nyEFryGs3fFnKi17ALHNwHFRR",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.061318,
+        "p_env_punch": 0,
+        "p_env_decay": 0.203771,
+        "p_base_freq": 0.540277,
+        "p_freq_limit": 0,
+        "p_freq_ramp": -0.693582,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0.483121,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "folder": "hit_fire_0",
+   "sound_id": "sfx_hit_fire",
+   "target_dba": -10.8,
+   "target_from": "shipped",
+   "takes": [
+    {
+     "name": "1_fwoosh",
+     "why": "bright burst that dulls like a flame puff",
+     "kind": "designed",
+     "seed": 36107,
+     "length_ms": 200,
+     "gain_db": 0.8,
+     "peak_dbfs": -1,
+     "brightness_hz": 3781,
+     "notes": [
+      "peak-limited, 1.9 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "7BMHBGQSJX8fmLSUpkrRynDTAZSZpWzNY8XWxqWyoJrQK5KgZzmsiyR3gJYPavJ8PUohb4i8Jg2RKmTFt4g6xqVn83WPUXBz6onKsyG1hUMAgCpdu5YVqtmtB",
+       "url": "https://sfxr.me/#7BMHBGQSJX8fmLSUpkrRynDTAZSZpWzNY8XWxqWyoJrQK5KgZzmsiyR3gJYPavJ8PUohb4i8Jg2RKmTFt4g6xqVn83WPUXBz6onKsyG1hUMAgCpdu5YVqtmtB",
+       "params": {
+        "wave_type": 3,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.1,
+        "p_env_punch": 0.3,
+        "p_env_decay": 0.28,
+        "p_base_freq": 0.55,
+        "p_freq_limit": 0,
+        "p_freq_ramp": -0.2,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 0.6,
+        "p_lpf_ramp": -0.3,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "2_flare",
+     "why": "ignition: noise that brightens upward",
+     "kind": "designed",
+     "seed": 74178,
+     "length_ms": 162,
+     "gain_db": 0.7,
+     "peak_dbfs": -1.8,
+     "brightness_hz": 4861,
+     "notes": [],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "8puhcUR9L3pttyvqDUfHeyBiHeEkLPw8wJg2U8iL7bNcUWqLqNfr8bU3BS943jiX9rtQ8o9JVWfnDLQfMbn2oSBDfWxRrYkwXeiwEq5Dr7qe465CAunxCniyu",
+       "url": "https://sfxr.me/#8puhcUR9L3pttyvqDUfHeyBiHeEkLPw8wJg2U8iL7bNcUWqLqNfr8bU3BS943jiX9rtQ8o9JVWfnDLQfMbn2oSBDfWxRrYkwXeiwEq5Dr7qe465CAunxCniyu",
+       "params": {
+        "wave_type": 3,
+        "p_env_attack": 0.05,
+        "p_env_sustain": 0.08,
+        "p_env_punch": 0.2,
+        "p_env_decay": 0.25,
+        "p_base_freq": 0.3,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0.3,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "3_fwoosh_b",
+     "why": "variation of the fwoosh",
+     "kind": "variation of 1_fwoosh",
+     "seed": 13,
+     "length_ms": 202,
+     "gain_db": -0.1,
+     "peak_dbfs": -1,
+     "brightness_hz": 3522,
+     "notes": [
+      "peak-limited, 2.1 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "8RtNeTx5CMDBdT4fxaLTn7qMB7MNMFn7SgL4s4XpRJ3zvy8aBu4AZYmDFX6HoV3vYRaaBUM61BzPmrvuaFYUR7TdRYzSRBTKB4DxE6h7tqbZnrHyf2gQJhmuR",
+       "url": "https://sfxr.me/#8RtNeTx5CMDBdT4fxaLTn7qMB7MNMFn7SgL4s4XpRJ3zvy8aBu4AZYmDFX6HoV3vYRaaBUM61BzPmrvuaFYUR7TdRYzSRBTKB4DxE6h7tqbZnrHyf2gQJhmuR",
+       "params": {
+        "wave_type": 3,
+        "p_env_attack": 0.025935,
+        "p_env_sustain": 0.1,
+        "p_env_punch": 0.286526,
+        "p_env_decay": 0.28,
+        "p_base_freq": 0.536012,
+        "p_freq_limit": 0,
+        "p_freq_ramp": -0.213477,
+        "p_freq_dramp": -0.027958,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": -0.035065,
+        "p_arp_speed": 0,
+        "p_duty": 0,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0.039912,
+        "p_pha_ramp": -0.037089,
+        "p_lpf_freq": 0.6,
+        "p_lpf_ramp": -0.340556,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "4_burst",
+     "why": "sfxr explosion generator, short",
+     "kind": "preset explosion",
+     "seed": 79712,
+     "length_ms": 127,
+     "gain_db": -0.9,
+     "peak_dbfs": -1,
+     "brightness_hz": 789,
+     "notes": [
+      "peak-limited, 0.2 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "7BMHBGHX9GUzoVqT2rWbpry5EuwRYE2kGoSRKi8XqJEcz9LTxAf4RZJ3BodxeEUEbs6tc6XMU43SZtvnx9TfSzYEbhvV5zDZ4V3C7L5wT7XE79h1pPmxSq1Gj",
+       "url": "https://sfxr.me/#7BMHBGHX9GUzoVqT2rWbpry5EuwRYE2kGoSRKi8XqJEcz9LTxAf4RZJ3BodxeEUEbs6tc6XMU43SZtvnx9TfSzYEbhvV5zDZ4V3C7L5wT7XE79h1pPmxSq1Gj",
+       "params": {
+        "wave_type": 3,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.196096,
+        "p_env_punch": 0.339727,
+        "p_env_decay": 0.131758,
+        "p_base_freq": 0.083442,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0.287854,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0.156356,
+        "p_vib_speed": 0.195031,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0.655587,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "folder": "hit_cryo_0",
+   "sound_id": "sfx_hit_cryo",
+   "target_dba": -5.7,
+   "target_from": "shipped",
+   "takes": [
+    {
+     "name": "1_tink",
+     "why": "glassy two-note tink",
+     "kind": "designed",
+     "seed": 36606,
+     "length_ms": 113,
+     "gain_db": 0.5,
+     "peak_dbfs": -1,
+     "brightness_hz": 5001,
+     "notes": [
+      "peak-limited, 9.3 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "11111mqKRconoSQLXKG2orK43z3AySgSNVHBMYwLr1UpfNRHixwZtv9PURL8JEVi7StctM32yLE2yQGxqZzfxRA6akyqHhwik63S3YUsK9beJRyckBTP3mq",
+       "url": "https://sfxr.me/#11111mqKRconoSQLXKG2orK43z3AySgSNVHBMYwLr1UpfNRHixwZtv9PURL8JEVi7StctM32yLE2yQGxqZzfxRA6akyqHhwik63S3YUsK9beJRyckBTP3mq",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.04,
+        "p_env_punch": 0.5,
+        "p_env_decay": 0.22,
+        "p_base_freq": 0.7696,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0.6086,
+        "p_arp_speed": 0.8,
+        "p_duty": 0.6,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0.3,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "2_chip",
+     "why": "ice chip: thin bright tsk",
+     "kind": "designed",
+     "seed": 14243,
+     "length_ms": 93,
+     "gain_db": 0.6,
+     "peak_dbfs": -1,
+     "brightness_hz": 12374,
+     "notes": [
+      "peak-limited, 15.2 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "7BMHBGL5s2mfENVYRtkdmo5kCNKYK3CcYstRatCCBNAns3RDy21SczvmJzhw6hC8TXSSLwxustvmWi6MJmCjut6NRpuMUQsj5GH1a2zgAWpKisi4hx63z5gdm",
+       "url": "https://sfxr.me/#7BMHBGL5s2mfENVYRtkdmo5kCNKYK3CcYstRatCCBNAns3RDy21SczvmJzhw6hC8TXSSLwxustvmWi6MJmCjut6NRpuMUQsj5GH1a2zgAWpKisi4hx63z5gdm",
+       "params": {
+        "wave_type": 3,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.03,
+        "p_env_punch": 0.6,
+        "p_env_decay": 0.2,
+        "p_base_freq": 0.85,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0.84,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "3_tink_b",
+     "why": "variation of the tink",
+     "kind": "variation of 1_tink",
+     "seed": 21,
+     "length_ms": 98,
+     "gain_db": 0.5,
+     "peak_dbfs": -1,
+     "brightness_hz": 4813,
+     "notes": [
+      "peak-limited, 9.7 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "11111mqKRconoSQEnhLNZeLesPx1ySdGrthRci1Sk2wLobginmg2FP2iGdrR43qAPvrgUdPo5iZrC7BDTxfV5eMog7sUQTeS8wStL7uvjxZ6b877rvsHPKJ",
+       "url": "https://sfxr.me/#11111mqKRconoSQEnhLNZeLesPx1ySdGrthRci1Sk2wLobginmg2FP2iGdrR43qAPvrgUdPo5iZrC7BDTxfV5eMog7sUQTeS8wStL7uvjxZ6b877rvsHPKJ",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.04,
+        "p_env_punch": 0.5,
+        "p_env_decay": 0.204008,
+        "p_base_freq": 0.7696,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0.045201,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0.602138,
+        "p_arp_speed": 0.814884,
+        "p_duty": 0.592529,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0.030453,
+        "p_pha_offset": -0.00343,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": -0.022015,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0.3,
+        "p_hpf_ramp": 0.034186
+       }
+      }
+     ]
+    },
+    {
+     "name": "4_glass",
+     "why": "softer triangle chime",
+     "kind": "designed",
+     "seed": 5169,
+     "length_ms": 155,
+     "gain_db": -0.1,
+     "peak_dbfs": -1,
+     "brightness_hz": 3098,
+     "notes": [
+      "peak-limited, 5.1 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "34T6PktrziJxt6NR3RDkptu3hd1xEooyR8oozdxUebW4A7ZFAnibrqC8ZP3eVYuHc1xUpWXx5ZVJdG3MAuRCaodkATeFxpnm6cvd1UYrHrrDWLfGvscqFBnGP",
+       "url": "https://sfxr.me/#34T6PktrziJxt6NR3RDkptu3hd1xEooyR8oozdxUebW4A7ZFAnibrqC8ZP3eVYuHc1xUpWXx5ZVJdG3MAuRCaodkATeFxpnm6cvd1UYrHrrDWLfGvscqFBnGP",
+       "params": {
+        "wave_type": 1,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.03,
+        "p_env_punch": 0.4,
+        "p_env_decay": 0.26,
+        "p_base_freq": 0.864,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0.4788,
+        "p_arp_speed": 0.75,
+        "p_duty": 0,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "folder": "hit_shock_0",
+   "sound_id": "sfx_hit_shock",
+   "target_dba": -12.6,
+   "target_from": "shipped",
+   "takes": [
+    {
+     "name": "1_bzzt",
+     "why": "buzzing saw with a fast warble",
+     "kind": "designed",
+     "seed": 36319,
+     "length_ms": 123,
+     "gain_db": -0.5,
+     "peak_dbfs": -1.8,
+     "brightness_hz": 2568,
+     "notes": [],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "34T6PktrziJySTEKaZh8x23L2XdAENiMjhRH4FYLck66tUVJ6YsB1QZUxjjBo3d154fCBcxG3meZySUjeYU96ptMFN7qdn4y2GQQNCKSa3WbxTcboGxK4k9Bu",
+       "url": "https://sfxr.me/#34T6PktrziJySTEKaZh8x23L2XdAENiMjhRH4FYLck66tUVJ6YsB1QZUxjjBo3d154fCBcxG3meZySUjeYU96ptMFN7qdn4y2GQQNCKSa3WbxTcboGxK4k9Bu",
+       "params": {
+        "wave_type": 1,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.12,
+        "p_env_punch": 0,
+        "p_env_decay": 0.2,
+        "p_base_freq": 0.55,
+        "p_freq_limit": 0,
+        "p_freq_ramp": -0.15,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0.6,
+        "p_vib_speed": 0.9,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 1,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0.35,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "2_zap",
+     "why": "stuttering zi-zi-zip",
+     "kind": "designed",
+     "seed": 53045,
+     "length_ms": 96,
+     "gain_db": 1.8,
+     "peak_dbfs": -4.1,
+     "brightness_hz": 3110,
+     "notes": [],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "11111Fc13SajJH62nKbZGWy3L9V1hufjLD9DB4cKee3rpWDPom78F4AJuvQqDTip91TejXDHn89Aii1CLy1pqH11Qt6RoAeVzX7E6ZGkQwNo1pwr7PDH5wu1",
+       "url": "https://sfxr.me/#11111Fc13SajJH62nKbZGWy3L9V1hufjLD9DB4cKee3rpWDPom78F4AJuvQqDTip91TejXDHn89Aii1CLy1pqH11Qt6RoAeVzX7E6ZGkQwNo1pwr7PDH5wu1",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.1,
+        "p_env_punch": 0,
+        "p_env_decay": 0.18,
+        "p_base_freq": 0.8,
+        "p_freq_limit": 0,
+        "p_freq_ramp": -0.4,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0.5,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0.75,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0.3,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "3_bzzt_b",
+     "why": "variation of the bzzt",
+     "kind": "variation of 1_bzzt",
+     "seed": 14,
+     "length_ms": 104,
+     "gain_db": 1.7,
+     "peak_dbfs": -1.9,
+     "brightness_hz": 1757,
+     "notes": [],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "425uce9stCoNJ7DWWDn189AszUt5xww8H8kwMZ7kWBXCCLSh4kSttdZusg9jQ565CXMeYmSFdUPkBgTdeJm44vTrYJG9Pkugd7S2QQGnz15o3X3r9Q4nfYh9u",
+       "url": "https://sfxr.me/#425uce9stCoNJ7DWWDn189AszUt5xww8H8kwMZ7kWBXCCLSh4kSttdZusg9jQ565CXMeYmSFdUPkBgTdeJm44vTrYJG9Pkugd7S2QQGnz15o3X3r9Q4nfYh9u",
+       "params": {
+        "wave_type": 1,
+        "p_env_attack": 0.028471,
+        "p_env_sustain": 0.071069,
+        "p_env_punch": 0,
+        "p_env_decay": 0.2,
+        "p_base_freq": 0.529124,
+        "p_freq_limit": 0,
+        "p_freq_ramp": -0.15,
+        "p_freq_dramp": -0.00802,
+        "p_vib_strength": 0.551071,
+        "p_vib_speed": 0.887603,
+        "p_arp_mod": 0.011191,
+        "p_arp_speed": 0,
+        "p_duty": 1,
+        "p_duty_ramp": -0.020183,
+        "p_repeat_speed": 0.039222,
+        "p_pha_offset": -0.02402,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 0.956798,
+        "p_lpf_ramp": -0.024464,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0.339224,
+        "p_hpf_ramp": 0.015017
+       }
+      }
+     ]
+    },
+    {
+     "name": "4_laser",
+     "why": "sfxr laser generator",
+     "kind": "preset laserShoot",
+     "seed": 47832,
+     "length_ms": 67,
+     "gain_db": 4.3,
+     "peak_dbfs": -1,
+     "brightness_hz": 1988,
+     "notes": [
+      "peak-limited, 1.7 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "11111FZ83H7ia2ysFjvdgCMGSA9X2uT4yizZ5jMeE3wBmYfLCMTMeNchgghgLQu76TcPUGVhkSs2uxod7EaxS38SsLkyjWcFHbXCbsN6mUhbnkeajfr87Dfu",
+       "url": "https://sfxr.me/#11111FZ83H7ia2ysFjvdgCMGSA9X2uT4yizZ5jMeE3wBmYfLCMTMeNchgghgLQu76TcPUGVhkSs2uxod7EaxS38SsLkyjWcFHbXCbsN6mUhbnkeajfr87Dfu",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.283408,
+        "p_env_punch": 0,
+        "p_env_decay": 0.003273,
+        "p_base_freq": 0.803977,
+        "p_freq_limit": 0.00727,
+        "p_freq_ramp": -0.601126,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0.483383,
+        "p_duty_ramp": 0.097371,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0.279853,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "folder": "hit_void_0",
+   "sound_id": "sfx_hit_void",
+   "target_dba": -13.6,
+   "target_from": "shipped",
+   "takes": [
+    {
+     "name": "1_woom",
+     "why": "soft triangle dive with a phasey edge",
+     "kind": "designed",
+     "seed": 83413,
+     "length_ms": 176,
+     "gain_db": 1.9,
+     "peak_dbfs": -1,
+     "brightness_hz": 285,
+     "notes": [
+      "peak-limited, 1.7 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "34T6PkyDSCfxrhPKVERtxS8iDu8UcRtSeyyntqWPK64fKSBoW1Cx37h1M5MMpAfqxcpVpJQr6grek77ooNGNq8vGEnohJps1LS3bZAy26v8cjF5BoUuvWUziB",
+       "url": "https://sfxr.me/#34T6PkyDSCfxrhPKVERtxS8iDu8UcRtSeyyntqWPK64fKSBoW1Cx37h1M5MMpAfqxcpVpJQr6grek77ooNGNq8vGEnohJps1LS3bZAy26v8cjF5BoUuvWUziB",
+       "params": {
+        "wave_type": 1,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.1,
+        "p_env_punch": 0.3,
+        "p_env_decay": 0.26,
+        "p_base_freq": 0.33,
+        "p_freq_limit": 0,
+        "p_freq_ramp": -0.28,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0.3,
+        "p_pha_ramp": 0.1,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "2_dark",
+     "why": "thin nasal tone that drops an octave and wobbles",
+     "kind": "designed",
+     "seed": 64584,
+     "length_ms": 164,
+     "gain_db": 4.8,
+     "peak_dbfs": -1,
+     "brightness_hz": 854,
+     "notes": [
+      "peak-limited, 0.2 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "11111Fc13SajJH62PbN2thBaZupo6t99N5s7FeECaTuECkiGEK9zD6b29F8h5nQNSB4UDahqKAJWPMK2sv68v3deHJhftT5CgAeZrWx1dBJ92BYPdbzuRsg3",
+       "url": "https://sfxr.me/#11111Fc13SajJH62PbN2thBaZupo6t99N5s7FeECaTuECkiGEK9zD6b29F8h5nQNSB4UDahqKAJWPMK2sv68v3deHJhftT5CgAeZrWx1dBJ92BYPdbzuRsg3",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.1,
+        "p_env_punch": 0,
+        "p_env_decay": 0.25,
+        "p_base_freq": 0.27,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0.25,
+        "p_vib_speed": 0.6,
+        "p_arp_mod": -0.3162,
+        "p_arp_speed": 0.7,
+        "p_duty": 0.75,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "3_woom_b",
+     "why": "variation of the woom",
+     "kind": "variation of 1_woom",
+     "seed": 15,
+     "length_ms": 133,
+     "gain_db": 1.3,
+     "peak_dbfs": -1,
+     "brightness_hz": 221,
+     "notes": [
+      "peak-limited, 4.6 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "365MtLNWmKGsXvA17ivAXkbbuURSnPMDaKwBfazX5pfYz6RduSntVfqWEzSo9nh8YrQSPkdcFvGYoDcMHjxdxF39o9ueHUo1pMkR5D17WQMg85fXEVxsEJzAw",
+       "url": "https://sfxr.me/#365MtLNWmKGsXvA17ivAXkbbuURSnPMDaKwBfazX5pfYz6RduSntVfqWEzSo9nh8YrQSPkdcFvGYoDcMHjxdxF39o9ueHUo1pMkR5D17WQMg85fXEVxsEJzAw",
+       "params": {
+        "wave_type": 1,
+        "p_env_attack": 0.022398,
+        "p_env_sustain": 0.115882,
+        "p_env_punch": 0.27144,
+        "p_env_decay": 0.211343,
+        "p_base_freq": 0.290866,
+        "p_freq_limit": 0,
+        "p_freq_ramp": -0.293829,
+        "p_freq_dramp": 0.00816,
+        "p_vib_strength": 0.043947,
+        "p_vib_speed": 0,
+        "p_arp_mod": -0.000743,
+        "p_arp_speed": 0,
+        "p_duty": 0,
+        "p_duty_ramp": 0.016853,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0.3,
+        "p_pha_ramp": 0.139245,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0.072516,
+        "p_hpf_ramp": -0.014473
+       }
+      }
+     ]
+    },
+    {
+     "name": "4_dark_b",
+     "why": "variation of the dark tone",
+     "kind": "variation of 2_dark",
+     "seed": 16,
+     "length_ms": 206,
+     "gain_db": 4.5,
+     "peak_dbfs": -1,
+     "brightness_hz": 595,
+     "notes": [
+      "peak-limited, 1.4 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "11111Fc13SajJH62p6iUAAotb3FX7h6A8s8KPzB9jB7LnfuAWm7iZ9ceTswKdCL8JkYeLjJVWMS5yYL1K4ncXtkEyViAgAyMHKsX8TUnhhiPPfDMrFm4Wsts",
+       "url": "https://sfxr.me/#11111Fc13SajJH62p6iUAAotb3FX7h6A8s8KPzB9jB7LnfuAWm7iZ9ceTswKdCL8JkYeLjJVWMS5yYL1K4ncXtkEyViAgAyMHKsX8TUnhhiPPfDMrFm4Wsts",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.1,
+        "p_env_punch": 0,
+        "p_env_decay": 0.284622,
+        "p_base_freq": 0.232838,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0.005292,
+        "p_freq_dramp": -0.011058,
+        "p_vib_strength": 0.25,
+        "p_vib_speed": 0.59547,
+        "p_arp_mod": -0.30435,
+        "p_arp_speed": 0.664371,
+        "p_duty": 0.781998,
+        "p_duty_ramp": 0.002863,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0.076938,
+        "p_pha_ramp": -0.033454,
+        "p_lpf_freq": 0.922109,
+        "p_lpf_ramp": -0.018151,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0.025866,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "folder": "crit",
+   "sound_id": "sfx_crit",
+   "target_dba": -7.7,
+   "target_from": "shipped",
+   "takes": [
+    {
+     "name": "1_ting",
+     "why": "bright blip that jumps an octave",
+     "kind": "designed",
+     "seed": 5586,
+     "length_ms": 161,
+     "gain_db": 0.3,
+     "peak_dbfs": -1,
+     "brightness_hz": 3659,
+     "notes": [
+      "peak-limited, 5.2 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "11111BFZ5ubeaLKrcvmdiYMi4az3YamYouqSpL6TPhLSzLkvPvhftYrEYUWyrfNEfkE97me3tKCnmpYqeJ85ZQPRyrV7HDpiuqSZmBd7VRK7dygajsD65mbm",
+       "url": "https://sfxr.me/#11111BFZ5ubeaLKrcvmdiYMi4az3YamYouqSpL6TPhLSzLkvPvhftYrEYUWyrfNEfkE97me3tKCnmpYqeJ85ZQPRyrV7HDpiuqSZmBd7VRK7dygajsD65mbm",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.06,
+        "p_env_punch": 0.45,
+        "p_env_decay": 0.26,
+        "p_base_freq": 0.6106,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0.7454,
+        "p_arp_speed": 0.78,
+        "p_duty": 0.5,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0.3,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "2_spark",
+     "why": "sharper saw spark, jumps a fifth",
+     "kind": "designed",
+     "seed": 23766,
+     "length_ms": 115,
+     "gain_db": -4.3,
+     "peak_dbfs": -1,
+     "brightness_hz": 3828,
+     "notes": [
+      "peak-limited, 8.9 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "34T6PkyDRjVtjLeLaoZgqdM4XPGghCbedrQ1UvbHWnihDjCFcrNuo1NJxB2ghMTwwWmAf5fDv5Mn84gzoHz6d2YFMFwC6UJ2MsF5CE6KgXW7qRRxcd1ruPFpK",
+       "url": "https://sfxr.me/#34T6PkyDRjVtjLeLaoZgqdM4XPGghCbedrQ1UvbHWnihDjCFcrNuo1NJxB2ghMTwwWmAf5fDv5Mn84gzoHz6d2YFMFwC6UJ2MsF5CE6KgXW7qRRxcd1ruPFpK",
+       "params": {
+        "wave_type": 1,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.05,
+        "p_env_punch": 0.5,
+        "p_env_decay": 0.22,
+        "p_base_freq": 0.6659,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0.6086,
+        "p_arp_speed": 0.8,
+        "p_duty": 1,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0.4,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "3_coin",
+     "why": "sfxr pickup generator",
+     "kind": "preset pickupCoin",
+     "seed": 27166,
+     "length_ms": 179,
+     "gain_db": -0.2,
+     "peak_dbfs": -1,
+     "brightness_hz": 1920,
+     "notes": [
+      "peak-limited, 1.6 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "34T6PkncXnUkMs7CGSLpVAE4bbNKNrT3y5HmGsmtjra75p19mcPcNnxPVQKaRaMhNFyV3PpvMbvSpkaN97Fjvs151NkfJqyckg2DcnHTnD1XYwFpETg5g7NsR",
+       "url": "https://sfxr.me/#34T6PkncXnUkMs7CGSLpVAE4bbNKNrT3y5HmGsmtjra75p19mcPcNnxPVQKaRaMhNFyV3PpvMbvSpkaN97Fjvs151NkfJqyckg2DcnHTnD1XYwFpETg5g7NsR",
+       "params": {
+        "wave_type": 1,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.081601,
+        "p_env_punch": 0.352816,
+        "p_env_decay": 0.268588,
+        "p_base_freq": 0.71326,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0.281413,
+        "p_arp_speed": 0.68766,
+        "p_duty": 0,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "4_coin_b",
+     "why": "sfxr pickup generator, another roll",
+     "kind": "preset pickupCoin",
+     "seed": 27168,
+     "length_ms": 117,
+     "gain_db": -0.6,
+     "peak_dbfs": -1,
+     "brightness_hz": 2583,
+     "notes": [
+      "peak-limited, 4.5 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "34T6Pkn4ffSAXYHaA3ese9oRGmZJ3C5Dop1wJuJw1gZJXuafdFZa9jwT8Fw8NEh6yc6AodiL3NsCmrchpTWgxBbbjjcmKKGVNdmrC8SzsHzvFt2t7R3U4qjgs",
+       "url": "https://sfxr.me/#34T6Pkn4ffSAXYHaA3ese9oRGmZJ3C5Dop1wJuJw1gZJXuafdFZa9jwT8Fw8NEh6yc6AodiL3NsCmrchpTWgxBbbjjcmKKGVNdmrC8SzsHzvFt2t7R3U4qjgs",
+       "params": {
+        "wave_type": 1,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.012232,
+        "p_env_punch": 0.466569,
+        "p_env_decay": 0.227184,
+        "p_base_freq": 0.836664,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "folder": "kill",
+   "sound_id": "sfx_kill",
+   "target_dba": -13.4,
+   "target_from": "shipped",
+   "takes": [
+    {
+     "name": "1_ding",
+     "why": "short rising two-note reward blip",
+     "kind": "designed",
+     "seed": 27310,
+     "length_ms": 96,
+     "gain_db": 1.9,
+     "peak_dbfs": -4.6,
+     "brightness_hz": 1778,
+     "notes": [],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "11111FbzaGZx6hQEmX4kzqBzpM8exS6WYEAesFd2i8uRde2r1LihpfNY1uqgVECGdbHuRdqtNohS79VCJ85Ya1tDdd3FKcdNuA5mBQ6HHFtQX6U2d8Dxcdfm",
+       "url": "https://sfxr.me/#11111FbzaGZx6hQEmX4kzqBzpM8exS6WYEAesFd2i8uRde2r1LihpfNY1uqgVECGdbHuRdqtNohS79VCJ85Ya1tDdd3FKcdNuA5mBQ6HHFtQX6U2d8Dxcdfm",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.05,
+        "p_env_punch": 0.3,
+        "p_env_decay": 0.2,
+        "p_base_freq": 0.4703,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0.5279,
+        "p_arp_speed": 0.72,
+        "p_duty": 0.5,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "2_pop",
+     "why": "noise pop, no pitch",
+     "kind": "designed",
+     "seed": 30376,
+     "length_ms": 139,
+     "gain_db": -3.3,
+     "peak_dbfs": -1,
+     "brightness_hz": 3941,
+     "notes": [
+      "peak-limited, 1.5 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "7BMHBGL5rZbeTAz2usieJPavBZ6qrPobwioEww2gkXur4CYqzVAPC5uDipxMyZWwwCcSnYpHZdFHrg7akYw7DSPfaSQT1ub96mDkL7AaPmCo9qvZQNEpVceZu",
+       "url": "https://sfxr.me/#7BMHBGL5rZbeTAz2usieJPavBZ6qrPobwioEww2gkXur4CYqzVAPC5uDipxMyZWwwCcSnYpHZdFHrg7akYw7DSPfaSQT1ub96mDkL7AaPmCo9qvZQNEpVceZu",
+       "params": {
+        "wave_type": 3,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.06,
+        "p_env_punch": 0.7,
+        "p_env_decay": 0.24,
+        "p_base_freq": 0.5,
+        "p_freq_limit": 0,
+        "p_freq_ramp": -0.4,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "3_ding_b",
+     "why": "variation of the ding",
+     "kind": "variation of 1_ding",
+     "seed": 17,
+     "length_ms": 103,
+     "gain_db": 1.5,
+     "peak_dbfs": -4.3,
+     "brightness_hz": 1313,
+     "notes": [],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "111117JHEdm6Sqt49FrxyRLTeMj4oAuoKTyJsHhyNY4Ez7ruUmW8eagCg1PF4NgXx3DuWQ7ipKauN9MEcYAVVn4t7zyZy9Dir2drYxeF9idZWLuupemgQUAY",
+       "url": "https://sfxr.me/#111117JHEdm6Sqt49FrxyRLTeMj4oAuoKTyJsHhyNY4Ez7ruUmW8eagCg1PF4NgXx3DuWQ7ipKauN9MEcYAVVn4t7zyZy9Dir2drYxeF9idZWLuupemgQUAY",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.073888,
+        "p_env_punch": 0.306066,
+        "p_env_decay": 0.2,
+        "p_base_freq": 0.400076,
+        "p_freq_limit": 0,
+        "p_freq_ramp": -0.051424,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0.543937,
+        "p_arp_speed": 0.72,
+        "p_duty": 0.447908,
+        "p_duty_ramp": -0.024324,
+        "p_repeat_speed": 0,
+        "p_pha_offset": -0.017928,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": -0.000683,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0.045009
+       }
+      }
+     ]
+    },
+    {
+     "name": "4_pop_b",
+     "why": "variation of the pop",
+     "kind": "variation of 2_pop",
+     "seed": 18,
+     "length_ms": 174,
+     "gain_db": 0.4,
+     "peak_dbfs": -3,
+     "brightness_hz": 2135,
+     "notes": [],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "89xtmrbmXS5YdyNP4fKBoHLzMkun8ZEZE1hgyZSm171KiRWTYu1yme4DLRHFbck6bht1BcYKdSCqcgP3fwd3aYYo4NAUwN5LrXUDLHbRaPdgULQh42ZqkgYFq",
+       "url": "https://sfxr.me/#89xtmrbmXS5YdyNP4fKBoHLzMkun8ZEZE1hgyZSm171KiRWTYu1yme4DLRHFbck6bht1BcYKdSCqcgP3fwd3aYYo4NAUwN5LrXUDLHbRaPdgULQh42ZqkgYFq",
+       "params": {
+        "wave_type": 3,
+        "p_env_attack": 0.044027,
+        "p_env_sustain": 0.018818,
+        "p_env_punch": 0.698729,
+        "p_env_decay": 0.273148,
+        "p_base_freq": 0.539208,
+        "p_freq_limit": 0,
+        "p_freq_ramp": -0.397372,
+        "p_freq_dramp": 0.001873,
+        "p_vib_strength": 0.004421,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0.024211,
+        "p_arp_speed": 0.021691,
+        "p_duty": 0.003221,
+        "p_duty_ramp": -0.029068,
+        "p_repeat_speed": 0,
+        "p_pha_offset": -0.035515,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 0.974731,
+        "p_lpf_ramp": -0.030145,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "folder": "death_enemy_normal_0",
+   "sound_id": "sfx_death_enemy_normal",
+   "target_dba": -10.5,
+   "target_from": "shipped",
+   "takes": [
+    {
+     "name": "1_crumble",
+     "why": "low crunchy noise falling apart",
+     "kind": "designed",
+     "seed": 16740,
+     "length_ms": 280,
+     "gain_db": -2.6,
+     "peak_dbfs": -1,
+     "brightness_hz": 2522,
+     "notes": [
+      "peak-limited, 0.2 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "7BMHBGL5s2mgM6HVPAnix18HMDh1sBZVid9s7gK2w6X2bdLd4JiPbkx538bVuQ3AZxBqL6o1UTGxhKXeFYANCsQigGR8eKqki1jLPU2CSVxGbj69K4xqR38qM",
+       "url": "https://sfxr.me/#7BMHBGL5s2mgM6HVPAnix18HMDh1sBZVid9s7gK2w6X2bdLd4JiPbkx538bVuQ3AZxBqL6o1UTGxhKXeFYANCsQigGR8eKqki1jLPU2CSVxGbj69K4xqR38qM",
+       "params": {
+        "wave_type": 3,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.12,
+        "p_env_punch": 0.5,
+        "p_env_decay": 0.33,
+        "p_base_freq": 0.25,
+        "p_freq_limit": 0,
+        "p_freq_ramp": -0.12,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "2_poof",
+     "why": "softer puff that fades dull",
+     "kind": "designed",
+     "seed": 23643,
+     "length_ms": 219,
+     "gain_db": -0.4,
+     "peak_dbfs": -1,
+     "brightness_hz": 3367,
+     "notes": [
+      "peak-limited, 3.6 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "7BMHBGAc9GHkJ78AKMuMKxYPm6BWj7bzjuEZiGw2SEemzTbCwJZgmZPPSuwL6migtwFKkGAefeYvgDqSZ1xZvfTNgKd2LGTdk9gXDJ6jS1UZqV7UsceqMn7U3",
+       "url": "https://sfxr.me/#7BMHBGAc9GHkJ78AKMuMKxYPm6BWj7bzjuEZiGw2SEemzTbCwJZgmZPPSuwL6migtwFKkGAefeYvgDqSZ1xZvfTNgKd2LGTdk9gXDJ6jS1UZqV7UsceqMn7U3",
+       "params": {
+        "wave_type": 3,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.08,
+        "p_env_punch": 0.3,
+        "p_env_decay": 0.3,
+        "p_base_freq": 0.6,
+        "p_freq_limit": 0,
+        "p_freq_ramp": -0.3,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 0.6,
+        "p_lpf_ramp": -0.3,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "3_boom",
+     "why": "sfxr explosion generator",
+     "kind": "preset explosion",
+     "seed": 49623,
+     "length_ms": 355,
+     "gain_db": -1.9,
+     "peak_dbfs": -1,
+     "brightness_hz": 5262,
+     "notes": [
+      "peak-limited, 0.1 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "7BMHBGBRiBCPqYv772sNkeeZQSo7c48TyY5GmUefBFfjtiwyFofaQcyd4j8GCVM5hNYRHfgiiSnnd63dcsa63fJu4DbdH5SLwYxYaKfTgoyUdWCVYCurgEgXZ",
+       "url": "https://sfxr.me/#7BMHBGBRiBCPqYv772sNkeeZQSo7c48TyY5GmUefBFfjtiwyFofaQcyd4j8GCVM5hNYRHfgiiSnnd63dcsa63fJu4DbdH5SLwYxYaKfTgoyUdWCVYCurgEgXZ",
+       "params": {
+        "wave_type": 3,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.133149,
+        "p_env_punch": 0.500031,
+        "p_env_decay": 0.372837,
+        "p_base_freq": 0.410762,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "4_boom_b",
+     "why": "sfxr explosion generator, another roll",
+     "kind": "preset explosion",
+     "seed": 49625,
+     "length_ms": 154,
+     "gain_db": -1.5,
+     "peak_dbfs": -1,
+     "brightness_hz": 338,
+     "notes": [
+      "peak-limited, 5.9 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "7BMHBGRPWwfdpXYqkKyNJpqhTyQqswjAiALxxD81VBb3YFEhCAU8YEzzkEwYMNK4MGvd45YbRRuenepZRwbQv5QXCJG7RcauBmoot5DMrBqvELtys2U3mHbsd",
+       "url": "https://sfxr.me/#7BMHBGRPWwfdpXYqkKyNJpqhTyQqswjAiALxxD81VBb3YFEhCAU8YEzzkEwYMNK4MGvd45YbRRuenepZRwbQv5QXCJG7RcauBmoot5DMrBqvELtys2U3mHbsd",
+       "params": {
+        "wave_type": 3,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.260062,
+        "p_env_punch": 0.457456,
+        "p_env_decay": 0.009306,
+        "p_base_freq": 0.057779,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0.106841,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "folder": "dash_generic",
+   "sound_id": "sfx_dash_generic",
+   "target_dba": -13.4,
+   "target_from": "shipped",
+   "takes": [
+    {
+     "name": "1_fwip",
+     "why": "noise sweeping up, a quick rush of air",
+     "kind": "designed",
+     "seed": 58826,
+     "length_ms": 197,
+     "gain_db": -1.4,
+     "peak_dbfs": -4.1,
+     "brightness_hz": 6607,
+     "notes": [],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "8pukgHeQDvYGPaionAkYENXQCbdRcoxU3Ln698auRgcFTN5E8R5nnTZVo2g2MdJdxW5KqYWjg4zVfya2vRk887poYXD3VrdMrksNwhpMbEEQKe1eEyYGp8qEf",
+       "url": "https://sfxr.me/#8pukgHeQDvYGPaionAkYENXQCbdRcoxU3Ln698auRgcFTN5E8R5nnTZVo2g2MdJdxW5KqYWjg4zVfya2vRk887poYXD3VrdMrksNwhpMbEEQKe1eEyYGp8qEf",
+       "params": {
+        "wave_type": 3,
+        "p_env_attack": 0.1,
+        "p_env_sustain": 0.12,
+        "p_env_punch": 0,
+        "p_env_decay": 0.25,
+        "p_base_freq": 0.3,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0.32,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0.27,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "2_bwip",
+     "why": "tonal rising hop",
+     "kind": "designed",
+     "seed": 51525,
+     "length_ms": 142,
+     "gain_db": 0.6,
+     "peak_dbfs": -6.5,
+     "brightness_hz": 1292,
+     "notes": [],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "11111BxF4fvgAgbzpXa3WaeTNvgn34hkDn3LUA6isTc2tLayGQE2y3k2uApiRwrEKocH924WVJMZW6PhH83c9xZhsfVodydQt49awoeEqun9XbieDaK91LQX",
+       "url": "https://sfxr.me/#11111BxF4fvgAgbzpXa3WaeTNvgn34hkDn3LUA6isTc2tLayGQE2y3k2uApiRwrEKocH924WVJMZW6PhH83c9xZhsfVodydQt49awoeEqun9XbieDaK91LQX",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.15,
+        "p_env_punch": 0,
+        "p_env_decay": 0.2,
+        "p_base_freq": 0.35,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0.22,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0.5,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "3_jump",
+     "why": "sfxr jump generator",
+     "kind": "preset jump",
+     "seed": 65195,
+     "length_ms": 191,
+     "gain_db": 0.5,
+     "peak_dbfs": -6.3,
+     "brightness_hz": 920,
+     "notes": [],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "11111Eyiw349E6mbYqPYuzA44SjfjzbLnqpJDRuDxtcyFLfWhKU2s7RBztkW9QiQe5kUiL4jdcDAjjFLqhmBKab9ZDv2rhyHbQYFcKPvvJYuZbnoW7sUmWvT",
+       "url": "https://sfxr.me/#11111Eyiw349E6mbYqPYuzA44SjfjzbLnqpJDRuDxtcyFLfWhKU2s7RBztkW9QiQe5kUiL4jdcDAjjFLqhmBKab9ZDv2rhyHbQYFcKPvvJYuZbnoW7sUmWvT",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.18167,
+        "p_env_punch": 0,
+        "p_env_decay": 0.226294,
+        "p_base_freq": 0.339078,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0.16706,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0.396408,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 0.627389,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "4_jump_b",
+     "why": "sfxr jump generator, another roll",
+     "kind": "preset jump",
+     "seed": 65196,
+     "length_ms": 225,
+     "gain_db": -2.7,
+     "peak_dbfs": -11.7,
+     "brightness_hz": 2493,
+     "notes": [],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "11111DWH773B5BLSZLZgTZWdEdj7RxdWV3USnudSNFzoKpHkMwyycm2dWDFTR4UDKDYaxHN6nYoSpJXXNCo3B64FMmnMjTkCt6SwHixdFmwU8qEPS1mQiQXZ",
+       "url": "https://sfxr.me/#11111DWH773B5BLSZLZgTZWdEdj7RxdWV3USnudSNFzoKpHkMwyycm2dWDFTR4UDKDYaxHN6nYoSpJXXNCo3B64FMmnMjTkCt6SwHixdFmwU8qEPS1mQiQXZ",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.180049,
+        "p_env_punch": 0,
+        "p_env_decay": 0.2583,
+        "p_base_freq": 0.571906,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0.210955,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0.22273,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "folder": "skill_offensive",
+   "sound_id": "sfx_skill_offensive",
+   "target_dba": -11,
+   "target_from": "shipped",
+   "takes": [
+    {
+     "name": "1_burst",
+     "why": "warbling saw blast that falls",
+     "kind": "designed",
+     "seed": 47391,
+     "length_ms": 368,
+     "gain_db": -4.5,
+     "peak_dbfs": -5.2,
+     "brightness_hz": 1797,
+     "notes": [],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "34T6PkyDRjVykaPJSyUEoTppQFwXQwYekvKDWfbThBBowATGwq7hDsXFEuFtJcuxLins2xmWZSH8mz9zcjKDis39NnEsT6VbJ1f7PR2updy6pWqqsLJ4bfUC7",
+       "url": "https://sfxr.me/#34T6PkyDRjVykaPJSyUEoTppQFwXQwYekvKDWfbThBBowATGwq7hDsXFEuFtJcuxLins2xmWZSH8mz9zcjKDis39NnEsT6VbJ1f7PR2updy6pWqqsLJ4bfUC7",
+       "params": {
+        "wave_type": 1,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.2,
+        "p_env_punch": 0.4,
+        "p_env_decay": 0.35,
+        "p_base_freq": 0.6,
+        "p_freq_limit": 0,
+        "p_freq_ramp": -0.2,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0.4,
+        "p_vib_speed": 0.7,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 1,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0.15,
+        "p_pha_ramp": -0.1,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "2_blast",
+     "why": "noise blast with a long dull tail",
+     "kind": "designed",
+     "seed": 23574,
+     "length_ms": 409,
+     "gain_db": -3.1,
+     "peak_dbfs": -1,
+     "brightness_hz": 3640,
+     "notes": [
+      "peak-limited, 0.8 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "7BMHBGLnYYMzbV8EajMhQXZbTtR5xXzsZNUy5W2VUZfi94EBqUSqPBsKYkcNPnmfPVQDMibQGYKZWfXXjXXThz36HgYXLRA63WJUsuQm9QYzCy2esCKJ8NPCK",
+       "url": "https://sfxr.me/#7BMHBGLnYYMzbV8EajMhQXZbTtR5xXzsZNUy5W2VUZfi94EBqUSqPBsKYkcNPnmfPVQDMibQGYKZWfXXjXXThz36HgYXLRA63WJUsuQm9QYzCy2esCKJ8NPCK",
+       "params": {
+        "wave_type": 3,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.15,
+        "p_env_punch": 0.7,
+        "p_env_decay": 0.4,
+        "p_base_freq": 0.45,
+        "p_freq_limit": 0,
+        "p_freq_ramp": -0.15,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 0.8,
+        "p_lpf_ramp": -0.2,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "3_laser",
+     "why": "sfxr laser generator, long",
+     "kind": "preset laserShoot",
+     "seed": 93155,
+     "length_ms": 456,
+     "gain_db": 0.1,
+     "peak_dbfs": -6.7,
+     "brightness_hz": 2043,
+     "notes": [],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "11111Hiy9HzDUekApLVFtdtWwZ2fFddbQJ6WitLfENtTPnY2vayDgu9QV8CXpzfP4vUQvBnsKwCK13nUhJbPZFhDM2utQcXksjEaYcuKxBCLWi8Z3JVyVF7D",
+       "url": "https://sfxr.me/#11111Hiy9HzDUekApLVFtdtWwZ2fFddbQJ6WitLfENtTPnY2vayDgu9QV8CXpzfP4vUQvBnsKwCK13nUhJbPZFhDM2utQcXksjEaYcuKxBCLWi8Z3JVyVF7D",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.223179,
+        "p_env_punch": 0,
+        "p_env_decay": 0.388708,
+        "p_base_freq": 0.671076,
+        "p_freq_limit": 0.279432,
+        "p_freq_ramp": -0.165309,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0.302179,
+        "p_duty_ramp": 0.006959,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0.090525,
+        "p_pha_ramp": -0.048735,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0.259206,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "4_boom",
+     "why": "sfxr explosion generator",
+     "kind": "preset explosion",
+     "seed": 38406,
+     "length_ms": 264,
+     "gain_db": -0.1,
+     "peak_dbfs": -1,
+     "brightness_hz": 6868,
+     "notes": [
+      "peak-limited, 0.4 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "7BMHBGSXGQmiuyyLc8HosdToYFqGh4s5sxjq576sPz167ENZ6cWuzrGZRaSfSG7xv85J9wz9kMgSQmkCjsFRFj386mBBtVi6QConKmVYSpuxCrnYe8nLouDMh",
+       "url": "https://sfxr.me/#7BMHBGSXGQmiuyyLc8HosdToYFqGh4s5sxjq576sPz167ENZ6cWuzrGZRaSfSG7xv85J9wz9kMgSQmkCjsFRFj386mBBtVi6QConKmVYSpuxCrnYe8nLouDMh",
+       "params": {
+        "wave_type": 3,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.216846,
+        "p_env_punch": 0.327079,
+        "p_env_decay": 0.263042,
+        "p_base_freq": 0.608369,
+        "p_freq_limit": 0,
+        "p_freq_ramp": -0.270358,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0.676349,
+        "p_vib_speed": 0.41822,
+        "p_arp_mod": 0.502753,
+        "p_arp_speed": 0.897328,
+        "p_duty": 0,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0.442455,
+        "p_pha_offset": 0.063489,
+        "p_pha_ramp": -0.12733,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "folder": "skill_buff",
+   "sound_id": "sfx_skill_buff",
+   "target_dba": -2.6,
+   "target_from": "shipped",
+   "takes": [
+    {
+     "name": "1_shimmer",
+     "why": "rising tone with a shimmer",
+     "kind": "designed",
+     "seed": 6294,
+     "length_ms": 505,
+     "gain_db": 7.1,
+     "peak_dbfs": -1,
+     "brightness_hz": 1318,
+     "notes": [
+      "peak-limited, 2.8 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "1111111UE2QmoXVekWhbop11GEz1rw8YSRLetGjwAvXmJ9wzPj2gwpBeihTYruu4tdsCCvZ5qLgNtX6ACe9T8gQ8LrFixHWqPsGKY22aqwjfyMyjP5oi6v3",
+       "url": "https://sfxr.me/#1111111UE2QmoXVekWhbop11GEz1rw8YSRLetGjwAvXmJ9wzPj2gwpBeihTYruu4tdsCCvZ5qLgNtX6ACe9T8gQ8LrFixHWqPsGKY22aqwjfyMyjP5oi6v3",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.25,
+        "p_env_punch": 0,
+        "p_env_decay": 0.4,
+        "p_base_freq": 0.3838,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0.15,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0.25,
+        "p_vib_speed": 0.55,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0.3,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "2_ward",
+     "why": "soft two-note chime, a ward snapping on",
+     "kind": "designed",
+     "seed": 88902,
+     "length_ms": 510,
+     "gain_db": 0.2,
+     "peak_dbfs": -1,
+     "brightness_hz": 1382,
+     "notes": [
+      "peak-limited, 5.2 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "34T6PkuZgDuJoZnqTBh4RKWNTtDyEdfgJD6YDCNijD2VdUyK9ehgUvvdC4q1cmxz1z8UHqwxvUGkG4EpNwKHsy8aN48QxFk48b7NJ88RkoKg7vWyArXVkShB5",
+       "url": "https://sfxr.me/#34T6PkuZgDuJoZnqTBh4RKWNTtDyEdfgJD6YDCNijD2VdUyK9ehgUvvdC4q1cmxz1z8UHqwxvUGkG4EpNwKHsy8aN48QxFk48b7NJ88RkoKg7vWyArXVkShB5",
+       "params": {
+        "wave_type": 1,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.15,
+        "p_env_punch": 0.3,
+        "p_env_decay": 0.45,
+        "p_base_freq": 0.5437,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0.1,
+        "p_vib_speed": 0.5,
+        "p_arp_mod": 0.6086,
+        "p_arp_speed": 0.6,
+        "p_duty": 0,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "3_power",
+     "why": "sfxr powerup generator",
+     "kind": "preset powerUp",
+     "seed": 21353,
+     "length_ms": 480,
+     "gain_db": 7.9,
+     "peak_dbfs": -1,
+     "brightness_hz": 1423,
+     "notes": [
+      "peak-limited, 1.1 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "11111Evd9mT4XFzeDSftPRjRfH7SmfRZp26rfkvxTq5TE6o6JaQxjxWtkBcNF9Novy91qo2H85sjaMUBFZx2EMcNEEmRE313HPYZfNbF17y6R5cP5Jd5icxw",
+       "url": "https://sfxr.me/#11111Evd9mT4XFzeDSftPRjRfH7SmfRZp26rfkvxTq5TE6o6JaQxjxWtkBcNF9Novy91qo2H85sjaMUBFZx2EMcNEEmRE313HPYZfNbF17y6R5cP5Jd5icxw",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.215117,
+        "p_env_punch": 0,
+        "p_env_decay": 0.406616,
+        "p_base_freq": 0.283717,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0.437083,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0.000758,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0.671037,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "4_power_b",
+     "why": "sfxr powerup generator, another roll",
+     "kind": "preset powerUp",
+     "seed": 21354,
+     "length_ms": 423,
+     "gain_db": 3.2,
+     "peak_dbfs": -1,
+     "brightness_hz": 1461,
+     "notes": [
+      "peak-limited, 4.4 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "34T6PkyN3cc8XMpBfN6sd6irRjYG99WUFW7EaRZJerD6iu71RMeEpJaT5QakGZeq5YFhHsZu6AUAcGdUjJbacjiGTAUPxq4tHBZtK1Ee8Co5FUbJN6381AUo1",
+       "url": "https://sfxr.me/#34T6PkyN3cc8XMpBfN6sd6irRjYG99WUFW7EaRZJerD6iu71RMeEpJaT5QakGZeq5YFhHsZu6AUAcGdUjJbacjiGTAUPxq4tHBZtK1Ee8Co5FUbJN6381AUo1",
+       "params": {
+        "wave_type": 1,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.394301,
+        "p_env_punch": 0,
+        "p_env_decay": 0.176482,
+        "p_base_freq": 0.3408,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0.224104,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 1,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0.419044,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "folder": "summon_arrive",
+   "sound_id": "sfx_summon_arrive",
+   "target_dba": -16.1,
+   "target_from": "shipped",
+   "takes": [
+    {
+     "name": "1_rise",
+     "why": "low growl that climbs and opens up",
+     "kind": "designed",
+     "seed": 61864,
+     "length_ms": 804,
+     "gain_db": -4.9,
+     "peak_dbfs": -1,
+     "brightness_hz": 1389,
+     "notes": [
+      "peak-limited, 4.6 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "34T9TuV7RDjMaqYB8LqERxaaJLkYptjGd3Cc9Z5h8Rfnb1cpiUeMAMSEM6r3iGUJJ8WEiDVJKdCZeeNbXzv1GV699xbWp6y96nSb4yyk3MP9AVs6GFCCUDVXM",
+       "url": "https://sfxr.me/#34T9TuV7RDjMaqYB8LqERxaaJLkYptjGd3Cc9Z5h8Rfnb1cpiUeMAMSEM6r3iGUJJ8WEiDVJKdCZeeNbXzv1GV699xbWp6y96nSb4yyk3MP9AVs6GFCCUDVXM",
+       "params": {
+        "wave_type": 1,
+        "p_env_attack": 0.25,
+        "p_env_sustain": 0.3,
+        "p_env_punch": 0,
+        "p_env_decay": 0.45,
+        "p_base_freq": 0.17,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0.12,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0.3,
+        "p_vib_speed": 0.45,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 1,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 0.45,
+        "p_lpf_ramp": 0.3,
+        "p_lpf_resonance": 0.4,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "2_thump_rise",
+     "why": "thump first, then a rising phasey tone",
+     "kind": "designed",
+     "seed": 51036,
+     "length_ms": 705,
+     "gain_db": -1.9,
+     "peak_dbfs": -1.6,
+     "brightness_hz": 544,
+     "notes": [],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "1111111UE45rK2S3j4VkaEKa63jaSeA8nKvkzw7wp5kETVJcML3zaVMSaoFGrZGMpTSufZ7AMYnpQrNJdUv9a61Epe1mY8ZeM2rTXgRCPCPvR1h6db5d5NF",
+       "url": "https://sfxr.me/#1111111UE45rK2S3j4VkaEKa63jaSeA8nKvkzw7wp5kETVJcML3zaVMSaoFGrZGMpTSufZ7AMYnpQrNJdUv9a61Epe1mY8ZeM2rTXgRCPCPvR1h6db5d5NF",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.25,
+        "p_env_punch": 0.6,
+        "p_env_decay": 0.5,
+        "p_base_freq": 0.2,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0.16,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0.7,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0.2,
+        "p_pha_ramp": 0.1,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "3_rise_b",
+     "why": "variation of the rise",
+     "kind": "variation of 1_rise",
+     "seed": 19,
+     "length_ms": 634,
+     "gain_db": -4.9,
+     "peak_dbfs": -1,
+     "brightness_hz": 1433,
+     "notes": [
+      "peak-limited, 4.5 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "34T9TuP2wdQEGPcGSC5cpBy2R1NUVTLJVE9uqoSXUi9Nttcp6aUA3fBZbgzY52PeYqso4QUeUiG9uEiZbrhJcxNeGeqL3p6eR1SUBpPeYBfEaYTCqe1TQEQpb",
+       "url": "https://sfxr.me/#34T9TuP2wdQEGPcGSC5cpBy2R1NUVTLJVE9uqoSXUi9Nttcp6aUA3fBZbgzY52PeYqso4QUeUiG9uEiZbrhJcxNeGeqL3p6eR1SUBpPeYBfEaYTCqe1TQEQpb",
+       "params": {
+        "wave_type": 1,
+        "p_env_attack": 0.25,
+        "p_env_sustain": 0.289789,
+        "p_env_punch": 0,
+        "p_env_decay": 0.364987,
+        "p_base_freq": 0.17,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0.12,
+        "p_freq_dramp": 0.036538,
+        "p_vib_strength": 0.346959,
+        "p_vib_speed": 0.482225,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0.044244,
+        "p_duty": 1,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0.017557,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 0.446917,
+        "p_lpf_ramp": 0.3,
+        "p_lpf_resonance": 0.423563,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0.010642
+       }
+      }
+     ]
+    },
+    {
+     "name": "4_thump_b",
+     "why": "variation of the thump-rise",
+     "kind": "variation of 2_thump_rise",
+     "seed": 20,
+     "length_ms": 676,
+     "gain_db": -1,
+     "peak_dbfs": -1,
+     "brightness_hz": 406,
+     "notes": [
+      "peak-limited, 1.5 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "12CMrSZ9PdKrN5wsVuHgbshnnPq2V6ncAUY7LySrTRzUuePU4thzkCW7zQQQN5e2W1z1wEHVkVwbq4irqCPDAtSPHKefzWT9kUHDzkXKa5C8LEJAgQJvWEjCLc",
+       "url": "https://sfxr.me/#12CMrSZ9PdKrN5wsVuHgbshnnPq2V6ncAUY7LySrTRzUuePU4thzkCW7zQQQN5e2W1z1wEHVkVwbq4irqCPDAtSPHKefzWT9kUHDzkXKa5C8LEJAgQJvWEjCLc",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0.031409,
+        "p_env_sustain": 0.221584,
+        "p_env_punch": 0.580998,
+        "p_env_decay": 0.5,
+        "p_base_freq": 0.1885,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0.138712,
+        "p_freq_dramp": -0.035771,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0.003562,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0.7,
+        "p_duty_ramp": 0.035754,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0.239259,
+        "p_pha_ramp": 0.177602,
+        "p_lpf_freq": 0.974228,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0.039801
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "folder": "pickup_xp_0",
+   "sound_id": "sfx_pickup_xp",
+   "target_dba": -2.9,
+   "target_from": "shipped",
+   "takes": [
+    {
+     "name": "1_tip",
+     "why": "tiny soft triangle blip, two notes",
+     "kind": "designed",
+     "seed": 80555,
+     "length_ms": 69,
+     "gain_db": 0.5,
+     "peak_dbfs": -1,
+     "brightness_hz": 1575,
+     "notes": [
+      "peak-limited, 10.1 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "34T6PkjPGUezwBufPvoAXQt4s8vEV18XVBa5SKDMqvimAjzk5hzD3UatSRfs3P8JodwAgNEqoA58nTfGyGeBATnUz8A1b6v8zWzzbxrJ2Fd69dQ9WaUT4b5wu",
+       "url": "https://sfxr.me/#34T6PkjPGUezwBufPvoAXQt4s8vEV18XVBa5SKDMqvimAjzk5hzD3UatSRfs3P8JodwAgNEqoA58nTfGyGeBATnUz8A1b6v8zWzzbxrJ2Fd69dQ9WaUT4b5wu",
+       "params": {
+        "wave_type": 1,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.04,
+        "p_env_punch": 0.3,
+        "p_env_decay": 0.17,
+        "p_base_freq": 0.6106,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0.6086,
+        "p_arp_speed": 0.77,
+        "p_duty": 0,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "2_blip",
+     "why": "single high square blip",
+     "kind": "designed",
+     "seed": 74322,
+     "length_ms": 46,
+     "gain_db": 5.5,
+     "peak_dbfs": -1,
+     "brightness_hz": 3048,
+     "notes": [
+      "peak-limited, 10.3 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "11111BFZZ5aCLQJUEepgkN4xgopAaJ57azytzyCcicZgpCBLjX9sqPT4BWndqV12sXyQchU4x3aPMBW9s98W14z1zCzY22QhrBbpo5z3dbFbLDj1TNPTg4ym",
+       "url": "https://sfxr.me/#11111BFZZ5aCLQJUEepgkN4xgopAaJ57azytzyCcicZgpCBLjX9sqPT4BWndqV12sXyQchU4x3aPMBW9s98W14z1zCzY22QhrBbpo5z3dbFbLDj1TNPTg4ym",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.03,
+        "p_env_punch": 0,
+        "p_env_decay": 0.14,
+        "p_base_freq": 0.6659,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0.5,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0.3,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "3_coin",
+     "why": "sfxr pickup generator, very short",
+     "kind": "preset pickupCoin",
+     "seed": 83601,
+     "length_ms": 79,
+     "gain_db": 0.8,
+     "peak_dbfs": -1,
+     "brightness_hz": 2839,
+     "notes": [
+      "peak-limited, 9.4 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "34T6PksxSLrksuQtWirVBVUut5E82AjgcZYSA78Xd8a7rs5ckXKy8JGCqnTdgwqAFHb3ZYW4ZMokxoXWRZvcjyaJ2cvSCaLtJPmSkm2e5mAGfeqKt8FeH6YMu",
+       "url": "https://sfxr.me/#34T6PksxSLrksuQtWirVBVUut5E82AjgcZYSA78Xd8a7rs5ckXKy8JGCqnTdgwqAFHb3ZYW4ZMokxoXWRZvcjyaJ2cvSCaLtJPmSkm2e5mAGfeqKt8FeH6YMu",
+       "params": {
+        "wave_type": 1,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.020148,
+        "p_env_punch": 0.331326,
+        "p_env_decay": 0.18579,
+        "p_base_freq": 0.876772,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0.292636,
+        "p_arp_speed": 0.627371,
+        "p_duty": 0,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "4_select",
+     "why": "sfxr blip generator",
+     "kind": "preset blipSelect",
+     "seed": 19038,
+     "length_ms": 91,
+     "gain_db": 5.5,
+     "peak_dbfs": -1,
+     "brightness_hz": 872,
+     "notes": [
+      "peak-limited, 6.2 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "11111BSiM6FG83Xi86jVGAwm242zxmDZomC9ucRZqz8dfwsF2S4FAmt84NdNAVrNKSL1zuN1UH1r4ZaeCwFXR9L2qKzaCwvQ5JGiQKv8fqezzQmnQUU2X8rB",
+       "url": "https://sfxr.me/#11111BSiM6FG83Xi86jVGAwm242zxmDZomC9ucRZqz8dfwsF2S4FAmt84NdNAVrNKSL1zuN1UH1r4ZaeCwFXR9L2qKzaCwvQ5JGiQKv8fqezzQmnQUU2X8rB",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.184042,
+        "p_env_punch": 0,
+        "p_env_decay": 0.079296,
+        "p_base_freq": 0.326626,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0.35096,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0.1,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "folder": "pickup_currency_0",
+   "sound_id": "sfx_pickup_currency",
+   "target_dba": -4.1,
+   "target_from": "shipped",
+   "takes": [
+    {
+     "name": "1_coin",
+     "why": "two-note coin ring with a long tail",
+     "kind": "designed",
+     "seed": 31554,
+     "length_ms": 289,
+     "gain_db": 3.7,
+     "peak_dbfs": -1,
+     "brightness_hz": 2792,
+     "notes": [
+      "peak-limited, 4.1 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "111113svfEfLtbeuTX6EHXZYLJzVWwijatHqY5vTBgVi9C32L4EEDWq9iUKvMusFBhp1TA9ofZhxK527kNZfNYucGU8ytVfQ3vpB5JsUQU7vVAMseqJhLsQj",
+       "url": "https://sfxr.me/#111113svfEfLtbeuTX6EHXZYLJzVWwijatHqY5vTBgVi9C32L4EEDWq9iUKvMusFBhp1TA9ofZhxK527kNZfNYucGU8ytVfQ3vpB5JsUQU7vVAMseqJhLsQj",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.07,
+        "p_env_punch": 0.45,
+        "p_env_decay": 0.35,
+        "p_base_freq": 0.5437,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0.6086,
+        "p_arp_speed": 0.68,
+        "p_duty": 0.5,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "2_chime",
+     "why": "softer triangle chime, octave jump",
+     "kind": "designed",
+     "seed": 6316,
+     "length_ms": 302,
+     "gain_db": 0.3,
+     "peak_dbfs": -1,
+     "brightness_hz": 2201,
+     "notes": [
+      "peak-limited, 5.1 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "34T6PktrzF8xfFednenZ7DfRpigg5hdMEWh48stDYVq5oaVSvrph34EB6KAATCrHWgnfwgMUP5mLE8S9k8UuEZPC2EmkTwLvvsFDgKrJx9BusfmX3LrmoUBAw",
+       "url": "https://sfxr.me/#34T6PktrzF8xfFednenZ7DfRpigg5hdMEWh48stDYVq5oaVSvrph34EB6KAATCrHWgnfwgMUP5mLE8S9k8UuEZPC2EmkTwLvvsFDgKrJx9BusfmX3LrmoUBAw",
+       "params": {
+        "wave_type": 1,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.06,
+        "p_env_punch": 0.3,
+        "p_env_decay": 0.36,
+        "p_base_freq": 0.6106,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0.7454,
+        "p_arp_speed": 0.7,
+        "p_duty": 0,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "3_pickup",
+     "why": "sfxr pickup generator",
+     "kind": "preset pickupCoin",
+     "seed": 46121,
+     "length_ms": 245,
+     "gain_db": -2.3,
+     "peak_dbfs": -1,
+     "brightness_hz": 956,
+     "notes": [
+      "peak-limited, 9.4 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "34T6Pkk1cWdu6frfE7suFHbuQf97Yvye6gS8UQstLTw6Pna3V234bLTCiuhLkUM96B669Rgdn5g4wPiy2ke6TrmNCYUR4knGT4rJEGyrxBbJNDAuoDKBstGY7",
+       "url": "https://sfxr.me/#34T6Pkk1cWdu6frfE7suFHbuQf97Yvye6gS8UQstLTw6Pna3V234bLTCiuhLkUM96B669Rgdn5g4wPiy2ke6TrmNCYUR4knGT4rJEGyrxBbJNDAuoDKBstGY7",
+       "params": {
+        "wave_type": 1,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.02803,
+        "p_env_punch": 0.571334,
+        "p_env_decay": 0.327442,
+        "p_base_freq": 0.504666,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "4_pickup_b",
+     "why": "sfxr pickup generator, another roll",
+     "kind": "preset pickupCoin",
+     "seed": 46124,
+     "length_ms": 178,
+     "gain_db": -0.6,
+     "peak_dbfs": -1,
+     "brightness_hz": 1242,
+     "notes": [
+      "peak-limited, 6.3 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "34T6Pkpo8ABuXSWhhFYfHS24JuthSKDVUhzLdi5SmjbhUZMCVNcoNAtJP1qNLnnfY7HjaTy65szbP1FvSfFySTBjrX8MVmucbC3bLRXHEA6Lv5rBc3n5tGkfH",
+       "url": "https://sfxr.me/#34T6Pkpo8ABuXSWhhFYfHS24JuthSKDVUhzLdi5SmjbhUZMCVNcoNAtJP1qNLnnfY7HjaTy65szbP1FvSfFySTBjrX8MVmucbC3bLRXHEA6Lv5rBc3n5tGkfH",
+       "params": {
+        "wave_type": 1,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.082387,
+        "p_env_punch": 0.386569,
+        "p_env_decay": 0.267621,
+        "p_base_freq": 0.558449,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0.59739,
+        "p_arp_speed": 0.590064,
+        "p_duty": 0,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "folder": "level_up",
+   "sound_id": "sfx_level_up",
+   "target_dba": -3.5,
+   "target_from": "shipped",
+   "takes": [
+    {
+     "name": "1_fanfare",
+     "why": "four rising notes, the last one held",
+     "kind": "designed",
+     "seed": 29097,
+     "length_ms": 742,
+     "gain_db": 3.1,
+     "peak_dbfs": -1,
+     "brightness_hz": 1896,
+     "notes": [
+      "peak-limited, 3.6 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "11111E8ToxZcvxQcPPhbARP4HebCjF3R79iWYKLzrmqBoTp9BtpaZN8B2gSBaNk1DU1bozoNbYJ3RX6u5XpBTKo6e89VZdxYceMdFMhPaJwUETRVtdyKpyd1",
+       "url": "https://sfxr.me/#11111E8ToxZcvxQcPPhbARP4HebCjF3R79iWYKLzrmqBoTp9BtpaZN8B2gSBaNk1DU1bozoNbYJ3RX6u5XpBTKo6e89VZdxYceMdFMhPaJwUETRVtdyKpyd1",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.13,
+        "p_env_punch": 0,
+        "p_env_decay": 0.13,
+        "p_base_freq": 0.3838,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0.5,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      },
+      {
+       "at_ms": 75,
+       "code": "11111E8ToxZcvxQcPPhbAQGBVuhVqiWYRzPBQmukGUd8GxAe7dpymGGHh5WsdZBAm5QYxnH5wNZC5hiwTx4QhJDSEKmKBuqCWTME6Jp6aixrRKmoFYm35QN3",
+       "url": "https://sfxr.me/#11111E8ToxZcvxQcPPhbAQGBVuhVqiWYRzPBQmukGUd8GxAe7dpymGGHh5WsdZBAm5QYxnH5wNZC5hiwTx4QhJDSEKmKBuqCWTME6Jp6aixrRKmoFYm35QN3",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.13,
+        "p_env_punch": 0,
+        "p_env_decay": 0.13,
+        "p_base_freq": 0.4311,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0.5,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      },
+      {
+       "at_ms": 150,
+       "code": "11111E8ToxZcvxQcPPhbAQMNviCJjaFegJ1YQzPJVHDQt1deh26L4T2aHLwS1BxdzEj8dQW43vnVYCb4KRyuxttbVPSYYhrPqtkE9fqAGsMr3U5yaqFAEchm",
+       "url": "https://sfxr.me/#11111E8ToxZcvxQcPPhbAQMNviCJjaFegJ1YQzPJVHDQt1deh26L4T2aHLwS1BxdzEj8dQW43vnVYCb4KRyuxttbVPSYYhrPqtkE9fqAGsMr3U5yaqFAEchm",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.13,
+        "p_env_punch": 0,
+        "p_env_decay": 0.13,
+        "p_base_freq": 0.4703,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0.5,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      },
+      {
+       "at_ms": 225,
+       "code": "11111mqKRhGfgXABkCrAqELVNKwsQjdQZe2xzRq7DsXstKonsm19YjfJMKcVLV4kvXMrNxAMayj6dmcpMXgqJdaLmE8Loy4bXFjMDbnNF9gBZtc3muBeq6w",
+       "url": "https://sfxr.me/#11111mqKRhGfgXABkCrAqELVNKwsQjdQZe2xzRq7DsXstKonsm19YjfJMKcVLV4kvXMrNxAMayj6dmcpMXgqJdaLmE8Loy4bXFjMDbnNF9gBZtc3muBeq6w",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.16,
+        "p_env_punch": 0.3,
+        "p_env_decay": 0.45,
+        "p_base_freq": 0.5437,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0.12,
+        "p_vib_speed": 0.5,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0.5,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "2_rise",
+     "why": "retriggered rising chirps, the classic power-up",
+     "kind": "designed",
+     "seed": 4602,
+     "length_ms": 567,
+     "gain_db": 4,
+     "peak_dbfs": -1,
+     "brightness_hz": 1290,
+     "notes": [
+      "peak-limited, 3.0 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "11111BxFXr1MtDKd9wXsBsW65HwGmc3cybrzcvyUx7ozgr8hiuauUifEoYuxxXbjooETGg4dxu97qx9iijkMixpoBtg1bCCk8do2tmvWMPceeBt5GJE3oFbd",
+       "url": "https://sfxr.me/#11111BxFXr1MtDKd9wXsBsW65HwGmc3cybrzcvyUx7ozgr8hiuauUifEoYuxxXbjooETGg4dxu97qx9iijkMixpoBtg1bCCk8do2tmvWMPceeBt5GJE3oFbd",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.3,
+        "p_env_punch": 0.2,
+        "p_env_decay": 0.4,
+        "p_base_freq": 0.3838,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0.2,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0.4,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0.6,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "3_power",
+     "why": "sfxr powerup generator",
+     "kind": "preset powerUp",
+     "seed": 62670,
+     "length_ms": 445,
+     "gain_db": 6.4,
+     "peak_dbfs": -1,
+     "brightness_hz": 1813,
+     "notes": [
+      "peak-limited, 3.5 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "11111HBPHfafKf9mezpLjuND5qeo522uiQy2aCpzoviyH5KkvgboifSUF3TTyXK9QJeHCkGNkax5QzX6nRnaSAXj7KkG58vXbXizTgb4DJ6MTs9ds7Gs6c6j",
+       "url": "https://sfxr.me/#11111HBPHfafKf9mezpLjuND5qeo522uiQy2aCpzoviyH5KkvgboifSUF3TTyXK9QJeHCkGNkax5QzX6nRnaSAXj7KkG58vXbXizTgb4DJ6MTs9ds7Gs6c6j",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.013788,
+        "p_env_punch": 0,
+        "p_env_decay": 0.442739,
+        "p_base_freq": 0.462707,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0.149438,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0.539547,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0.710676,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "4_power_b",
+     "why": "sfxr powerup generator, another roll",
+     "kind": "preset powerUp",
+     "seed": 62671,
+     "length_ms": 468,
+     "gain_db": 3,
+     "peak_dbfs": -1,
+     "brightness_hz": 937,
+     "notes": [
+      "peak-limited, 7.0 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "34T6PkvSZzbFc9nX3kYBspikwg9YAAw3W3qeZkyFhDkoCaVVrQ7yc2wxiKQKek1B1yVSFjGbfiF4vdeXGFXfWSyy9PWeXmWjLYPNm6PCSwTAdsG13Y6gTwgiB",
+       "url": "https://sfxr.me/#34T6PkvSZzbFc9nX3kYBspikwg9YAAw3W3qeZkyFhDkoCaVVrQ7yc2wxiKQKek1B1yVSFjGbfiF4vdeXGFXfWSyy9PWeXmWjLYPNm6PCSwTAdsG13Y6gTwgiB",
+       "params": {
+        "wave_type": 1,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.204985,
+        "p_env_punch": 0,
+        "p_env_decay": 0.405238,
+        "p_base_freq": 0.267463,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0.168434,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0.277107,
+        "p_vib_speed": 0.212288,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 1,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "folder": "ui_click",
+   "sound_id": "sfx_ui_click",
+   "target_dba": -3.3,
+   "target_from": "shipped",
+   "takes": [
+    {
+     "name": "1_bip",
+     "why": "short square bip",
+     "kind": "designed",
+     "seed": 49124,
+     "length_ms": 45,
+     "gain_db": 6.7,
+     "peak_dbfs": -1,
+     "brightness_hz": 1624,
+     "notes": [
+      "peak-limited, 5.9 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "11111Fc13SajJH62jNe2jxe2UXMKVX12pExAPZUpw6t6fagAu6rt5y9r2FsirRqAZZNXx2QsQpdHSu1cftto2FbWCqcPziapGZos16m6RfnrJhTup6dF4f1H",
+       "url": "https://sfxr.me/#11111Fc13SajJH62jNe2jxe2UXMKVX12pExAPZUpw6t6fagAu6rt5y9r2FsirRqAZZNXx2QsQpdHSu1cftto2FbWCqcPziapGZos16m6RfnrJhTup6dF4f1H",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.1,
+        "p_env_punch": 0,
+        "p_env_decay": 0.1,
+        "p_base_freq": 0.4984,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0.3,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0.1,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "2_tick",
+     "why": "tiny noise tick, no pitch",
+     "kind": "designed",
+     "seed": 89463,
+     "length_ms": 15,
+     "gain_db": 6.3,
+     "peak_dbfs": -1,
+     "brightness_hz": 11934,
+     "notes": [
+      "peak-limited, 19.2 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "7BMHBGAc9GHfqEF56JDF8P26T35Az98H9QKFkr29pQfSuoTCFawdbPSJ2GjCrHYsVYg5z2xJDLkCf8HbmNdxxF8vHVcvLZtmquBrYcHhrgnE55NDzoJmUzdjM",
+       "url": "https://sfxr.me/#7BMHBGAc9GHfqEF56JDF8P26T35Az98H9QKFkr29pQfSuoTCFawdbPSJ2GjCrHYsVYg5z2xJDLkCf8HbmNdxxF8vHVcvLZtmquBrYcHhrgnE55NDzoJmUzdjM",
+       "params": {
+        "wave_type": 3,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.02,
+        "p_env_punch": 0,
+        "p_env_decay": 0.08,
+        "p_base_freq": 0.8,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0.8,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "3_select",
+     "why": "sfxr blip generator",
+     "kind": "preset blipSelect",
+     "seed": 4789,
+     "length_ms": 42,
+     "gain_db": 3.5,
+     "peak_dbfs": -1,
+     "brightness_hz": 2245,
+     "notes": [
+      "peak-limited, 6.0 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "34T6PkyupwmATPBQnmQHTk3m8GcaJa5QLhXbA5bgad3yXNe4aSqhVumutha1zNQgJoyLPAhg1fScEnQtCEyvxzmY2HJpZoP5kUWt92vvupkoNw3mRN9ub2xuu",
+       "url": "https://sfxr.me/#34T6PkyupwmATPBQnmQHTk3m8GcaJa5QLhXbA5bgad3yXNe4aSqhVumutha1zNQgJoyLPAhg1fScEnQtCEyvxzmY2HJpZoP5kUWt92vvupkoNw3mRN9ub2xuu",
+       "params": {
+        "wave_type": 1,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.136299,
+        "p_env_punch": 0,
+        "p_env_decay": 0.006031,
+        "p_base_freq": 0.543177,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 1,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0.1,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    },
+    {
+     "name": "4_select_b",
+     "why": "sfxr blip generator, another roll",
+     "kind": "preset blipSelect",
+     "seed": 4792,
+     "length_ms": 89,
+     "gain_db": 4.3,
+     "peak_dbfs": -1,
+     "brightness_hz": 391,
+     "notes": [
+      "peak-limited, 14.1 dB under target"
+     ],
+     "parts": [
+      {
+       "at_ms": 0,
+       "code": "11111GRT3yD8YjrJij2MD3xSizUhNKuDrCLAJ6LPvR18MeLBF2JcWKdb1vuYQBLXoxeBQSqdJGxrXnnxAqQ68N7yS3VsqQBQCnwcbq5Vep1Mzfkvujt1dtkP",
+       "url": "https://sfxr.me/#11111GRT3yD8YjrJij2MD3xSizUhNKuDrCLAJ6LPvR18MeLBF2JcWKdb1vuYQBLXoxeBQSqdJGxrXnnxAqQ68N7yS3VsqQBQCnwcbq5Vep1Mzfkvujt1dtkP",
+       "params": {
+        "wave_type": 0,
+        "p_env_attack": 0,
+        "p_env_sustain": 0.103161,
+        "p_env_punch": 0,
+        "p_env_decay": 0.168779,
+        "p_base_freq": 0.202316,
+        "p_freq_limit": 0,
+        "p_freq_ramp": 0,
+        "p_freq_dramp": 0,
+        "p_vib_strength": 0,
+        "p_vib_speed": 0,
+        "p_arp_mod": 0,
+        "p_arp_speed": 0,
+        "p_duty": 0.003779,
+        "p_duty_ramp": 0,
+        "p_repeat_speed": 0,
+        "p_pha_offset": 0,
+        "p_pha_ramp": 0,
+        "p_lpf_freq": 1,
+        "p_lpf_ramp": 0,
+        "p_lpf_resonance": 0,
+        "p_hpf_freq": 0.1,
+        "p_hpf_ramp": 0
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

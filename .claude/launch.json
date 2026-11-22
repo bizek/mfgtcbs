@@ -6,6 +6,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "8742"],
       "port": 8742
+    },
+    {
+      "name": "sfx-audition",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8743", "--directory", "E:/Audio/Sonniss/_audition"],
+      "port": 8743
     }
   ]
 }
